@@ -36,16 +36,16 @@ const HeroSection = () => {
               className="flex items-center gap-6 mb-2"
             >
               <div className="relative">
-                <div className="absolute -inset-3 bg-pub-amber/15 rounded-xl blur-xl" />
-                <img src={logoPub} alt="Logo PUB" className="relative h-36 w-auto object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.4)] brightness-110" />
-              </div>
-              <div className="relative -ml-4">
-                <div className="absolute -inset-3 bg-pub-amber/15 rounded-xl blur-xl" />
-                <img src={logoAspekindo} alt="Logo ASPEKINDO" className="relative h-24 w-auto object-contain mix-blend-screen brightness-125 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+                <div className="absolute -inset-2 bg-white/90 rounded-lg" />
+                <img src={logoPub} alt="Logo PUB" className="relative h-20 w-auto object-contain p-1" />
               </div>
               <div className="relative">
-                <div className="absolute -inset-3 bg-pub-amber/15 rounded-xl blur-xl" />
-                <img src={logoLsbuki} alt="Logo LSBUKI" className="relative h-24 w-auto object-contain mix-blend-screen brightness-125 drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]" />
+                <div className="absolute -inset-2 bg-white/90 rounded-lg" />
+                <img src={logoAspekindo} alt="Logo ASPEKINDO" className="relative h-20 w-auto object-contain p-1" />
+              </div>
+              <div className="relative">
+                <div className="absolute -inset-2 bg-white/90 rounded-lg" />
+                <img src={logoLsbuki} alt="Logo LSBUKI" className="relative h-20 w-auto object-contain p-1" />
               </div>
             </motion.div>
 
