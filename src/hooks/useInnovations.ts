@@ -144,3 +144,45 @@ export function useUpdateProposalStatus() {
     },
   });
 }
+
+export interface ProposalLog {
+  id: string;
+  proposal_id: string;
+  old_status: string;
+  new_status: string;
+  notes: string;
+  changed_by: string | null;
+  created_at: string;
+}
+
+export function useProposalDetail(id: string | undefined) {
+  return useQuery({
+    queryKey: ["innovation-proposal-detail", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("innovation_proposals" as any)
+        .select("*, innovation_categories(*)")
+        .eq("id", id!)
+        .single();
+      if (error) throw error;
+      return data as unknown as InnovationProposal;
+    },
+    enabled: !!id,
+  });
+}
+
+export function useProposalLogs(proposalId: string | undefined) {
+  return useQuery({
+    queryKey: ["innovation-proposal-logs", proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("innovation_proposal_logs" as any)
+        .select("*")
+        .eq("proposal_id", proposalId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as unknown as ProposalLog[];
+    },
+    enabled: !!proposalId,
+  });
+}

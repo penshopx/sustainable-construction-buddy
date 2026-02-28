@@ -384,7 +384,7 @@ export default function Innovation() {
             ) : (
               <div className="space-y-4">
                 {proposals.map((p) => (
-                  <Card key={p.id}>
+                  <Card key={p.id} className="cursor-pointer hover:shadow-card-hover transition-all" onClick={() => navigate(`/inovasi/proposal/${p.id}`)}>
                     <CardContent className="flex items-start justify-between gap-4 pt-6">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">

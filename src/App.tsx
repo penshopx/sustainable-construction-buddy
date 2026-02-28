@@ -33,6 +33,7 @@ import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
 import Innovation from "./pages/Innovation";
 import AdminInnovationReview from "./pages/admin/AdminInnovationReview";
+import ProposalDetail from "./pages/ProposalDetail";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ const App = () => (
             <Route path="/admin/pancek" element={<DashboardLayout><AdminGuard><AdminPancekVerification /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/inovasi" element={<DashboardLayout><AdminGuard><AdminInnovationReview /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<Innovation />} />
+            <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

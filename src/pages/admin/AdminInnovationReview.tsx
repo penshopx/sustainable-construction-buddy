@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function AdminInnovationReview() {
+  const navigate = useNavigate();
   const { data: proposals = [], isLoading } = useAdminInnovationProposals();
   const updateStatus = useUpdateProposalStatus();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export default function AdminInnovationReview() {
             <CardContent className="flex flex-col sm:flex-row items-start justify-between gap-4 pt-6">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 className="font-semibold truncate">{p.title}</h3>
+                  <h3 className="font-semibold truncate cursor-pointer hover:text-accent transition-colors" onClick={() => navigate(`/inovasi/proposal/${p.id}`)}>{p.title}</h3>
                   <Badge className={statusColors[p.status] || ""}>{statusLabels[p.status] || p.status}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>
