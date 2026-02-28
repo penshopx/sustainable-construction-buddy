@@ -19,6 +19,7 @@ import { useParticipants, useUpdateParticipant, useDeleteParticipant } from "@/h
 import { useAdmin } from "@/hooks/useAdmin";
 import { AddParticipantDialog } from "@/components/participants/AddParticipantDialog";
 import { DetailParticipantImport } from "@/components/participants/DetailParticipantImport";
+import { EditParticipantDialog } from "@/components/participants/EditParticipantDialog";
 import { GalleryUploadDialog } from "@/components/gallery/GalleryUploadDialog";
 import { AddUpdateDialog } from "@/components/programs/AddUpdateDialog";
 import { EditUpdateDialog } from "@/components/programs/EditUpdateDialog";
@@ -220,9 +221,12 @@ export default function ProgramDetail() {
                         </TableCell>
                         {isAdmin && (
                           <TableCell>
-                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Hapus peserta?")) delParticipant.mutate(p.id); }}>
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
+                            <div className="flex gap-0.5">
+                              <EditParticipantDialog participant={p} />
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Hapus peserta?")) delParticipant.mutate(p.id); }}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>
