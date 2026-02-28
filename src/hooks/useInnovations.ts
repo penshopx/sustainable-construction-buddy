@@ -101,3 +101,34 @@ export function useDeleteProposal() {
     },
   });
 }
+
+export function useAdminInnovationProposals() {
+  return useQuery({
+    queryKey: ["admin-innovation-proposals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("innovation_proposals" as any)
+        .select("*, innovation_categories(*)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as unknown as InnovationProposal[];
+    },
+  });
+}
+
+export function useUpdateProposalStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, status, admin_notes }: { id: string; status: string; admin_notes: string }) => {
+      const { error } = await supabase
+        .from("innovation_proposals" as any)
+        .update({ status, admin_notes, updated_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-innovation-proposals"] });
+      queryClient.invalidateQueries({ queryKey: ["innovation-proposals"] });
+    },
+  });
+}
