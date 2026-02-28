@@ -134,6 +134,20 @@ export function useCreateProgramUpdate() {
   });
 }
 
+export function useUpdateProgramUpdate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; title?: string; content?: string }) => {
+      const { error } = await supabase
+        .from("pub_program_updates" as any)
+        .update(updates)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pub-program-updates"] }),
+  });
+}
+
 export function useDeleteProgramUpdate() {
   const qc = useQueryClient();
   return useMutation({
