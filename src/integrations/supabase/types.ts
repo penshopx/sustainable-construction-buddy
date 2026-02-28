@@ -1,0 +1,1394 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.4"
+  }
+  public: {
+    Tables: {
+      budget_entries: {
+        Row: {
+          actual_amount: number
+          category: string
+          created_at: string
+          deviation_percent: number | null
+          id: string
+          mitigation_plan: string
+          notes: string
+          period_month: string
+          planned_amount: number
+          project_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_amount?: number
+          category?: string
+          created_at?: string
+          deviation_percent?: number | null
+          id?: string
+          mitigation_plan?: string
+          notes?: string
+          period_month?: string
+          planned_amount?: number
+          project_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_amount?: number
+          category?: string
+          created_at?: string
+          deviation_percent?: number | null
+          id?: string
+          mitigation_plan?: string
+          notes?: string
+          period_month?: string
+          planned_amount?: number
+          project_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "budget_entries_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificates: {
+        Row: {
+          certificate_number: string
+          company: string
+          full_name: string
+          id: string
+          issued_at: string
+          level: string
+          position: string
+          user_id: string
+        }
+        Insert: {
+          certificate_number: string
+          company?: string
+          full_name?: string
+          id?: string
+          issued_at?: string
+          level: string
+          position?: string
+          user_id: string
+        }
+        Update: {
+          certificate_number?: string
+          company?: string
+          full_name?: string
+          id?: string
+          issued_at?: string
+          level?: string
+          position?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      competency_domains: {
+        Row: {
+          description: string
+          icon: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          description?: string
+          icon?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      competency_scores: {
+        Row: {
+          computed_at: string
+          contribution_points: number
+          id: string
+          learning_points: number
+          period: string
+          project_points: number
+          toolkit_points: number
+          total_score: number
+          user_id: string
+        }
+        Insert: {
+          computed_at?: string
+          contribution_points?: number
+          id?: string
+          learning_points?: number
+          period: string
+          project_points?: number
+          toolkit_points?: number
+          total_score?: number
+          user_id: string
+        }
+        Update: {
+          computed_at?: string
+          contribution_points?: number
+          id?: string
+          learning_points?: number
+          period?: string
+          project_points?: number
+          toolkit_points?: number
+          total_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contributions: {
+        Row: {
+          created_at: string
+          description: string
+          evidence_url: string
+          id: string
+          points_awarded: number
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          evidence_url?: string
+          id?: string
+          points_awarded?: number
+          title?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          evidence_url?: string
+          id?: string
+          points_awarded?: number
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      e_course_modules: {
+        Row: {
+          content: string
+          created_at: string
+          description: string
+          domain_id: string
+          duration_minutes: number
+          id: string
+          level: string
+          sort_order: number
+          title: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          description?: string
+          domain_id: string
+          duration_minutes?: number
+          id?: string
+          level?: string
+          sort_order?: number
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          description?: string
+          domain_id?: string
+          duration_minutes?: number
+          id?: string
+          level?: string
+          sort_order?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "e_course_modules_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "competency_domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      k3_checklist_items: {
+        Row: {
+          category: string
+          checklist_id: string
+          corrective_action: string
+          finding: string
+          id: string
+          is_compliant: boolean
+          item_text: string
+          sort_order: number
+        }
+        Insert: {
+          category?: string
+          checklist_id: string
+          corrective_action?: string
+          finding?: string
+          id?: string
+          is_compliant?: boolean
+          item_text?: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          checklist_id?: string
+          corrective_action?: string
+          finding?: string
+          id?: string
+          is_compliant?: boolean
+          item_text?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "k3_checklist_items_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "k3_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      k3_checklists: {
+        Row: {
+          completed_items: number
+          created_at: string
+          id: string
+          inspection_date: string
+          inspector_name: string
+          location: string
+          notes: string
+          project_id: string | null
+          score_percent: number | null
+          status: string
+          total_items: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_items?: number
+          created_at?: string
+          id?: string
+          inspection_date?: string
+          inspector_name?: string
+          location?: string
+          notes?: string
+          project_id?: string | null
+          score_percent?: number | null
+          status?: string
+          total_items?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_items?: number
+          created_at?: string
+          id?: string
+          inspection_date?: string
+          inspector_name?: string
+          location?: string
+          notes?: string
+          project_id?: string | null
+          score_percent?: number | null
+          status?: string
+          total_items?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "k3_checklists_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lkut_project_data: {
+        Row: {
+          actual_duration_days: number
+          additional_days: number
+          certifications_available: number
+          certifications_required: number
+          contract_duration_days: number
+          created_at: string
+          disciplines_available: number
+          disciplines_required: number
+          equipment_available: number
+          equipment_required: number
+          experts_available: number
+          experts_required: number
+          id: string
+          lkut_id: string
+          progress_actual: number
+          progress_planned: number
+          project_id: string | null
+          quality_score: number
+          safety_incidents_major: number
+          safety_incidents_minor: number
+          total_workers: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual_duration_days?: number
+          additional_days?: number
+          certifications_available?: number
+          certifications_required?: number
+          contract_duration_days?: number
+          created_at?: string
+          disciplines_available?: number
+          disciplines_required?: number
+          equipment_available?: number
+          equipment_required?: number
+          experts_available?: number
+          experts_required?: number
+          id?: string
+          lkut_id: string
+          progress_actual?: number
+          progress_planned?: number
+          project_id?: string | null
+          quality_score?: number
+          safety_incidents_major?: number
+          safety_incidents_minor?: number
+          total_workers?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual_duration_days?: number
+          additional_days?: number
+          certifications_available?: number
+          certifications_required?: number
+          contract_duration_days?: number
+          created_at?: string
+          disciplines_available?: number
+          disciplines_required?: number
+          equipment_available?: number
+          equipment_required?: number
+          experts_available?: number
+          experts_required?: number
+          id?: string
+          lkut_id?: string
+          progress_actual?: number
+          progress_planned?: number
+          project_id?: string | null
+          quality_score?: number
+          safety_incidents_major?: number
+          safety_incidents_minor?: number
+          total_workers?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lkut_project_data_lkut_id_fkey"
+            columns: ["lkut_id"]
+            isOneToOne: false
+            referencedRelation: "lkut_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lkut_project_data_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lkut_reports: {
+        Row: {
+          asset_value_current: number
+          asset_value_previous: number
+          awards: string
+          certifications: string
+          contract_experts: number
+          created_at: string
+          current_assets: number
+          equipment_commitment_fulfilled: boolean | null
+          equipment_fulfillment_date: string | null
+          experience_pending_list: string
+          experience_records_complete: boolean | null
+          gcg_applied: boolean | null
+          gcg_first_year: number | null
+          gross_profit: number
+          id: string
+          notes: string
+          permanent_experts: number
+          report_year: number
+          sales_value: number
+          sbu_expiry_date: string | null
+          sbu_number: string
+          sbu_type: string
+          short_term_liabilities: number
+          smap_fulfilled: boolean | null
+          smap_report_date: string | null
+          smk3_applied: boolean | null
+          smk3_first_year: number | null
+          status: string
+          submitted_at: string | null
+          tkk_replacement: boolean | null
+          tkk_replacement_date: string | null
+          tkk_replacement_notes: string
+          total_employees: number
+          total_equity: number
+          total_liabilities: number
+          trained_employees: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_value_current?: number
+          asset_value_previous?: number
+          awards?: string
+          certifications?: string
+          contract_experts?: number
+          created_at?: string
+          current_assets?: number
+          equipment_commitment_fulfilled?: boolean | null
+          equipment_fulfillment_date?: string | null
+          experience_pending_list?: string
+          experience_records_complete?: boolean | null
+          gcg_applied?: boolean | null
+          gcg_first_year?: number | null
+          gross_profit?: number
+          id?: string
+          notes?: string
+          permanent_experts?: number
+          report_year: number
+          sales_value?: number
+          sbu_expiry_date?: string | null
+          sbu_number?: string
+          sbu_type?: string
+          short_term_liabilities?: number
+          smap_fulfilled?: boolean | null
+          smap_report_date?: string | null
+          smk3_applied?: boolean | null
+          smk3_first_year?: number | null
+          status?: string
+          submitted_at?: string | null
+          tkk_replacement?: boolean | null
+          tkk_replacement_date?: string | null
+          tkk_replacement_notes?: string
+          total_employees?: number
+          total_equity?: number
+          total_liabilities?: number
+          trained_employees?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_value_current?: number
+          asset_value_previous?: number
+          awards?: string
+          certifications?: string
+          contract_experts?: number
+          created_at?: string
+          current_assets?: number
+          equipment_commitment_fulfilled?: boolean | null
+          equipment_fulfillment_date?: string | null
+          experience_pending_list?: string
+          experience_records_complete?: boolean | null
+          gcg_applied?: boolean | null
+          gcg_first_year?: number | null
+          gross_profit?: number
+          id?: string
+          notes?: string
+          permanent_experts?: number
+          report_year?: number
+          sales_value?: number
+          sbu_expiry_date?: string | null
+          sbu_number?: string
+          sbu_type?: string
+          short_term_liabilities?: number
+          smap_fulfilled?: boolean | null
+          smap_report_date?: string | null
+          smk3_applied?: boolean | null
+          smk3_first_year?: number | null
+          status?: string
+          submitted_at?: string | null
+          tkk_replacement?: boolean | null
+          tkk_replacement_date?: string | null
+          tkk_replacement_notes?: string
+          total_employees?: number
+          total_equity?: number
+          total_liabilities?: number
+          trained_employees?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      module_progress: {
+        Row: {
+          completed_at: string | null
+          id: string
+          module_id: string
+          progress_percent: number
+          started_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          id?: string
+          module_id: string
+          progress_percent?: number
+          started_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          id?: string
+          module_id?: string
+          progress_percent?: number
+          started_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "e_course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pancek_assessments: {
+        Row: {
+          answers: Json
+          company_name: string
+          completion_percent: number
+          created_at: string
+          evaluasi_score: number
+          evaluasi_total: number
+          id: string
+          komitmen_score: number
+          komitmen_total: number
+          nib: string
+          npwp: string
+          pelaksanaan_score: number
+          pelaksanaan_total: number
+          perbaikan_score: number
+          perbaikan_total: number
+          perencanaan_score: number
+          perencanaan_total: number
+          period_year: number
+          respon_score: number
+          respon_total: number
+          status: string
+          total_answered: number
+          total_indicators: number
+          updated_at: string
+          user_id: string
+          verification_notes: string
+          verified_at: string | null
+          verified_by: string
+        }
+        Insert: {
+          answers?: Json
+          company_name?: string
+          completion_percent?: number
+          created_at?: string
+          evaluasi_score?: number
+          evaluasi_total?: number
+          id?: string
+          komitmen_score?: number
+          komitmen_total?: number
+          nib?: string
+          npwp?: string
+          pelaksanaan_score?: number
+          pelaksanaan_total?: number
+          perbaikan_score?: number
+          perbaikan_total?: number
+          perencanaan_score?: number
+          perencanaan_total?: number
+          period_year: number
+          respon_score?: number
+          respon_total?: number
+          status?: string
+          total_answered?: number
+          total_indicators?: number
+          updated_at?: string
+          user_id: string
+          verification_notes?: string
+          verified_at?: string | null
+          verified_by?: string
+        }
+        Update: {
+          answers?: Json
+          company_name?: string
+          completion_percent?: number
+          created_at?: string
+          evaluasi_score?: number
+          evaluasi_total?: number
+          id?: string
+          komitmen_score?: number
+          komitmen_total?: number
+          nib?: string
+          npwp?: string
+          pelaksanaan_score?: number
+          pelaksanaan_total?: number
+          perbaikan_score?: number
+          perbaikan_total?: number
+          perencanaan_score?: number
+          perencanaan_total?: number
+          period_year?: number
+          respon_score?: number
+          respon_total?: number
+          status?: string
+          total_answered?: number
+          total_indicators?: number
+          updated_at?: string
+          user_id?: string
+          verification_notes?: string
+          verified_at?: string | null
+          verified_by?: string
+        }
+        Relationships: []
+      }
+      performance_grades: {
+        Row: {
+          breakdown: Json
+          compliance_score: number
+          computed_at: string
+          created_at: string
+          financial_score: number
+          grade: string
+          id: string
+          period: string
+          project_score: number
+          risk_score: number
+          total_score: number
+          user_id: string
+        }
+        Insert: {
+          breakdown?: Json
+          compliance_score?: number
+          computed_at?: string
+          created_at?: string
+          financial_score?: number
+          grade?: string
+          id?: string
+          period: string
+          project_score?: number
+          risk_score?: number
+          total_score?: number
+          user_id: string
+        }
+        Update: {
+          breakdown?: Json
+          compliance_score?: number
+          computed_at?: string
+          created_at?: string
+          financial_score?: number
+          grade?: string
+          id?: string
+          period?: string
+          project_score?: number
+          risk_score?: number
+          total_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pre_test_answers: {
+        Row: {
+          created_at: string
+          id: string
+          is_correct: boolean
+          pre_test_id: string
+          question_id: string
+          selected_answer: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          pre_test_id: string
+          question_id: string
+          selected_answer: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          pre_test_id?: string
+          question_id?: string
+          selected_answer?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pre_test_answers_pre_test_id_fkey"
+            columns: ["pre_test_id"]
+            isOneToOne: false
+            referencedRelation: "pre_tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pre_test_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pre_tests: {
+        Row: {
+          completed_at: string | null
+          correct_answers: number
+          determined_level: string | null
+          id: string
+          score: number
+          started_at: string
+          status: string
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          correct_answers?: number
+          determined_level?: string | null
+          id?: string
+          score?: number
+          started_at?: string
+          status?: string
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          correct_answers?: number
+          determined_level?: string | null
+          id?: string
+          score?: number
+          started_at?: string
+          status?: string
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bujk_qualification: string
+          company: string
+          created_at: string
+          current_level: string
+          full_name: string
+          id: string
+          position: string
+          total_score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bujk_qualification?: string
+          company?: string
+          created_at?: string
+          current_level?: string
+          full_name?: string
+          id?: string
+          position?: string
+          total_score?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bujk_qualification?: string
+          company?: string
+          created_at?: string
+          current_level?: string
+          full_name?: string
+          id?: string
+          position?: string
+          total_score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          bujk_name: string
+          complexity_score: number
+          contract_type: string
+          created_at: string
+          description: string
+          duration_months: number
+          ended_at: string | null
+          id: string
+          location: string
+          multidiscipline: boolean
+          name: string
+          risk_class: string
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          value_amount: number
+        }
+        Insert: {
+          bujk_name?: string
+          complexity_score?: number
+          contract_type?: string
+          created_at?: string
+          description?: string
+          duration_months?: number
+          ended_at?: string | null
+          id?: string
+          location?: string
+          multidiscipline?: boolean
+          name: string
+          risk_class?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          value_amount?: number
+        }
+        Update: {
+          bujk_name?: string
+          complexity_score?: number
+          contract_type?: string
+          created_at?: string
+          description?: string
+          duration_months?: number
+          ended_at?: string | null
+          id?: string
+          location?: string
+          multidiscipline?: boolean
+          name?: string
+          risk_class?: string
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          value_amount?: number
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          correct_answer: number
+          created_at: string
+          difficulty: string
+          domain_id: string
+          explanation: string
+          id: string
+          options: Json
+          question_text: string
+        }
+        Insert: {
+          correct_answer?: number
+          created_at?: string
+          difficulty?: string
+          domain_id: string
+          explanation?: string
+          id?: string
+          options?: Json
+          question_text: string
+        }
+        Update: {
+          correct_answer?: number
+          created_at?: string
+          difficulty?: string
+          domain_id?: string
+          explanation?: string
+          id?: string
+          options?: Json
+          question_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_domain_id_fkey"
+            columns: ["domain_id"]
+            isOneToOne: false
+            referencedRelation: "competency_domains"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_limits: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      risk_registers: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          id: string
+          impact_score: number
+          mitigation_action: string
+          owner: string
+          probability_score: number
+          project_id: string | null
+          risk_description: string
+          risk_level: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          impact_score?: number
+          mitigation_action?: string
+          owner?: string
+          probability_score?: number
+          project_id?: string | null
+          risk_description?: string
+          risk_level?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          impact_score?: number
+          mitigation_action?: string
+          owner?: string
+          probability_score?: number
+          project_id?: string | null
+          risk_description?: string
+          risk_level?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_registers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      smap_documents: {
+        Row: {
+          certificate_scope: string
+          company_name: string
+          created_at: string
+          doc_type: string
+          document_number: string
+          expiry_date: string | null
+          file_name: string
+          file_url: string
+          id: string
+          issued_date: string | null
+          issuing_body: string
+          notes: string
+          participant_count: number
+          sbu_application_type: string
+          signatory_name: string
+          signatory_position: string
+          status: string
+          training_hours: number
+          training_name: string
+          training_provider: string
+          updated_at: string
+          user_id: string
+          verification_notes: string
+          verified_at: string | null
+          verified_by: string
+        }
+        Insert: {
+          certificate_scope?: string
+          company_name?: string
+          created_at?: string
+          doc_type?: string
+          document_number?: string
+          expiry_date?: string | null
+          file_name?: string
+          file_url?: string
+          id?: string
+          issued_date?: string | null
+          issuing_body?: string
+          notes?: string
+          participant_count?: number
+          sbu_application_type?: string
+          signatory_name?: string
+          signatory_position?: string
+          status?: string
+          training_hours?: number
+          training_name?: string
+          training_provider?: string
+          updated_at?: string
+          user_id: string
+          verification_notes?: string
+          verified_at?: string | null
+          verified_by?: string
+        }
+        Update: {
+          certificate_scope?: string
+          company_name?: string
+          created_at?: string
+          doc_type?: string
+          document_number?: string
+          expiry_date?: string | null
+          file_name?: string
+          file_url?: string
+          id?: string
+          issued_date?: string | null
+          issuing_body?: string
+          notes?: string
+          participant_count?: number
+          sbu_application_type?: string
+          signatory_name?: string
+          signatory_position?: string
+          status?: string
+          training_hours?: number
+          training_name?: string
+          training_provider?: string
+          updated_at?: string
+          user_id?: string
+          verification_notes?: string
+          verified_at?: string | null
+          verified_by?: string
+        }
+        Relationships: []
+      }
+      toolkit_activities: {
+        Row: {
+          completeness: number
+          created_at: string
+          entity_id: string | null
+          id: string
+          points_awarded: number
+          project_id: string | null
+          tool_type: string
+          user_id: string
+        }
+        Insert: {
+          completeness?: number
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          points_awarded?: number
+          project_id?: string | null
+          tool_type: string
+          user_id: string
+        }
+        Update: {
+          completeness?: number
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          points_awarded?: number
+          project_id?: string | null
+          tool_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolkit_activities_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan: string
+          started_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan?: string
+          started_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan?: string
+          started_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      check_question_answer: {
+        Args: { _question_id: string; _selected_answer: number }
+        Returns: Json
+      }
+      get_questions_safe: {
+        Args: never
+        Returns: {
+          created_at: string
+          difficulty: string
+          domain_id: string
+          id: string
+          options: Json
+          question_text: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      submit_assessment: {
+        Args: { _answers: Json; _pre_test_id: string }
+        Returns: Json
+      }
+    }
+    Enums: {
+      app_role: "admin" | "user"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: ["admin", "user"],
+    },
+  },
+} as const

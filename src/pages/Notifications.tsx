@@ -1,0 +1,129 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { motion } from "framer-motion";
+import { Bell, CheckCheck } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { id } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+const typeIcon: Record<string, string> = {
+  level_up: "🎉",
+  certificate: "🏆",
+  info: "ℹ️",
+};
+
+const Notifications = () => {
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetch = async () => {
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (data) setNotifications(data as Notification[]);
+      setLoading(false);
+    };
+    fetch();
+
+    const channel = supabase
+      .channel("notifications-page")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
+        (payload) => setNotifications((prev) => [payload.new as Notification, ...prev])
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  const markAllRead = async () => {
+    if (!user || unreadCount === 0) return;
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
+    await supabase.from("notifications").update({ is_read: true }).in("id", unreadIds);
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
+            <Bell className="w-5 h-5 text-accent-foreground" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold font-heading text-foreground">Notifikasi</h1>
+            <p className="text-sm text-muted-foreground font-body">
+              {unreadCount > 0 ? `${unreadCount} belum dibaca` : "Semua sudah dibaca"}
+            </p>
+          </div>
+        </div>
+        {unreadCount > 0 && (
+          <Button variant="outline" size="sm" onClick={markAllRead} className="gap-2">
+            <CheckCheck className="w-4 h-4" />
+            Tandai semua dibaca
+          </Button>
+        )}
+      </motion.div>
+
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />
+          ))}
+        </div>
+      ) : notifications.length === 0 ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
+          <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+          <p className="text-muted-foreground font-body">Belum ada notifikasi</p>
+        </motion.div>
+      ) : (
+        <div className="space-y-2">
+          {notifications.map((n, i) => (
+            <motion.div
+              key={n.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03 }}
+              className={`bg-card border border-border rounded-xl p-4 shadow-card transition-colors ${!n.is_read ? "border-l-4 border-l-primary" : ""}`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-xl mt-0.5">{typeIcon[n.type] || "📌"}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-heading font-semibold text-foreground">{n.title}</p>
+                  <p className="text-sm text-muted-foreground font-body mt-1">{n.message}</p>
+                  <p className="text-xs text-muted-foreground/60 mt-2">
+                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: id })}
+                  </p>
+                </div>
+                {!n.is_read && (
+                  <span className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 mt-2" />
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Notifications;
