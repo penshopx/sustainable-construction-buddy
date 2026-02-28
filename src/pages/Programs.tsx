@@ -9,10 +9,12 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import {
   Calendar, MapPin, Plus, Trash2, Clock, Newspaper, Image as ImageIcon,
   CheckCircle2, PlayCircle, CalendarClock, FolderOpen, ArrowLeft, Filter,
+  Users, UserCheck, UserX, Download,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -24,11 +26,20 @@ import {
   useCreateGalleryItem, useDeleteGalleryItem,
   type PubProgram,
 } from "@/hooks/usePrograms";
+import {
+  useParticipants, useCreateParticipant, useUpdateParticipant, useDeleteParticipant,
+} from "@/hooks/useParticipants";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   upcoming: { label: "Akan Datang", color: "bg-pub-amber/15 text-pub-amber", icon: CalendarClock },
   ongoing: { label: "Sedang Berjalan", color: "bg-pub-emerald/15 text-pub-emerald", icon: PlayCircle },
   completed: { label: "Selesai", color: "bg-muted text-muted-foreground", icon: CheckCircle2 },
+};
+
+const attendanceLabels: Record<string, { label: string; color: string }> = {
+  registered: { label: "Terdaftar", color: "bg-pub-sky/15 text-pub-sky" },
+  attended: { label: "Hadir", color: "bg-pub-emerald/15 text-pub-emerald" },
+  absent: { label: "Tidak Hadir", color: "bg-destructive/15 text-destructive" },
 };
 
 function ProgramForm({ onClose }: { onClose: () => void }) {
@@ -237,19 +248,69 @@ function GalleryUploadForm({ programs, onClose }: { programs: PubProgram[]; onCl
   );
 }
 
+function ParticipantForm({ programs, onClose }: { programs: PubProgram[]; onClose: () => void }) {
+  const create = useCreateParticipant();
+  const [form, setForm] = useState({
+    program_id: "", full_name: "", company: "", position: "", email: "", phone: "", notes: "", attendance_status: "registered",
+  });
+
+  return (
+    <div className="space-y-4">
+      <Select value={form.program_id} onValueChange={(v) => setForm({ ...form, program_id: v })}>
+        <SelectTrigger><SelectValue placeholder="Pilih Program/Kegiatan" /></SelectTrigger>
+        <SelectContent>
+          {programs.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Input placeholder="Nama Lengkap *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+      <div className="grid grid-cols-2 gap-3">
+        <Input placeholder="Perusahaan" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+        <Input placeholder="Jabatan" value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        <Input placeholder="No. Telepon" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+      </div>
+      <Select value={form.attendance_status} onValueChange={(v) => setForm({ ...form, attendance_status: v })}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="registered">Terdaftar</SelectItem>
+          <SelectItem value="attended">Hadir</SelectItem>
+          <SelectItem value="absent">Tidak Hadir</SelectItem>
+        </SelectContent>
+      </Select>
+      <Input placeholder="Catatan (opsional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+      <Button className="w-full" disabled={!form.program_id || !form.full_name.trim() || create.isPending} onClick={async () => {
+        try {
+          await create.mutateAsync(form);
+          toast.success("Peserta berhasil ditambahkan");
+          onClose();
+        } catch { toast.error("Gagal menambahkan peserta"); }
+      }}>
+        {create.isPending ? "Menyimpan..." : "Tambah Peserta"}
+      </Button>
+    </div>
+  );
+}
+
 export default function Programs() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { data: programs = [], isLoading: loadingPrograms } = usePrograms();
   const { data: updates = [], isLoading: loadingUpdates } = useProgramUpdates();
   const { data: gallery = [], isLoading: loadingGallery } = useProgramGallery();
+  const { data: participants = [], isLoading: loadingParticipants } = useParticipants();
   const delUpdate = useDeleteProgramUpdate();
   const delGallery = useDeleteGalleryItem();
+  const delParticipant = useDeleteParticipant();
+  const updateParticipant = useUpdateParticipant();
   const [addProgramOpen, setAddProgramOpen] = useState(false);
   const [addUpdateOpen, setAddUpdateOpen] = useState(false);
   const [addGalleryOpen, setAddGalleryOpen] = useState(false);
+  const [addParticipantOpen, setAddParticipantOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [participantProgramFilter, setParticipantProgramFilter] = useState("all");
 
   const ongoing = programs.filter((p) => p.status === "ongoing");
   const upcoming = programs.filter((p) => p.status === "upcoming");
@@ -260,6 +321,34 @@ export default function Programs() {
     if (filterStatus !== "all" && p.status !== filterStatus) return false;
     return true;
   });
+
+  const filteredParticipants = participantProgramFilter === "all"
+    ? participants
+    : participants.filter((p) => p.program_id === participantProgramFilter);
+
+  const programMap = Object.fromEntries(programs.map((p) => [p.id, p.title]));
+
+  const attendedCount = filteredParticipants.filter((p) => p.attendance_status === "attended").length;
+  const absentCount = filteredParticipants.filter((p) => p.attendance_status === "absent").length;
+
+  const exportParticipantsCsv = () => {
+    if (filteredParticipants.length === 0) return;
+    const headers = ["Nama", "Perusahaan", "Jabatan", "Email", "Telepon", "Program", "Status Kehadiran", "Catatan"];
+    const rows = filteredParticipants.map((p) => [
+      p.full_name, p.company, p.position, p.email, p.phone,
+      programMap[p.program_id] || "-",
+      attendanceLabels[p.attendance_status]?.label || p.attendance_status,
+      p.notes,
+    ]);
+    const csv = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `peserta-kegiatan-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-6">
@@ -284,9 +373,10 @@ export default function Programs() {
       </div>
 
       <Tabs defaultValue="programs" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="programs" className="gap-1.5 text-xs"><FolderOpen className="w-3.5 h-3.5" /> Program</TabsTrigger>
           <TabsTrigger value="timeline" className="gap-1.5 text-xs"><Clock className="w-3.5 h-3.5" /> Timeline</TabsTrigger>
+          <TabsTrigger value="participants" className="gap-1.5 text-xs"><Users className="w-3.5 h-3.5" /> Peserta</TabsTrigger>
           <TabsTrigger value="updates" className="gap-1.5 text-xs"><Newspaper className="w-3.5 h-3.5" /> Update</TabsTrigger>
           <TabsTrigger value="gallery" className="gap-1.5 text-xs"><ImageIcon className="w-3.5 h-3.5" /> Galeri</TabsTrigger>
         </TabsList>
@@ -379,6 +469,128 @@ export default function Programs() {
                   })}
               </div>
             </div>
+          )}
+        </TabsContent>
+
+        {/* Participants Tab */}
+        <TabsContent value="participants" className="space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {isAdmin && (
+              <Dialog open={addParticipantOpen} onOpenChange={setAddParticipantOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2"><Plus className="w-4 h-4" /> Tambah Peserta</Button>
+                </DialogTrigger>
+                <DialogContent><DialogHeader><DialogTitle>Tambah Peserta Kegiatan</DialogTitle></DialogHeader>
+                  <ParticipantForm programs={programs} onClose={() => setAddParticipantOpen(false)} />
+                </DialogContent>
+              </Dialog>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
+              <Select value={participantProgramFilter} onValueChange={setParticipantProgramFilter}>
+                <SelectTrigger className="h-8 text-xs w-[180px]"><SelectValue placeholder="Filter Program" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Program</SelectItem>
+                  {programs.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {filteredParticipants.length > 0 && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={exportParticipantsCsv}>
+                  <Download className="w-3.5 h-3.5" /> Export CSV
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Participant summary */}
+          <div className="grid grid-cols-3 gap-3">
+            <Card><CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1"><Users className="w-4 h-4 text-pub-sky" /></div>
+              <p className="text-xl font-bold">{filteredParticipants.length}</p>
+              <p className="text-[10px] text-muted-foreground">Total Peserta</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1"><UserCheck className="w-4 h-4 text-pub-emerald" /></div>
+              <p className="text-xl font-bold text-pub-emerald">{attendedCount}</p>
+              <p className="text-[10px] text-muted-foreground">Hadir</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1"><UserX className="w-4 h-4 text-destructive" /></div>
+              <p className="text-xl font-bold text-destructive">{absentCount}</p>
+              <p className="text-[10px] text-muted-foreground">Tidak Hadir</p>
+            </CardContent></Card>
+          </div>
+
+          {loadingParticipants ? (
+            <Skeleton className="h-40" />
+          ) : filteredParticipants.length === 0 ? (
+            <Card className="p-8 text-center"><p className="text-muted-foreground">Belum ada peserta terdaftar.</p></Card>
+          ) : (
+            <Card>
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">No</TableHead>
+                      <TableHead className="text-xs">Nama</TableHead>
+                      <TableHead className="text-xs">Perusahaan</TableHead>
+                      <TableHead className="text-xs">Jabatan</TableHead>
+                      <TableHead className="text-xs">Kontak</TableHead>
+                      <TableHead className="text-xs">Program</TableHead>
+                      <TableHead className="text-xs">Kehadiran</TableHead>
+                      {isAdmin && <TableHead className="text-xs w-20">Aksi</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredParticipants.map((p, idx) => {
+                      const att = attendanceLabels[p.attendance_status] || attendanceLabels.registered;
+                      return (
+                        <TableRow key={p.id}>
+                          <TableCell className="text-xs">{idx + 1}</TableCell>
+                          <TableCell className="text-xs font-medium">{p.full_name}</TableCell>
+                          <TableCell className="text-xs">{p.company || "-"}</TableCell>
+                          <TableCell className="text-xs">{p.position || "-"}</TableCell>
+                          <TableCell className="text-xs">
+                            {p.email && <div>{p.email}</div>}
+                            {p.phone && <div className="text-muted-foreground">{p.phone}</div>}
+                            {!p.email && !p.phone && "-"}
+                          </TableCell>
+                          <TableCell className="text-xs">{programMap[p.program_id] || "-"}</TableCell>
+                          <TableCell>
+                            {isAdmin ? (
+                              <Select
+                                defaultValue={p.attendance_status}
+                                onValueChange={(v) => updateParticipant.mutate({
+                                  id: p.id,
+                                  attendance_status: v,
+                                  attended_at: v === "attended" ? new Date().toISOString() : null,
+                                })}
+                              >
+                                <SelectTrigger className="h-7 text-[10px] w-[110px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="registered">Terdaftar</SelectItem>
+                                  <SelectItem value="attended">Hadir</SelectItem>
+                                  <SelectItem value="absent">Tidak Hadir</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge className={`${att.color} text-[10px]`}>{att.label}</Badge>
+                            )}
+                          </TableCell>
+                          {isAdmin && (
+                            <TableCell>
+                              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                                onClick={() => { if (confirm("Hapus peserta?")) delParticipant.mutate(p.id); }}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
           )}
         </TabsContent>
 

@@ -1139,6 +1139,59 @@ export type Database = {
           },
         ]
       }
+      pub_program_participants: {
+        Row: {
+          attendance_status: string
+          attended_at: string | null
+          company: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          notes: string
+          phone: string
+          position: string
+          program_id: string
+          registered_at: string
+        }
+        Insert: {
+          attendance_status?: string
+          attended_at?: string | null
+          company?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          notes?: string
+          phone?: string
+          position?: string
+          program_id: string
+          registered_at?: string
+        }
+        Update: {
+          attendance_status?: string
+          attended_at?: string | null
+          company?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          notes?: string
+          phone?: string
+          position?: string
+          program_id?: string
+          registered_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pub_program_participants_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "pub_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pub_program_updates: {
         Row: {
           content: string
