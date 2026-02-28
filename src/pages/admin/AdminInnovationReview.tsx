@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Eye, Send, User } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Send, User, FileText, Clock, ThumbsUp, ThumbsDown } from "lucide-react";
 import { useAdminInnovationProposals, useUpdateProposalStatus } from "@/hooks/useInnovations";
 import { toast } from "sonner";
 
@@ -67,8 +67,63 @@ export default function AdminInnovationReview() {
     );
   }
 
+  const stats = {
+    total: proposals.length,
+    submitted: proposals.filter((p) => p.status === "submitted").length,
+    reviewed: proposals.filter((p) => p.status === "reviewed").length,
+    approved: proposals.filter((p) => p.status === "approved").length,
+    rejected: proposals.filter((p) => p.status === "rejected").length,
+  };
+
   return (
     <>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="flex items-center gap-3 pt-6">
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FileText className="w-4.5 h-4.5 text-primary" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.total}</p>
+              <p className="text-xs text-muted-foreground">Total Proposal</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 pt-6">
+            <div className="w-9 h-9 rounded-lg bg-pub-amber/10 flex items-center justify-center">
+              <Clock className="w-4.5 h-4.5 text-pub-amber" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.submitted + stats.reviewed}</p>
+              <p className="text-xs text-muted-foreground">Pending</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 pt-6">
+            <div className="w-9 h-9 rounded-lg bg-pub-emerald/10 flex items-center justify-center">
+              <ThumbsUp className="w-4.5 h-4.5 text-pub-emerald" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.approved}</p>
+              <p className="text-xs text-muted-foreground">Disetujui</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-center gap-3 pt-6">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center">
+              <ThumbsDown className="w-4.5 h-4.5 text-destructive" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{stats.rejected}</p>
+              <p className="text-xs text-muted-foreground">Ditolak</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="space-y-4">
         {proposals.map((p) => (
           <Card key={p.id}>
