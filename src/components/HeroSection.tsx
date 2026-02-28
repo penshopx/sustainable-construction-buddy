@@ -33,9 +33,9 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
-              className="inline-flex items-center gap-5 mb-4 px-5 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-[0_4px_24px_rgba(0,0,0,0.15)]"
+              className="inline-flex items-center gap-5 mb-4 px-5 py-3 rounded-xl bg-slate-400/30 backdrop-blur-sm"
             >
-              <img src={logoPub} alt="Logo PUB" className="h-14 w-auto object-contain drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]" />
+              <img src={logoPub} alt="Logo PUB" className="h-14 w-auto object-contain brightness-150" />
               <div className="w-px h-10 bg-white/20" />
               <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-14 w-auto object-contain drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]" />
               <div className="w-px h-10 bg-white/20" />
