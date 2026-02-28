@@ -279,6 +279,44 @@ export type Database = {
         }
         Relationships: []
       }
+      innovation_proposal_logs: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          id: string
+          new_status: string
+          notes: string
+          old_status: string
+          proposal_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_status: string
+          notes?: string
+          old_status?: string
+          proposal_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          new_status?: string
+          notes?: string
+          old_status?: string
+          proposal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "innovation_proposal_logs_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "innovation_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       innovation_proposals: {
         Row: {
           admin_notes: string
