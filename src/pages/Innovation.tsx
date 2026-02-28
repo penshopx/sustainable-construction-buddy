@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2 } from "lucide-react";
+import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,6 +180,24 @@ export default function Innovation() {
   const deleteProposal = useDeleteProposal();
   const [selectedCategory, setSelectedCategory] = useState<InnovationCategory | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [stageFilter, setStageFilter] = useState<number | null>(null);
+
+  const filteredCategories = useMemo(() => {
+    let result = categories;
+    if (stageFilter) result = result.filter((c) => c.stage === stageFilter);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.description.toLowerCase().includes(q) ||
+          c.concepts.some((x) => x.toLowerCase().includes(q)) ||
+          c.programs.some((x) => x.toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [categories, search, stageFilter]);
 
   const roadmapStages = [
     { stage: 1, title: "Penguatan Legal & Kapasitas", items: ["SBU", "SKK", "K3", "Manajemen Proyek"] },
@@ -252,57 +270,100 @@ export default function Innovation() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-12">
-                {[1, 2, 3].map((stageNum) => {
-                  const stageCats = categories.filter((c) => c.stage === stageNum);
-                  if (stageCats.length === 0) return null;
-                  const stage = stageLabels[stageNum];
-                  return (
-                    <motion.section key={stageNum} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-full bg-pub-amber/20 flex items-center justify-center text-pub-amber font-bold text-sm">{stageNum}</div>
-                        <div>
-                          <h3 className="text-lg font-bold font-heading">{stage.label}</h3>
-                          <p className="text-xs text-muted-foreground">{stageCats.length} kategori inovasi</p>
+              <div className="space-y-8">
+                {/* Search & Filter */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Cari kategori, konsep, atau program..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-9 pr-9"
+                    />
+                    {search && (
+                      <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={stageFilter === null ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setStageFilter(null)}
+                    >
+                      Semua
+                    </Button>
+                    {[1, 2, 3].map((s) => (
+                      <Button
+                        key={s}
+                        variant={stageFilter === s ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setStageFilter(stageFilter === s ? null : s)}
+                      >
+                        Tahap {s}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {filteredCategories.length === 0 ? (
+                  <Card className="p-8 text-center">
+                    <p className="text-muted-foreground">Tidak ada kategori yang cocok dengan pencarian "{search}"</p>
+                  </Card>
+                ) : (
+                  [1, 2, 3].map((stageNum) => {
+                    const stageCats = filteredCategories.filter((c) => c.stage === stageNum);
+                    if (stageCats.length === 0) return null;
+                    const stage = stageLabels[stageNum];
+                    return (
+                      <motion.section key={stageNum} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="w-8 h-8 rounded-full bg-pub-amber/20 flex items-center justify-center text-pub-amber font-bold text-sm">{stageNum}</div>
+                          <div>
+                            <h3 className="text-lg font-bold font-heading">{stage.label}</h3>
+                            <p className="text-xs text-muted-foreground">{stageCats.length} kategori inovasi</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {stageCats.map((cat, i) => {
-                          const Icon = iconMap[cat.icon] || Lightbulb;
-                          return (
-                            <motion.div key={cat.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                              <Card
-                                className="cursor-pointer hover:shadow-card-hover transition-all duration-200 group h-full"
-                                onClick={() => setSelectedCategory(cat)}
-                              >
-                                <CardHeader>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="w-10 h-10 rounded-lg bg-accent/15 flex items-center justify-center group-hover:bg-accent/25 transition-colors">
-                                      <Icon className="w-5 h-5 text-accent" />
+                        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {stageCats.map((cat, i) => {
+                            const Icon = iconMap[cat.icon] || Lightbulb;
+                            return (
+                              <motion.div key={cat.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                                <Card
+                                  className="cursor-pointer hover:shadow-card-hover transition-all duration-200 group h-full"
+                                  onClick={() => setSelectedCategory(cat)}
+                                >
+                                  <CardHeader>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="w-10 h-10 rounded-lg bg-accent/15 flex items-center justify-center group-hover:bg-accent/25 transition-colors">
+                                        <Icon className="w-5 h-5 text-accent" />
+                                      </div>
+                                      <Badge variant="outline" className={stage.color + " text-xs"}>
+                                        Tahap {cat.stage}
+                                      </Badge>
                                     </div>
-                                    <Badge variant="outline" className={stage.color + " text-xs"}>
-                                      Tahap {cat.stage}
-                                    </Badge>
-                                  </div>
-                                  <CardTitle className="text-base">{cat.name}</CardTitle>
-                                  <CardDescription className="line-clamp-2">{cat.description}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="flex items-center text-xs text-muted-foreground gap-1">
-                                    <span>{cat.concepts.length} konsep</span>
-                                    <span>·</span>
-                                    <span>{cat.programs.length} program</span>
-                                    <ChevronRight className="w-3 h-3 ml-auto group-hover:translate-x-1 transition-transform" />
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            </motion.div>
-                          );
-                        })}
-                      </div>
-                    </motion.section>
-                  );
-                })}
+                                    <CardTitle className="text-base">{cat.name}</CardTitle>
+                                    <CardDescription className="line-clamp-2">{cat.description}</CardDescription>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="flex items-center text-xs text-muted-foreground gap-1">
+                                      <span>{cat.concepts.length} konsep</span>
+                                      <span>·</span>
+                                      <span>{cat.programs.length} program</span>
+                                      <ChevronRight className="w-3 h-3 ml-auto group-hover:translate-x-1 transition-transform" />
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      </motion.section>
+                    );
+                  })
+                )}
               </div>
             )}
           </TabsContent>
