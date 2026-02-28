@@ -33,20 +33,13 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
-              className="flex items-center gap-6 mb-2"
+              className="inline-flex items-center gap-5 mb-4 px-5 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 shadow-[0_4px_24px_rgba(0,0,0,0.15)]"
             >
-              <div className="relative">
-                <div className="absolute -inset-2 bg-white/90 rounded-lg" />
-                <img src={logoPub} alt="Logo PUB" className="relative h-20 w-auto object-contain p-1" />
-              </div>
-              <div className="relative">
-                <div className="absolute -inset-2 bg-white/90 rounded-lg" />
-                <img src={logoAspekindo} alt="Logo ASPEKINDO" className="relative h-20 w-auto object-contain p-1" />
-              </div>
-              <div className="relative">
-                <div className="absolute -inset-2 bg-white/90 rounded-lg" />
-                <img src={logoLsbuki} alt="Logo LSBUKI" className="relative h-20 w-auto object-contain p-1" />
-              </div>
+              <img src={logoPub} alt="Logo PUB" className="h-14 w-auto object-contain drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]" />
+              <div className="w-px h-10 bg-white/20" />
+              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-14 w-auto object-contain drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]" />
+              <div className="w-px h-10 bg-white/20" />
+              <img src={logoLsbuki} alt="Logo LSBUKI" className="h-14 w-auto object-contain drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]" />
             </motion.div>
 
             {/* Badge */}
