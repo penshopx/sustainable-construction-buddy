@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, Calendar, MapPin, Users, UserCheck, UserX,
-  Newspaper, Image as ImageIcon, Search, Download, Trash2,
+  Newspaper, Image as ImageIcon, Search, Download, Trash2, FileText,
 } from "lucide-react";
+import { exportParticipantPdf } from "@/lib/participantPdf";
 import { usePrograms, useProgramUpdates, useProgramGallery, useDeleteProgramUpdate, useDeleteGalleryItem } from "@/hooks/usePrograms";
 import { useParticipants, useUpdateParticipant, useDeleteParticipant } from "@/hooks/useParticipants";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -132,9 +133,14 @@ export default function ProgramDetail() {
               <Input placeholder="Cari nama atau perusahaan..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
             </div>
             {participants.length > 0 && (
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={exportCsv}>
-                <Download className="w-3.5 h-3.5" /> Export CSV
-              </Button>
+              <>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={() => exportParticipantPdf(program, allParticipants)}>
+                  <FileText className="w-3.5 h-3.5" /> Export PDF
+                </Button>
+                <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={exportCsv}>
+                  <Download className="w-3.5 h-3.5" /> Export CSV
+                </Button>
+              </>
             )}
           </div>
 
