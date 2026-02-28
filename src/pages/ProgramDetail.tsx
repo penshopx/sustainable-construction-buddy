@@ -20,6 +20,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 import { AddParticipantDialog } from "@/components/participants/AddParticipantDialog";
 import { DetailParticipantImport } from "@/components/participants/DetailParticipantImport";
 import { GalleryUploadDialog } from "@/components/gallery/GalleryUploadDialog";
+import { AddUpdateDialog } from "@/components/programs/AddUpdateDialog";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   upcoming: { label: "Akan Datang", color: "bg-pub-amber/15 text-pub-amber" },
@@ -234,6 +235,11 @@ export default function ProgramDetail() {
 
         {/* Updates */}
         <TabsContent value="updates" className="space-y-4">
+          {isAdmin && (
+            <div className="flex justify-end">
+              <AddUpdateDialog programId={id!} />
+            </div>
+          )}
           {loadingUpdates ? <Skeleton className="h-40" /> : updates.length === 0 ? (
             <Card className="p-8 text-center"><p className="text-muted-foreground">Belum ada update untuk program ini.</p></Card>
           ) : (
