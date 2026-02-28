@@ -106,12 +106,24 @@ export function useAdminInnovationProposals() {
   return useQuery({
     queryKey: ["admin-innovation-proposals"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: proposals, error } = await supabase
         .from("innovation_proposals" as any)
         .select("*, innovation_categories(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as InnovationProposal[];
+      
+      const userIds = [...new Set((proposals as any[]).map((p: any) => p.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, company")
+        .in("user_id", userIds);
+      
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
+      return (proposals as any[]).map((p) => ({
+        ...p,
+        submitter_name: profileMap.get(p.user_id)?.full_name || "Unknown",
+        submitter_company: profileMap.get(p.user_id)?.company || "",
+      })) as unknown as (InnovationProposal & { submitter_name: string; submitter_company: string })[];
     },
   });
 }
