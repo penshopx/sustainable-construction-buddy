@@ -31,6 +31,7 @@ import AdminGuard from "./components/AdminGuard";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
+import Innovation from "./pages/Innovation";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const App = () => (
             <Route path="/admin" element={<DashboardLayout><AdminGuard><AdminDashboard /></AdminGuard></DashboardLayout>} />
             <Route path="/corporate" element={<DashboardLayout><AdminGuard><CorporateDashboard /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/pancek" element={<DashboardLayout><AdminGuard><AdminPancekVerification /></AdminGuard></DashboardLayout>} />
+            <Route path="/inovasi" element={<Innovation />} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
