@@ -17,6 +17,8 @@ import { exportParticipantPdf } from "@/lib/participantPdf";
 import { usePrograms, useProgramUpdates, useProgramGallery, useDeleteProgramUpdate, useDeleteGalleryItem } from "@/hooks/usePrograms";
 import { useParticipants, useUpdateParticipant, useDeleteParticipant } from "@/hooks/useParticipants";
 import { useAdmin } from "@/hooks/useAdmin";
+import { AddParticipantDialog } from "@/components/participants/AddParticipantDialog";
+import { DetailParticipantImport } from "@/components/participants/DetailParticipantImport";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   upcoming: { label: "Akan Datang", color: "bg-pub-amber/15 text-pub-amber" },
@@ -132,6 +134,12 @@ export default function ProgramDetail() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="Cari nama atau perusahaan..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 text-sm" />
             </div>
+            {isAdmin && (
+              <>
+                <AddParticipantDialog programId={id!} />
+                <DetailParticipantImport programId={id!} />
+              </>
+            )}
             {participants.length > 0 && (
               <>
                 <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs" onClick={() => exportParticipantPdf(program, allParticipants)}>
