@@ -245,45 +245,64 @@ export default function Innovation() {
           <TabsContent value="katalog">
             {selectedCategory ? (
               <CategoryDetail category={selectedCategory} onBack={() => setSelectedCategory(null)} />
-            ) : (
+            ) : isLoading ? (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {isLoading
-                  ? Array.from({ length: 6 }).map((_, i) => (
-                      <Card key={i} className="animate-pulse h-48" />
-                    ))
-                  : categories.map((cat, i) => {
-                      const Icon = iconMap[cat.icon] || Lightbulb;
-                      const stage = stageLabels[cat.stage];
-                      return (
-                        <motion.div key={cat.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-                          <Card
-                            className="cursor-pointer hover:shadow-card-hover transition-all duration-200 group h-full"
-                            onClick={() => setSelectedCategory(cat)}
-                          >
-                            <CardHeader>
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="w-10 h-10 rounded-lg bg-accent/15 flex items-center justify-center group-hover:bg-accent/25 transition-colors">
-                                  <Icon className="w-5 h-5 text-accent" />
-                                </div>
-                                <Badge variant="outline" className={stage.color + " text-xs"}>
-                                  Tahap {cat.stage}
-                                </Badge>
-                              </div>
-                              <CardTitle className="text-base">{cat.name}</CardTitle>
-                              <CardDescription className="line-clamp-2">{cat.description}</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                              <div className="flex items-center text-xs text-muted-foreground gap-1">
-                                <span>{cat.concepts.length} konsep</span>
-                                <span>·</span>
-                                <span>{cat.programs.length} program</span>
-                                <ChevronRight className="w-3 h-3 ml-auto group-hover:translate-x-1 transition-transform" />
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </motion.div>
-                      );
-                    })}
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Card key={i} className="animate-pulse h-48" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-12">
+                {[1, 2, 3].map((stageNum) => {
+                  const stageCats = categories.filter((c) => c.stage === stageNum);
+                  if (stageCats.length === 0) return null;
+                  const stage = stageLabels[stageNum];
+                  return (
+                    <motion.section key={stageNum} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 rounded-full bg-pub-amber/20 flex items-center justify-center text-pub-amber font-bold text-sm">{stageNum}</div>
+                        <div>
+                          <h3 className="text-lg font-bold font-heading">{stage.label}</h3>
+                          <p className="text-xs text-muted-foreground">{stageCats.length} kategori inovasi</p>
+                        </div>
+                      </div>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {stageCats.map((cat, i) => {
+                          const Icon = iconMap[cat.icon] || Lightbulb;
+                          return (
+                            <motion.div key={cat.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+                              <Card
+                                className="cursor-pointer hover:shadow-card-hover transition-all duration-200 group h-full"
+                                onClick={() => setSelectedCategory(cat)}
+                              >
+                                <CardHeader>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="w-10 h-10 rounded-lg bg-accent/15 flex items-center justify-center group-hover:bg-accent/25 transition-colors">
+                                      <Icon className="w-5 h-5 text-accent" />
+                                    </div>
+                                    <Badge variant="outline" className={stage.color + " text-xs"}>
+                                      Tahap {cat.stage}
+                                    </Badge>
+                                  </div>
+                                  <CardTitle className="text-base">{cat.name}</CardTitle>
+                                  <CardDescription className="line-clamp-2">{cat.description}</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="flex items-center text-xs text-muted-foreground gap-1">
+                                    <span>{cat.concepts.length} konsep</span>
+                                    <span>·</span>
+                                    <span>{cat.programs.length} program</span>
+                                    <ChevronRight className="w-3 h-3 ml-auto group-hover:translate-x-1 transition-transform" />
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    </motion.section>
+                  );
+                })}
               </div>
             )}
           </TabsContent>
