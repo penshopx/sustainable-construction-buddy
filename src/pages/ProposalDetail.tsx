@@ -2,9 +2,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, XCircle, Eye, Clock, FileText, Send, Lightbulb } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, Eye, Clock, FileText, Send, Lightbulb, Paperclip, Download } from "lucide-react";
 import { useProposalDetail, useProposalLogs } from "@/hooks/useInnovations";
+import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   draft: { label: "Draft", color: "bg-muted text-muted-foreground", icon: FileText },
@@ -88,6 +90,30 @@ export default function ProposalDetail() {
             <div className="p-3 rounded-lg bg-muted">
               <h4 className="text-sm font-medium mb-1">Catatan Admin</h4>
               <p className="text-sm text-muted-foreground">{proposal.admin_notes}</p>
+            </div>
+          )}
+          {proposal.attachment_url && proposal.attachment_name && (
+            <div>
+              <h4 className="text-sm font-medium mb-1">Lampiran</h4>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2"
+                onClick={async () => {
+                  const { data } = await supabase.storage
+                    .from("innovation-attachments")
+                    .createSignedUrl(proposal.attachment_url, 300);
+                  if (data?.signedUrl) {
+                    window.open(data.signedUrl, "_blank");
+                  } else {
+                    toast.error("Gagal membuka lampiran");
+                  }
+                }}
+              >
+                <Paperclip className="w-4 h-4" />
+                {proposal.attachment_name}
+                <Download className="w-3 h-3" />
+              </Button>
             </div>
           )}
           <p className="text-xs text-muted-foreground">

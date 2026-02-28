@@ -320,6 +320,8 @@ export type Database = {
       innovation_proposals: {
         Row: {
           admin_notes: string
+          attachment_name: string
+          attachment_url: string
           category_id: string | null
           created_at: string
           description: string
@@ -333,6 +335,8 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string
+          attachment_name?: string
+          attachment_url?: string
           category_id?: string | null
           created_at?: string
           description?: string
@@ -346,6 +350,8 @@ export type Database = {
         }
         Update: {
           admin_notes?: string
+          attachment_name?: string
+          attachment_url?: string
           category_id?: string | null
           created_at?: string
           description?: string
