@@ -1107,6 +1107,118 @@ export type Database = {
         }
         Relationships: []
       }
+      pub_program_gallery: {
+        Row: {
+          caption: string
+          created_at: string
+          id: string
+          image_url: string
+          program_id: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          program_id: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          program_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pub_program_gallery_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "pub_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pub_program_updates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          program_id: string
+          published_at: string
+          title: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          program_id: string
+          published_at?: string
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          program_id?: string
+          published_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pub_program_updates_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "pub_programs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pub_programs: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          end_date: string | null
+          id: string
+          image_url: string
+          location: string
+          progress_percent: number
+          start_date: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string
+          location?: string
+          progress_percent?: number
+          start_date?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string
+          location?: string
+          progress_percent?: number
+          start_date?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       questions: {
         Row: {
           correct_answer: number

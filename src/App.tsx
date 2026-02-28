@@ -34,6 +34,7 @@ import Install from "./pages/Install";
 import Innovation from "./pages/Innovation";
 import AdminInnovationReview from "./pages/admin/AdminInnovationReview";
 import ProposalDetail from "./pages/ProposalDetail";
+import PubPrograms from "./pages/Programs";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/admin/inovasi" element={<DashboardLayout><AdminGuard><AdminInnovationReview /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<Innovation />} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
+            <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,0 +1,176 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export interface PubProgram {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  status: string;
+  start_date: string | null;
+  end_date: string | null;
+  location: string;
+  progress_percent: number;
+  image_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PubProgramUpdate {
+  id: string;
+  program_id: string;
+  title: string;
+  content: string;
+  published_at: string;
+  created_at: string;
+  pub_programs?: PubProgram;
+}
+
+export interface PubProgramGallery {
+  id: string;
+  program_id: string;
+  image_url: string;
+  caption: string;
+  created_at: string;
+  pub_programs?: PubProgram;
+}
+
+export function usePrograms() {
+  return useQuery({
+    queryKey: ["pub-programs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pub_programs" as any)
+        .select("*")
+        .order("start_date", { ascending: false });
+      if (error) throw error;
+      return data as unknown as PubProgram[];
+    },
+  });
+}
+
+export function useProgramUpdates() {
+  return useQuery({
+    queryKey: ["pub-program-updates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pub_program_updates" as any)
+        .select("*, pub_programs(*)")
+        .order("published_at", { ascending: false });
+      if (error) throw error;
+      return data as unknown as PubProgramUpdate[];
+    },
+  });
+}
+
+export function useProgramGallery() {
+  return useQuery({
+    queryKey: ["pub-program-gallery"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("pub_program_gallery" as any)
+        .select("*, pub_programs(*)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as unknown as PubProgramGallery[];
+    },
+  });
+}
+
+export function useCreateProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (program: Omit<PubProgram, "id" | "created_at" | "updated_at">) => {
+      const { data, error } = await supabase
+        .from("pub_programs" as any)
+        .insert(program)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pub-programs"] }),
+  });
+}
+
+export function useUpdateProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<PubProgram> & { id: string }) => {
+      const { error } = await supabase
+        .from("pub_programs" as any)
+        .update(updates)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pub-programs"] }),
+  });
+}
+
+export function useDeleteProgram() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("pub_programs" as any)
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pub-programs"] }),
+  });
+}
+
+export function useCreateProgramUpdate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (update: { program_id: string; title: string; content: string }) => {
+      const { error } = await supabase
+        .from("pub_program_updates" as any)
+        .insert(update);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pub-program-updates"] }),
+  });
+}
+
+export function useDeleteProgramUpdate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("pub_program_updates" as any)
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pub-program-updates"] }),
+  });
+}
+
+export function useCreateGalleryItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (item: { program_id: string; image_url: string; caption: string }) => {
+      const { error } = await supabase
+        .from("pub_program_gallery" as any)
+        .insert(item);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pub-program-gallery"] }),
+  });
+}
+
+export function useDeleteGalleryItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("pub_program_gallery" as any)
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["pub-program-gallery"] }),
+  });
+}
