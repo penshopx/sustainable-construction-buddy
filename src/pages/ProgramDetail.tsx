@@ -19,6 +19,7 @@ import { useParticipants, useUpdateParticipant, useDeleteParticipant } from "@/h
 import { useAdmin } from "@/hooks/useAdmin";
 import { AddParticipantDialog } from "@/components/participants/AddParticipantDialog";
 import { DetailParticipantImport } from "@/components/participants/DetailParticipantImport";
+import { GalleryUploadDialog } from "@/components/gallery/GalleryUploadDialog";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   upcoming: { label: "Akan Datang", color: "bg-pub-amber/15 text-pub-amber" },
@@ -263,6 +264,11 @@ export default function ProgramDetail() {
 
         {/* Gallery */}
         <TabsContent value="gallery" className="space-y-4">
+          {isAdmin && (
+            <div className="flex justify-end">
+              <GalleryUploadDialog programId={id!} />
+            </div>
+          )}
           {loadingGallery ? <Skeleton className="h-40" /> : gallery.length === 0 ? (
             <Card className="p-8 text-center"><p className="text-muted-foreground">Belum ada foto untuk program ini.</p></Card>
           ) : (
