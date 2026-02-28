@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Eye, Send, User, FileText, Clock, ThumbsUp, ThumbsDown, Search } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Send, User, FileText, Clock, ThumbsUp, ThumbsDown, Search, Download } from "lucide-react";
 import { useAdminInnovationProposals, useUpdateProposalStatus } from "@/hooks/useInnovations";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 const statusColors: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -91,6 +92,25 @@ export default function AdminInnovationReview() {
     rejected: proposals.filter((p) => p.status === "rejected").length,
   };
 
+  const handleExportExcel = () => {
+    const rows = filtered.map((p) => ({
+      "Judul": p.title,
+      "Pengaju": (p as any).submitter_name || "",
+      "Perusahaan": (p as any).submitter_company || "",
+      "Kategori": p.innovation_categories?.name || "",
+      "Status": statusLabels[p.status] || p.status,
+      "Lingkup": p.scope,
+      "Dampak": p.expected_impact,
+      "Catatan Admin": p.admin_notes,
+      "Tanggal": new Date(p.created_at).toLocaleDateString("id-ID"),
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Proposal Inovasi");
+    XLSX.writeFile(wb, `proposal-inovasi-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success("Data berhasil diexport ke Excel");
+  };
+
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
@@ -163,6 +183,9 @@ export default function AdminInnovationReview() {
             <SelectItem value="rejected">Ditolak</SelectItem>
           </SelectContent>
         </Select>
+        <Button variant="outline" size="default" className="gap-2 shrink-0" onClick={handleExportExcel}>
+          <Download className="w-4 h-4" /> Export Excel
+        </Button>
       </div>
 
       {filtered.length === 0 ? (
