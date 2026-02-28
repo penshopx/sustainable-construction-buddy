@@ -237,6 +237,98 @@ export type Database = {
           },
         ]
       }
+      innovation_categories: {
+        Row: {
+          benefits: string[]
+          concepts: string[]
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          name: string
+          programs: string[]
+          slug: string
+          sort_order: number
+          stage: number
+        }
+        Insert: {
+          benefits?: string[]
+          concepts?: string[]
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name: string
+          programs?: string[]
+          slug: string
+          sort_order?: number
+          stage?: number
+        }
+        Update: {
+          benefits?: string[]
+          concepts?: string[]
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          programs?: string[]
+          slug?: string
+          sort_order?: number
+          stage?: number
+        }
+        Relationships: []
+      }
+      innovation_proposals: {
+        Row: {
+          admin_notes: string
+          category_id: string | null
+          created_at: string
+          description: string
+          expected_impact: string
+          id: string
+          scope: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          expected_impact?: string
+          id?: string
+          scope?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          expected_impact?: string
+          id?: string
+          scope?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "innovation_proposals_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "innovation_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       k3_checklist_items: {
         Row: {
           category: string
