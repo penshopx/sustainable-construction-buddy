@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Calendar, MapPin, Plus, Trash2, Clock, Newspaper, Image as ImageIcon,
-  CheckCircle2, PlayCircle, CalendarClock, FolderOpen, ArrowLeft,
+  CheckCircle2, PlayCircle, CalendarClock, FolderOpen, ArrowLeft, Filter,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -248,10 +248,18 @@ export default function Programs() {
   const [addProgramOpen, setAddProgramOpen] = useState(false);
   const [addUpdateOpen, setAddUpdateOpen] = useState(false);
   const [addGalleryOpen, setAddGalleryOpen] = useState(false);
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const ongoing = programs.filter((p) => p.status === "ongoing");
   const upcoming = programs.filter((p) => p.status === "upcoming");
   const completed = programs.filter((p) => p.status === "completed");
+
+  const filteredPrograms = programs.filter((p) => {
+    if (filterCategory !== "all" && p.category !== filterCategory) return false;
+    if (filterStatus !== "all" && p.status !== filterStatus) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-6">
@@ -285,23 +293,49 @@ export default function Programs() {
 
         {/* Programs Tab */}
         <TabsContent value="programs" className="space-y-4">
-          {isAdmin && (
-            <Dialog open={addProgramOpen} onOpenChange={setAddProgramOpen}>
-              <DialogTrigger asChild>
-                <Button className="gap-2"><Plus className="w-4 h-4" /> Tambah Program</Button>
-              </DialogTrigger>
-              <DialogContent><DialogHeader><DialogTitle>Tambah Program Baru</DialogTitle></DialogHeader>
-                <ProgramForm onClose={() => setAddProgramOpen(false)} />
-              </DialogContent>
-            </Dialog>
-          )}
+          <div className="flex flex-wrap items-center gap-3">
+            {isAdmin && (
+              <Dialog open={addProgramOpen} onOpenChange={setAddProgramOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2"><Plus className="w-4 h-4" /> Tambah Program</Button>
+                </DialogTrigger>
+                <DialogContent><DialogHeader><DialogTitle>Tambah Program Baru</DialogTitle></DialogHeader>
+                  <ProgramForm onClose={() => setAddProgramOpen(false)} />
+                </DialogContent>
+              </Dialog>
+            )}
+            <div className="flex items-center gap-2 ml-auto">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
+                <SelectTrigger className="h-8 text-xs w-[130px]"><SelectValue placeholder="Kategori" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Kategori</SelectItem>
+                  <SelectItem value="program">Program</SelectItem>
+                  <SelectItem value="kegiatan">Kegiatan</SelectItem>
+                  <SelectItem value="pelatihan">Pelatihan</SelectItem>
+                  <SelectItem value="workshop">Workshop</SelectItem>
+                  <SelectItem value="seminar">Seminar</SelectItem>
+                  <SelectItem value="sertifikasi">Sertifikasi</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-8 text-xs w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="upcoming">Akan Datang</SelectItem>
+                  <SelectItem value="ongoing">Sedang Berjalan</SelectItem>
+                  <SelectItem value="completed">Selesai</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           {loadingPrograms ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{[1,2,3].map((i) => <Skeleton key={i} className="h-48" />)}</div>
-          ) : programs.length === 0 ? (
-            <Card className="p-8 text-center"><p className="text-muted-foreground">Belum ada program.</p></Card>
+          ) : filteredPrograms.length === 0 ? (
+            <Card className="p-8 text-center"><p className="text-muted-foreground">{programs.length === 0 ? "Belum ada program." : "Tidak ada program yang cocok dengan filter."}</p></Card>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {programs.map((p) => <ProgramCard key={p.id} program={p} isAdmin={isAdmin} />)}
+              {filteredPrograms.map((p) => <ProgramCard key={p.id} program={p} isAdmin={isAdmin} />)}
             </div>
           )}
         </TabsContent>
