@@ -104,13 +104,14 @@ function ProgramForm({ onClose }: { onClose: () => void }) {
 }
 
 function ProgramCard({ program, isAdmin }: { program: PubProgram; isAdmin: boolean }) {
+  const navigate = useNavigate();
   const update = useUpdateProgram();
   const del = useDeleteProgram();
   const config = statusConfig[program.status] || statusConfig.upcoming;
   const Icon = config.icon;
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/program-kegiatan/${program.id}`)}>
       <CardContent className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
@@ -143,7 +144,7 @@ function ProgramCard({ program, isAdmin }: { program: PubProgram; isAdmin: boole
           )}
         </div>
         {isAdmin && (
-          <div className="flex gap-2 pt-2 border-t">
+          <div className="flex gap-2 pt-2 border-t" onClick={(e) => e.stopPropagation()}>
             {program.status === "ongoing" && (
               <Input
                 type="number"

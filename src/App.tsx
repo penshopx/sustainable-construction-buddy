@@ -35,7 +35,7 @@ import Innovation from "./pages/Innovation";
 import AdminInnovationReview from "./pages/admin/AdminInnovationReview";
 import ProposalDetail from "./pages/ProposalDetail";
 import PubPrograms from "./pages/Programs";
-
+import ProgramDetail from "./pages/ProgramDetail";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -74,6 +74,7 @@ const App = () => (
             <Route path="/inovasi" element={<Innovation />} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />
+            <Route path="/program-kegiatan/:id" element={<DashboardLayout><ProgramDetail /></DashboardLayout>} />
             <Route path="/install" element={<Install />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
