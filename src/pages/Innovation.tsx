@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X } from "lucide-react";
+import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X, Paperclip, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useInnovationCategories, useInnovationProposals, useCreateProposal, useDeleteProposal, type InnovationCategory } from "@/hooks/useInnovations";
 import { toast } from "sonner";
 
@@ -115,8 +116,11 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
 }
 
 function ProposalForm({ categories, onClose }: { categories: InnovationCategory[]; onClose: () => void }) {
+  const { user } = useAuth();
   const createProposal = useCreateProposal();
   const [form, setForm] = useState({ category_id: "", title: "", description: "", scope: "", expected_impact: "" });
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,8 +128,28 @@ function ProposalForm({ categories, onClose }: { categories: InnovationCategory[
       toast.error("Judul dan kategori wajib diisi");
       return;
     }
+
+    let attachment_url = "";
+    let attachment_name = "";
+
+    if (file && user) {
+      setUploading(true);
+      const ext = file.name.split(".").pop();
+      const filePath = `${user.id}/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("innovation-attachments")
+        .upload(filePath, file);
+      setUploading(false);
+      if (uploadError) {
+        toast.error("Gagal mengunggah lampiran: " + uploadError.message);
+        return;
+      }
+      attachment_url = filePath;
+      attachment_name = file.name;
+    }
+
     try {
-      await createProposal.mutateAsync(form);
+      await createProposal.mutateAsync({ ...form, attachment_url, attachment_name });
       toast.success("Proposal inovasi berhasil disimpan");
       onClose();
     } catch {
@@ -162,10 +186,42 @@ function ProposalForm({ categories, onClose }: { categories: InnovationCategory[
         <Label>Dampak yang Diharapkan</Label>
         <Textarea value={form.expected_impact} onChange={(e) => setForm({ ...form, expected_impact: e.target.value })} placeholder="Dampak positif yang diharapkan..." rows={2} maxLength={1000} />
       </div>
+      <div>
+        <Label>Lampiran (opsional)</Label>
+        <div className="mt-1">
+          {file ? (
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted text-sm">
+              <Paperclip className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="flex-1 truncate">{file.name}</span>
+              <button type="button" onClick={() => setFile(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <label className="flex items-center gap-2 p-3 rounded-lg border border-dashed border-muted-foreground/30 cursor-pointer hover:border-muted-foreground/60 transition-colors text-sm text-muted-foreground">
+              <Upload className="w-4 h-4" />
+              <span>Pilih file (PDF, DOC, gambar, max 10MB)</span>
+              <input
+                type="file"
+                className="hidden"
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f && f.size > 10 * 1024 * 1024) {
+                    toast.error("Ukuran file maksimal 10MB");
+                    return;
+                  }
+                  if (f) setFile(f);
+                }}
+              />
+            </label>
+          )}
+        </div>
+      </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onClose}>Batal</Button>
-        <Button type="submit" disabled={createProposal.isPending} className="gap-2">
-          <Send className="w-4 h-4" /> {createProposal.isPending ? "Menyimpan..." : "Kirim Proposal"}
+        <Button type="submit" disabled={createProposal.isPending || uploading} className="gap-2">
+          <Send className="w-4 h-4" /> {uploading ? "Mengunggah..." : createProposal.isPending ? "Menyimpan..." : "Kirim Proposal"}
         </Button>
       </div>
     </form>
@@ -395,6 +451,13 @@ export default function Innovation() {
                         {p.innovation_categories && (
                           <p className="text-xs text-muted-foreground mt-1">Kategori: {p.innovation_categories.name}</p>
                         )}
+                        <div className="flex items-center gap-2 mt-1">
+                          {p.attachment_name && (
+                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                              <Paperclip className="w-3 h-3" /> {p.attachment_name}
+                            </span>
+                          )}
+                        </div>
                         {p.admin_notes && (
                           <p className="text-xs mt-2 p-2 rounded bg-muted">Catatan admin: {p.admin_notes}</p>
                         )}

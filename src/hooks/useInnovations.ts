@@ -25,6 +25,8 @@ export interface InnovationProposal {
   expected_impact: string;
   status: string;
   admin_notes: string;
+  attachment_url: string;
+  attachment_name: string;
   created_at: string;
   updated_at: string;
   innovation_categories?: InnovationCategory;
@@ -71,6 +73,8 @@ export function useCreateProposal() {
       description: string;
       scope: string;
       expected_impact: string;
+      attachment_url?: string;
+      attachment_name?: string;
     }) => {
       const { data, error } = await supabase
         .from("innovation_proposals" as any)
