@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import {
   Calendar, MapPin, Plus, Trash2, Clock, Newspaper, Image as ImageIcon,
   CheckCircle2, PlayCircle, CalendarClock, FolderOpen, ArrowLeft, Filter,
-  Users, UserCheck, UserX, Download,
+  Users, UserCheck, UserX, Download, Search,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -312,6 +312,7 @@ export default function Programs() {
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [participantProgramFilter, setParticipantProgramFilter] = useState("all");
+  const [participantSearch, setParticipantSearch] = useState("");
 
   const ongoing = programs.filter((p) => p.status === "ongoing");
   const upcoming = programs.filter((p) => p.status === "upcoming");
@@ -323,9 +324,12 @@ export default function Programs() {
     return true;
   });
 
-  const filteredParticipants = participantProgramFilter === "all"
-    ? participants
-    : participants.filter((p) => p.program_id === participantProgramFilter);
+  const searchLower = participantSearch.toLowerCase();
+  const filteredParticipants = participants.filter((p) => {
+    if (participantProgramFilter !== "all" && p.program_id !== participantProgramFilter) return false;
+    if (searchLower && !p.full_name.toLowerCase().includes(searchLower) && !p.company.toLowerCase().includes(searchLower)) return false;
+    return true;
+  });
 
   const programMap = Object.fromEntries(programs.map((p) => [p.id, p.title]));
 
@@ -503,6 +507,17 @@ export default function Programs() {
                 </Button>
               )}
             </div>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Cari nama atau perusahaan..."
+              value={participantSearch}
+              onChange={(e) => setParticipantSearch(e.target.value)}
+              className="pl-9 h-9 text-sm"
+            />
           </div>
 
           {/* Participant summary */}
