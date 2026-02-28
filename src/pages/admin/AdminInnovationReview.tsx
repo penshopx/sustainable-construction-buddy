@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Eye, Send } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Send, User } from "lucide-react";
 import { useAdminInnovationProposals, useUpdateProposalStatus } from "@/hooks/useInnovations";
 import { toast } from "sonner";
 
@@ -77,6 +77,11 @@ export default function AdminInnovationReview() {
                   <Badge className={statusColors[p.status] || ""}>{statusLabels[p.status] || p.status}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                  <User className="w-3 h-3" />
+                  <span className="font-medium">{(p as any).submitter_name}</span>
+                  {(p as any).submitter_company && <span>— {(p as any).submitter_company}</span>}
+                </div>
                 {p.innovation_categories && (
                   <p className="text-xs text-muted-foreground mt-1">Kategori: {p.innovation_categories.name}</p>
                 )}
