@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { CheckCircle2, XCircle, Eye, Send, User, FileText, Clock, ThumbsUp, ThumbsDown } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Send, User, FileText, Clock, ThumbsUp, ThumbsDown, Search } from "lucide-react";
 import { useAdminInnovationProposals, useUpdateProposalStatus } from "@/hooks/useInnovations";
 import { toast } from "sonner";
 
@@ -32,8 +34,22 @@ export default function AdminInnovationReview() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [action, setAction] = useState<"approved" | "rejected" | "reviewed" | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const selected = proposals.find((p) => p.id === selectedId);
+
+  const filtered = useMemo(() => {
+    return proposals.filter((p) => {
+      const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+      const q = searchQuery.toLowerCase();
+      const matchesSearch = !q || 
+        p.title.toLowerCase().includes(q) || 
+        ((p as any).submitter_name || "").toLowerCase().includes(q) ||
+        ((p as any).submitter_company || "").toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [proposals, statusFilter, searchQuery]);
 
   const openReview = (id: string, currentAction: "approved" | "rejected" | "reviewed") => {
     const p = proposals.find((x) => x.id === id);
@@ -124,8 +140,38 @@ export default function AdminInnovationReview() {
         </Card>
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Cari judul, nama pengaju, atau perusahaan..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Filter status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Status</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="submitted">Diajukan</SelectItem>
+            <SelectItem value="reviewed">Direview</SelectItem>
+            <SelectItem value="approved">Disetujui</SelectItem>
+            <SelectItem value="rejected">Ditolak</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {filtered.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">Tidak ada proposal yang cocok dengan filter.</p>
+        </Card>
+      ) : (
       <div className="space-y-4">
-        {proposals.map((p) => (
+        {filtered.map((p) => (
           <Card key={p.id}>
             <CardContent className="flex flex-col sm:flex-row items-start justify-between gap-4 pt-6">
               <div className="flex-1 min-w-0">
@@ -166,6 +212,7 @@ export default function AdminInnovationReview() {
           </Card>
         ))}
       </div>
+      )}
 
       <Dialog open={!!selectedId} onOpenChange={(open) => { if (!open) { setSelectedId(null); setAction(null); } }}>
         <DialogContent className="max-w-lg">
