@@ -35,7 +35,7 @@ const HeroSection = () => {
               transition={{ duration: 0.7 }}
               className="inline-flex items-center gap-3 mb-4 px-5 py-3 rounded-xl bg-[hsl(220,10%,72%)]"
             >
-              <img src={logoPub} alt="Logo PUB" className="h-24 w-auto object-contain brightness-[2] contrast-125" />
+              <img src={logoPub} alt="Logo PUB" className="h-[115px] w-auto object-contain brightness-[2] contrast-125" />
               <div className="w-px h-14 bg-white/25" />
               <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-[72px] w-auto object-contain mix-blend-multiply rounded-md" />
               <div className="w-px h-14 bg-white/25" />
