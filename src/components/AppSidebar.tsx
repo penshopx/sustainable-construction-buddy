@@ -19,6 +19,7 @@ import {
   Building2,
   Briefcase,
   Lightbulb,
+  CalendarDays,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -56,6 +57,7 @@ const items = [
   { title: "Sertifikat", url: "/certificates", icon: Award },
   { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
+  { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
   { title: "Notifikasi", url: "/notifications", icon: Bell },
   { title: "Profil Saya", url: "/profile", icon: User },
 ];
