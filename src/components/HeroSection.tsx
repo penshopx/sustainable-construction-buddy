@@ -35,11 +35,11 @@ const HeroSection = () => {
               transition={{ duration: 0.7 }}
               className="inline-flex items-center gap-6 mb-4 px-6 py-4 rounded-xl bg-[hsl(220_10%_72%)] backdrop-blur-sm"
             >
-              <img src={logoPub} alt="Logo PUB" className="h-28 w-auto object-contain brightness-[2] contrast-125" />
-              <div className="w-px h-16 bg-white/25" />
-              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-28 w-auto object-contain mix-blend-multiply" />
-              <div className="w-px h-16 bg-white/25" />
-              <img src={logoLsbuki} alt="Logo LSBUKI" className="h-28 w-auto object-contain mix-blend-multiply" />
+              <img src={logoPub} alt="Logo PUB" className="h-36 w-auto object-contain brightness-[2] contrast-125" />
+              <div className="w-px h-20 bg-white/25" />
+              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-36 w-auto object-contain mix-blend-multiply rounded-lg" />
+              <div className="w-px h-20 bg-white/25" />
+              <img src={logoLsbuki} alt="Logo LSBUKI" className="h-28 w-auto object-contain mix-blend-multiply rounded-lg" />
             </motion.div>
 
             {/* Badge */}
