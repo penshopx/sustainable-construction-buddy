@@ -21,6 +21,7 @@ import { AddParticipantDialog } from "@/components/participants/AddParticipantDi
 import { DetailParticipantImport } from "@/components/participants/DetailParticipantImport";
 import { GalleryUploadDialog } from "@/components/gallery/GalleryUploadDialog";
 import { AddUpdateDialog } from "@/components/programs/AddUpdateDialog";
+import { EditUpdateDialog } from "@/components/programs/EditUpdateDialog";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   upcoming: { label: "Akan Datang", color: "bg-pub-amber/15 text-pub-amber" },
@@ -256,9 +257,12 @@ export default function ProgramDetail() {
                         <p className="text-sm mt-2 whitespace-pre-wrap">{u.content}</p>
                       </div>
                       {isAdmin && (
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive shrink-0" onClick={() => { if (confirm("Hapus update?")) delUpdate.mutate(u.id); }}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                        <div className="flex gap-1 shrink-0">
+                          <EditUpdateDialog update={u} />
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => { if (confirm("Hapus update?")) delUpdate.mutate(u.id); }}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </CardContent>
