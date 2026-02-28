@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, CheckCircle2, XCircle, Eye, Clock, FileText, Send, Lightbulb, Paperclip, Download } from "lucide-react";
-import { useProposalDetail, useProposalLogs } from "@/hooks/useInnovations";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, CheckCircle2, XCircle, Eye, Clock, FileText, Send, Lightbulb, Paperclip, Download, MessageCircle, Shield } from "lucide-react";
+import { useProposalDetail, useProposalLogs, useProposalComments, useAddComment } from "@/hooks/useInnovations";
+import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -21,6 +25,21 @@ export default function ProposalDetail() {
   const navigate = useNavigate();
   const { data: proposal, isLoading } = useProposalDetail(id);
   const { data: logs = [], isLoading: logsLoading } = useProposalLogs(id);
+  const { data: comments = [], isLoading: commentsLoading } = useProposalComments(id);
+  const addComment = useAddComment();
+  const { user } = useAuth();
+  const { isAdmin } = useAdmin();
+  const [commentText, setCommentText] = useState("");
+
+  const handleSendComment = async () => {
+    if (!commentText.trim() || !id) return;
+    try {
+      await addComment.mutateAsync({ proposal_id: id, message: commentText.trim(), is_admin: isAdmin });
+      setCommentText("");
+    } catch {
+      toast.error("Gagal mengirim komentar");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -184,6 +203,69 @@ export default function ProposalDetail() {
                   );
                 })}
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Comments / Diskusi */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" /> Diskusi
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {commentsLoading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+            </div>
+          ) : comments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Belum ada komentar.</p>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {comments.map((c) => (
+                <div key={c.id} className={`p-3 rounded-lg ${c.is_admin ? "bg-accent/10 border border-accent/20" : "bg-muted"}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium">{c.author_name}</span>
+                    {c.is_admin && (
+                      <Badge variant="outline" className="text-xs gap-1 py-0">
+                        <Shield className="w-3 h-3" /> Admin
+                      </Badge>
+                    )}
+                    <span className="text-xs text-muted-foreground ml-auto">
+                      {new Date(c.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{c.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {user && (
+            <div className="flex gap-2 pt-2 border-t">
+              <Textarea
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                placeholder="Tulis komentar..."
+                rows={2}
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendComment();
+                  }
+                }}
+              />
+              <Button
+                size="icon"
+                onClick={handleSendComment}
+                disabled={!commentText.trim() || addComment.isPending}
+                className="shrink-0 self-end"
+              >
+                <Send className="w-4 h-4" />
+              </Button>
             </div>
           )}
         </CardContent>

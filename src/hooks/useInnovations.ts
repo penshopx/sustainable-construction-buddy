@@ -190,3 +190,57 @@ export function useProposalLogs(proposalId: string | undefined) {
     enabled: !!proposalId,
   });
 }
+
+export interface InnovationComment {
+  id: string;
+  proposal_id: string;
+  user_id: string;
+  message: string;
+  is_admin: boolean;
+  created_at: string;
+  author_name?: string;
+}
+
+export function useProposalComments(proposalId: string | undefined) {
+  return useQuery({
+    queryKey: ["innovation-comments", proposalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("innovation_comments" as any)
+        .select("*")
+        .eq("proposal_id", proposalId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+
+      const userIds = [...new Set((data as any[]).map((c: any) => c.user_id))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
+
+      return (data as any[]).map((c) => ({
+        ...c,
+        author_name: profileMap.get(c.user_id) || "Unknown",
+      })) as InnovationComment[];
+    },
+    enabled: !!proposalId,
+  });
+}
+
+export function useAddComment() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ proposal_id, message, is_admin }: { proposal_id: string; message: string; is_admin: boolean }) => {
+      const { error } = await supabase
+        .from("innovation_comments" as any)
+        .insert({ proposal_id, user_id: user!.id, message, is_admin });
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["innovation-comments", vars.proposal_id] });
+    },
+  });
+}
