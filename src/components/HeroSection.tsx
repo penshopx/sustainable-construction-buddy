@@ -3,8 +3,8 @@ import { ArrowRight, Building2, Shield, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import logoPub from "@/assets/logo-pub.png";
-import logoAspekindo from "@/assets/logo-aspekindo.png";
-import logoLsbuki from "@/assets/logo-lsbuki.png";
+import logoAspekindo from "@/assets/logo-aspekindo.jpg";
+import logoLsbuki from "@/assets/logo-lsbuki.webp";
 import dashboardMockup from "@/assets/dashboard-mockup.png";
 
 const HeroSection = () => {
@@ -33,13 +33,13 @@ const HeroSection = () => {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7 }}
-              className="inline-flex items-center gap-6 mb-4 px-6 py-4 rounded-xl bg-slate-300/40 backdrop-blur-sm"
+              className="inline-flex items-center gap-6 mb-4 px-6 py-4 rounded-xl bg-[hsl(220_10%_72%)] backdrop-blur-sm"
             >
               <img src={logoPub} alt="Logo PUB" className="h-28 w-auto object-contain brightness-[2] contrast-125" />
               <div className="w-px h-16 bg-white/25" />
-              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-28 w-auto object-contain" />
+              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-28 w-auto object-contain mix-blend-multiply" />
               <div className="w-px h-16 bg-white/25" />
-              <img src={logoLsbuki} alt="Logo LSBUKI" className="h-28 w-auto object-contain" />
+              <img src={logoLsbuki} alt="Logo LSBUKI" className="h-28 w-auto object-contain mix-blend-multiply" />
             </motion.div>
 
             {/* Badge */}
