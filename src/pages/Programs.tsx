@@ -29,6 +29,7 @@ import {
 import {
   useParticipants, useCreateParticipant, useUpdateParticipant, useDeleteParticipant,
 } from "@/hooks/useParticipants";
+import { ParticipantImport } from "@/components/participants/ParticipantImport";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   upcoming: { label: "Akan Datang", color: "bg-pub-amber/15 text-pub-amber", icon: CalendarClock },
@@ -476,14 +477,17 @@ export default function Programs() {
         <TabsContent value="participants" className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             {isAdmin && (
-              <Dialog open={addParticipantOpen} onOpenChange={setAddParticipantOpen}>
-                <DialogTrigger asChild>
-                  <Button className="gap-2"><Plus className="w-4 h-4" /> Tambah Peserta</Button>
-                </DialogTrigger>
-                <DialogContent><DialogHeader><DialogTitle>Tambah Peserta Kegiatan</DialogTitle></DialogHeader>
-                  <ParticipantForm programs={programs} onClose={() => setAddParticipantOpen(false)} />
-                </DialogContent>
-              </Dialog>
+              <>
+                <Dialog open={addParticipantOpen} onOpenChange={setAddParticipantOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2"><Plus className="w-4 h-4" /> Tambah Peserta</Button>
+                  </DialogTrigger>
+                  <DialogContent><DialogHeader><DialogTitle>Tambah Peserta Kegiatan</DialogTitle></DialogHeader>
+                    <ParticipantForm programs={programs} onClose={() => setAddParticipantOpen(false)} />
+                  </DialogContent>
+                </Dialog>
+                <ParticipantImport programs={programs} />
+              </>
             )}
             <div className="flex items-center gap-2 ml-auto">
               <Select value={participantProgramFilter} onValueChange={setParticipantProgramFilter}>
