@@ -267,11 +267,149 @@ export default function PerformanceGradePage() {
         </motion.div>
       )}
 
+      {/* Metodologi Perhitungan */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading flex items-center gap-2">
+            <Calculator className="w-4 h-4 text-accent" />
+            Metodologi Perhitungan Grade
+          </CardTitle>
+          <CardDescription>
+            Skor komposit = (Keuangan × 30%) + (Proyek × 30%) + (Kepatuhan × 20%) + (Risk & K3 × 20%)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Pillar 1: Keuangan */}
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className={`px-4 py-2 bg-pub-emerald/10 flex items-center gap-2`}>
+              <Banknote className="w-4 h-4 text-pub-emerald" />
+              <span className="font-heading font-semibold text-sm">Keuangan (30%)</span>
+            </div>
+            <div className="p-4 text-xs space-y-2">
+              <p className="text-muted-foreground">Sumber data: <strong>LKUT</strong> (tab Keuangan)</p>
+              <div className="grid gap-2">
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Current Ratio — 25 poin</p>
+                  <p className="text-muted-foreground">= Aset Lancar ÷ Kewajiban Jangka Pendek</p>
+                  <p className="text-muted-foreground mt-0.5">≥2.0 → 25 · ≥1.5 → 20 · ≥1.0 → 12 · &gt;0 → 5</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Debt-to-Equity Ratio — 25 poin</p>
+                  <p className="text-muted-foreground">= Total Kewajiban ÷ Total Ekuitas</p>
+                  <p className="text-muted-foreground mt-0.5">≤1.0 → 25 · ≤2.0 → 18 · ≤3.0 → 10 · &gt;3.0 → 2</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Profit Margin — 25 poin</p>
+                  <p className="text-muted-foreground">= (Laba Kotor ÷ Penjualan) × 100%</p>
+                  <p className="text-muted-foreground mt-0.5">≥15% → 25 · ≥10% → 20 · ≥5% → 12 · &gt;0% → 5</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Pertumbuhan Aset — 25 poin</p>
+                  <p className="text-muted-foreground">= (Aset N − Aset N-1) ÷ Aset N-1 × 100%</p>
+                  <p className="text-muted-foreground mt-0.5">≥15% → 25 · ≥5% → 18 · ≥0% → 10 · &lt;0% → 2</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pillar 2: Proyek */}
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className={`px-4 py-2 bg-pub-sky/10 flex items-center gap-2`}>
+              <FolderKanban className="w-4 h-4 text-pub-sky" />
+              <span className="font-heading font-semibold text-sm">Kinerja Proyek (30%)</span>
+            </div>
+            <div className="p-4 text-xs space-y-2">
+              <p className="text-muted-foreground">Sumber data: <strong>Proyek</strong> dan <strong>Budget Tracker</strong></p>
+              <div className="grid gap-2">
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Volume Proyek — 25 poin</p>
+                  <p className="text-muted-foreground">≥10 proyek → 25 · ≥5 → 20 · ≥3 → 15 · &lt;3 → 8</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Tingkat Penyelesaian — 25 poin</p>
+                  <p className="text-muted-foreground">= (Proyek Selesai ÷ Total Proyek) × 100%</p>
+                  <p className="text-muted-foreground mt-0.5">≥80% → 25 · ≥60% → 18 · ≥40% → 10 · &lt;40% → 3</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Rata-rata Kompleksitas — 25 poin</p>
+                  <p className="text-muted-foreground">Berdasarkan skor kompleksitas proyek (skala 0–10)</p>
+                  <p className="text-muted-foreground mt-0.5">≥8 → 25 · ≥5 → 18 · ≥3 → 10 · &lt;3 → 5</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Deviasi Anggaran — 25 poin</p>
+                  <p className="text-muted-foreground">= |Aktual − Rencana| ÷ Rencana × 100%</p>
+                  <p className="text-muted-foreground mt-0.5">≤5% → 25 · ≤10% → 18 · ≤20% → 10 · &gt;20% → 3</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pillar 3: Kepatuhan */}
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className={`px-4 py-2 bg-pub-amber/10 flex items-center gap-2`}>
+              <ShieldCheck className="w-4 h-4 text-pub-amber" />
+              <span className="font-heading font-semibold text-sm">Kepatuhan & SDM (20%)</span>
+            </div>
+            <div className="p-4 text-xs space-y-2">
+              <p className="text-muted-foreground">Sumber data: <strong>LKUT</strong> (tab Kepatuhan & SDM)</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">SBU Valid — 20 poin</p>
+                  <p className="text-muted-foreground">Nomor SBU terisi (10) + belum expired (10)</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">SMAP — 20 poin</p>
+                  <p className="text-muted-foreground">Pemenuhan Sistem Manajemen Anti Penyuapan</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Pengalaman SIJKT — 20 poin</p>
+                  <p className="text-muted-foreground">Semua proyek tercatat di SIJKT</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">GCG — 10 poin</p>
+                  <p className="text-muted-foreground">Good Corporate Governance diterapkan</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">SMK3 — 10 poin</p>
+                  <p className="text-muted-foreground">Sistem Manajemen K3 diterapkan</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Rasio SDM Terlatih — 20 poin</p>
+                  <p className="text-muted-foreground">≥70% → 20 · ≥50% → 14 · ≥30% → 8 · &lt;30% → 2</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pillar 4: Risk & K3 */}
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className={`px-4 py-2 bg-pub-violet/10 flex items-center gap-2`}>
+              <AlertTriangle className="w-4 h-4 text-pub-violet" />
+              <span className="font-heading font-semibold text-sm">Risk & K3 (20%)</span>
+            </div>
+            <div className="p-4 text-xs space-y-2">
+              <p className="text-muted-foreground">Sumber data: <strong>Risk Register</strong> dan <strong>K3 Checklist</strong></p>
+              <div className="grid gap-2">
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Mitigasi Risiko — hingga 30 poin (dari skor dasar 50)</p>
+                  <p className="text-muted-foreground">Tingkat mitigasi ≥80% → +30 · ≥50% → +15 · &lt;50% → −10</p>
+                  <p className="text-muted-foreground mt-0.5">Risiko tinggi (skor ≥16): penalti −5 per risiko</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2">
+                  <p className="font-semibold text-foreground">Kepatuhan K3 — hingga 20 poin</p>
+                  <p className="text-muted-foreground">Rata-rata skor inspeksi K3: ≥90% → +20 · ≥70% → +10 · &lt;70% → −10</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Grade Scale Reference */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-heading">Skala Grade BUJK</CardTitle>
-          <CardDescription>Berdasarkan skor komposit 4 pilar (Keuangan 30%, Proyek 30%, Kepatuhan 20%, Risk 20%)</CardDescription>
+          <CardDescription>Berdasarkan skor komposit 4 pilar</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">
