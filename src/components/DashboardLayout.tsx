@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import FloatingChatbot from "@/components/FloatingChatbot";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -63,6 +64,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {children}
           </main>
         </div>
+        <FloatingChatbot variant="dashboard" />
       </div>
     </SidebarProvider>
   );

@@ -14,6 +14,7 @@ import CompetencyMatrix from "@/components/CompetencyMatrix";
 import PricingSection from "@/components/PricingSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
+import FloatingChatbot from "@/components/FloatingChatbot";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -66,6 +67,7 @@ const Index = () => {
       <PricingSection />
       <CTASection />
       <Footer />
+      <FloatingChatbot variant="landing" />
     </main>
   );
 };
