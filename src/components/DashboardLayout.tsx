@@ -15,6 +15,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
+    if (!loading && user && !localStorage.getItem("pub_onboarding_done")) {
+      navigate("/onboarding");
+    }
   }, [loading, user, navigate]);
 
   if (loading) {

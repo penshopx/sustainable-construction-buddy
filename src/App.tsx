@@ -49,6 +49,7 @@ import AdminQuizQuestions from "./pages/admin/AdminQuizQuestions";
 import AdminModules from "./pages/admin/AdminModules";
 import PancekAssessment from "./pages/PancekAssessment";
 import ResetPassword from "./pages/ResetPassword";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
             <Route path="/assessment" element={<DashboardLayout><Assessment /></DashboardLayout>} />
             <Route path="/courses" element={<DashboardLayout><Courses /></DashboardLayout>} />
