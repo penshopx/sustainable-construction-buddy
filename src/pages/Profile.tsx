@@ -110,7 +110,7 @@ const Profile = () => {
               type="text"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              placeholder="Nama perusahaan BUJK"
+              placeholder="cth: PT Karya Konstruksi Nusantara"
               className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

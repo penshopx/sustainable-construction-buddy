@@ -89,16 +89,33 @@ export default function CompanyDirectory() {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
+        <div className="text-center py-12 text-muted-foreground">
           <Building2 className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-heading font-semibold">
             {entries.length === 0 ? "Belum ada perusahaan terdaftar" : "Tidak ada hasil yang cocok"}
           </p>
-          <p className="text-sm">
+          <p className="text-sm mb-6">
             {entries.length === 0
               ? "Jadilah yang pertama mendaftarkan perusahaan Anda."
               : "Coba ubah kata kunci atau filter pencarian."}
           </p>
+          {entries.length === 0 && (
+            <div className="grid sm:grid-cols-2 gap-3 max-w-lg mx-auto text-left">
+              {[
+                { name: "PT Graha Konstruksi Mandiri", qual: "Menengah", city: "Jakarta Selatan", sbu: "BG004" },
+                { name: "CV Bangun Jaya Teknik", qual: "Kecil", city: "Surabaya", sbu: "SB021" },
+              ].map((ex, i) => (
+                <div key={i} className="p-3 rounded-lg border border-dashed border-border bg-muted/30">
+                  <p className="text-xs font-heading font-semibold text-foreground">{ex.name}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Kualifikasi {ex.qual} · {ex.city}</p>
+                  <p className="text-[10px] text-muted-foreground">SBU: {ex.sbu}</p>
+                </div>
+              ))}
+              <p className="text-xs text-muted-foreground col-span-full text-center mt-2">
+                👆 Contoh tampilan profil perusahaan yang terdaftar
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

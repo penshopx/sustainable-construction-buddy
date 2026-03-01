@@ -268,7 +268,7 @@ const Generator = () => {
               <textarea
                 value={context}
                 onChange={e => setContext(e.target.value)}
-                placeholder="Tambahkan instruksi khusus atau konteks tambahan untuk dokumen..."
+                placeholder="cth: Fokus pada risiko keterlambatan material dan cuaca buruk. Proyek berlokasi di area rawan banjir. Gunakan format tabel untuk daftar risiko."
                 rows={3}
                 className="w-full px-4 py-3 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
               />

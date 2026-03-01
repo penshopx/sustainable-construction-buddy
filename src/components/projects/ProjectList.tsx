@@ -38,10 +38,24 @@ export function ProjectList({ projects, isLoading, onSelect, onDelete }: Project
   if (projects.length === 0) {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+        <CardContent className="flex flex-col items-center justify-center py-12 text-center">
           <FolderOpen className="w-12 h-12 text-muted-foreground/40 mb-4" />
           <h3 className="text-lg font-semibold font-heading mb-1">Belum ada proyek</h3>
-          <p className="text-sm text-muted-foreground font-body">Buat proyek pertama Anda untuk mulai membangun evidence kompetensi</p>
+          <p className="text-sm text-muted-foreground font-body mb-6">Buat proyek pertama Anda untuk mulai membangun evidence kompetensi</p>
+          <div className="grid sm:grid-cols-3 gap-3 w-full max-w-2xl text-left">
+            {[
+              { name: "Pembangunan Gedung Kantor 5 Lt", type: "Design & Build", value: "Rp 25M", complexity: "Tinggi" },
+              { name: "Renovasi Jalan Provinsi Km 12-18", type: "Harga Satuan", value: "Rp 8.5M", complexity: "Sedang" },
+              { name: "Drainase & Saluran Air Kec. Menteng", type: "Lump Sum", value: "Rp 2.1M", complexity: "Rendah" },
+            ].map((ex, i) => (
+              <div key={i} className="p-3 rounded-lg border border-dashed border-border bg-muted/30">
+                <p className="text-xs font-heading font-semibold text-foreground">{ex.name}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{ex.type} · {ex.value}</p>
+                <Badge variant="outline" className="text-[10px] mt-1.5">{ex.complexity}</Badge>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-4">👆 Contoh proyek yang bisa Anda catat untuk membangun portofolio kompetensi</p>
         </CardContent>
       </Card>
     );
