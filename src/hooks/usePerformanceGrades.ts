@@ -7,6 +7,10 @@ export interface PerformanceGrade {
   id: string;
   user_id: string;
   period: string;
+  company_name: string;
+  nib: string;
+  sbu_number: string;
+  bujk_qualification: string;
   financial_score: number;
   project_score: number;
   compliance_score: number;
@@ -285,6 +289,12 @@ export function usePerformanceGrades() {
         risk: { score: risk.score, weight: WEIGHTS.risk, ...risk.details },
       };
 
+      // Get BUJK identity from LKUT + profile
+      const companyName = raw.profile?.company || '';
+      const nib = ''; // could be extended from bujk_directory
+      const sbuNumber = raw.lkut?.sbu_number || '';
+      const bujkQualification = raw.profile?.bujk_qualification || '';
+
       // Upsert
       const { data, error } = await supabase
         .from("performance_grades")
@@ -292,6 +302,10 @@ export function usePerformanceGrades() {
           {
             user_id: user.id,
             period,
+            company_name: companyName,
+            nib,
+            sbu_number: sbuNumber,
+            bujk_qualification: bujkQualification,
             financial_score: fin.score,
             project_score: proj.score,
             compliance_score: comp.score,

@@ -1322,43 +1322,55 @@ export type Database = {
       performance_grades: {
         Row: {
           breakdown: Json
+          bujk_qualification: string
+          company_name: string
           compliance_score: number
           computed_at: string
           created_at: string
           financial_score: number
           grade: string
           id: string
+          nib: string
           period: string
           project_score: number
           risk_score: number
+          sbu_number: string
           total_score: number
           user_id: string
         }
         Insert: {
           breakdown?: Json
+          bujk_qualification?: string
+          company_name?: string
           compliance_score?: number
           computed_at?: string
           created_at?: string
           financial_score?: number
           grade?: string
           id?: string
+          nib?: string
           period: string
           project_score?: number
           risk_score?: number
+          sbu_number?: string
           total_score?: number
           user_id: string
         }
         Update: {
           breakdown?: Json
+          bujk_qualification?: string
+          company_name?: string
           compliance_score?: number
           computed_at?: string
           created_at?: string
           financial_score?: number
           grade?: string
           id?: string
+          nib?: string
           period?: string
           project_score?: number
           risk_score?: number
+          sbu_number?: string
           total_score?: number
           user_id?: string
         }

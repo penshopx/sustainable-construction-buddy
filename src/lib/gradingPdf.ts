@@ -79,7 +79,9 @@ export function exportGradingPdf(grade: PerformanceGrade, profileName?: string) 
         <div style="font-size:56px;font-weight:900;color:${color};line-height:1;">${grade.grade}</div>
         <div style="font-size:24px;font-weight:600;margin-top:4px;">${grade.total_score} / 100</div>
         <div style="color:#6b7280;font-size:13px;margin-top:4px;">Periode ${grade.period} • Dihitung ${date}</div>
-        ${profileName ? `<div style="color:#6b7280;font-size:12px;margin-top:2px;">${profileName}</div>` : ""}
+        ${grade.company_name ? `<div style="font-weight:600;font-size:14px;margin-top:8px;">${grade.company_name}</div>` : ""}
+        ${grade.sbu_number || grade.bujk_qualification ? `<div style="color:#6b7280;font-size:12px;margin-top:2px;">${[grade.sbu_number ? `SBU: ${grade.sbu_number}` : '', grade.nib ? `NIB: ${grade.nib}` : '', grade.bujk_qualification ? `Kualifikasi: ${grade.bujk_qualification}` : ''].filter(Boolean).join(' • ')}</div>` : ""}
+        ${profileName ? `<div style="color:#6b7280;font-size:12px;margin-top:2px;">Dihitung oleh: ${profileName}</div>` : ""}
       </div>
 
       <!-- Pillar Summary Bar -->
