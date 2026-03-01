@@ -27,6 +27,22 @@ export default function MyOrders() {
         <div className="text-center py-12 text-muted-foreground">
           <ShoppingBag className="w-10 h-10 mx-auto mb-2 opacity-30" />
           <p className="font-heading font-semibold">Belum ada pesanan</p>
+          <p className="text-sm mt-1 mb-4">
+            {isSeller ? "Belum ada pesanan masuk dari pembeli." : "Mulai belanja di marketplace untuk melihat pesanan Anda di sini."}
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3 max-w-md mx-auto text-left">
+            {[
+              { product: "Template RAB Gedung", qty: 1, total: "Rp 250.000", status: "Dikonfirmasi" },
+              { product: "Jasa Konsultasi SBU", qty: 1, total: "Rp 2.500.000", status: "Menunggu" },
+            ].map((ex, i) => (
+              <div key={i} className="p-3 rounded-lg border border-dashed border-border bg-muted/30">
+                <p className="text-xs font-heading font-semibold text-foreground">{ex.product}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">Qty: {ex.qty} · {ex.total}</p>
+                <Badge variant="outline" className="text-[10px] mt-1.5">{ex.status}</Badge>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">👆 Contoh tampilan pesanan</p>
         </div>
       );
     }
