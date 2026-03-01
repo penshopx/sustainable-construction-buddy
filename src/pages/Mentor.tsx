@@ -88,9 +88,59 @@ const Mentor = () => {
         ))}
       </div>
 
+      {/* Sidebar - mobile: horizontal collapsible, desktop: vertical */}
+      <div className="lg:hidden mb-3 p-3 rounded-xl border border-border bg-card">
+        {activeTab === "learning" && (
+          <KnowledgeBaseManager
+            label="Modul Pembelajaran"
+            knowledgeBases={mentor.knowledgeBases}
+            selectedKbId={mentor.selectedKbId}
+            onSelect={mentor.setSelectedKbId}
+            onUpload={mentor.uploadKnowledgeBase}
+            onDelete={mentor.deleteKnowledgeBase}
+          />
+        )}
+        {activeTab === "expert" && (
+          <>
+            <div className="mb-3">
+              <h4 className="text-sm font-heading font-semibold text-foreground mb-1">Pakar Cerdas AI</h4>
+              <p className="text-xs text-muted-foreground">Chatbot built-in manajemen konstruksi Indonesia.</p>
+            </div>
+            <ExternalBotManager bots={mentor.externalBots} onAdd={mentor.addExternalBot} onDelete={mentor.deleteExternalBot} />
+          </>
+        )}
+        {activeTab === "project" && (
+          <>
+            <div className="space-y-2 mb-3">
+              <h4 className="text-sm font-heading font-semibold text-foreground">Pilih Proyek</h4>
+              <div className="flex flex-wrap gap-1.5">
+                {projects.length === 0 && <p className="text-xs text-muted-foreground">Belum ada proyek.</p>}
+                {projects.map(p => (
+                  <button key={p.id} onClick={() => mentor.setSelectedProjectId(p.id === mentor.selectedProjectId ? null : p.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                      p.id === mentor.selectedProjectId ? "bg-primary/10 border border-primary/20 text-foreground" : "hover:bg-muted border border-border text-muted-foreground"
+                    }`}>
+                    <Wrench className="w-3 h-3" /> {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <KnowledgeBaseManager
+              label="Brain Project (Dokumen)"
+              knowledgeBases={mentor.knowledgeBases}
+              selectedKbId={mentor.selectedKbId}
+              onSelect={mentor.setSelectedKbId}
+              onUpload={mentor.uploadKnowledgeBase}
+              onDelete={mentor.deleteKnowledgeBase}
+              projectId={mentor.selectedProjectId || undefined}
+            />
+          </>
+        )}
+      </div>
+
       {/* Content */}
       <div className="flex-1 flex gap-4 min-h-0">
-        {/* Sidebar */}
+        {/* Sidebar - desktop only */}
         <div className="w-72 shrink-0 hidden lg:flex flex-col gap-4 overflow-y-auto">
           {activeTab === "learning" && (
             <KnowledgeBaseManager
