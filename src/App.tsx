@@ -38,6 +38,7 @@ import PubPrograms from "./pages/Programs";
 import ProgramDetail from "./pages/ProgramDetail";
 import Marketplace from "./pages/Marketplace";
 import CompanyDirectory from "./pages/CompanyDirectory";
+import CompanyDetail from "./pages/CompanyDetail";
 import HelpdeskAI from "./pages/HelpdeskAI";
 import MyOrders from "./pages/MyOrders";
 import MyProducts from "./pages/MyProducts";
@@ -78,6 +79,7 @@ const App = () => (
             <Route path="/pancek" element={<DashboardLayout><SmapDashboard /></DashboardLayout>} />
             <Route path="/marketplace" element={<DashboardLayout><Marketplace /></DashboardLayout>} />
             <Route path="/direktori" element={<DashboardLayout><CompanyDirectory /></DashboardLayout>} />
+            <Route path="/direktori/:companyId" element={<DashboardLayout><CompanyDetail /></DashboardLayout>} />
             <Route path="/helpdesk" element={<DashboardLayout><HelpdeskAI /></DashboardLayout>} />
             <Route path="/pesanan" element={<DashboardLayout><MyOrders /></DashboardLayout>} />
             <Route path="/produk-saya" element={<DashboardLayout><MyProducts /></DashboardLayout>} />

@@ -136,6 +136,44 @@ export type Database = {
         }
         Relationships: []
       }
+      bujk_gallery: {
+        Row: {
+          caption: string
+          created_at: string
+          directory_id: string
+          id: string
+          image_url: string
+          project_name: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string
+          created_at?: string
+          directory_id: string
+          id?: string
+          image_url?: string
+          project_name?: string
+          user_id: string
+        }
+        Update: {
+          caption?: string
+          created_at?: string
+          directory_id?: string
+          id?: string
+          image_url?: string
+          project_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bujk_gallery_directory_id_fkey"
+            columns: ["directory_id"]
+            isOneToOne: false
+            referencedRelation: "bujk_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates: {
         Row: {
           certificate_number: string
