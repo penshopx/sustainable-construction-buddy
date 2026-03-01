@@ -8,13 +8,15 @@ import remarkGfm from "remark-gfm";
 import {
   GraduationCap, Clock, CheckCircle2, PlayCircle, Lock,
   Star, Award, Crown, Gem, BookOpen, ArrowRight, HelpCircle, Trophy,
-  BookMarked, Filter
+  BookMarked, Filter, Search, ArrowUpDown, SortAsc
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const levelIcons: Record<string, any> = { Pemula: Star, Muda: Award, Madya: Crown, Utama: Gem };
 const levelColors: Record<string, string> = {
@@ -96,6 +98,9 @@ const Courses = () => {
   const [modules, setModules] = useState<Module[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
   const [selectedLevel, setSelectedLevel] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusTab, setStatusTab] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("default");
   const [loading, setLoading] = useState(true);
   const [activeModule, setActiveModule] = useState<Module | null>(null);
   const [quiz, setQuiz] = useState<QuizState | null>(null);
@@ -142,7 +147,25 @@ const Courses = () => {
   const filtered = modules.filter((m) => {
     if (selectedDomain !== "all" && m.domain_id !== selectedDomain) return false;
     if (selectedLevel !== "all" && m.level !== selectedLevel) return false;
+    if (searchQuery && !m.title.toLowerCase().includes(searchQuery.toLowerCase()) && !m.description.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (statusTab === "in_progress" && m.progress?.status !== "in_progress") return false;
+    if (statusTab === "completed" && m.progress?.status !== "completed") return false;
+    if (statusTab === "not_started" && m.progress) return false;
     return true;
+  });
+
+  // Sorting
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sortBy) {
+      case "duration_asc": return a.duration_minutes - b.duration_minutes;
+      case "duration_desc": return b.duration_minutes - a.duration_minutes;
+      case "level": {
+        const order = ["Pemula", "Muda", "Madya", "Utama"];
+        return order.indexOf(a.level) - order.indexOf(b.level);
+      }
+      case "score": return (b.bestQuizScore ?? -1) - (a.bestQuizScore ?? -1);
+      default: return 0;
+    }
   });
 
   const totalModules = modules.length;
@@ -549,6 +572,27 @@ const Courses = () => {
         </p>
       </div>
 
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Cari modul..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Status tabs */}
+      <Tabs value={statusTab} onValueChange={setStatusTab} className="mb-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="all">Semua ({totalModules})</TabsTrigger>
+          <TabsTrigger value="not_started">Belum Mulai ({totalModules - inProgressModules - completedModules})</TabsTrigger>
+          <TabsTrigger value="in_progress">Dipelajari ({inProgressModules})</TabsTrigger>
+          <TabsTrigger value="completed">Selesai ({completedModules})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Progress summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <Card>
@@ -636,6 +680,30 @@ const Courses = () => {
             );
           })}
         </div>
+
+        {/* Sorting */}
+        <div className="flex items-center gap-2">
+          <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+          {[
+            { value: "default", label: "Urutan Default" },
+            { value: "duration_asc", label: "Durasi ↑" },
+            { value: "duration_desc", label: "Durasi ↓" },
+            { value: "level", label: "Level" },
+            { value: "score", label: "Skor Kuis" },
+          ].map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setSortBy(opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-heading font-medium transition-colors ${
+                sortBy === opt.value
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Loading skeleton */}
@@ -648,7 +716,7 @@ const Courses = () => {
       )}
 
       {/* Empty state */}
-      {!loading && filtered.length === 0 && (
+      {!loading && sorted.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -668,7 +736,7 @@ const Courses = () => {
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => { setSelectedDomain("all"); setSelectedLevel("all"); }}
+              onClick={() => { setSelectedDomain("all"); setSelectedLevel("all"); setSearchQuery(""); setStatusTab("all"); }}
             >
               Reset Filter
             </Button>
@@ -677,9 +745,9 @@ const Courses = () => {
       )}
 
       {/* Module grid */}
-      {!loading && filtered.length > 0 && (
+      {!loading && sorted.length > 0 && (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((mod, i) => {
+          {sorted.map((mod, i) => {
             const Icon = levelIcons[mod.level] || Star;
             const color = levelColors[mod.level] || "text-muted-foreground";
             const DomainIcon = domainIcons[mod.domain_name] || BookOpen;
@@ -702,9 +770,10 @@ const Courses = () => {
                   </Badge>
                   <div className="flex items-center gap-1.5">
                     {mod.bestQuizScore !== null && mod.bestQuizScore !== undefined && (
-                      <span className={`text-[10px] font-bold ${mod.bestQuizScore >= 70 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
-                        {mod.bestQuizScore}%
-                      </span>
+                      <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${mod.bestQuizScore >= 70 ? 'border-emerald-500/30 text-emerald-500' : 'border-destructive/30 text-destructive'}`}>
+                        <Trophy className="w-2.5 h-2.5 mr-0.5" />
+                        {mod.bestQuizScore}% {mod.bestQuizScore >= 70 ? "Lulus" : ""}
+                      </Badge>
                     )}
                     {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
                     {isInProgress && <PlayCircle className="w-5 h-5 text-pub-amber" />}
