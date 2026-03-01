@@ -3,10 +3,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Building2, FileText, Shield, DollarSign, TrendingUp, AlertTriangle,
   CheckCircle2, HardHat, ClipboardCheck, FolderKanban, Users, BarChart3,
-  Package, ShoppingCart, FileCheck, ChevronRight, Briefcase
+  Package, ShoppingCart, FileCheck, ChevronRight, Briefcase, Loader2
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
@@ -247,31 +248,80 @@ function getRoleConfig(position: string, stats: any): RoleConfig | null {
   return null;
 }
 
+const QUICK_ROLES = [
+  { label: "PJBU / Direktur", value: "Penanggung Jawab Badan Usaha (PJBU) / Direktur", icon: Building2, color: "text-pub-sky", bg: "bg-pub-sky/10" },
+  { label: "PJT", value: "Penanggung Jawab Teknik (PJT)", icon: HardHat, color: "text-pub-amber", bg: "bg-pub-amber/10" },
+  { label: "PJSKBU", value: "Penanggung Jawab Subklasifikasi (PJSKBU)", icon: FileCheck, color: "text-pub-violet", bg: "bg-pub-violet/10" },
+  { label: "Mgr. Keuangan", value: "Manajer Keuangan", icon: DollarSign, color: "text-pub-emerald", bg: "bg-pub-emerald/10" },
+  { label: "Mgr. Logistik", value: "Manajer Logistik & Rantai Pasok", icon: Package, color: "text-pub-amber", bg: "bg-pub-amber/10" },
+  { label: "Mgr. Pengadaan", value: "Manajer Pengadaan / Tender", icon: ShoppingCart, color: "text-pub-sky", bg: "bg-pub-sky/10" },
+  { label: "Mgr. Administrasi", value: "Manajer Administrasi", icon: FileText, color: "text-pub-violet", bg: "bg-pub-violet/10" },
+  { label: "Petugas K3", value: "Petugas K3", icon: Shield, color: "text-pub-emerald", bg: "bg-pub-emerald/10" },
+];
+
 export function RoleDashboard() {
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const position = profile?.position || "";
   const stats = useRoleStats(position, user?.id || "");
   const config = getRoleConfig(position, stats);
+  const [savingRole, setSavingRole] = useState<string | null>(null);
+
+  const handleQuickSetRole = async (value: string) => {
+    if (!user) return;
+    setSavingRole(value);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ position: value } as any)
+      .eq("user_id", user.id);
+    if (error) {
+      toast.error("Gagal menyimpan jabatan");
+    } else {
+      await refreshProfile();
+      toast.success("Jabatan berhasil disimpan!");
+    }
+    setSavingRole(null);
+  };
 
   if (!position || !config) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-card rounded-xl border border-border p-6 shadow-card text-center"
+        className="bg-card rounded-xl border border-border p-6 shadow-card"
       >
-        <Briefcase className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-        <p className="font-heading font-semibold text-foreground mb-1">Jabatan belum dipilih</p>
-        <p className="text-sm text-muted-foreground font-body mb-4">
-          Pilih jabatan di halaman Profil untuk melihat dashboard yang dipersonalisasi.
-        </p>
-        <button
-          onClick={() => navigate("/profile")}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-amber text-accent-foreground font-heading font-semibold text-sm shadow-amber hover:brightness-110 transition-all"
-        >
-          <Briefcase className="w-4 h-4" /> Atur Jabatan
-        </button>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-pub-amber/10 flex items-center justify-center">
+            <Briefcase className="w-5 h-5 text-pub-amber" />
+          </div>
+          <div>
+            <p className="font-heading font-semibold text-foreground">Pilih Jabatan Anda</p>
+            <p className="text-xs text-muted-foreground font-body">
+              Dashboard akan dipersonalisasi sesuai peran Anda di BUJK
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {QUICK_ROLES.map((role) => (
+            <motion.button
+              key={role.value}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => handleQuickSetRole(role.value)}
+              disabled={savingRole !== null}
+              className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-pub-amber/40 hover:bg-pub-amber/5 transition-all text-left group disabled:opacity-50"
+            >
+              <div className={`w-8 h-8 rounded-lg ${role.bg} flex items-center justify-center shrink-0`}>
+                {savingRole === role.value ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-pub-amber" />
+                ) : (
+                  <role.icon className={`w-4 h-4 ${role.color}`} />
+                )}
+              </div>
+              <span className="text-xs font-heading font-medium text-foreground">{role.label}</span>
+            </motion.button>
+          ))}
+        </div>
       </motion.div>
     );
   }
