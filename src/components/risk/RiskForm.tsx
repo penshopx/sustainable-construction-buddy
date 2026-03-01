@@ -47,7 +47,7 @@ export function RiskForm({ projectId, onSubmit, isSubmitting }: RiskFormProps) {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Deskripsi Risiko *</Label>
-                <Textarea value={form.risk_description} onChange={e => update('risk_description', e.target.value)} placeholder="Deskripsikan risiko yang teridentifikasi..." rows={3} required />
+                <Textarea value={form.risk_description} onChange={e => update('risk_description', e.target.value)} placeholder="Contoh: Keterlambatan pengiriman material baja dari supplier utama akibat gangguan logistik, berpotensi memperlambat pekerjaan struktur lantai 3-5 selama 2 minggu." rows={3} required />
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -75,12 +75,12 @@ export function RiskForm({ projectId, onSubmit, isSubmitting }: RiskFormProps) {
               </div>
               <div className="space-y-2">
                 <Label>Rencana Mitigasi</Label>
-                <Textarea value={form.mitigation_action} onChange={e => update('mitigation_action', e.target.value)} placeholder="Langkah mitigasi yang akan dilakukan..." rows={2} />
+                <Textarea value={form.mitigation_action} onChange={e => update('mitigation_action', e.target.value)} placeholder="Contoh: 1) Identifikasi 2 supplier alternatif baja (PT Krakatau Steel & PT Gunung Raja Paksi). 2) Pesan stok buffer 20% lebih awal. 3) Siapkan jadwal kerja lembur untuk catch-up." rows={2} />
               </div>
               <div className="grid md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Penanggung Jawab</Label>
-                  <Input value={form.owner} onChange={e => update('owner', e.target.value)} placeholder="Nama PIC" />
+                  <Input value={form.owner} onChange={e => update('owner', e.target.value)} placeholder="Contoh: Ir. Budi Santoso (Project Manager)" />
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>

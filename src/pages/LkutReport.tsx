@@ -245,7 +245,7 @@ export default function LkutReportPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Nomor SBU</Label>
-                  <Input value={form.sbu_number || ""} onChange={e => setForm({ ...form, sbu_number: e.target.value })} placeholder="Masukkan nomor SBU" />
+                  <Input value={form.sbu_number || ""} onChange={e => setForm({ ...form, sbu_number: e.target.value })} placeholder="Contoh: SBU-2024-BG001-12345" />
                 </div>
                 <div>
                   <Label>Tipe SBU</Label>
@@ -281,7 +281,7 @@ export default function LkutReportPage() {
                   </div>
                   <div>
                     <Label>Keterangan</Label>
-                    <Input value={form.tkk_replacement_notes || ""} onChange={e => setForm({ ...form, tkk_replacement_notes: e.target.value })} />
+                    <Input value={form.tkk_replacement_notes || ""} onChange={e => setForm({ ...form, tkk_replacement_notes: e.target.value })} placeholder="Contoh: PJBU diganti dari Ir. Ahmad ke Ir. Budi per SK No. 05/2024" />
                   </div>
                 </div>
               )}
@@ -330,7 +330,7 @@ export default function LkutReportPage() {
               {!form.experience_records_complete && (
                 <div className="pl-4 border-l-2 border-accent/30">
                   <Label>Daftar Pengalaman yang Belum Dicatatkan</Label>
-                  <Textarea value={form.experience_pending_list || ""} onChange={e => setForm({ ...form, experience_pending_list: e.target.value })} placeholder="Tuliskan proyek/pekerjaan yang belum dicatatkan" />
+                  <Textarea value={form.experience_pending_list || ""} onChange={e => setForm({ ...form, experience_pending_list: e.target.value })} placeholder="Contoh:&#10;1. Pembangunan Gedung Kantor PT ABC (2023) - Rp 15M&#10;2. Renovasi Pabrik XYZ Cikarang (2023) - Rp 8M&#10;3. Jalan Akses Kawasan Industri Bekasi (2024) - Rp 22M" />
                 </div>
               )}
             </TabsContent>
@@ -345,7 +345,8 @@ export default function LkutReportPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>Nilai Aset Tahun N (Rp)</Label>
-                  <Input type="number" value={form.asset_value_current || 0} onChange={e => setForm({ ...form, asset_value_current: Number(e.target.value) })} />
+                  <Input type="number" value={form.asset_value_current || 0} onChange={e => setForm({ ...form, asset_value_current: Number(e.target.value) })} placeholder="Contoh: 25000000000" />
+                  <p className="text-xs text-muted-foreground mt-0.5">Contoh: Rp 25 Miliar</p>
                 </div>
                 <div>
                   <Label>Nilai Aset Tahun N-1 (Rp)</Label>
@@ -353,7 +354,8 @@ export default function LkutReportPage() {
                 </div>
                 <div>
                   <Label>Nilai Penjualan/Total Proyek (Rp)</Label>
-                  <Input type="number" value={form.sales_value || 0} onChange={e => setForm({ ...form, sales_value: Number(e.target.value) })} />
+                  <Input type="number" value={form.sales_value || 0} onChange={e => setForm({ ...form, sales_value: Number(e.target.value) })} placeholder="Contoh: 50000000000" />
+                  <p className="text-xs text-muted-foreground mt-0.5">Total nilai kontrak proyek tahun ini</p>
                 </div>
                 <div>
                   <Label>Laba Kotor (Rp)</Label>

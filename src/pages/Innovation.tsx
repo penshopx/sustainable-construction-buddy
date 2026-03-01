@@ -172,19 +172,19 @@ function ProposalForm({ categories, onClose }: { categories: InnovationCategory[
       </div>
       <div>
         <Label>Judul Proposal</Label>
-        <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Judul inovasi Anda" maxLength={200} />
+        <Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Contoh: Implementasi BIM untuk Efisiensi Koordinasi Multi-Disiplin" maxLength={200} />
       </div>
       <div>
         <Label>Deskripsi</Label>
-        <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Jelaskan inovasi yang diusulkan..." rows={3} maxLength={2000} />
+        <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Contoh: Mengadopsi Building Information Modeling (BIM) Level 2 untuk seluruh proyek gedung di atas Rp 50M. Diharapkan dapat mengurangi rework sebesar 30% dan meningkatkan akurasi estimasi biaya hingga 95%." rows={3} maxLength={2000} />
       </div>
       <div>
         <Label>Lingkup Penerapan</Label>
-        <Input value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })} placeholder="Nasional / Daerah / Perusahaan" maxLength={200} />
+        <Input value={form.scope} onChange={(e) => setForm({ ...form, scope: e.target.value })} placeholder="Contoh: Seluruh proyek gedung bertingkat perusahaan di Jawa & Sumatera" maxLength={200} />
       </div>
       <div>
         <Label>Dampak yang Diharapkan</Label>
-        <Textarea value={form.expected_impact} onChange={(e) => setForm({ ...form, expected_impact: e.target.value })} placeholder="Dampak positif yang diharapkan..." rows={2} maxLength={1000} />
+        <Textarea value={form.expected_impact} onChange={(e) => setForm({ ...form, expected_impact: e.target.value })} placeholder="Contoh: Pengurangan rework 30%, penghematan biaya material 15%, percepatan jadwal proyek 10%, dan peningkatan skor kinerja BUJK dari grade B ke A." rows={2} maxLength={1000} />
       </div>
       <div>
         <Label>Lampiran (opsional)</Label>
