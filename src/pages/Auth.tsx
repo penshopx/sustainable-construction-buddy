@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Building2, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgot, setIsForgot] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -14,6 +16,21 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Link reset password telah dikirim ke email Anda.");
+      setIsForgot(false);
+    }
+    setLoading(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,83 +104,129 @@ const Auth = () => {
           </div>
 
           <h1 className="text-2xl font-bold font-heading text-foreground mb-2">
-            {isLogin ? "Masuk ke Akun" : "Daftar Akun Baru"}
+            {isForgot ? "Lupa Password" : isLogin ? "Masuk ke Akun" : "Daftar Akun Baru"}
           </h1>
           <p className="text-muted-foreground font-body mb-8">
-            {isLogin ? "Masuk untuk melanjutkan perjalanan kompetensi Anda." : "Buat akun untuk memulai assessment kompetensi."}
+            {isForgot
+              ? "Masukkan email Anda untuk menerima link reset password."
+              : isLogin
+              ? "Masuk untuk melanjutkan perjalanan kompetensi Anda."
+              : "Buat akun untuk memulai assessment kompetensi."}
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {!isLogin && (
+          {isForgot ? (
+            <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-foreground font-heading mb-1.5 block">Nama Lengkap</label>
+                <label className="text-sm font-medium text-foreground font-heading mb-1.5 block">Email</label>
                 <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Nama lengkap Anda"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@perusahaan.com"
                   required
                   className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
-            )}
-
-            <div>
-              <label className="text-sm font-medium text-foreground font-heading mb-1.5 block">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="email@perusahaan.com"
-                required
-                className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-foreground font-heading mb-1.5 block">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimal 6 karakter"
-                  required
-                  minLength={6}
-                  className="w-full h-11 px-4 pr-12 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full h-11 rounded-lg bg-gradient-amber text-accent-foreground font-semibold font-heading shadow-amber hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
-                <>
-                  {isLogin ? "Masuk" : "Daftar"}
-                  <ArrowRight className="w-4 h-4" />
-                </>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 rounded-lg bg-gradient-amber text-accent-foreground font-semibold font-heading shadow-amber hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                  <>Kirim Link Reset <ArrowRight className="w-4 h-4" /></>
+                )}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
+                <div>
+                  <label className="text-sm font-medium text-foreground font-heading mb-1.5 block">Nama Lengkap</label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Nama lengkap Anda"
+                    required
+                    className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
               )}
-            </button>
-          </form>
+
+              <div>
+                <label className="text-sm font-medium text-foreground font-heading mb-1.5 block">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="email@perusahaan.com"
+                  required
+                  className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground font-heading mb-1.5 block">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Minimal 6 karakter"
+                    required
+                    minLength={6}
+                    className="w-full h-11 px-4 pr-12 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => setIsForgot(true)}
+                    className="text-xs text-accent hover:underline mt-1.5"
+                  >
+                    Lupa password?
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-11 rounded-lg bg-gradient-amber text-accent-foreground font-semibold font-heading shadow-amber hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                  <>
+                    {isLogin ? "Masuk" : "Daftar"}
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
 
           <p className="text-center text-sm text-muted-foreground font-body mt-6">
-            {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-accent font-semibold hover:underline"
-            >
-              {isLogin ? "Daftar sekarang" : "Masuk"}
-            </button>
+            {isForgot ? (
+              <button onClick={() => setIsForgot(false)} className="text-accent font-semibold hover:underline">
+                Kembali ke login
+              </button>
+            ) : (
+              <>
+                {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
+                <button
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-accent font-semibold hover:underline"
+                >
+                  {isLogin ? "Daftar sekarang" : "Masuk"}
+                </button>
+              </>
+            )}
           </p>
         </motion.div>
       </div>

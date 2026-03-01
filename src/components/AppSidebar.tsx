@@ -97,12 +97,12 @@ export function AppSidebar() {
           animate={{ opacity: 1, scale: 1 }}
           whileHover={{ scale: 1.05, filter: "drop-shadow(0 0 20px hsl(var(--pub-amber) / 0.6))" }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className={`${collapsed ? "w-10 h-10" : "w-[17.5rem] h-[17.5rem]"} flex items-center justify-center cursor-pointer`}
+          className={`${collapsed ? "w-10 h-10" : "w-20 h-20"} flex items-center justify-center cursor-pointer`}
         >
           <img
             src={logoPub}
             alt="PUB ASPEKINDO"
-            className={`${collapsed ? "w-10 h-10" : "w-[17.5rem] h-[17.5rem]"} object-contain transition-transform duration-300`}
+            className={`${collapsed ? "w-10 h-10" : "w-20 h-20"} object-contain transition-transform duration-300`}
             style={{ imageRendering: "auto" }}
           />
         </motion.div>
