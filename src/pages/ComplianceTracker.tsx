@@ -158,6 +158,15 @@ export default function ComplianceTracker() {
   const currentYear = new Date().getFullYear();
   const latestPancek = assessments?.find(a => a.period_year === currentYear) || assessments?.[0];
 
+  // Fetch profile for company identity
+  const [profile, setProfile] = useState<{ company: string; full_name: string; bujk_qualification: string } | null>(null);
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("company, full_name, bujk_qualification").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      if (data) setProfile(data);
+    });
+  }, [user]);
+
   // Fetch data source counts
   const [dsLoading, setDsLoading] = useState(true);
   const [dsCounts, setDsCounts] = useState({ lkut: 0, projects: 0, budgets: 0, risks: 0, k3: 0, smap: 0, pancek: 0 });
@@ -327,7 +336,7 @@ export default function ComplianceTracker() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
+      <div className="space-y-2">
         <h2 className="text-2xl font-bold font-heading text-foreground flex items-center gap-2">
           <ShieldCheck className="w-6 h-6 text-accent" />
           Compliance Tracker
@@ -335,6 +344,40 @@ export default function ComplianceTracker() {
         <p className="text-sm text-muted-foreground">
           Pantau kepatuhan perizinan SBU, SMAP, TKK, GCG, SMK3 & PANCEK KPK BUJK Anda
         </p>
+
+        {/* Company Identity */}
+        {(profile || latestLkut) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 px-4 py-3 rounded-lg bg-accent/5 border border-accent/15">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
+              <span className="text-sm font-semibold text-foreground">
+                {profile?.company || "—"}
+              </span>
+            </div>
+            {latestLkut?.sbu_number && (
+              <Badge variant="outline" className="text-xs">
+                SBU: {latestLkut.sbu_number}
+              </Badge>
+            )}
+            {profile?.bujk_qualification && (
+              <Badge variant="outline" className="text-xs capitalize">
+                {profile.bujk_qualification}
+              </Badge>
+            )}
+            {latestLkut && (
+              <Badge variant="outline" className="text-xs">
+                LKUT {latestLkut.report_year}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {!profile?.company && !latestLkut && !loading && (
+          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded-lg bg-pub-amber/10 border border-pub-amber/20 text-pub-amber">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>Profil perusahaan belum dilengkapi. <Button variant="link" className="p-0 h-auto text-pub-amber underline" onClick={() => navigate("/profile")}>Lengkapi profil →</Button></span>
+          </div>
+        )}
       </div>
 
       {/* Data Completeness */}
