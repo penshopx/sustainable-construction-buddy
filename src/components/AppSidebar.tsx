@@ -25,7 +25,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
-import logoPub from "@/assets/logo-pub.png";
+import logoPub from "@/assets/logo-pub-new.png";
 import { motion } from "framer-motion";
 import {
   Sidebar,
