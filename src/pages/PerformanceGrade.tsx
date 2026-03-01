@@ -23,6 +23,7 @@ import {
   Lightbulb,
   ArrowUpRight,
   ArrowDownRight,
+  Building2,
 } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
@@ -151,6 +152,22 @@ export default function PerformanceGradePage() {
                   <p className="text-sm text-muted-foreground mt-1">Periode {latestGrade.period}</p>
                 </div>
                 <div className="flex-1 space-y-3">
+                  {/* BUJK Identity */}
+                  {(latestGrade.company_name || latestGrade.sbu_number) && (
+                    <div className="flex items-start gap-2 bg-muted/40 rounded-lg p-3 mb-2">
+                      <Building2 className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                      <div className="text-xs space-y-0.5">
+                        {latestGrade.company_name && (
+                          <p className="font-semibold text-foreground text-sm">{latestGrade.company_name}</p>
+                        )}
+                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+                          {latestGrade.sbu_number && <span>SBU: {latestGrade.sbu_number}</span>}
+                          {latestGrade.nib && <span>NIB: {latestGrade.nib}</span>}
+                          {latestGrade.bujk_qualification && <span>Kualifikasi: {latestGrade.bujk_qualification}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Skor Komposit</span>
                     <span className="font-bold text-lg">{latestGrade.total_score}/100</span>
@@ -458,6 +475,9 @@ export default function PerformanceGradePage() {
                     <div className={`text-2xl font-black font-heading ${gradeColor(g.grade)}`}>{g.grade}</div>
                     <div>
                       <p className="text-sm font-medium text-foreground">Periode {g.period}</p>
+                      {g.company_name && (
+                        <p className="text-xs text-muted-foreground font-medium">{g.company_name}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         Dihitung: {new Date(g.computed_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                       </p>
@@ -492,6 +512,21 @@ export default function PerformanceGradePage() {
                     <p className="text-xs text-muted-foreground">Skor: {detailGrade.total_score}/100</p>
                   </div>
                 </DialogTitle>
+                {(detailGrade.company_name || detailGrade.sbu_number) && (
+                  <div className="flex items-start gap-2 bg-muted/40 rounded-lg p-3 mt-2">
+                    <Building2 className="w-4 h-4 text-accent mt-0.5 shrink-0" />
+                    <div className="text-xs space-y-0.5">
+                      {detailGrade.company_name && (
+                        <p className="font-semibold text-foreground text-sm">{detailGrade.company_name}</p>
+                      )}
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+                        {detailGrade.sbu_number && <span>SBU: {detailGrade.sbu_number}</span>}
+                        {detailGrade.nib && <span>NIB: {detailGrade.nib}</span>}
+                        {detailGrade.bujk_qualification && <span>Kualifikasi: {detailGrade.bujk_qualification}</span>}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </DialogHeader>
 
               <div className="space-y-4">
