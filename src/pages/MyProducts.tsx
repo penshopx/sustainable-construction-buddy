@@ -3,7 +3,7 @@ import { Package, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,17 +12,21 @@ import { useMarketplaceProducts, type ProductInsert } from "@/hooks/useMarketpla
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const CATEGORIES = [
-  { value: "jasa", label: "Jasa Konstruksi" },
+  { value: "software", label: "Software" },
+  { value: "chatbot_ai", label: "Chatbot AI" },
+  { value: "template", label: "Template" },
+  { value: "sop", label: "SOP" },
+  { value: "ebook", label: "E-Book" },
+  { value: "toolkit", label: "Toolkit" },
   { value: "material", label: "Material" },
-  { value: "alat", label: "Alat Berat" },
-  { value: "konsultasi", label: "Konsultasi" },
-  { value: "pelatihan", label: "Pelatihan" },
+  { value: "jasa_perusahaan", label: "Jasa Perusahaan" },
+  { value: "jasa_perorangan", label: "Jasa Perorangan" },
 ];
 
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 
-const emptyForm: ProductInsert = { title: "", description: "", category: "jasa", price: 0, unit: "unit", image_url: "", location: "", status: "active", stock: 0 };
+const emptyForm: ProductInsert = { title: "", description: "", category: "software", price: 0, unit: "unit", image_url: "", location: "", status: "active", stock: 0 };
 
 export default function MyProducts() {
   const { products, isLoading, createProduct, updateProduct, deleteProduct } = useMarketplaceProducts(true);
@@ -153,6 +157,10 @@ export default function MyProducts() {
                 <Label>Stok</Label>
                 <Input type="number" value={form.stock} onChange={(e) => setForm((f) => ({ ...f, stock: Number(e.target.value) || 0 }))} />
               </div>
+            </div>
+            <div>
+              <Label>URL Gambar</Label>
+              <Input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
             </div>
             <div>
               <Label>Lokasi</Label>
