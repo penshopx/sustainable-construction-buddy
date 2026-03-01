@@ -245,7 +245,7 @@ export function usePerformanceGrades() {
 
   useEffect(() => { fetchGrades(); }, [fetchGrades]);
 
-  const computeGrade = useCallback(async (period: string) => {
+  const computeGrade = useCallback(async (period: string, bujkIdentity: { company_name: string; nib: string; sbu_number: string; bujk_qualification: string }) => {
     if (!user) return null;
     setComputing(true);
 
@@ -289,12 +289,6 @@ export function usePerformanceGrades() {
         risk: { score: risk.score, weight: WEIGHTS.risk, ...risk.details },
       };
 
-      // Get BUJK identity from LKUT + profile
-      const companyName = raw.profile?.company || '';
-      const nib = ''; // could be extended from bujk_directory
-      const sbuNumber = raw.lkut?.sbu_number || '';
-      const bujkQualification = raw.profile?.bujk_qualification || '';
-
       // Upsert
       const { data, error } = await supabase
         .from("performance_grades")
@@ -302,10 +296,10 @@ export function usePerformanceGrades() {
           {
             user_id: user.id,
             period,
-            company_name: companyName,
-            nib,
-            sbu_number: sbuNumber,
-            bujk_qualification: bujkQualification,
+            company_name: bujkIdentity.company_name,
+            nib: bujkIdentity.nib,
+            sbu_number: bujkIdentity.sbu_number,
+            bujk_qualification: bujkIdentity.bujk_qualification,
             financial_score: fin.score,
             project_score: proj.score,
             compliance_score: comp.score,

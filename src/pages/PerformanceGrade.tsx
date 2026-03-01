@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePerformanceGrades, gradeColor, gradeBg, PerformanceGrade } from "@/hooks/usePerformanceGrades";
 import { useAuth } from "@/hooks/useAuth";
 import { exportGradingPdf } from "@/lib/gradingPdf";
@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { motion } from "framer-motion";
 import {
   TrendingUp, TrendingDown,
@@ -84,11 +87,27 @@ export default function PerformanceGradePage() {
   const { grades, loading, computing, computeGrade } = usePerformanceGrades();
   const { profile } = useAuth();
   const [detailGrade, setDetailGrade] = useState<PerformanceGrade | null>(null);
+  const [showComputeDialog, setShowComputeDialog] = useState(false);
+  const [bujkForm, setBujkForm] = useState({
+    company_name: '',
+    nib: '',
+    sbu_number: '',
+    bujk_qualification: 'menengah',
+  });
+
+  // Pre-fill from profile when dialog opens
+  useEffect(() => {
+    if (showComputeDialog && profile) {
+      setBujkForm(prev => ({
+        ...prev,
+        company_name: prev.company_name || profile.company || '',
+      }));
+    }
+  }, [showComputeDialog, profile]);
 
   const latestGrade = grades[0];
   const prevGrade = grades[1] || null;
 
-  // Period comparison
   const comparison = useMemo(() => {
     if (!latestGrade || !prevGrade) return null;
     const diff = latestGrade.total_score - prevGrade.total_score;
@@ -106,9 +125,17 @@ export default function PerformanceGradePage() {
     return getRecommendations(latestGrade);
   }, [latestGrade]);
 
+  const handleOpenCompute = () => {
+    setShowComputeDialog(true);
+  };
+
   const handleCompute = () => {
+    if (!bujkForm.company_name.trim()) {
+      return;
+    }
     const period = `${currentYear}`;
-    computeGrade(period);
+    computeGrade(period, bujkForm);
+    setShowComputeDialog(false);
   };
 
   return (
@@ -131,7 +158,7 @@ export default function PerformanceGradePage() {
               Export PDF
             </Button>
           )}
-          <Button onClick={handleCompute} disabled={computing}>
+          <Button onClick={handleOpenCompute} disabled={computing}>
             {computing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Calculator className="w-4 h-4 mr-2" />}
             Hitung Grade {currentYear}
           </Button>
@@ -198,7 +225,7 @@ export default function PerformanceGradePage() {
             <p className="text-sm text-muted-foreground/70 mt-1">
               Klik "Hitung Grade" untuk menghitung berdasarkan data LKUT, proyek, risk register, dan K3 Anda
             </p>
-            <Button className="mt-4" onClick={handleCompute} disabled={computing}>
+            <Button className="mt-4" onClick={handleOpenCompute} disabled={computing}>
               {computing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Calculator className="w-4 h-4 mr-2" />}
               Hitung Grade Sekarang
             </Button>
@@ -496,6 +523,75 @@ export default function PerformanceGradePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Compute Dialog - Identitas BUJK */}
+      <Dialog open={showComputeDialog} onOpenChange={setShowComputeDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-accent" />
+              Identitas BUJK
+            </DialogTitle>
+            <DialogDescription>
+              Lengkapi data BUJK yang akan dihitung grading-nya untuk periode {currentYear}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="company_name">Nama Perusahaan / BUJK <span className="text-destructive">*</span></Label>
+              <Input
+                id="company_name"
+                placeholder="PT Maju Konstruksi Sejahtera"
+                value={bujkForm.company_name}
+                onChange={e => setBujkForm(prev => ({ ...prev, company_name: e.target.value }))}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nib">NIB</Label>
+                <Input
+                  id="nib"
+                  placeholder="1234567890123"
+                  value={bujkForm.nib}
+                  onChange={e => setBujkForm(prev => ({ ...prev, nib: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="sbu_number">Nomor SBU</Label>
+                <Input
+                  id="sbu_number"
+                  placeholder="SBU-JK-2024-001234"
+                  value={bujkForm.sbu_number}
+                  onChange={e => setBujkForm(prev => ({ ...prev, sbu_number: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bujk_qualification">Kualifikasi BUJK</Label>
+              <Select
+                value={bujkForm.bujk_qualification}
+                onValueChange={v => setBujkForm(prev => ({ ...prev, bujk_qualification: v }))}
+              >
+                <SelectTrigger id="bujk_qualification">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="kecil">Kecil</SelectItem>
+                  <SelectItem value="menengah">Menengah</SelectItem>
+                  <SelectItem value="besar">Besar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowComputeDialog(false)}>Batal</Button>
+            <Button onClick={handleCompute} disabled={computing || !bujkForm.company_name.trim()}>
+              {computing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Calculator className="w-4 h-4 mr-2" />}
+              Hitung Grade
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Detail Dialog */}
       <Dialog open={!!detailGrade} onOpenChange={open => { if (!open) setDetailGrade(null); }}>
