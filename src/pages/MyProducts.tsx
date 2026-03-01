@@ -1,5 +1,7 @@
-import { useState } from "react";
-import { Package, Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Package, Plus, Pencil, Trash2, Loader2, Upload, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +31,35 @@ const formatRupiah = (n: number) =>
 const emptyForm: ProductInsert = { title: "", description: "", category: "software", price: 0, unit: "unit", image_url: "", location: "", status: "active", stock: 0 };
 
 export default function MyProducts() {
+  const { user } = useAuth();
   const { products, isLoading, createProduct, updateProduct, deleteProduct } = useMarketplaceProducts(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<ProductInsert>(emptyForm);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const openCreate = () => { setEditId(null); setForm(emptyForm); setDialogOpen(true); };
-  const openEdit = (p: typeof products[0]) => { setEditId(p.id); setForm({ title: p.title, description: p.description, category: p.category, price: p.price, unit: p.unit, image_url: p.image_url, location: p.location, status: p.status, stock: p.stock }); setDialogOpen(true); };
+  const handleImageUpload = async (file: File) => {
+    if (!user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("marketplace-images").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("marketplace-images").getPublicUrl(path);
+      setForm((f) => ({ ...f, image_url: urlData.publicUrl }));
+      setPreviewUrl(urlData.publicUrl);
+    } catch (e: any) {
+      console.error("Upload error:", e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const openCreate = () => { setEditId(null); setForm(emptyForm); setPreviewUrl(""); setDialogOpen(true); };
+  const openEdit = (p: typeof products[0]) => { setEditId(p.id); setForm({ title: p.title, description: p.description, category: p.category, price: p.price, unit: p.unit, image_url: p.image_url, location: p.location, status: p.status, stock: p.stock }); setPreviewUrl(p.image_url || ""); setDialogOpen(true); };
 
   const handleSubmit = () => {
     if (editId) {
@@ -159,8 +183,39 @@ export default function MyProducts() {
               </div>
             </div>
             <div>
-              <Label>URL Gambar</Label>
-              <Input value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} placeholder="https://..." />
+              <Label>Gambar Produk</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleImageUpload(file);
+                }}
+              />
+              {previewUrl ? (
+                <div className="relative mt-2 w-full h-40 rounded-lg overflow-hidden border border-border">
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => { setPreviewUrl(""); setForm((f) => ({ ...f, image_url: "" })); }}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-background/80 hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="mt-2 w-full h-32 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                >
+                  {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Upload className="w-6 h-6" />}
+                  <span className="text-sm">{uploading ? "Mengupload..." : "Klik untuk upload gambar"}</span>
+                </button>
+              )}
             </div>
             <div>
               <Label>Lokasi</Label>
