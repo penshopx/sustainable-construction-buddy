@@ -721,6 +721,110 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_orders: {
+        Row: {
+          buyer_address: string
+          buyer_id: string
+          buyer_name: string
+          buyer_phone: string
+          created_at: string
+          id: string
+          notes: string
+          product_id: string
+          quantity: number
+          seller_id: string
+          status: string
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_address?: string
+          buyer_id: string
+          buyer_name?: string
+          buyer_phone?: string
+          created_at?: string
+          id?: string
+          notes?: string
+          product_id: string
+          quantity?: number
+          seller_id: string
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_address?: string
+          buyer_id?: string
+          buyer_name?: string
+          buyer_phone?: string
+          created_at?: string
+          id?: string
+          notes?: string
+          product_id?: string
+          quantity?: number
+          seller_id?: string
+          status?: string
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_products: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          id: string
+          image_url: string
+          location: string
+          price: number
+          status: string
+          stock: number
+          title: string
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string
+          location?: string
+          price?: number
+          status?: string
+          stock?: number
+          title: string
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string
+          location?: string
+          price?: number
+          status?: string
+          stock?: number
+          title?: string
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       module_progress: {
         Row: {
           completed_at: string | null
