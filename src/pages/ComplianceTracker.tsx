@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { useLkutReports } from "@/hooks/useLkutReports";
 import { usePancekAssessment } from "@/hooks/usePancekAssessment";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import {
   ShieldCheck,
@@ -19,10 +21,17 @@ import {
   ClipboardCheck,
   ArrowRight,
   ExternalLink,
+  Database,
+  FolderKanban,
+  DollarSign,
+  Shield,
+  HardHat,
+  FileText,
 } from "lucide-react";
 import { differenceInDays, format, parseISO } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 
+// ... keep existing code (ComplianceItem interface, getUrgencyColor, getStatusBadge)
 interface ComplianceItem {
   id: string;
   label: string;
@@ -53,13 +62,140 @@ function getStatusBadge(status: ComplianceItem["status"]) {
   }
 }
 
+interface DataSourceStatus {
+  label: string;
+  icon: React.ElementType;
+  count: number;
+  description: string;
+  link: string;
+  contributes: string;
+}
+
+function DataCompletenessCard({ dataSources, loading }: { dataSources: DataSourceStatus[]; loading: boolean }) {
+  const filledCount = dataSources.filter(d => d.count > 0).length;
+  const totalCount = dataSources.length;
+  const pct = Math.round((filledCount / totalCount) * 100);
+  const navigate = useNavigate();
+
+  return (
+    <Card className="border-accent/20">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-heading flex items-center gap-2">
+          <Database className="w-4 h-4 text-accent" />
+          Kelengkapan Data Operasional
+        </CardTitle>
+        <CardDescription>
+          Semakin lengkap data yang diisi, semakin akurat penilaian kepatuhan & grading BUJK Anda
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="text-center min-w-[70px]">
+            <div className={`text-3xl font-black font-heading ${pct >= 80 ? "text-pub-emerald" : pct >= 50 ? "text-pub-amber" : "text-destructive"}`}>
+              {loading ? "..." : `${pct}%`}
+            </div>
+            <p className="text-xs text-muted-foreground">{filledCount}/{totalCount} modul</p>
+          </div>
+          <div className="flex-1">
+            <Progress value={loading ? 0 : pct} className="h-2.5" />
+          </div>
+        </div>
+
+        {!loading && (
+          <div className="grid gap-2">
+            {dataSources.map(src => (
+              <div
+                key={src.label}
+                className={`flex items-center justify-between rounded-lg px-3 py-2.5 border transition-colors cursor-pointer hover:bg-muted/50 ${
+                  src.count > 0 ? "border-pub-emerald/20 bg-pub-emerald/5" : "border-border bg-muted/20"
+                }`}
+                onClick={() => navigate(src.link)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-1.5 rounded-md ${src.count > 0 ? "bg-pub-emerald/15" : "bg-muted"}`}>
+                    <src.icon className={`w-3.5 h-3.5 ${src.count > 0 ? "text-pub-emerald" : "text-muted-foreground"}`} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{src.label}</p>
+                    <p className="text-xs text-muted-foreground">{src.description}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {src.count > 0 ? (
+                    <Badge className="bg-pub-emerald/15 text-pub-emerald border-pub-emerald/25 text-xs">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      {src.count} data
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground text-xs">
+                      <XCircle className="w-3 h-3 mr-1" />
+                      Belum ada
+                    </Badge>
+                  )}
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!loading && filledCount < totalCount && (
+          <p className="text-xs text-pub-amber bg-pub-amber/10 rounded-lg p-3 border border-pub-amber/20">
+            💡 Setiap modul bersifat mandiri — Anda bisa mengisi sesuai kebutuhan. Data yang telah diisi akan otomatis berkontribusi pada Compliance Tracker dan Performance Grade.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function ComplianceTracker() {
   const { reports, loading } = useLkutReports();
   const { assessments, loading: pancekLoading } = usePancekAssessment();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const latestLkut = reports?.[0];
   const currentYear = new Date().getFullYear();
   const latestPancek = assessments?.find(a => a.period_year === currentYear) || assessments?.[0];
+
+  // Fetch data source counts
+  const [dsLoading, setDsLoading] = useState(true);
+  const [dsCounts, setDsCounts] = useState({ lkut: 0, projects: 0, budgets: 0, risks: 0, k3: 0, smap: 0, pancek: 0 });
+
+  useEffect(() => {
+    if (!user) return;
+    setDsLoading(true);
+    Promise.all([
+      supabase.from("lkut_reports").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("budget_entries").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("risk_registers").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("k3_checklists").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("smap_documents").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("pancek_assessments").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    ]).then(([lkut, proj, budget, risk, k3, smap, pancek]) => {
+      setDsCounts({
+        lkut: lkut.count || 0,
+        projects: proj.count || 0,
+        budgets: budget.count || 0,
+        risks: risk.count || 0,
+        k3: k3.count || 0,
+        smap: smap.count || 0,
+        pancek: pancek.count || 0,
+      });
+      setDsLoading(false);
+    });
+  }, [user]);
+
+  const dataSources: DataSourceStatus[] = [
+    { label: "Data LKUT", icon: FileText, count: dsCounts.lkut, description: "Laporan keuangan, SDM, aset", link: "/lkut", contributes: "Keuangan, Kepatuhan" },
+    { label: "Project Workspace", icon: FolderKanban, count: dsCounts.projects, description: "Data proyek konstruksi", link: "/projects", contributes: "Kinerja Proyek" },
+    { label: "Budget Tracker", icon: DollarSign, count: dsCounts.budgets, description: "Rencana & realisasi anggaran", link: "/budget-tracker", contributes: "Deviasi Anggaran" },
+    { label: "Risk Register", icon: Shield, count: dsCounts.risks, description: "Identifikasi & mitigasi risiko", link: "/risk-register", contributes: "Risk & K3" },
+    { label: "K3 Checklist", icon: HardHat, count: dsCounts.k3, description: "Inspeksi keselamatan kerja", link: "/k3-checklist", contributes: "Kepatuhan K3" },
+    { label: "SMAP", icon: ShieldCheck, count: dsCounts.smap, description: "Dokumen anti penyuapan", link: "/smap", contributes: "Kepatuhan SMAP" },
+    { label: "PANCEK", icon: ShieldAlert, count: dsCounts.pancek, description: "Self-assessment anti korupsi", link: "/pancek", contributes: "Kepatuhan PANCEK" },
+  ];
 
   const complianceItems = useMemo<ComplianceItem[]>(() => {
     if (!latestLkut) {
@@ -201,8 +337,13 @@ export default function ComplianceTracker() {
         </p>
       </div>
 
-      {/* Summary Card */}
+      {/* Data Completeness */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <DataCompletenessCard dataSources={dataSources} loading={dsLoading} />
+      </motion.div>
+
+      {/* Summary Card */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
         <Card className="border-2">
           <CardContent className="p-6">
             <div className="flex items-center gap-6">
