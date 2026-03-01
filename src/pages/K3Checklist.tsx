@@ -191,6 +191,16 @@ const K3_PREVIEW_ITEMS: Record<string, string[]> = {
 
 function CreateForm({ projectId, projects, onSubmit, isSubmitting, showExplanation }: any) {
   const [form, setForm] = useState({ project_id: projectId || "", inspector_name: "", location: "" });
+  
+  // Track compliance state for each item (keyed by sort_order)
+  const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
+  
+  const toggleItem = (sortOrder: number) => {
+    setCheckedItems((prev) => ({ ...prev, [sortOrder]: !prev[sortOrder] }));
+  };
+
+  const checkedCount = Object.values(checkedItems).filter(Boolean).length;
+  const totalItems = Object.values(K3_PREVIEW_ITEMS).flat().length;
 
   return (
     <div className="space-y-4">
@@ -203,7 +213,7 @@ function CreateForm({ projectId, projects, onSubmit, isSubmitting, showExplanati
             </div>
             <p className="text-sm text-muted-foreground font-body">
               Checklist K3 (Keselamatan dan Kesehatan Kerja) digunakan untuk memastikan seluruh aspek keselamatan di lokasi proyek terpenuhi. 
-              Setiap inspeksi akan mengecek <strong>14 item</strong> di 4 kategori. Isi form di bawah untuk memulai.
+              Centang item yang sudah patuh, lalu simpan inspeksi.
             </p>
           </CardContent>
         </Card>
@@ -232,38 +242,69 @@ function CreateForm({ projectId, projects, onSubmit, isSubmitting, showExplanati
               <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="Contoh: Site B - Gedung Tower 2, Lantai 5" />
             </div>
           </div>
-          <Button
-            onClick={() => onSubmit({ project_id: form.project_id || undefined, inspector_name: form.inspector_name, location: form.location })}
-            disabled={isSubmitting || !form.inspector_name}
-            className="bg-gradient-amber text-accent-foreground font-heading shadow-amber"
-          >
-            {isSubmitting ? "Membuat..." : "Buat Checklist (14 Item)"}
-          </Button>
         </CardContent>
       </Card>
 
-      {/* Preview: daftar item yang akan diinspeksi */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-heading flex items-center gap-2">
-            <ClipboardList className="w-4 h-4 text-muted-foreground" />
-            Item yang Akan Diinspeksi (14 Item)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {Object.entries(K3_PREVIEW_ITEMS).map(([category, items]) => (
-              <div key={category} className="space-y-1.5">
-                <p className="text-xs font-heading font-semibold text-primary uppercase tracking-wide">{category}</p>
-                {items.map((text, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground font-body">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-                    <span>{text}</span>
+      {/* Checklist items with checkboxes */}
+      {Object.entries(K3_PREVIEW_ITEMS).map(([category, items]) => {
+        let sortOffset = 0;
+        for (const [cat, catItems] of Object.entries(K3_PREVIEW_ITEMS)) {
+          if (cat === category) break;
+          sortOffset += catItems.length;
+        }
+        return (
+          <Card key={category}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-heading flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-muted-foreground" />
+                {category}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {items.map((text, i) => {
+                const sortOrder = sortOffset + i + 1;
+                const checked = !!checkedItems[sortOrder];
+                return (
+                  <div
+                    key={sortOrder}
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${checked ? "border-pub-emerald/30 bg-pub-emerald/5" : "border-border hover:bg-muted/30"}`}
+                    onClick={() => toggleItem(sortOrder)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox checked={checked} onCheckedChange={() => toggleItem(sortOrder)} className="shrink-0" />
+                      <p className={`text-sm font-body ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
+                        {text}
+                      </p>
+                    </div>
                   </div>
-                ))}
-              </div>
-            ))}
+                );
+              })}
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      {/* Submit */}
+      <Card>
+        <CardContent className="p-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-heading font-semibold text-foreground">
+              Kepatuhan: {checkedCount}/{totalItems} item
+            </p>
+            <Progress value={(checkedCount / totalItems) * 100} className="h-1.5 mt-1 w-40" />
           </div>
+          <Button
+            onClick={() => onSubmit({
+              project_id: form.project_id || undefined,
+              inspector_name: form.inspector_name,
+              location: form.location,
+              checkedItems,
+            })}
+            disabled={isSubmitting || !form.inspector_name}
+            className="bg-gradient-amber text-accent-foreground font-heading shadow-amber"
+          >
+            {isSubmitting ? "Menyimpan..." : "Simpan Inspeksi K3"}
+          </Button>
         </CardContent>
       </Card>
     </div>

@@ -40,7 +40,11 @@ export function useK3Checklists(projectId?: string) {
   });
 
   const createChecklist = useMutation({
-    mutationFn: async (input: { project_id?: string; inspector_name: string; location: string }) => {
+    mutationFn: async (input: { project_id?: string; inspector_name: string; location: string; checkedItems?: Record<number, boolean> }) => {
+      const checkedItems = input.checkedItems || {};
+      const completedCount = Object.values(checkedItems).filter(Boolean).length;
+      const scorePercent = DEFAULT_K3_ITEMS.length > 0 ? Math.round((completedCount / DEFAULT_K3_ITEMS.length) * 100) : 0;
+
       // Create checklist
       const { data: checklist, error } = await supabase
         .from("k3_checklists" as any)
@@ -50,16 +54,19 @@ export function useK3Checklists(projectId?: string) {
           inspector_name: input.inspector_name,
           location: input.location,
           total_items: DEFAULT_K3_ITEMS.length,
-          completed_items: 0,
+          completed_items: completedCount,
+          score_percent: scorePercent,
+          status: completedCount === DEFAULT_K3_ITEMS.length ? "completed" : completedCount > 0 ? "in_progress" : "draft",
         } as any)
         .select()
         .single();
       if (error) throw error;
 
-      // Create default items
+      // Create items with initial compliance state
       const items = DEFAULT_K3_ITEMS.map((item) => ({
         checklist_id: (checklist as any).id,
         ...item,
+        is_compliant: !!checkedItems[item.sort_order],
       }));
       const { error: itemErr } = await supabase.from("k3_checklist_items" as any).insert(items as any);
       if (itemErr) throw itemErr;
