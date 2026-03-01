@@ -30,8 +30,9 @@ function statusBadge(status: string) {
 
 function calcCompleteness(r: LkutReport): number {
   let filled = 0;
-  let total = 10;
+  let total = 11;
   if (r.sbu_number) filled++;
+  if (r.kta_number) filled++;
   if (r.tkk_replacement !== null) filled++;
   if (r.equipment_commitment_fulfilled !== null) filled++;
   if (r.smap_fulfilled !== null) filled++;
@@ -269,6 +270,34 @@ export default function LkutReportPage() {
                 <Label>Tanggal Kadaluarsa SBU</Label>
                 <Input type="date" value={form.sbu_expiry_date || ""} onChange={e => setForm({ ...form, sbu_expiry_date: e.target.value })} />
               </div>
+
+              <Separator />
+
+              <h4 className="font-heading font-semibold text-foreground text-sm">Keanggotaan Asosiasi (KTA)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Nama Asosiasi</Label>
+                  <Input value={form.kta_association || ""} onChange={e => setForm({ ...form, kta_association: e.target.value })} placeholder="Contoh: GAPENSI, AKI, ASPEKINDO" />
+                </div>
+                <div>
+                  <Label>Nomor KTA</Label>
+                  <Input value={form.kta_number || ""} onChange={e => setForm({ ...form, kta_number: e.target.value })} placeholder="Contoh: KTA-2024-DKI-00567" />
+                </div>
+              </div>
+              <div>
+                <Label>Masa Berlaku KTA</Label>
+                <Input type="date" value={form.kta_expiry_date || ""} onChange={e => setForm({ ...form, kta_expiry_date: e.target.value })} />
+              </div>
+              <LkutDocumentUpload
+                component="kepatuhan_kta"
+                label="Keanggotaan Asosiasi (KTA)"
+                documents={getByComponent("kepatuhan_kta")}
+                uploading={uploading}
+                acceptString={acceptString}
+                onUpload={uploadDocument}
+                onDelete={deleteDocument}
+                disabled={editReport?.status !== "draft"}
+              />
 
               <Separator />
 
@@ -604,6 +633,7 @@ export default function LkutReportPage() {
                     { key: "kepatuhan_tkk", label: "Penggantian TKK" },
                     { key: "kepatuhan_peralatan", label: "Komitmen Peralatan" },
                     { key: "kepatuhan_smap", label: "SMAP" },
+                    { key: "kepatuhan_kta", label: "Keanggotaan Asosiasi (KTA)" },
                     { key: "keuangan_laporan", label: "Laporan Keuangan" },
                     { key: "keuangan_gcg", label: "GCG & Sertifikasi" },
                     { key: "sdm_data", label: "Data SDM & Pelatihan" },
