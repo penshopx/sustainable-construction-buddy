@@ -1,5 +1,6 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -80,7 +81,7 @@ const App = () => (
             <Route path="/budget-tracker" element={<DashboardLayout><BudgetTracker /></DashboardLayout>} />
             <Route path="/k3-checklist" element={<DashboardLayout><K3Checklist /></DashboardLayout>} />
             <Route path="/lkut" element={<DashboardLayout><LkutReport /></DashboardLayout>} />
-            {/* Grading is now a tab inside LKUT */}
+            <Route path="/grading" element={<Navigate to="/lkut" replace />} />
             <Route path="/compliance" element={<DashboardLayout><ComplianceTracker /></DashboardLayout>} />
             <Route path="/smap" element={<DashboardLayout><SmapDashboard /></DashboardLayout>} />
             <Route path="/pancek" element={<DashboardLayout><PancekAssessment /></DashboardLayout>} />
