@@ -54,16 +54,21 @@ const topItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
 ];
 
-// LKUT & Kinerja BUJK group (induk)
-const lkutSubItems = [
+// Data Operasional (sumber data input)
+const dataOperasionalItems = [
   { title: "Data LKUT", url: "/lkut", icon: FileText },
   { title: "Project Workspace", url: "/projects", icon: FolderKanban },
   { title: "Budget Tracker", url: "/budget-tracker", icon: DollarSign },
   { title: "Risk Register", url: "/risk-register", icon: Shield },
   { title: "K3 Checklist", url: "/k3-checklist", icon: HardHat },
-  { title: "Compliance Tracker", url: "/compliance", icon: ShieldCheck },
   { title: "SMAP", url: "/smap", icon: ShieldCheck },
   { title: "PANCEK", url: "/pancek", icon: ShieldAlert },
+];
+
+// Analisa & Penilaian (hasil olahan dari data)
+const analisaItems = [
+  { title: "Compliance Tracker", url: "/compliance", icon: ShieldCheck },
+  { title: "Performance Grade", url: "/grading", icon: BarChart3 },
 ];
 
 // Kompetensi & Pembelajaran group
@@ -222,11 +227,20 @@ export function AppSidebar() {
                 <NavItem key={item.title} item={item} collapsed={collapsed} />
               ))}
 
-              {/* LKUT & Kinerja BUJK */}
+              {/* Data Operasional */}
               <CollapsibleGroup
-                label="LKUT & Kinerja BUJK"
+                label="Data Operasional"
                 icon={FileText}
-                items={lkutSubItems}
+                items={dataOperasionalItems}
+                collapsed={collapsed}
+                currentPath={currentPath}
+              />
+
+              {/* Analisa & Penilaian */}
+              <CollapsibleGroup
+                label="Analisa & Penilaian"
+                icon={BarChart3}
+                items={analisaItems}
                 collapsed={collapsed}
                 currentPath={currentPath}
               />
