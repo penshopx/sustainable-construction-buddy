@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,6 +8,9 @@ import {
   Trophy, Star, Award, Crown, Gem, Loader2, RotateCcw, Timer, Target
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 interface Question {
   id: string;
@@ -38,6 +41,12 @@ function determineLevel(score: number): string {
   return "Pemula";
 }
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
 const Assessment = () => {
   const { user, refreshProfile } = useAuth();
   const [phase, setPhase] = useState<"intro" | "test" | "review" | "result">("intro");
@@ -51,6 +60,8 @@ const Assessment = () => {
   const [showExplanation, setShowExplanation] = useState(false);
   const [pastTests, setPastTests] = useState<any[]>([]);
   const [checkingAnswer, setCheckingAnswer] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -63,9 +74,33 @@ const Assessment = () => {
       .then(({ data }) => setPastTests(data || []));
   }, [user, result]);
 
+  // Timer countdown
+  useEffect(() => {
+    if (phase === "test" && timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current!);
+            toast.warning("Waktu habis! Assessment akan di-submit otomatis.");
+            // Auto-submit will be handled by effect below
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    }
+  }, [phase, timeLeft > 0]);
+
+  // Auto-submit when timer runs out
+  useEffect(() => {
+    if (phase === "test" && timeLeft === 0 && questions.length > 0 && Object.keys(answers).length > 0) {
+      submitTest();
+    }
+  }, [timeLeft]);
+
   const startTest = async () => {
     setLoading(true);
-    // Fetch questions via secure RPC (no correct_answer exposed)
     const [{ data: allQuestions }, { data: domains }] = await Promise.all([
       supabase.rpc("get_questions_safe"),
       supabase.from("competency_domains").select("id, name"),
@@ -77,11 +112,9 @@ const Assessment = () => {
       return;
     }
 
-    // Build domain name lookup
     const domainMap: Record<string, string> = {};
     (domains || []).forEach((d: any) => { domainMap[d.id] = d.name; });
 
-    // Group by domain and pick questions
     const byDomain: Record<string, any[]> = {};
     (allQuestions as any[]).forEach((q: any) => {
       const domainName = domainMap[q.domain_id] || "Unknown";
@@ -91,12 +124,10 @@ const Assessment = () => {
 
     const selected: Question[] = [];
     Object.values(byDomain).forEach((domainQs) => {
-      // Shuffle and take up to 4
       const shuffled = domainQs.sort(() => Math.random() - 0.5);
       selected.push(...shuffled.slice(0, 4));
     });
 
-    // Create pre-test record
     const { data: preTest, error } = await supabase
       .from("pre_tests")
       .insert({ user_id: user!.id, total_questions: selected.length })
@@ -116,6 +147,7 @@ const Assessment = () => {
     setCurrentQ(0);
     setPhase("test");
     setShowExplanation(false);
+    setTimeLeft(selected.length * 90); // 90 seconds per question
     setLoading(false);
   };
 
@@ -159,9 +191,9 @@ const Assessment = () => {
   };
 
   const submitTest = async () => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setLoading(true);
 
-    // Submit assessment server-side via DB function
     const answersPayload = questions.map((q) => ({
       question_id: q.id,
       selected_answer: answers[q.id] ?? -1,
@@ -192,8 +224,27 @@ const Assessment = () => {
     setLoading(false);
   };
 
+  // Domain breakdown for result
+  const getDomainBreakdown = () => {
+    const domainMap: Record<string, { correct: number; total: number }> = {};
+    questions.forEach(q => {
+      const name = q.domain_name || "Unknown";
+      if (!domainMap[name]) domainMap[name] = { correct: 0, total: 0 };
+      domainMap[name].total++;
+      if (answerResults[q.id]?.is_correct) domainMap[name].correct++;
+    });
+    return Object.entries(domainMap).map(([name, data]) => ({
+      name: name.length > 14 ? name.slice(0, 14) + "…" : name,
+      fullName: name,
+      score: data.total > 0 ? Math.round((data.correct / data.total) * 100) : 0,
+      correct: data.correct,
+      total: data.total,
+    }));
+  };
+
   const q = questions[currentQ];
   const progress = questions.length > 0 ? ((currentQ + 1) / questions.length) * 100 : 0;
+  const timerWarning = timeLeft > 0 && timeLeft <= 60;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -237,7 +288,6 @@ const Assessment = () => {
               </button>
             </div>
 
-            {/* Past results */}
             {pastTests.length > 0 && (
               <div className="mt-10">
                 <h3 className="text-lg font-bold font-heading text-foreground mb-4">Riwayat Assessment</h3>
@@ -261,11 +311,19 @@ const Assessment = () => {
 
         {/* TEST */}
         {phase === "test" && q && (
-          <motion.div key="test" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+          <motion.div key={`test-${currentQ}`} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }}>
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-heading text-pub-amber font-semibold uppercase">{q.domain_name}</span>
-                <span className="text-xs text-muted-foreground font-body">Soal {currentQ + 1}/{questions.length}</span>
+                <div className="flex items-center gap-3">
+                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-heading font-semibold ${
+                    timerWarning ? "bg-destructive/10 text-destructive animate-pulse" : "bg-muted text-muted-foreground"
+                  }`}>
+                    <Timer className="w-3.5 h-3.5" />
+                    {formatTime(timeLeft)}
+                  </div>
+                  <span className="text-xs text-muted-foreground font-body">Soal {currentQ + 1}/{questions.length}</span>
+                </div>
               </div>
               <Progress value={progress} className="h-2" />
             </div>
@@ -291,8 +349,11 @@ const Assessment = () => {
                   }
 
                   return (
-                    <button
+                    <motion.button
                       key={idx}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
                       onClick={() => !answered && selectAnswer(q.id, idx)}
                       disabled={answered || checkingAnswer}
                       className={`w-full text-left px-5 py-4 rounded-xl border ${borderClass} transition-all flex items-center gap-3 group`}
@@ -304,12 +365,11 @@ const Assessment = () => {
                       {answered && ar && selected && isCorrect && <CheckCircle2 className="w-5 h-5 text-pub-emerald shrink-0" />}
                       {answered && ar && selected && !isCorrect && <XCircle className="w-5 h-5 text-destructive shrink-0" />}
                       {answered && ar && !selected && isCorrect && <CheckCircle2 className="w-5 h-5 text-pub-emerald/50 shrink-0" />}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
 
-              {/* Explanation */}
               {showExplanation && answerResults[q.id] && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
@@ -418,17 +478,45 @@ const Assessment = () => {
                     );
                   })()}
                 </div>
-                <p className="text-sm text-muted-foreground font-body mt-4">
-                  {result.correct} dari {result.total} soal benar
+                <p className="text-sm text-muted-foreground font-body mt-3">
+                  {result.correct} dari {result.total} jawaban benar
                 </p>
               </div>
 
-              <div className="flex justify-center gap-4">
+              {/* Domain Breakdown Chart */}
+              {(() => {
+                const domainData = getDomainBreakdown();
+                const barColors = ["hsl(var(--primary))", "hsl(38, 92%, 50%)", "hsl(160, 60%, 40%)", "hsl(200, 80%, 55%)", "hsl(260, 50%, 55%)", "hsl(0, 84%, 60%)"];
+                return domainData.length > 0 ? (
+                  <Card className="mb-8 max-w-lg mx-auto">
+                    <CardContent className="p-5">
+                      <p className="text-sm font-heading font-semibold text-foreground mb-3">Breakdown per Domain</p>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <BarChart data={domainData} layout="vertical" margin={{ left: 0, right: 16 }}>
+                          <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={10} stroke="hsl(var(--muted-foreground))" />
+                          <YAxis type="category" dataKey="name" width={110} fontSize={11} stroke="hsl(var(--muted-foreground))" />
+                          <Tooltip
+                            formatter={(value: number, _: string, props: any) => [`${value}% (${props.payload.correct}/${props.payload.total})`, "Skor"]}
+                            contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                          />
+                          <Bar dataKey="score" radius={[0, 4, 4, 0]} maxBarSize={18}>
+                            {domainData.map((_, i) => (
+                              <Cell key={i} fill={barColors[i % barColors.length]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                ) : null;
+              })()}
+
+              <div className="flex gap-4 justify-center">
                 <button
-                  onClick={() => setPhase("intro")}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-border text-foreground font-heading font-medium hover:bg-muted transition-colors"
+                  onClick={() => { setPhase("intro"); setResult(null); }}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg border border-border text-foreground font-heading font-medium hover:bg-muted transition-colors"
                 >
-                  <RotateCcw className="w-4 h-4" /> Ulang Assessment
+                  <RotateCcw className="w-4 h-4" /> Coba Lagi
                 </button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { usePerformanceGrades, gradeColor, gradeBg, PerformanceGrade } from "@/hooks/usePerformanceGrades";
 import { useAuth } from "@/hooks/useAuth";
 import { exportGradingPdf } from "@/lib/gradingPdf";
@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import {
-  TrendingUp,
+  TrendingUp, TrendingDown,
   Calculator,
   Loader2,
   Banknote,
@@ -20,6 +20,9 @@ import {
   ChevronRight,
   BarChart3,
   FileDown,
+  Lightbulb,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
@@ -43,12 +46,64 @@ function ScoreBar({ label, score, color }: { label: string; score: number; color
   );
 }
 
+function getRecommendations(grade: PerformanceGrade): { pillar: string; score: number; tips: string[] }[] {
+  const scores = pillarConfig.map(p => ({
+    pillar: p.label,
+    score: grade[`${p.key}_score` as keyof PerformanceGrade] as number,
+    key: p.key,
+  }));
+  
+  return scores
+    .filter(s => s.score < 70)
+    .sort((a, b) => a.score - b.score)
+    .map(s => ({
+      pillar: s.pillar,
+      score: s.score,
+      tips: s.key === "financial" ? [
+        "Tingkatkan rasio current ratio (aset lancar / utang jangka pendek)",
+        "Pertahankan deviasi anggaran < 5%",
+        "Lengkapi data LKUT keuangan",
+      ] : s.key === "project" ? [
+        "Tambah lebih banyak proyek dengan evidence lengkap",
+        "Tingkatkan skor kualitas (quality score) di data LKUT",
+        "Kurangi keterlambatan proyek",
+      ] : s.key === "compliance" ? [
+        "Lengkapi sertifikasi tenaga ahli",
+        "Pastikan SMK3 dan SMAP sudah diterapkan",
+        "Tingkatkan rasio karyawan terlatih",
+      ] : [
+        "Kurangi insiden K3 di proyek",
+        "Tutup risk register yang masih terbuka",
+        "Terapkan mitigasi risiko secara konsisten",
+      ],
+    }));
+}
+
 export default function PerformanceGradePage() {
   const { grades, loading, computing, computeGrade } = usePerformanceGrades();
   const { profile } = useAuth();
   const [detailGrade, setDetailGrade] = useState<PerformanceGrade | null>(null);
 
   const latestGrade = grades[0];
+  const prevGrade = grades[1] || null;
+
+  // Period comparison
+  const comparison = useMemo(() => {
+    if (!latestGrade || !prevGrade) return null;
+    const diff = latestGrade.total_score - prevGrade.total_score;
+    const pillarDiffs = pillarConfig.map(p => {
+      const key = `${p.key}_score` as keyof PerformanceGrade;
+      const curr = latestGrade[key] as number;
+      const prev = prevGrade[key] as number;
+      return { label: p.label, icon: p.icon, color: p.color, curr, prev, diff: curr - prev };
+    });
+    return { diff, pillarDiffs, prevPeriod: prevGrade.period, prevGrade: prevGrade.grade };
+  }, [latestGrade, prevGrade]);
+
+  const recommendations = useMemo(() => {
+    if (!latestGrade) return [];
+    return getRecommendations(latestGrade);
+  }, [latestGrade]);
 
   const handleCompute = () => {
     const period = `${currentYear}`;
@@ -134,6 +189,82 @@ export default function PerformanceGradePage() {
         </Card>
       ) : (
         <div className="text-center py-12 text-muted-foreground">Memuat data...</div>
+      )}
+
+      {/* Period comparison */}
+      {comparison && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-heading flex items-center gap-2">
+                {comparison.diff >= 0 ? <TrendingUp className="w-4 h-4 text-pub-emerald" /> : <TrendingDown className="w-4 h-4 text-destructive" />}
+                Perbandingan dengan Periode {comparison.prevPeriod}
+              </CardTitle>
+              <CardDescription>
+                Grade sebelumnya: <span className={`font-bold ${gradeColor(comparison.prevGrade)}`}>{comparison.prevGrade}</span>
+                {" → "}
+                Perubahan skor: <span className={`font-bold ${comparison.diff >= 0 ? "text-pub-emerald" : "text-destructive"}`}>
+                  {comparison.diff >= 0 ? "+" : ""}{comparison.diff}
+                </span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {comparison.pillarDiffs.map(p => (
+                  <div key={p.label} className="rounded-lg border border-border p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p.icon className={`w-3.5 h-3.5 ${p.color}`} />
+                      <span className="text-xs text-muted-foreground">{p.label}</span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-bold font-heading text-foreground">{p.curr}</span>
+                      <span className={`text-xs font-heading flex items-center gap-0.5 ${p.diff >= 0 ? "text-pub-emerald" : "text-destructive"}`}>
+                        {p.diff >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                        {p.diff >= 0 ? "+" : ""}{p.diff}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">sebelumnya: {p.prev}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Recommendations */}
+      {recommendations.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <Card className="border-pub-amber/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-heading flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-pub-amber" />
+                Rekomendasi Perbaikan
+              </CardTitle>
+              <CardDescription>
+                Fokus pada pilar dengan skor di bawah 70 untuk menaikkan grade
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {recommendations.map((rec) => (
+                <div key={rec.pillar} className="bg-muted/30 rounded-xl p-4 border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-heading font-semibold text-foreground text-sm">{rec.pillar}</span>
+                    <Badge variant="outline" className="text-destructive border-destructive/30 text-xs">{rec.score}/100</Badge>
+                  </div>
+                  <ul className="space-y-1">
+                    {rec.tips.map((tip, i) => (
+                      <li key={i} className="text-xs text-muted-foreground font-body flex items-start gap-2">
+                        <span className="text-pub-amber mt-0.5">•</span>
+                        {tip}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Grade Scale Reference */}
