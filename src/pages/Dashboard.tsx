@@ -6,9 +6,12 @@ import { useNavigate } from "react-router-dom";
 import {
   Star, Award, Crown, Gem, TrendingUp, BookOpen, ClipboardCheck,
   Target, ArrowRight, BarChart3, CheckCircle2, Clock, GraduationCap,
-  AlertTriangle, Shield, DollarSign, FolderKanban, Zap, ChevronRight
+  AlertTriangle, Shield, DollarSign, FolderKanban, Zap, ChevronRight,
+  ShoppingCart, FileText, Package
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useLevelRequirements, LEVEL_THRESHOLDS, getNextLevel } from "@/hooks/useCompetencyScore";
 import { FourPillarCard } from "@/components/scoring/FourPillarCard";
 import { RoleDashboard } from "@/components/dashboard/RoleDashboard";
@@ -46,12 +49,18 @@ const Dashboard = () => {
     activeProjects: 0,
     riskCount: 0,
     budgetWarnings: 0,
+    pancekStatus: null as string | null,
+    pancekYear: null as number | null,
+    lkutStatus: null as string | null,
+    lkutYear: null as number | null,
+    marketplaceProducts: 0,
+    marketplaceOrders: 0,
   });
 
   useEffect(() => {
     if (!user) return;
     const fetchStats = async () => {
-      const [progressRes, modulesRes, testRes, domainsRes, projectsRes, risksRes, budgetRes] = await Promise.all([
+      const [progressRes, modulesRes, testRes, domainsRes, projectsRes, risksRes, budgetRes, pancekRes, lkutRes, productsRes, ordersRes] = await Promise.all([
         supabase.from("module_progress")
           .select("*, e_course_modules(title, domain_id, level, competency_domains:domain_id(name))")
           .eq("user_id", user.id),
@@ -62,6 +71,10 @@ const Dashboard = () => {
         supabase.from("projects").select("status").eq("user_id", user.id),
         supabase.from("risk_registers").select("id").eq("user_id", user.id),
         supabase.from("budget_entries").select("deviation_percent").eq("user_id", user.id),
+        supabase.from("pancek_assessments").select("status, period_year").eq("user_id", user.id).order("period_year", { ascending: false }).limit(1),
+        supabase.from("lkut_reports").select("status, report_year").eq("user_id", user.id).order("report_year", { ascending: false }).limit(1),
+        supabase.from("marketplace_products").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("marketplace_orders").select("id", { count: "exact", head: true }).eq("buyer_id", user.id),
       ]);
 
       const progress = progressRes.data || [];
@@ -79,6 +92,9 @@ const Dashboard = () => {
         return abs >= 5;
       }).length;
 
+      const pancekData = pancekRes.data?.[0];
+      const lkutData = lkutRes.data?.[0];
+
       setStats({
         totalModules: modulesRes.count || 0,
         completedModules: progress.filter((p: any) => p.status === "completed").length,
@@ -88,6 +104,12 @@ const Dashboard = () => {
         activeProjects: (projectsRes.data || []).filter((p: any) => p.status === 'active').length,
         riskCount: risksRes.data?.length || 0,
         budgetWarnings,
+        pancekStatus: pancekData?.status || null,
+        pancekYear: pancekData?.period_year || null,
+        lkutStatus: lkutData?.status || null,
+        lkutYear: lkutData?.report_year || null,
+        marketplaceProducts: productsRes.count || 0,
+        marketplaceOrders: ordersRes.count || 0,
       });
     };
     fetchStats();
@@ -105,6 +127,15 @@ const Dashboard = () => {
   const reqData = levelReqs.data;
   const metCount = reqData?.requirements.filter(r => r.met).length || 0;
   const totalReqs = reqData?.requirements.length || 0;
+
+  const pancekBadge = stats.pancekStatus === "verified" ? { label: "Terverifikasi", color: "bg-pub-emerald/15 text-pub-emerald border-pub-emerald/30" }
+    : stats.pancekStatus === "submitted" ? { label: "Menunggu", color: "bg-pub-amber/15 text-pub-amber border-pub-amber/30" }
+    : stats.pancekStatus === "draft" ? { label: "Draft", color: "bg-muted text-muted-foreground border-border" }
+    : null;
+
+  const lkutBadge = stats.lkutStatus === "submitted" ? { label: "Terkirim", color: "bg-pub-emerald/15 text-pub-emerald border-pub-emerald/30" }
+    : stats.lkutStatus === "draft" ? { label: "Draft", color: "bg-pub-amber/15 text-pub-amber border-pub-amber/30" }
+    : null;
 
   return (
     <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
@@ -133,7 +164,6 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Progress to next level */}
             {nextLevel && (
               <div className="bg-primary-foreground/5 rounded-xl p-3 border border-primary-foreground/10">
                 <div className="flex justify-between text-xs mb-1.5">
@@ -151,10 +181,7 @@ const Dashboard = () => {
         </div>
       </motion.div>
 
-      {/* Role conflict alert (compact) */}
       <RoleConflictAlert compact />
-
-      {/* Role-based Dashboard */}
       <RoleDashboard />
 
       {/* Quick stats */}
@@ -185,9 +212,83 @@ const Dashboard = () => {
         ))}
       </div>
 
+      {/* PANCEK, LKUT, Marketplace widgets */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* PANCEK */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          onClick={() => navigate("/pancek-assessment")}
+          className="bg-card rounded-xl border border-border p-5 shadow-card hover:shadow-card-hover transition-all text-left group"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-pub-violet/10 flex items-center justify-center">
+              <ClipboardCheck className="w-5 h-5 text-pub-violet" />
+            </div>
+            {pancekBadge && (
+              <Badge variant="outline" className={`text-[10px] ${pancekBadge.color}`}>{pancekBadge.label}</Badge>
+            )}
+          </div>
+          <p className="font-heading font-bold text-foreground text-sm">PANCEK</p>
+          <p className="text-xs text-muted-foreground font-body mt-0.5">
+            {stats.pancekYear ? `Periode ${stats.pancekYear}` : "Belum ada asesmen"}
+          </p>
+          <ArrowRight className="w-3.5 h-3.5 mt-2 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+        </motion.button>
+
+        {/* LKUT */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          onClick={() => navigate("/lkut-report")}
+          className="bg-card rounded-xl border border-border p-5 shadow-card hover:shadow-card-hover transition-all text-left group"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-pub-sky/10 flex items-center justify-center">
+              <FileText className="w-5 h-5 text-pub-sky" />
+            </div>
+            {lkutBadge && (
+              <Badge variant="outline" className={`text-[10px] ${lkutBadge.color}`}>{lkutBadge.label}</Badge>
+            )}
+          </div>
+          <p className="font-heading font-bold text-foreground text-sm">LKUT Report</p>
+          <p className="text-xs text-muted-foreground font-body mt-0.5">
+            {stats.lkutYear ? `Tahun ${stats.lkutYear}` : "Belum ada laporan"}
+          </p>
+          <ArrowRight className="w-3.5 h-3.5 mt-2 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+        </motion.button>
+
+        {/* Marketplace */}
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          onClick={() => navigate("/marketplace")}
+          className="bg-card rounded-xl border border-border p-5 shadow-card hover:shadow-card-hover transition-all text-left group"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="w-10 h-10 rounded-lg bg-pub-amber/10 flex items-center justify-center">
+              <ShoppingCart className="w-5 h-5 text-pub-amber" />
+            </div>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="text-[10px] bg-pub-emerald/15 text-pub-emerald border-pub-emerald/30">
+                {stats.marketplaceProducts} produk
+              </Badge>
+              <Badge variant="outline" className="text-[10px] bg-pub-sky/15 text-pub-sky border-pub-sky/30">
+                {stats.marketplaceOrders} order
+              </Badge>
+            </div>
+          </div>
+          <p className="font-heading font-bold text-foreground text-sm">Marketplace</p>
+          <p className="text-xs text-muted-foreground font-body mt-0.5">Jual beli material & jasa BUJK</p>
+          <ArrowRight className="w-3.5 h-3.5 mt-2 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+        </motion.button>
+      </div>
+
       {/* Next Level Requirements + Quick Actions */}
       <div className="grid md:grid-cols-3 gap-6">
-        {/* Next Level Requirements */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
