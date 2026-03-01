@@ -1029,6 +1029,88 @@ export type Database = {
           },
         ]
       }
+      module_quiz_questions: {
+        Row: {
+          correct_answer: number
+          created_at: string
+          explanation: string
+          id: string
+          module_id: string
+          options: Json
+          question_text: string
+          sort_order: number
+        }
+        Insert: {
+          correct_answer?: number
+          created_at?: string
+          explanation?: string
+          id?: string
+          module_id: string
+          options?: Json
+          question_text?: string
+          sort_order?: number
+        }
+        Update: {
+          correct_answer?: number
+          created_at?: string
+          explanation?: string
+          id?: string
+          module_id?: string
+          options?: Json
+          question_text?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_quiz_questions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "e_course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_quiz_results: {
+        Row: {
+          completed_at: string
+          correct_answers: number
+          id: string
+          module_id: string
+          passed: boolean
+          score: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          correct_answers?: number
+          id?: string
+          module_id: string
+          passed?: boolean
+          score?: number
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          correct_answers?: number
+          id?: string
+          module_id?: string
+          passed?: boolean
+          score?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_quiz_results_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "e_course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
