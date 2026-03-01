@@ -1123,6 +1123,7 @@ export type Database = {
           module_id: string
           options: Json
           question_text: string
+          quiz_type: string
           sort_order: number
         }
         Insert: {
@@ -1133,6 +1134,7 @@ export type Database = {
           module_id: string
           options?: Json
           question_text?: string
+          quiz_type?: string
           sort_order?: number
         }
         Update: {
@@ -1143,6 +1145,7 @@ export type Database = {
           module_id?: string
           options?: Json
           question_text?: string
+          quiz_type?: string
           sort_order?: number
         }
         Relationships: [
@@ -1162,6 +1165,7 @@ export type Database = {
           id: string
           module_id: string
           passed: boolean
+          quiz_type: string
           score: number
           total_questions: number
           user_id: string
@@ -1172,6 +1176,7 @@ export type Database = {
           id?: string
           module_id: string
           passed?: boolean
+          quiz_type?: string
           score?: number
           total_questions?: number
           user_id: string
@@ -1182,6 +1187,7 @@ export type Database = {
           id?: string
           module_id?: string
           passed?: boolean
+          quiz_type?: string
           score?: number
           total_questions?: number
           user_id?: string
