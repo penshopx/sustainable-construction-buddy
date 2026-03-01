@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 import {
   GraduationCap, Clock, CheckCircle2, PlayCircle, Lock,
   Star, Award, Crown, Gem, BookOpen, ArrowRight, HelpCircle, Trophy,
-  BookMarked, Filter, Search, ArrowUpDown, SortAsc
+  BookMarked, Filter, Search, ArrowUpDown, Bookmark, AlertCircle
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 const levelIcons: Record<string, any> = { Pemula: Star, Muda: Award, Madya: Crown, Utama: Gem };
 const levelColors: Record<string, string> = {
@@ -51,6 +52,7 @@ interface Module {
   domain_name: string;
   progress?: { status: string; progress_percent: number; id?: string };
   bestQuizScore?: number | null;
+  isBookmarked?: boolean;
 }
 
 interface Domain {
@@ -109,22 +111,24 @@ const Courses = () => {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const [{ data: domainsData }, { data: modulesData }, { data: progressData }, { data: quizResults }] = await Promise.all([
+      const [{ data: domainsData }, { data: modulesData }, { data: progressData }, { data: quizResults }, { data: bookmarksData }] = await Promise.all([
         supabase.from("competency_domains").select("*").order("sort_order"),
         supabase.from("e_course_modules").select("*, competency_domains!inner(name)").order("sort_order"),
         supabase.from("module_progress").select("*").eq("user_id", user.id),
         supabase.from("module_quiz_results" as any).select("module_id, score").eq("user_id", user.id),
+        supabase.from("module_bookmarks" as any).select("module_id").eq("user_id", user.id),
       ]);
 
       setDomains(domainsData || []);
 
-      // Build best quiz scores map
       const bestScores: Record<string, number> = {};
       ((quizResults as any[]) || []).forEach((r: any) => {
         if (!bestScores[r.module_id] || r.score > bestScores[r.module_id]) {
           bestScores[r.module_id] = r.score;
         }
       });
+
+      const bookmarkedIds = new Set(((bookmarksData as any[]) || []).map((b: any) => b.module_id));
 
       const enriched: Module[] = (modulesData || []).map((m: any) => {
         const prog = (progressData || []).find((p: any) => p.module_id === m.id);
@@ -135,6 +139,7 @@ const Courses = () => {
             ? { status: prog.status, progress_percent: prog.progress_percent, id: prog.id }
             : undefined,
           bestQuizScore: bestScores[m.id] ?? null,
+          isBookmarked: bookmarkedIds.has(m.id),
         };
       });
 
@@ -172,6 +177,43 @@ const Courses = () => {
   const completedModules = modules.filter(m => m.progress?.status === "completed").length;
   const inProgressModules = modules.filter(m => m.progress?.status === "in_progress").length;
   const overallProgress = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
+
+  // Domain progress chart data
+  const domainChartData = useMemo(() => {
+    return domains.map((d) => {
+      const domainModules = modules.filter((m) => m.domain_id === d.id);
+      const completed = domainModules.filter((m) => m.progress?.status === "completed").length;
+      const total = domainModules.length;
+      return {
+        name: d.name.length > 12 ? d.name.slice(0, 12) + "…" : d.name,
+        fullName: d.name,
+        progress: total > 0 ? Math.round((completed / total) * 100) : 0,
+        completed,
+        total,
+      };
+    });
+  }, [domains, modules]);
+
+  const domainBarColors = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--pub-amber, 38 92% 50%))", "hsl(var(--pub-sky, 199 89% 48%))"];
+
+  // Reminder: incomplete modules
+  const incompleteModules = modules.filter(m => m.progress?.status === "in_progress");
+
+  // Toggle bookmark
+  const toggleBookmark = async (e: React.MouseEvent, mod: Module) => {
+    e.stopPropagation();
+    if (!user) return;
+
+    if (mod.isBookmarked) {
+      await supabase.from("module_bookmarks" as any).delete().eq("user_id", user.id).eq("module_id", mod.id);
+      setModules(prev => prev.map(m => m.id === mod.id ? { ...m, isBookmarked: false } : m));
+      toast.success("Bookmark dihapus");
+    } else {
+      await supabase.from("module_bookmarks" as any).insert({ user_id: user.id, module_id: mod.id } as any);
+      setModules(prev => prev.map(m => m.id === mod.id ? { ...m, isBookmarked: true } : m));
+      toast.success("Modul ditandai bookmark");
+    }
+  };
 
   const startModule = async (mod: Module) => {
     if (mod.progress?.status === "in_progress" || mod.progress?.status === "completed") {
@@ -621,6 +663,55 @@ const Courses = () => {
         </Card>
       </div>
 
+      {/* Reminder: incomplete modules */}
+      {!loading && incompleteModules.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 rounded-xl border border-pub-amber/30 bg-pub-amber/5 flex items-center gap-3"
+        >
+          <AlertCircle className="w-5 h-5 text-pub-amber shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-heading font-semibold text-foreground">
+              {incompleteModules.length} modul belum selesai
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {incompleteModules.slice(0, 3).map(m => m.title).join(", ")}
+              {incompleteModules.length > 3 ? ` dan ${incompleteModules.length - 3} lainnya` : ""}
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => setStatusTab("in_progress")} className="shrink-0 text-xs">
+            Lanjutkan
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Domain progress chart */}
+      {!loading && domainChartData.length > 0 && (
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <p className="text-sm font-heading font-semibold text-foreground mb-3">Progress per Domain</p>
+            <ResponsiveContainer width="100%" height={160}>
+              <BarChart data={domainChartData} layout="vertical" margin={{ left: 0, right: 16, top: 0, bottom: 0 }}>
+                <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={10} stroke="hsl(var(--muted-foreground))" />
+                <YAxis type="category" dataKey="name" width={100} fontSize={11} stroke="hsl(var(--muted-foreground))" />
+                <Tooltip
+                  formatter={(value: number, _: string, props: any) => [`${value}% (${props.payload.completed}/${props.payload.total})`, "Progress"]}
+                  contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                />
+                <Bar dataKey="progress" radius={[0, 4, 4, 0]} maxBarSize={20}>
+                  {domainChartData.map((_, index) => (
+                    <Cell key={index} fill={domainBarColors[index % domainBarColors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Domain filter */}
+
       {/* Domain filter */}
       <div className="space-y-3 mb-6">
         <div className="flex flex-wrap gap-2">
@@ -760,10 +851,23 @@ const Courses = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="bg-card border border-border rounded-xl p-5 shadow-card hover:shadow-card-hover transition-all group cursor-pointer"
+                className="bg-card border border-border rounded-xl p-5 shadow-card hover:shadow-card-hover transition-all group cursor-pointer relative"
                 onClick={() => startModule(mod)}
               >
-                <div className="flex items-start justify-between mb-3">
+                {/* Bookmark button */}
+                <button
+                  onClick={(e) => toggleBookmark(e, mod)}
+                  className={`absolute top-3 right-3 p-1 rounded-md transition-colors ${
+                    mod.isBookmarked
+                      ? "text-pub-amber"
+                      : "text-muted-foreground/40 hover:text-muted-foreground"
+                  }`}
+                  title={mod.isBookmarked ? "Hapus bookmark" : "Bookmark modul"}
+                >
+                  <Bookmark className={`w-4 h-4 ${mod.isBookmarked ? "fill-current" : ""}`} />
+                </button>
+
+                <div className="flex items-start justify-between mb-3 pr-6">
                   <Badge variant="outline" className={`text-[10px] border ${levelBadgeColors[mod.level] || ''}`}>
                     <Icon className="w-3 h-3 mr-1" />
                     {mod.level}
