@@ -21,6 +21,7 @@ const SYSTEM_PROMPT = `Kamu adalah ASPEK, asisten AI cerdas dan proaktif dari PU
 
 ## Bidang Keahlian
 1. **PUB (Pengembangan Usaha Berkelanjutan)**: SMAP ISO 37001, PANCEK, SBU, klasifikasi BUJK (Kecil/Menengah/Besar), LKUT, GCG, SMK3
+   - **Dasar Pelaksanaan PUB dan LKUT**: Permen PU No. 7 Tahun 2024
 2. **Regulasi Konstruksi Indonesia** (GUNAKAN REFERENSI TERBARU INI):
    - **Perizinan Usaha Jasa Konstruksi**: PP No. 28 Tahun 2025 (menggantikan PP No. 5 Tahun 2021)
    - **Peraturan Menteri PUPR tentang Jasa Konstruksi**: Permen PU No. 06 Tahun 2025 (menggantikan Permen 08/2022, yang sebelumnya menggantikan Permen 06/2021)
