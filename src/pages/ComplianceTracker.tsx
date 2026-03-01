@@ -347,13 +347,18 @@ export default function ComplianceTracker() {
 
         {/* Company Identity */}
         {(profile || latestLkut) && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 px-4 py-3 rounded-lg bg-accent/5 border border-accent/15">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 px-4 py-3 rounded-lg bg-accent/5 border border-accent/15">
             <div className="flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-accent shrink-0" />
               <span className="text-sm font-semibold text-foreground">
-                {profile?.company || "—"}
+                {profile?.company?.trim() ? profile.company : "Data perusahaan belum diisi"}
               </span>
             </div>
+            {!profile?.company?.trim() && (
+              <Badge variant="outline" className="text-xs">
+                Wajib isi Profil Perusahaan
+              </Badge>
+            )}
             {latestLkut?.sbu_number && (
               <Badge variant="outline" className="text-xs">
                 SBU: {latestLkut.sbu_number}
@@ -369,13 +374,18 @@ export default function ComplianceTracker() {
                 LKUT {latestLkut.report_year}
               </Badge>
             )}
+            {!profile?.company?.trim() && (
+              <Button variant="link" className="p-0 h-auto text-xs underline" onClick={() => navigate("/profile")}>
+                Lengkapi profil →
+              </Button>
+            )}
           </div>
         )}
 
-        {!profile?.company && !latestLkut && !loading && (
-          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded-lg bg-pub-amber/10 border border-pub-amber/20 text-pub-amber">
+        {!profile?.company?.trim() && !loading && (
+          <div className="flex items-center gap-2 text-sm px-4 py-3 rounded-lg bg-muted border border-border text-muted-foreground">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            <span>Profil perusahaan belum dilengkapi. <Button variant="link" className="p-0 h-auto text-pub-amber underline" onClick={() => navigate("/profile")}>Lengkapi profil →</Button></span>
+            <span>Data perusahaan belum ada. Silakan isi Nama Perusahaan di halaman Profil.</span>
           </div>
         )}
       </div>
