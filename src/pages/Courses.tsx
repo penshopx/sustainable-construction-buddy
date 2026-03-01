@@ -7,12 +7,14 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   GraduationCap, Clock, CheckCircle2, PlayCircle, Lock,
-  Star, Award, Crown, Gem, BookOpen, ArrowRight, HelpCircle, Trophy
+  Star, Award, Crown, Gem, BookOpen, ArrowRight, HelpCircle, Trophy,
+  BookMarked, Filter
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const levelIcons: Record<string, any> = { Pemula: Star, Muda: Award, Madya: Crown, Utama: Gem };
 const levelColors: Record<string, string> = {
@@ -20,6 +22,19 @@ const levelColors: Record<string, string> = {
   Muda: "text-pub-emerald",
   Madya: "text-pub-amber",
   Utama: "text-pub-violet",
+};
+const levelBadgeColors: Record<string, string> = {
+  Pemula: "bg-pub-sky/15 text-pub-sky border-pub-sky/30",
+  Muda: "bg-pub-emerald/15 text-pub-emerald border-pub-emerald/30",
+  Madya: "bg-pub-amber/15 text-pub-amber border-pub-amber/30",
+  Utama: "bg-pub-violet/15 text-pub-violet border-pub-violet/30",
+};
+
+const domainIcons: Record<string, any> = {
+  "Manajemen Proyek": BookOpen,
+  "K3": Lock,
+  "Keuangan": Star,
+  "Regulasi": BookMarked,
 };
 
 interface Module {
@@ -33,6 +48,7 @@ interface Module {
   domain_id: string;
   domain_name: string;
   progress?: { status: string; progress_percent: number; id?: string };
+  bestQuizScore?: number | null;
 }
 
 interface Domain {
@@ -52,17 +68,34 @@ interface QuizQuestion {
 interface QuizState {
   questions: QuizQuestion[];
   currentIndex: number;
-  answers: Record<number, number>; // questionIndex -> selectedOption
+  answers: Record<number, number>;
   showResult: boolean;
   score: number;
   submitted: boolean;
 }
+
+const ModuleCardSkeleton = () => (
+  <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+    <div className="flex items-center justify-between">
+      <Skeleton className="h-5 w-16" />
+      <Skeleton className="h-5 w-5 rounded-full" />
+    </div>
+    <Skeleton className="h-5 w-3/4" />
+    <Skeleton className="h-3 w-full" />
+    <Skeleton className="h-3 w-2/3" />
+    <div className="flex items-center justify-between pt-2">
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="h-3 w-24" />
+    </div>
+  </div>
+);
 
 const Courses = () => {
   const { user, profile } = useAuth();
   const [domains, setDomains] = useState<Domain[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [selectedDomain, setSelectedDomain] = useState<string>("all");
+  const [selectedLevel, setSelectedLevel] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [activeModule, setActiveModule] = useState<Module | null>(null);
   const [quiz, setQuiz] = useState<QuizState | null>(null);
@@ -71,13 +104,22 @@ const Courses = () => {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const [{ data: domainsData }, { data: modulesData }, { data: progressData }] = await Promise.all([
+      const [{ data: domainsData }, { data: modulesData }, { data: progressData }, { data: quizResults }] = await Promise.all([
         supabase.from("competency_domains").select("*").order("sort_order"),
         supabase.from("e_course_modules").select("*, competency_domains!inner(name)").order("sort_order"),
         supabase.from("module_progress").select("*").eq("user_id", user.id),
+        supabase.from("module_quiz_results" as any).select("module_id, score").eq("user_id", user.id),
       ]);
 
       setDomains(domainsData || []);
+
+      // Build best quiz scores map
+      const bestScores: Record<string, number> = {};
+      ((quizResults as any[]) || []).forEach((r: any) => {
+        if (!bestScores[r.module_id] || r.score > bestScores[r.module_id]) {
+          bestScores[r.module_id] = r.score;
+        }
+      });
 
       const enriched: Module[] = (modulesData || []).map((m: any) => {
         const prog = (progressData || []).find((p: any) => p.module_id === m.id);
@@ -87,6 +129,7 @@ const Courses = () => {
           progress: prog
             ? { status: prog.status, progress_percent: prog.progress_percent, id: prog.id }
             : undefined,
+          bestQuizScore: bestScores[m.id] ?? null,
         };
       });
 
@@ -96,9 +139,11 @@ const Courses = () => {
     fetchData();
   }, [user]);
 
-  const filtered = selectedDomain === "all"
-    ? modules
-    : modules.filter((m) => m.domain_id === selectedDomain);
+  const filtered = modules.filter((m) => {
+    if (selectedDomain !== "all" && m.domain_id !== selectedDomain) return false;
+    if (selectedLevel !== "all" && m.level !== selectedLevel) return false;
+    return true;
+  });
 
   const totalModules = modules.length;
   const completedModules = modules.filter(m => m.progress?.status === "completed").length;
@@ -203,7 +248,6 @@ const Courses = () => {
     const score = Math.round((correct / quiz.questions.length) * 100);
     const passed = score >= 70;
 
-    // Save result
     await supabase.from("module_quiz_results" as any).insert({
       user_id: user!.id,
       module_id: activeModule.id,
@@ -213,7 +257,6 @@ const Courses = () => {
       passed,
     } as any);
 
-    // If passed, mark module as completed
     if (passed && activeModule.progress?.id && activeModule.progress.status !== "completed") {
       await supabase
         .from("module_progress")
@@ -222,7 +265,15 @@ const Courses = () => {
 
       const updated = modules.map((m) =>
         m.id === activeModule.id
-          ? { ...m, progress: { ...m.progress!, status: "completed", progress_percent: 100 } }
+          ? { ...m, progress: { ...m.progress!, status: "completed", progress_percent: 100 }, bestQuizScore: Math.max(score, m.bestQuizScore ?? 0) }
+          : m
+      );
+      setModules(updated);
+    } else {
+      // Update best score in local state
+      const updated = modules.map((m) =>
+        m.id === activeModule.id
+          ? { ...m, bestQuizScore: Math.max(score, m.bestQuizScore ?? 0) }
           : m
       );
       setModules(updated);
@@ -321,7 +372,6 @@ const Courses = () => {
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            {/* Progress bar */}
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 text-primary" />
               <h2 className="font-heading font-bold text-foreground">Kuis: {activeModule.title}</h2>
@@ -369,7 +419,6 @@ const Courses = () => {
               </CardContent>
             </Card>
 
-            {/* Question navigator */}
             <div className="flex flex-wrap gap-2">
               {quiz.questions.map((_, i) => (
                 <button
@@ -410,9 +459,14 @@ const Courses = () => {
           className="bg-card border border-border rounded-2xl overflow-hidden shadow-card"
         >
           <div className="bg-hero p-8">
-            <span className="text-xs font-heading text-pub-amber-light uppercase tracking-wider">
-              {activeModule.domain_name}
-            </span>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-heading text-pub-amber-light uppercase tracking-wider">
+                {activeModule.domain_name}
+              </span>
+              <Badge variant="outline" className={`text-[10px] border ${levelBadgeColors[activeModule.level] || ''}`}>
+                {activeModule.level}
+              </Badge>
+            </div>
             <h1 className="text-2xl font-bold font-heading text-primary-foreground mt-2">
               {activeModule.title}
             </h1>
@@ -420,13 +474,11 @@ const Courses = () => {
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" /> {activeModule.duration_minutes} menit
               </span>
-              <span className="flex items-center gap-1">
-                {(() => {
-                  const Icon = levelIcons[activeModule.level];
-                  return <Icon className="w-4 h-4" />;
-                })()}
-                {activeModule.level}
-              </span>
+              {activeModule.bestQuizScore !== null && activeModule.bestQuizScore !== undefined && (
+                <span className="flex items-center gap-1">
+                  <Trophy className="w-4 h-4" /> Skor terbaik: {activeModule.bestQuizScore}%
+                </span>
+              )}
             </div>
           </div>
 
@@ -448,7 +500,6 @@ const Courses = () => {
             )}
 
             <div className="flex flex-wrap gap-3">
-              {/* Quiz button */}
               <Button
                 onClick={() => startQuiz(activeModule)}
                 disabled={quizLoading}
@@ -483,6 +534,8 @@ const Courses = () => {
   }
 
   // ===== MODULE LIST VIEW =====
+  const levels = ["Pemula", "Muda", "Madya", "Utama"];
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header with stats */}
@@ -525,74 +578,162 @@ const Courses = () => {
       </div>
 
       {/* Domain filter */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button
-          onClick={() => setSelectedDomain("all")}
-          className={`px-4 py-2 rounded-lg text-sm font-heading font-medium transition-colors ${
-            selectedDomain === "all"
-              ? "bg-accent text-accent-foreground"
-              : "bg-muted text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          Semua Domain
-        </button>
-        {domains.map((d) => (
+      <div className="space-y-3 mb-6">
+        <div className="flex flex-wrap gap-2">
           <button
-            key={d.id}
-            onClick={() => setSelectedDomain(d.id)}
+            onClick={() => setSelectedDomain("all")}
             className={`px-4 py-2 rounded-lg text-sm font-heading font-medium transition-colors ${
-              selectedDomain === d.id
+              selectedDomain === "all"
                 ? "bg-accent text-accent-foreground"
                 : "bg-muted text-muted-foreground hover:text-foreground"
             }`}
           >
-            {d.name}
+            Semua Domain
           </button>
-        ))}
+          {domains.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => setSelectedDomain(d.id)}
+              className={`px-4 py-2 rounded-lg text-sm font-heading font-medium transition-colors ${
+                selectedDomain === d.id
+                  ? "bg-accent text-accent-foreground"
+                  : "bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {d.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Level filter */}
+        <div className="flex flex-wrap gap-2 items-center">
+          <Filter className="w-4 h-4 text-muted-foreground" />
+          <button
+            onClick={() => setSelectedLevel("all")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-heading font-medium transition-colors ${
+              selectedLevel === "all"
+                ? "bg-accent text-accent-foreground"
+                : "bg-muted text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Semua Level
+          </button>
+          {levels.map((level) => {
+            const Icon = levelIcons[level];
+            return (
+              <button
+                key={level}
+                onClick={() => setSelectedLevel(level)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-heading font-medium transition-colors inline-flex items-center gap-1.5 ${
+                  selectedLevel === level
+                    ? `border ${levelBadgeColors[level]}`
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {level}
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      {/* Loading skeleton */}
+      {loading && (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ModuleCardSkeleton key={i} />
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && filtered.length === 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center py-16"
+        >
+          <BookOpen className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+          <h3 className="text-lg font-heading font-semibold text-foreground mb-2">
+            {modules.length === 0 ? "Belum Ada Modul" : "Tidak Ada Modul Ditemukan"}
+          </h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            {modules.length === 0
+              ? "Modul pembelajaran sedang dipersiapkan oleh tim ahli. Silakan kembali lagi nanti."
+              : "Coba ubah filter domain atau level untuk menemukan modul yang Anda cari."
+            }
+          </p>
+          {modules.length > 0 && (
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => { setSelectedDomain("all"); setSelectedLevel("all"); }}
+            >
+              Reset Filter
+            </Button>
+          )}
+        </motion.div>
+      )}
 
       {/* Module grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((mod, i) => {
-          const Icon = levelIcons[mod.level] || Star;
-          const color = levelColors[mod.level] || "text-muted-foreground";
-          const isCompleted = mod.progress?.status === "completed";
-          const isInProgress = mod.progress?.status === "in_progress";
+      {!loading && filtered.length > 0 && (
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((mod, i) => {
+            const Icon = levelIcons[mod.level] || Star;
+            const color = levelColors[mod.level] || "text-muted-foreground";
+            const DomainIcon = domainIcons[mod.domain_name] || BookOpen;
+            const isCompleted = mod.progress?.status === "completed";
+            const isInProgress = mod.progress?.status === "in_progress";
 
-          return (
-            <motion.div
-              key={mod.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              className="bg-card border border-border rounded-xl p-5 shadow-card hover:shadow-card-hover transition-all group cursor-pointer"
-              onClick={() => startModule(mod)}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <span className={`text-xs font-heading font-semibold ${color} uppercase`}>{mod.level}</span>
-                {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
-                {isInProgress && <PlayCircle className="w-5 h-5 text-pub-amber" />}
-              </div>
+            return (
+              <motion.div
+                key={mod.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                className="bg-card border border-border rounded-xl p-5 shadow-card hover:shadow-card-hover transition-all group cursor-pointer"
+                onClick={() => startModule(mod)}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <Badge variant="outline" className={`text-[10px] border ${levelBadgeColors[mod.level] || ''}`}>
+                    <Icon className="w-3 h-3 mr-1" />
+                    {mod.level}
+                  </Badge>
+                  <div className="flex items-center gap-1.5">
+                    {mod.bestQuizScore !== null && mod.bestQuizScore !== undefined && (
+                      <span className={`text-[10px] font-bold ${mod.bestQuizScore >= 70 ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                        {mod.bestQuizScore}%
+                      </span>
+                    )}
+                    {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
+                    {isInProgress && <PlayCircle className="w-5 h-5 text-pub-amber" />}
+                  </div>
+                </div>
 
-              <h3 className="font-heading font-bold text-foreground mb-2 group-hover:text-accent transition-colors">
-                {mod.title}
-              </h3>
-              <p className="text-xs text-muted-foreground font-body mb-3 line-clamp-2">{mod.description}</p>
+                <h3 className="font-heading font-bold text-foreground mb-2 group-hover:text-accent transition-colors">
+                  {mod.title}
+                </h3>
+                <p className="text-xs text-muted-foreground font-body mb-3 line-clamp-2">{mod.description}</p>
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground font-body">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> {mod.duration_minutes} menit
-                </span>
-                <span>{mod.domain_name}</span>
-              </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground font-body">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> {mod.duration_minutes} menit
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <DomainIcon className="w-3 h-3" />
+                    {mod.domain_name}
+                  </span>
+                </div>
 
-              {isInProgress && (
-                <Progress value={mod.progress?.progress_percent || 0} className="h-1.5 mt-3" />
-              )}
-            </motion.div>
-          );
-        })}
-      </div>
+                {isInProgress && (
+                  <Progress value={mod.progress?.progress_percent || 0} className="h-1.5 mt-3" />
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
