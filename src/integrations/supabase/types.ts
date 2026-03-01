@@ -67,6 +67,75 @@ export type Database = {
           },
         ]
       }
+      bujk_directory: {
+        Row: {
+          address: string
+          city: string
+          company_name: string
+          created_at: string
+          description: string
+          email: string
+          id: string
+          is_published: boolean
+          logo_url: string
+          nib: string
+          npwp: string
+          phone: string
+          province: string
+          qualification: string
+          sbu_expiry: string | null
+          sbu_number: string
+          sub_classification: string
+          updated_at: string
+          user_id: string
+          website: string
+        }
+        Insert: {
+          address?: string
+          city?: string
+          company_name?: string
+          created_at?: string
+          description?: string
+          email?: string
+          id?: string
+          is_published?: boolean
+          logo_url?: string
+          nib?: string
+          npwp?: string
+          phone?: string
+          province?: string
+          qualification?: string
+          sbu_expiry?: string | null
+          sbu_number?: string
+          sub_classification?: string
+          updated_at?: string
+          user_id: string
+          website?: string
+        }
+        Update: {
+          address?: string
+          city?: string
+          company_name?: string
+          created_at?: string
+          description?: string
+          email?: string
+          id?: string
+          is_published?: boolean
+          logo_url?: string
+          nib?: string
+          npwp?: string
+          phone?: string
+          province?: string
+          qualification?: string
+          sbu_expiry?: string | null
+          sbu_number?: string
+          sub_classification?: string
+          updated_at?: string
+          user_id?: string
+          website?: string
+        }
+        Relationships: []
+      }
       certificates: {
         Row: {
           certificate_number: string
