@@ -828,6 +828,9 @@ export type Database = {
           gcg_first_year: number | null
           gross_profit: number
           id: string
+          kta_association: string
+          kta_expiry_date: string | null
+          kta_number: string
           notes: string
           permanent_experts: number
           report_year: number
@@ -868,6 +871,9 @@ export type Database = {
           gcg_first_year?: number | null
           gross_profit?: number
           id?: string
+          kta_association?: string
+          kta_expiry_date?: string | null
+          kta_number?: string
           notes?: string
           permanent_experts?: number
           report_year: number
@@ -908,6 +914,9 @@ export type Database = {
           gcg_first_year?: number | null
           gross_profit?: number
           id?: string
+          kta_association?: string
+          kta_expiry_date?: string | null
+          kta_number?: string
           notes?: string
           permanent_experts?: number
           report_year?: number

@@ -40,6 +40,9 @@ export interface LkutReport {
   permanent_experts: number;
   submitted_at: string | null;
   notes: string;
+  kta_number: string;
+  kta_association: string;
+  kta_expiry_date: string | null;
   created_at: string;
   updated_at: string;
 }
