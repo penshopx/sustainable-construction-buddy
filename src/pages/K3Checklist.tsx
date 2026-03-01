@@ -28,6 +28,7 @@ const K3Checklist = () => {
 
   // Auto-show create form when no checklists exist and not loading
   const effectiveView = (!isLoading && checklists.length === 0 && view.type === "list") ? { type: "create" as const } : view;
+  const showExplanation = !isLoading && checklists.length === 0;
 
   return (
     <div className="space-y-6">
@@ -152,6 +153,7 @@ const K3Checklist = () => {
           projects={projects}
           onSubmit={(data) => createChecklist.mutate(data, { onSuccess: () => setView({ type: "list" }) })}
           isSubmitting={createChecklist.isPending}
+          showExplanation={showExplanation}
         />
       )}
 
@@ -162,42 +164,109 @@ const K3Checklist = () => {
   );
 };
 
-function CreateForm({ projectId, projects, onSubmit, isSubmitting }: any) {
+const K3_PREVIEW_ITEMS: Record<string, string[]> = {
+  "APD": [
+    "Pekerja menggunakan helm keselamatan",
+    "Pekerja menggunakan sepatu safety",
+    "Pekerja menggunakan rompi reflektor",
+    "Tersedia sarung tangan kerja",
+  ],
+  "Area Kerja": [
+    "Rambu peringatan terpasang",
+    "Barricade/pagar pengaman terpasang",
+    "Jalur evakuasi bebas hambatan",
+    "Pencahayaan area kerja memadai",
+  ],
+  "Peralatan": [
+    "Alat berat dalam kondisi layak operasi",
+    "APAR tersedia dan belum kadaluarsa",
+    "P3K tersedia dan lengkap",
+  ],
+  "Dokumentasi": [
+    "SOP K3 tersedia di lokasi",
+    "Toolbox meeting dilaksanakan",
+    "Izin kerja (work permit) tersedia",
+  ],
+};
+
+function CreateForm({ projectId, projects, onSubmit, isSubmitting, showExplanation }: any) {
   const [form, setForm] = useState({ project_id: projectId || "", inspector_name: "", location: "" });
 
   return (
-    <Card>
-      <CardHeader><CardTitle className="font-heading">Buat Inspeksi K3 Baru</CardTitle></CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label className="font-heading">Proyek</Label>
-            <Select value={form.project_id || "none"} onValueChange={(v) => setForm((f) => ({ ...f, project_id: v === "none" ? "" : v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">— Tanpa Proyek —</SelectItem>
-                {projects.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+    <div className="space-y-4">
+      {showExplanation && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-5 space-y-2">
+            <div className="flex items-center gap-2">
+              <HardHat className="w-5 h-5 text-primary" />
+              <p className="font-heading font-semibold text-foreground">Apa itu Inspeksi K3?</p>
+            </div>
+            <p className="text-sm text-muted-foreground font-body">
+              Checklist K3 (Keselamatan dan Kesehatan Kerja) digunakan untuk memastikan seluruh aspek keselamatan di lokasi proyek terpenuhi. 
+              Setiap inspeksi akan mengecek <strong>14 item</strong> di 4 kategori. Isi form di bawah untuk memulai.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader><CardTitle className="font-heading">Buat Inspeksi K3 Baru</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label className="font-heading">Proyek</Label>
+              <Select value={form.project_id || "none"} onValueChange={(v) => setForm((f) => ({ ...f, project_id: v === "none" ? "" : v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Tanpa Proyek —</SelectItem>
+                  {projects.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-heading">Nama Inspektor</Label>
+              <Input value={form.inspector_name} onChange={(e) => setForm((f) => ({ ...f, inspector_name: e.target.value }))} placeholder="Contoh: Ir. Andi Wijaya, S.T." />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-heading">Lokasi</Label>
+              <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="Contoh: Site B - Gedung Tower 2, Lantai 5" />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label className="font-heading">Nama Inspektor</Label>
-            <Input value={form.inspector_name} onChange={(e) => setForm((f) => ({ ...f, inspector_name: e.target.value }))} placeholder="Contoh: Ir. Andi Wijaya, S.T." />
+          <Button
+            onClick={() => onSubmit({ project_id: form.project_id || undefined, inspector_name: form.inspector_name, location: form.location })}
+            disabled={isSubmitting || !form.inspector_name}
+            className="bg-gradient-amber text-accent-foreground font-heading shadow-amber"
+          >
+            {isSubmitting ? "Membuat..." : "Buat Checklist (14 Item)"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Preview: daftar item yang akan diinspeksi */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-heading flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 text-muted-foreground" />
+            Item yang Akan Diinspeksi (14 Item)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {Object.entries(K3_PREVIEW_ITEMS).map(([category, items]) => (
+              <div key={category} className="space-y-1.5">
+                <p className="text-xs font-heading font-semibold text-primary uppercase tracking-wide">{category}</p>
+                {items.map((text, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground font-body">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+                    <span>{text}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
-          <div className="space-y-2">
-            <Label className="font-heading">Lokasi</Label>
-            <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="Contoh: Site B - Gedung Tower 2, Lantai 5" />
-          </div>
-        </div>
-        <Button
-          onClick={() => onSubmit({ project_id: form.project_id || undefined, inspector_name: form.inspector_name, location: form.location })}
-          disabled={isSubmitting || !form.inspector_name}
-          className="bg-gradient-amber text-accent-foreground font-heading shadow-amber"
-        >
-          {isSubmitting ? "Membuat..." : "Buat Checklist (14 Item)"}
-        </Button>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
