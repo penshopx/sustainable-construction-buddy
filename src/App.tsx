@@ -45,6 +45,8 @@ import MyProducts from "./pages/MyProducts";
 import AdminMarketplace from "./pages/admin/AdminMarketplace";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminSalesStats from "./pages/admin/AdminSalesStats";
+import AdminQuizQuestions from "./pages/admin/AdminQuizQuestions";
+import AdminModules from "./pages/admin/AdminModules";
 
 const queryClient = new QueryClient();
 
@@ -90,6 +92,8 @@ const App = () => (
             <Route path="/admin/marketplace" element={<DashboardLayout><AdminGuard><AdminMarketplace /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/pesanan" element={<DashboardLayout><AdminGuard><AdminOrders /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/statistik" element={<DashboardLayout><AdminGuard><AdminSalesStats /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/quiz" element={<DashboardLayout><AdminGuard><AdminQuizQuestions /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/modules" element={<DashboardLayout><AdminGuard><AdminModules /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />
