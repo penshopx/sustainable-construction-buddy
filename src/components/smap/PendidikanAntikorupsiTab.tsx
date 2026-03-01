@@ -110,7 +110,7 @@ export default function PendidikanAntikorupsiTab() {
                 </div>
                 <div>
                   <Label className="text-xs">Nomor Sertifikat</Label>
-                  <Input value={editing.document_number || ""} onChange={e => setEditing(p => p ? { ...p, document_number: e.target.value } : null)} className="mt-1" />
+                  <Input value={editing.document_number || ""} onChange={e => setEditing(p => p ? { ...p, document_number: e.target.value } : null)} className="mt-1" placeholder="Contoh: SERT-KPK/2024/00567" />
                 </div>
                 <div>
                   <Label className="text-xs">Tanggal Pelaksanaan</Label>
@@ -127,7 +127,7 @@ export default function PendidikanAntikorupsiTab() {
               </div>
               <div>
                 <Label className="text-xs">Catatan</Label>
-                <Textarea value={editing.notes || ""} onChange={e => setEditing(p => p ? { ...p, notes: e.target.value } : null)} className="mt-1" rows={2} />
+                <Textarea value={editing.notes || ""} onChange={e => setEditing(p => p ? { ...p, notes: e.target.value } : null)} className="mt-1" rows={2} placeholder="Contoh: Pelatihan diikuti oleh seluruh direksi dan manajer proyek. Materi mencakup gratifikasi, benturan kepentingan, dan whistleblowing system." />
               </div>
               {editing.id && (
                 <div>
@@ -147,10 +147,17 @@ export default function PendidikanAntikorupsiTab() {
 
       {documents.length === 0 && !editing && (
         <Card className="bg-muted/30">
-          <CardContent className="p-8 text-center text-muted-foreground">
-            <GraduationCap className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Belum ada data pelatihan antikorupsi</p>
-            <p className="text-xs mt-1">Tambahkan sertifikat pelatihan dari KPK atau lembaga antikorupsi lainnya</p>
+          <CardContent className="p-8 text-center text-muted-foreground space-y-3">
+            <GraduationCap className="w-10 h-10 mx-auto opacity-40" />
+            <p className="text-sm font-semibold text-foreground">Belum ada data pelatihan antikorupsi</p>
+            <p className="text-xs">Tambahkan sertifikat pelatihan dari KPK atau lembaga antikorupsi lainnya</p>
+            <div className="text-left max-w-md mx-auto bg-muted/50 rounded-lg p-4 text-xs space-y-1.5">
+              <p className="font-semibold text-foreground mb-2">🎓 Contoh pelatihan yang dapat dicatat:</p>
+              <p>• E-Learning Anti Korupsi KPK (ACLC) — 4 jam</p>
+              <p>• Workshop Gratifikasi & Benturan Kepentingan — 8 jam</p>
+              <p>• Pelatihan Whistleblowing System — 4 jam</p>
+              <p>• Sertifikasi SMAP ISO 37001 Awareness — 16 jam</p>
+            </div>
           </CardContent>
         </Card>
       )}

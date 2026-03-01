@@ -58,18 +58,20 @@ export function BudgetForm({ projectId, onSubmit, isSubmitting }: BudgetFormProp
             </div>
             <div className="space-y-2">
               <Label className="font-heading">Periode (YYYY-MM)</Label>
-              <Input type="text" placeholder="2026-02" value={form.period_month} onChange={e => setForm(f => ({ ...f, period_month: e.target.value }))} />
+              <Input type="month" placeholder="2026-03" value={form.period_month} onChange={e => setForm(f => ({ ...f, period_month: e.target.value }))} />
             </div>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="font-heading">Anggaran Rencana (Rp)</Label>
-              <Input type="number" min={0} value={form.planned_amount || ''} onChange={e => setForm(f => ({ ...f, planned_amount: Number(e.target.value) }))} placeholder="0" />
+              <Input type="number" min={0} value={form.planned_amount || ''} onChange={e => setForm(f => ({ ...f, planned_amount: Number(e.target.value) }))} placeholder="Contoh: 500000000" />
+              <p className="text-xs text-muted-foreground mt-1">Contoh: Rp 500 juta untuk material beton bulan ini</p>
             </div>
             <div className="space-y-2">
               <Label className="font-heading">Realisasi Aktual (Rp)</Label>
-              <Input type="number" min={0} value={form.actual_amount || ''} onChange={e => setForm(f => ({ ...f, actual_amount: Number(e.target.value) }))} placeholder="0" />
+              <Input type="number" min={0} value={form.actual_amount || ''} onChange={e => setForm(f => ({ ...f, actual_amount: Number(e.target.value) }))} placeholder="Contoh: 475000000" />
+              <p className="text-xs text-muted-foreground mt-1">Jumlah realisasi aktual pada periode ini</p>
             </div>
           </div>
 
@@ -90,12 +92,12 @@ export function BudgetForm({ projectId, onSubmit, isSubmitting }: BudgetFormProp
 
           <div className="space-y-2">
             <Label className="font-heading">Rencana Mitigasi</Label>
-            <Textarea value={form.mitigation_plan} onChange={e => setForm(f => ({ ...f, mitigation_plan: e.target.value }))} placeholder="Jelaskan langkah mitigasi jika terjadi deviasi..." rows={2} />
+            <Textarea value={form.mitigation_plan} onChange={e => setForm(f => ({ ...f, mitigation_plan: e.target.value }))} placeholder="Contoh: Negosiasi ulang harga dengan supplier, penggunaan material alternatif setara mutu, atau pengajuan addendum kontrak bila deviasi >10%." rows={2} />
           </div>
 
           <div className="space-y-2">
             <Label className="font-heading">Catatan</Label>
-            <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Catatan tambahan..." rows={2} />
+            <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Contoh: Kenaikan harga besi 8% dari bulan sebelumnya, sudah dikonfirmasi oleh bagian pengadaan." rows={2} />
           </div>
 
           {/* Completeness & Points */}

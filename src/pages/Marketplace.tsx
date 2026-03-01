@@ -134,10 +134,29 @@ export default function Marketplace() {
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Store className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="font-heading font-semibold">Belum ada produk</p>
-          <p className="text-sm">Jadilah yang pertama menawarkan produk/jasa Anda!</p>
+        <div className="text-center py-12 text-muted-foreground space-y-6">
+          <Store className="w-12 h-12 mx-auto opacity-30" />
+          <div>
+            <p className="font-heading font-semibold text-foreground text-lg">Belum ada produk</p>
+            <p className="text-sm mt-1">Jadilah yang pertama menawarkan produk/jasa Anda di marketplace BUJK!</p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl mx-auto text-left">
+            {[
+              { title: "Template RAB Proyek Gedung", cat: "Template", price: "Rp 250.000", desc: "Template RAB lengkap untuk proyek gedung bertingkat, termasuk BQ & schedule." },
+              { title: "SOP K3 Konstruksi", cat: "SOP", price: "Rp 150.000", desc: "Paket SOP keselamatan kerja sesuai standar SMK3 terbaru." },
+              { title: "Jasa Konsultasi SBU", cat: "Jasa Perusahaan", price: "Rp 5.000.000", desc: "Pendampingan pengurusan SBU baru atau perpanjangan dari ahli bersertifikat." },
+            ].map((ex, i) => (
+              <Card key={i} className="border-dashed border-2 border-muted-foreground/20 bg-muted/20">
+                <CardContent className="p-4 space-y-2">
+                  <Badge variant="outline" className="text-[10px]">{ex.cat}</Badge>
+                  <p className="font-heading font-semibold text-foreground text-sm">{ex.title}</p>
+                  <p className="text-xs text-muted-foreground">{ex.desc}</p>
+                  <p className="text-sm font-bold text-primary">{ex.price}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground italic">☝ Contoh produk di atas — klik "Tambah Produk" untuk mulai berjualan</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

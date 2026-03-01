@@ -128,10 +128,18 @@ export default function SertifikatIsoTab() {
 
       {documents.length === 0 && !editing && (
         <Card className="bg-muted/30">
-          <CardContent className="p-8 text-center text-muted-foreground">
-            <Award className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Belum ada Sertifikat ISO 37001</p>
-            <p className="text-xs mt-1">Tambahkan sertifikat SNI ISO 37001:2016 untuk tracking masa berlaku</p>
+          <CardContent className="p-8 text-center text-muted-foreground space-y-3">
+            <Award className="w-10 h-10 mx-auto opacity-40" />
+            <p className="text-sm font-semibold text-foreground">Belum ada Sertifikat ISO 37001</p>
+            <p className="text-xs">Tambahkan sertifikat SNI ISO 37001:2016 untuk tracking masa berlaku</p>
+            <div className="text-left max-w-md mx-auto bg-muted/50 rounded-lg p-4 text-xs space-y-1.5">
+              <p className="font-semibold text-foreground mb-2">🏅 Data sertifikat yang perlu diisi:</p>
+              <p>• Nomor sertifikat (contoh: SMAP-37001-2024-00123)</p>
+              <p>• Lembaga penerbit (contoh: TÜV NORD Indonesia)</p>
+              <p>• Ruang lingkup sertifikasi (contoh: Jasa Pelaksana Konstruksi)</p>
+              <p>• Tanggal terbit & kadaluarsa sertifikat</p>
+              <p>• Upload scan sertifikat (PDF/JPG)</p>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -122,10 +122,17 @@ export default function SuratPernyataanTab() {
 
       {documents.length === 0 && !editing && (
         <Card className="bg-muted/30">
-          <CardContent className="p-8 text-center text-muted-foreground">
-            <FileText className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Belum ada Surat Pernyataan</p>
-            <p className="text-xs mt-1">Buat surat pernyataan komitmen SMAP untuk pengajuan SBU baru</p>
+          <CardContent className="p-8 text-center text-muted-foreground space-y-3">
+            <FileText className="w-10 h-10 mx-auto opacity-40" />
+            <p className="text-sm font-semibold text-foreground">Belum ada Surat Pernyataan</p>
+            <p className="text-xs">Buat surat pernyataan komitmen SMAP untuk pengajuan SBU baru</p>
+            <div className="text-left max-w-md mx-auto bg-muted/50 rounded-lg p-4 text-xs space-y-1.5">
+              <p className="font-semibold text-foreground mb-2">📝 Isi surat pernyataan meliputi:</p>
+              <p>• Nama badan usaha & alamat lengkap</p>
+              <p>• Komitmen penerapan SMAP (ISO 37001)</p>
+              <p>• Nama & jabatan penandatangan (Direktur Utama)</p>
+              <p>• Jenis pengajuan SBU: Baru / Perpanjangan</p>
+            </div>
           </CardContent>
         </Card>
       )}

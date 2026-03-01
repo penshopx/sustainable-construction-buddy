@@ -94,7 +94,21 @@ const K3Checklist = () => {
           {isLoading ? (
             <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24" />)}</div>
           ) : checklists.length === 0 ? (
-            <Card><CardContent className="p-8 text-center text-muted-foreground font-body">Belum ada inspeksi K3. Buat inspeksi baru untuk memulai.</CardContent></Card>
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground font-body space-y-3">
+                <HardHat className="w-12 h-12 mx-auto opacity-30" />
+                <p className="font-heading font-semibold text-foreground">Belum ada inspeksi K3</p>
+                <p className="text-sm">Buat inspeksi baru untuk memulai pengecekan keselamatan kerja di proyek Anda.</p>
+                <div className="text-left max-w-md mx-auto bg-muted/50 rounded-lg p-4 text-xs space-y-1.5">
+                  <p className="font-semibold text-foreground mb-2">📋 Contoh item yang akan dicek:</p>
+                  <p>• APD lengkap (helm, sepatu safety, rompi) untuk seluruh pekerja</p>
+                  <p>• Rambu K3 terpasang di area kerja</p>
+                  <p>• Alat pemadam kebakaran (APAR) tersedia & aktif</p>
+                  <p>• Safety net/guardrail terpasang di area ketinggian</p>
+                  <p>• P3K dan petugas pertolongan pertama tersedia</p>
+                </div>
+              </CardContent>
+            </Card>
           ) : (
             <div className="space-y-3">
               {checklists.map((c: any) => (
@@ -165,11 +179,11 @@ function CreateForm({ projectId, projects, onSubmit, isSubmitting }: any) {
           </div>
           <div className="space-y-2">
             <Label className="font-heading">Nama Inspektor</Label>
-            <Input value={form.inspector_name} onChange={(e) => setForm((f) => ({ ...f, inspector_name: e.target.value }))} placeholder="Nama penanggung jawab" />
+            <Input value={form.inspector_name} onChange={(e) => setForm((f) => ({ ...f, inspector_name: e.target.value }))} placeholder="Contoh: Ir. Andi Wijaya, S.T." />
           </div>
           <div className="space-y-2">
             <Label className="font-heading">Lokasi</Label>
-            <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="Lokasi inspeksi" />
+            <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="Contoh: Site B - Gedung Tower 2, Lantai 5" />
           </div>
         </div>
         <Button
