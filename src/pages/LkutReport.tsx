@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useLkutReports, LkutReport } from "@/hooks/useLkutReports";
+import { useLkutDocuments } from "@/hooks/useLkutDocuments";
+import { LkutDocumentUpload } from "@/components/lkut/LkutDocumentUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { exportLkutPdf } from "@/lib/lkutPdf";
 import { Button } from "@/components/ui/button";
@@ -14,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Plus, FileText, CheckCircle2, Clock, Send, Trash2, AlertTriangle, Download } from "lucide-react";
+import { Plus, FileText, CheckCircle2, Clock, Send, Trash2, AlertTriangle, Download, Paperclip } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
 
@@ -54,7 +56,7 @@ export default function LkutReportPage() {
   const [editReport, setEditReport] = useState<LkutReport | null>(null);
   const [form, setForm] = useState<Partial<LkutReport>>({});
   const [activeTab, setActiveTab] = useState("kepatuhan");
-
+  const { documents, uploading, uploadDocument, deleteDocument, getByComponent, acceptString, fetchDocs } = useLkutDocuments(editReport?.id);
   const handleCreate = async () => {
     const result = await createReport(Number(selectedYear));
     setCreateOpen(false);
@@ -229,10 +231,14 @@ export default function LkutReportPage() {
           </DialogHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className="w-full grid grid-cols-4">
               <TabsTrigger value="kepatuhan">Kepatuhan</TabsTrigger>
               <TabsTrigger value="keuangan">Keuangan & Org</TabsTrigger>
               <TabsTrigger value="sdm">SDM & Catatan</TabsTrigger>
+              <TabsTrigger value="dokumen" className="flex items-center gap-1">
+                <Paperclip className="w-3 h-3" /> Dokumen
+                {documents.length > 0 && <Badge variant="secondary" className="text-[10px] px-1 py-0 ml-1">{documents.length}</Badge>}
+              </TabsTrigger>
             </TabsList>
 
             {/* Tab 1: Kepatuhan Perizinan */}
@@ -333,6 +339,48 @@ export default function LkutReportPage() {
                   <Textarea value={form.experience_pending_list || ""} onChange={e => setForm({ ...form, experience_pending_list: e.target.value })} placeholder="Contoh:&#10;1. Pembangunan Gedung Kantor PT ABC (2023) - Rp 15M&#10;2. Renovasi Pabrik XYZ Cikarang (2023) - Rp 8M&#10;3. Jalan Akses Kawasan Industri Bekasi (2024) - Rp 22M" />
                 </div>
               )}
+
+              <Separator />
+              <LkutDocumentUpload
+                component="kepatuhan_sbu"
+                label="SBU & Perizinan"
+                documents={getByComponent("kepatuhan_sbu")}
+                uploading={uploading}
+                acceptString={acceptString}
+                onUpload={uploadDocument}
+                onDelete={deleteDocument}
+                disabled={editReport?.status !== "draft"}
+              />
+              <LkutDocumentUpload
+                component="kepatuhan_tkk"
+                label="Penggantian TKK"
+                documents={getByComponent("kepatuhan_tkk")}
+                uploading={uploading}
+                acceptString={acceptString}
+                onUpload={uploadDocument}
+                onDelete={deleteDocument}
+                disabled={editReport?.status !== "draft"}
+              />
+              <LkutDocumentUpload
+                component="kepatuhan_peralatan"
+                label="Komitmen Peralatan"
+                documents={getByComponent("kepatuhan_peralatan")}
+                uploading={uploading}
+                acceptString={acceptString}
+                onUpload={uploadDocument}
+                onDelete={deleteDocument}
+                disabled={editReport?.status !== "draft"}
+              />
+              <LkutDocumentUpload
+                component="kepatuhan_smap"
+                label="SMAP"
+                documents={getByComponent("kepatuhan_smap")}
+                uploading={uploading}
+                acceptString={acceptString}
+                onUpload={uploadDocument}
+                onDelete={deleteDocument}
+                disabled={editReport?.status !== "draft"}
+              />
             </TabsContent>
 
             {/* Tab 2: Keuangan & Organisasi */}
@@ -443,8 +491,29 @@ export default function LkutReportPage() {
                 <Label>Penghargaan Keunggulan Perusahaan</Label>
                 <Textarea value={form.awards || ""} onChange={e => setForm({ ...form, awards: e.target.value })} placeholder="Daftar penghargaan (satu per baris)" rows={3} />
               </div>
-            </TabsContent>
 
+              <Separator />
+              <LkutDocumentUpload
+                component="keuangan_laporan"
+                label="Laporan Keuangan"
+                documents={getByComponent("keuangan_laporan")}
+                uploading={uploading}
+                acceptString={acceptString}
+                onUpload={uploadDocument}
+                onDelete={deleteDocument}
+                disabled={editReport?.status !== "draft"}
+              />
+              <LkutDocumentUpload
+                component="keuangan_gcg"
+                label="GCG & Sertifikasi"
+                documents={getByComponent("keuangan_gcg")}
+                uploading={uploading}
+                acceptString={acceptString}
+                onUpload={uploadDocument}
+                onDelete={deleteDocument}
+                disabled={editReport?.status !== "draft"}
+              />
+            </TabsContent>
             {/* Tab 3: SDM & Catatan */}
             <TabsContent value="sdm" className="space-y-5 mt-4">
               <div>
@@ -496,6 +565,67 @@ export default function LkutReportPage() {
                 <Label>Catatan Tambahan</Label>
                 <Textarea value={form.notes || ""} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Catatan atau keterangan tambahan untuk laporan ini" rows={4} />
               </div>
+
+              <Separator />
+              <LkutDocumentUpload
+                component="sdm_data"
+                label="Data SDM & Pelatihan"
+                documents={getByComponent("sdm_data")}
+                uploading={uploading}
+                acceptString={acceptString}
+                onUpload={uploadDocument}
+                onDelete={deleteDocument}
+                disabled={editReport?.status !== "draft"}
+              />
+            </TabsContent>
+
+            {/* Tab 4: Dokumen (Summary) */}
+            <TabsContent value="dokumen" className="space-y-5 mt-4">
+              <div>
+                <h3 className="font-heading font-semibold text-foreground mb-1">Ringkasan Dokumen Pendukung</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Seluruh dokumen bukti yang telah dilampirkan untuk mendukung laporan LKUT ini.
+                  Anda juga dapat upload dokumen dari masing-masing tab Kepatuhan, Keuangan, dan SDM.
+                </p>
+              </div>
+
+              {documents.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <Paperclip className="w-10 h-10 mx-auto opacity-30 mb-3" />
+                    <p className="text-sm">Belum ada dokumen pendukung yang diunggah</p>
+                    <p className="text-xs mt-1">Upload dokumen dari tab Kepatuhan, Keuangan & Org, atau SDM</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {[
+                    { key: "kepatuhan_sbu", label: "SBU & Perizinan" },
+                    { key: "kepatuhan_tkk", label: "Penggantian TKK" },
+                    { key: "kepatuhan_peralatan", label: "Komitmen Peralatan" },
+                    { key: "kepatuhan_smap", label: "SMAP" },
+                    { key: "keuangan_laporan", label: "Laporan Keuangan" },
+                    { key: "keuangan_gcg", label: "GCG & Sertifikasi" },
+                    { key: "sdm_data", label: "Data SDM & Pelatihan" },
+                  ].map(({ key, label }) => {
+                    const docs = getByComponent(key);
+                    if (docs.length === 0) return null;
+                    return (
+                      <LkutDocumentUpload
+                        key={key}
+                        component={key}
+                        label={label}
+                        documents={docs}
+                        uploading={uploading}
+                        acceptString={acceptString}
+                        onUpload={uploadDocument}
+                        onDelete={deleteDocument}
+                        disabled={editReport?.status !== "draft"}
+                      />
+                    );
+                  })}
+                </>
+              )}
             </TabsContent>
           </Tabs>
 

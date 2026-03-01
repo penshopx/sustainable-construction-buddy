@@ -671,6 +671,53 @@ export type Database = {
           },
         ]
       }
+      lkut_documents: {
+        Row: {
+          component: string
+          created_at: string
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          lkut_id: string
+          notes: string
+          user_id: string
+        }
+        Insert: {
+          component?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          lkut_id: string
+          notes?: string
+          user_id: string
+        }
+        Update: {
+          component?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          lkut_id?: string
+          notes?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lkut_documents_lkut_id_fkey"
+            columns: ["lkut_id"]
+            isOneToOne: false
+            referencedRelation: "lkut_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lkut_project_data: {
         Row: {
           actual_duration_days: number
