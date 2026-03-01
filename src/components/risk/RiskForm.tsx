@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { type RiskInsert, computeCompleteness } from "@/hooks/useRiskRegisters";
+import type { Project } from "@/hooks/useProjects";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,12 +12,13 @@ import { RiskMatrix, RiskMatrixGrid } from "@/components/risk/RiskMatrix";
 import { Save, ShieldAlert } from "lucide-react";
 
 interface RiskFormProps {
-  projectId: string;
+  projectId: string | null;
+  projects?: Project[];
   onSubmit: (data: RiskInsert) => void;
   isSubmitting: boolean;
 }
 
-export function RiskForm({ projectId, onSubmit, isSubmitting }: RiskFormProps) {
+export function RiskForm({ projectId, projects = [], onSubmit, isSubmitting }: RiskFormProps) {
   const [form, setForm] = useState<RiskInsert>({
     project_id: projectId,
     risk_description: '',
@@ -45,6 +47,20 @@ export function RiskForm({ projectId, onSubmit, isSubmitting }: RiskFormProps) {
           <Card>
             <CardHeader><CardTitle className="font-heading text-lg flex items-center gap-2"><ShieldAlert className="w-5 h-5" /> Identifikasi Risiko</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              {projects.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Proyek</Label>
+                  <Select value={form.project_id || 'none'} onValueChange={v => update('project_id', v === 'none' ? null : v)}>
+                    <SelectTrigger><SelectValue placeholder="Pilih Proyek (opsional)" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tanpa Proyek</SelectItem>
+                      {projects.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Deskripsi Risiko *</Label>
                 <Textarea value={form.risk_description} onChange={e => update('risk_description', e.target.value)} placeholder="Contoh: Keterlambatan pengiriman material baja dari supplier utama akibat gangguan logistik, berpotensi memperlambat pekerjaan struktur lantai 3-5 selama 2 minggu." rows={3} required />

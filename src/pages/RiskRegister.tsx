@@ -57,21 +57,15 @@ const RiskRegisterPage = () => {
         </div>
       </div>
 
-      {/* No project selected warning */}
-      {view.type === 'create' && !selectedProjectId && (
-        <div className="p-4 border border-pub-amber/30 rounded-lg bg-pub-amber/5 text-sm text-muted-foreground">
-          Pilih proyek terlebih dahulu sebelum menambahkan risiko.
-        </div>
-      )}
-
       {/* Content */}
       {view.type === 'list' && (
         <RiskList risks={risks} isLoading={isLoading} onDelete={(id) => deleteRisk.mutate(id)} />
       )}
 
-      {view.type === 'create' && selectedProjectId && (
+      {view.type === 'create' && (
         <RiskForm
-          projectId={selectedProjectId}
+          projectId={selectedProjectId || null}
+          projects={projects}
           onSubmit={(data) => {
             createRisk.mutate(data, { onSuccess: () => setView({ type: 'list' }) });
           }}
