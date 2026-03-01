@@ -4,6 +4,7 @@ import { useLkutDocuments } from "@/hooks/useLkutDocuments";
 import { LkutDocumentUpload } from "@/components/lkut/LkutDocumentUpload";
 import { useAuth } from "@/hooks/useAuth";
 import { exportLkutPdf } from "@/lib/lkutPdf";
+import { GradingPanel } from "@/pages/PerformanceGrade";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Plus, FileText, CheckCircle2, Clock, Send, Trash2, AlertTriangle, Download, Paperclip } from "lucide-react";
+import { Plus, FileText, CheckCircle2, Clock, Send, Trash2, AlertTriangle, Download, Paperclip, BarChart3 } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
 
@@ -57,6 +58,7 @@ export default function LkutReportPage() {
   const [editReport, setEditReport] = useState<LkutReport | null>(null);
   const [form, setForm] = useState<Partial<LkutReport>>({});
   const [activeTab, setActiveTab] = useState("kepatuhan");
+  const [mainTab, setMainTab] = useState("lkut");
   const { documents, uploading, uploadDocument, deleteDocument, getByComponent, acceptString, fetchDocs } = useLkutDocuments(editReport?.id);
   const handleCreate = async () => {
     const result = await createReport(Number(selectedYear));
@@ -92,6 +94,19 @@ export default function LkutReportPage() {
   const existingYears = reports.map(r => r.report_year);
 
   return (
+    <div className="space-y-6">
+      {/* Top-level tabs: LKUT Data vs Grading */}
+      <Tabs value={mainTab} onValueChange={setMainTab}>
+        <TabsList className="w-full grid grid-cols-2 max-w-md">
+          <TabsTrigger value="lkut" className="flex items-center gap-2">
+            <FileText className="w-4 h-4" /> Laporan LKUT
+          </TabsTrigger>
+          <TabsTrigger value="grading" className="flex items-center gap-2">
+            <BarChart3 className="w-4 h-4" /> Kinerja & Grading
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="lkut">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -688,6 +703,13 @@ export default function LkutReportPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+        </TabsContent>
+
+        <TabsContent value="grading">
+          <GradingPanel />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

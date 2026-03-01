@@ -87,7 +87,7 @@ function getRecommendations(grade: PerformanceGrade): { pillar: string; score: n
     }));
 }
 
-export default function PerformanceGradePage() {
+export function GradingPanel() {
   const { grades, loading, computing, computeGrade } = usePerformanceGrades();
   const { profile, user } = useAuth();
   const [detailGrade, setDetailGrade] = useState<PerformanceGrade | null>(null);
@@ -174,22 +174,22 @@ export default function PerformanceGradePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold font-heading text-foreground flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-accent" />
-            Kinerja & Grading BUJK
-          </h2>
+          <h3 className="text-lg font-bold font-heading text-foreground flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-accent" />
+            Analisis Kinerja & Grading BUJK
+          </h3>
           <p className="text-sm text-muted-foreground">
-            Kalkulasi otomatis grade AAA–F berdasarkan 4 pilar kinerja
+            Kalkulasi otomatis grade AAA–F berdasarkan data LKUT dan 4 pilar kinerja
           </p>
         </div>
         <div className="flex gap-2">
           {latestGrade && (
-            <Button variant="outline" onClick={() => exportGradingPdf(latestGrade, profile?.full_name)}>
+            <Button variant="outline" size="sm" onClick={() => exportGradingPdf(latestGrade, profile?.full_name)}>
               <FileDown className="w-4 h-4 mr-2" />
               Export PDF
             </Button>
           )}
-          <Button onClick={handleOpenCompute} disabled={computing}>
+          <Button size="sm" onClick={handleOpenCompute} disabled={computing}>
             {computing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Calculator className="w-4 h-4 mr-2" />}
             Hitung Grade {currentYear}
           </Button>
@@ -753,3 +753,5 @@ export default function PerformanceGradePage() {
     </div>
   );
 }
+
+export default GradingPanel;
