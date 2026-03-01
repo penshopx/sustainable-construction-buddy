@@ -24,6 +24,7 @@ import {
   Bot,
   ShoppingBag,
   Package,
+  ChevronDown,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -36,29 +37,47 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-const items = [
+// Top-level standalone items
+const topItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+];
+
+// LKUT & Kinerja BUJK group (induk)
+const lkutSubItems = [
+  { title: "Data LKUT", url: "/lkut", icon: FileText },
   { title: "Project Workspace", url: "/projects", icon: FolderKanban },
-  { title: "Risk Register", url: "/risk-register", icon: Shield },
   { title: "Budget Tracker", url: "/budget-tracker", icon: DollarSign },
+  { title: "Risk Register", url: "/risk-register", icon: Shield },
   { title: "K3 Checklist", url: "/k3-checklist", icon: HardHat },
-  { title: "LKUT & Grading", url: "/lkut", icon: FileText },
   { title: "Compliance Tracker", url: "/compliance", icon: ShieldCheck },
   { title: "SMAP", url: "/smap", icon: ShieldCheck },
+  { title: "PANCEK", url: "/pancek", icon: ShieldAlert },
+];
+
+// Kompetensi & Pembelajaran group
+const learningSubItems = [
   { title: "Pre-test Assessment", url: "/assessment", icon: ClipboardCheck },
   { title: "E-Course", url: "/courses", icon: GraduationCap },
   { title: "Mentor Digital", url: "/mentor", icon: MessageCircle },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Generator Dokumen", url: "/generator", icon: FileText },
   { title: "Sertifikat", url: "/certificates", icon: Award },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
+];
+
+// Komunitas & Bisnis group
+const communitySubItems = [
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
   { title: "Marketplace", url: "/marketplace", icon: Store },
@@ -66,6 +85,10 @@ const items = [
   { title: "Helpdesk AI", url: "/helpdesk", icon: Bot },
   { title: "Pesanan Saya", url: "/pesanan", icon: ShoppingBag },
   { title: "Produk Saya", url: "/produk-saya", icon: Package },
+];
+
+// Bottom items
+const bottomItems = [
   { title: "Notifikasi", url: "/notifications", icon: Bell },
   { title: "Profil Saya", url: "/profile", icon: User },
 ];
@@ -81,10 +104,84 @@ const adminItems = [
   { title: "Panel Admin", url: "/admin", icon: Shield },
 ];
 
+function NavItem({ item, collapsed }: { item: { title: string; url: string; icon: any }; collapsed: boolean }) {
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton asChild>
+        <NavLink
+          to={item.url}
+          end
+          className="hover:bg-sidebar-accent/50"
+          activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+        >
+          <item.icon className="mr-2 h-4 w-4" />
+          {!collapsed && <span>{item.title}</span>}
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+function CollapsibleGroup({
+  label,
+  icon: Icon,
+  items,
+  collapsed,
+  currentPath,
+}: {
+  label: string;
+  icon: any;
+  items: { title: string; url: string; icon: any }[];
+  collapsed: boolean;
+  currentPath: string;
+}) {
+  const isActive = items.some((i) => currentPath.startsWith(i.url));
+
+  return (
+    <Collapsible defaultOpen={isActive} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton className={`hover:bg-sidebar-accent/50 ${isActive ? "text-sidebar-primary font-semibold" : ""}`}>
+            <Icon className="mr-2 h-4 w-4" />
+            {!collapsed && (
+              <>
+                <span className="flex-1 text-left">{label}</span>
+                <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+              </>
+            )}
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        {!collapsed && (
+          <CollapsibleContent>
+            <SidebarMenuSub>
+              {items.map((item) => (
+                <SidebarMenuSubItem key={item.title}>
+                  <SidebarMenuSubButton asChild>
+                    <NavLink
+                      to={item.url}
+                      end
+                      className="hover:bg-sidebar-accent/50"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <item.icon className="mr-2 h-3.5 w-3.5" />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuSubButton>
+                </SidebarMenuSubItem>
+              ))}
+            </SidebarMenuSub>
+          </CollapsibleContent>
+        )}
+      </SidebarMenuItem>
+    </Collapsible>
+  );
+}
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const currentPath = location.pathname;
   const { profile, signOut } = useAuth();
   const { isAdmin } = useAdmin();
 
@@ -120,36 +217,53 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="hover:bg-sidebar-accent/50"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+              {/* Dashboard */}
+              {topItems.map((item) => (
+                <NavItem key={item.title} item={item} collapsed={collapsed} />
               ))}
-              {isAdmin && adminItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="hover:bg-sidebar-accent/50"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+
+              {/* LKUT & Kinerja BUJK */}
+              <CollapsibleGroup
+                label="LKUT & Kinerja BUJK"
+                icon={FileText}
+                items={lkutSubItems}
+                collapsed={collapsed}
+                currentPath={currentPath}
+              />
+
+              {/* Kompetensi & Pembelajaran */}
+              <CollapsibleGroup
+                label="Kompetensi & Pembelajaran"
+                icon={GraduationCap}
+                items={learningSubItems}
+                collapsed={collapsed}
+                currentPath={currentPath}
+              />
+
+              {/* Komunitas & Bisnis */}
+              <CollapsibleGroup
+                label="Komunitas & Bisnis"
+                icon={Store}
+                items={communitySubItems}
+                collapsed={collapsed}
+                currentPath={currentPath}
+              />
+
+              {/* Bottom items */}
+              {bottomItems.map((item) => (
+                <NavItem key={item.title} item={item} collapsed={collapsed} />
               ))}
+
+              {/* Admin */}
+              {isAdmin && (
+                <CollapsibleGroup
+                  label="Admin Panel"
+                  icon={Shield}
+                  items={adminItems}
+                  collapsed={collapsed}
+                  currentPath={currentPath}
+                />
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
