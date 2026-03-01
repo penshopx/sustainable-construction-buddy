@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bot, Send, Loader2, Trash2, Sparkles, Plus, MessageSquare, ChevronLeft } from "lucide-react";
+import { Bot, Send, Loader2, Trash2, Sparkles, Plus, MessageSquare, ChevronLeft, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,6 +32,12 @@ export default function HelpdeskAI() {
 
   const [input, setInput] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearch, setShowSearch] = useState(false);
+
+  const filteredConversations = searchQuery.trim()
+    ? conversations.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : conversations;
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -66,24 +72,44 @@ export default function HelpdeskAI() {
       <div className="flex gap-3" style={{ height: "calc(100vh - 220px)" }}>
         {/* Conversation sidebar */}
         <div className={`${showSidebar ? "flex" : "hidden"} md:flex flex-col w-full md:w-64 shrink-0 bg-card rounded-xl border border-border`}>
-          <div className="p-3 border-b border-border flex items-center justify-between">
-            <span className="text-sm font-semibold text-foreground">Riwayat Chat</span>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startNewConversation}>
-              <Plus className="w-4 h-4" />
-            </Button>
+          <div className="p-3 border-b border-border">
+            <div className="flex items-center justify-between mb-0">
+              <span className="text-sm font-semibold text-foreground">Riwayat Chat</span>
+              <div className="flex gap-1">
+                {conversations.length > 0 && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setShowSearch(!showSearch); setSearchQuery(""); }}>
+                    {showSearch ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+                  </Button>
+                )}
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startNewConversation}>
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            {showSearch && (
+              <div className="mt-2">
+                <Input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Cari percakapan..."
+                  className="h-8 text-sm"
+                  autoFocus
+                />
+              </div>
+            )}
           </div>
           <ScrollArea className="flex-1">
             {loadingConversations ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
                 <Loader2 className="w-4 h-4 animate-spin mx-auto" />
               </div>
-            ) : conversations.length === 0 ? (
+            ) : filteredConversations.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground text-sm">
-                Belum ada percakapan
+                {searchQuery ? "Tidak ditemukan" : "Belum ada percakapan"}
               </div>
             ) : (
               <div className="p-2 space-y-1">
-                {conversations.map((conv) => (
+                {filteredConversations.map((conv) => (
                   <ConversationItem
                     key={conv.id}
                     conversation={conv}
