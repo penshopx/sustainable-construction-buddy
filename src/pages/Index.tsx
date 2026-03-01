@@ -3,10 +3,16 @@ import { motion } from "framer-motion";
 import { Lightbulb, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import HeroSection from "@/components/HeroSection";
+import WhyBujkSection from "@/components/WhyBujkSection";
+import AboutSection from "@/components/AboutSection";
+import FeaturesGrid from "@/components/FeaturesGrid";
 import CompetencyLevels from "@/components/CompetencyLevels";
-import EngineCards from "@/components/EngineCards";
 import CompetencyFlow from "@/components/CompetencyFlow";
+import EngineCards from "@/components/EngineCards";
+import TeamSection from "@/components/TeamSection";
 import CompetencyMatrix from "@/components/CompetencyMatrix";
+import PricingSection from "@/components/PricingSection";
+import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -15,6 +21,9 @@ const Index = () => {
   return (
     <main className="min-h-screen">
       <HeroSection />
+      <WhyBujkSection />
+      <AboutSection />
+      <FeaturesGrid />
       <CompetencyLevels />
       <CompetencyFlow />
       <EngineCards />
@@ -52,7 +61,10 @@ const Index = () => {
         </div>
       </section>
 
+      <TeamSection />
       <CompetencyMatrix />
+      <PricingSection />
+      <CTASection />
       <Footer />
     </main>
   );

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Building2, Shield, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
-import logoPub from "@/assets/logo-pub.png";
+import logoPub from "@/assets/logo-pub-new.png";
 import logoAspekindo from "@/assets/logo-aspekindo.jpg";
 import logoLsbuki from "@/assets/logo-lsbuki.webp";
 import dashboardMockup from "@/assets/dashboard-mockup.png";
@@ -35,7 +35,7 @@ const HeroSection = () => {
               transition={{ duration: 0.7 }}
               className="inline-flex items-center gap-1.5 mb-4 px-4 py-3 rounded-xl bg-[hsl(220,10%,72%)]"
             >
-              <img src={logoPub} alt="Logo PUB" className="h-[115px] w-auto object-contain brightness-[1.4] saturate-[0.6]" />
+              <img src={logoPub} alt="Logo PUB" className="h-[90px] w-auto object-contain" />
               <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-[72px] w-auto object-contain mix-blend-multiply rounded-md" />
               <img src={logoLsbuki} alt="Logo LSBUKI" className="h-[72px] w-auto object-contain mix-blend-multiply rounded-md" />
             </motion.div>
