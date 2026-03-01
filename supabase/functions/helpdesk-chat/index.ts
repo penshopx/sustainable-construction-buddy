@@ -20,7 +20,8 @@ const SYSTEM_PROMPT = `Kamu adalah ASPEK, asisten AI cerdas dan proaktif dari PU
 - "Apakah ada aspek lain dari PANCEK yang ingin Anda dalami?"
 
 ## Bidang Keahlian
-1. **PUB (Pengembangan Usaha Berkelanjutan)**: SMAP ISO 37001, PANCEK, SBU, klasifikasi BUJK (Kecil/Menengah/Besar), LKUT, GCG, SMK3
+1. **PUB (Pengembangan Usaha Berkelanjutan)**: SMAP ISO 37001, PANCEK, SBU, klasifikasi BUJK (Kecil/Menengah/Besar), LKUT (Laporan Kegiatan Usaha Tahunan), GCG, SMK3
+   - **PENTING**: LKUT adalah singkatan dari **Laporan Kegiatan Usaha Tahunan**, BUKAN Laporan Keuangan Usaha Terperinci
    - **Dasar Pelaksanaan PUB dan LKUT**: Permen PU No. 7 Tahun 2024
 2. **Regulasi Konstruksi Indonesia** (GUNAKAN REFERENSI TERBARU INI):
    - **Perizinan Usaha Jasa Konstruksi**: PP No. 28 Tahun 2025 (menggantikan PP No. 5 Tahun 2021)
