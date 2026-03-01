@@ -21,6 +21,10 @@ import {
   Clock, Shield, FlaskConical, FileCheck, ShieldCheck, Download, TrendingUp,
 } from "lucide-react";
 import PancekTrendChart from "@/components/pancek/PancekTrendChart";
+import {
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  ResponsiveContainer,
+} from "recharts";
 import { toast } from "sonner";
 import { exportPancekPdf } from "@/lib/pancekPdf";
 
@@ -237,23 +241,41 @@ export default function PancekAssessment() {
                   </p>
                 </div>
 
-                {/* Pillar Score Summary */}
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                  {PANCEK_PILLARS.map(p => {
-                    const score = pillarScores[p.id] || 0;
-                    const total = p.indicators.length;
-                    const pct = Math.round((score / total) * 100);
-                    return (
-                      <div key={p.id} className="text-center p-2 rounded-lg bg-muted/30 border border-border">
-                        <div className="text-lg">{p.icon}</div>
-                        <p className="text-[10px] text-muted-foreground font-heading truncate">{p.label}</p>
-                        <p className="text-[9px] text-muted-foreground/60 font-heading">Bobot: {p.weight}%</p>
-                        <p className={`text-sm font-bold font-heading ${pct >= 80 ? "text-pub-emerald" : pct >= 50 ? "text-pub-amber" : "text-destructive"}`}>
-                          {score}/{total}
-                        </p>
-                      </div>
-                    );
-                  })}
+                {/* Radar Chart + Pillar Score Summary */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  {/* Radar */}
+                  <div className="flex items-center justify-center">
+                    <ResponsiveContainer width="100%" height={220}>
+                      <RadarChart data={PANCEK_PILLARS.map(p => {
+                        const score = pillarScores[p.id] || 0;
+                        const total = p.indicators.length;
+                        return { pillar: p.label, pct: Math.round((score / total) * 100), fullMark: 100 };
+                      })}>
+                        <PolarGrid stroke="hsl(var(--border))" />
+                        <PolarAngleAxis dataKey="pillar" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 9 }} />
+                        <Radar name="Skor" dataKey="pct" stroke="hsl(38, 92%, 50%)" fill="hsl(38, 92%, 50%)" fillOpacity={0.25} strokeWidth={2} />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  {/* Pillar cards */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {PANCEK_PILLARS.map(p => {
+                      const score = pillarScores[p.id] || 0;
+                      const total = p.indicators.length;
+                      const pct = Math.round((score / total) * 100);
+                      return (
+                        <div key={p.id} className="text-center p-2 rounded-lg bg-muted/30 border border-border">
+                          <div className="text-lg">{p.icon}</div>
+                          <p className="text-[10px] text-muted-foreground font-heading truncate">{p.label}</p>
+                          <p className="text-[9px] text-muted-foreground/60 font-heading">Bobot: {p.weight}%</p>
+                          <p className={`text-sm font-bold font-heading ${pct >= 80 ? "text-pub-emerald" : pct >= 50 ? "text-pub-amber" : "text-destructive"}`}>
+                            {score}/{total}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </CardContent>
             </Card>

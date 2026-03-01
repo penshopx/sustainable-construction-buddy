@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Store, Search, Plus, Tag, ShoppingCart, Loader2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Store, Search, Plus, Tag, ShoppingCart, Loader2, Package } from "lucide-react";
+import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -86,6 +87,24 @@ export default function Marketplace() {
         </Button>
       </div>
 
+      {/* Category stats */}
+      {!isLoading && products.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <div className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+            <Package className="w-3 h-3 inline mr-1" /> {products.filter(p => p.status === "active").length} produk aktif
+          </div>
+          {CATEGORIES.filter(c => c.value !== "all").map(c => {
+            const count = products.filter(p => p.category === c.value && p.status === "active").length;
+            if (count === 0) return null;
+            return (
+              <span key={c.value} className="px-2 py-1 rounded-full text-[10px] bg-muted text-muted-foreground">
+                {c.label}: {count}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       {/* Search + Category Tabs */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -122,13 +141,14 @@ export default function Marketplace() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((product) => {
+          {filtered.map((product, idx) => {
             const catLabel = CATEGORIES.find((c) => c.value === product.category)?.label || product.category;
             const tags = parseTags(product.description);
             const hasDiscount = product.stock > 0; // use stock > 0 as proxy for featured/discount badge
 
             return (
-              <Card key={product.id} className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-200 border-border/60">
+              <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}>
+              <Card className="flex flex-col overflow-hidden hover:shadow-lg transition-shadow duration-200 border-border/60 h-full">
                 {/* Image / Placeholder area */}
                 <div className="relative h-44 bg-muted/40 flex items-center justify-center">
                   {product.image_url ? (
@@ -217,6 +237,7 @@ export default function Marketplace() {
                   )}
                 </CardFooter>
               </Card>
+              </motion.div>
             );
           })}
         </div>

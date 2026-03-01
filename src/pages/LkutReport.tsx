@@ -120,6 +120,30 @@ export default function LkutReportPage() {
         </Card>
       )}
 
+      {/* LKUT Summary Stats */}
+      {!loading && reports.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card><CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold font-heading text-foreground">{reports.length}</p>
+            <p className="text-xs text-muted-foreground">Total Laporan</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold font-heading text-primary">{reports.filter(r => r.status === "submitted" || r.status === "validated").length}</p>
+            <p className="text-xs text-muted-foreground">Terkirim</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold font-heading text-pub-emerald">{reports.filter(r => r.status === "validated").length}</p>
+            <p className="text-xs text-muted-foreground">Tervalidasi</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold font-heading text-pub-amber">
+              {Math.round(reports.reduce((s, r) => s + calcCompleteness(r), 0) / reports.length)}%
+            </p>
+            <p className="text-xs text-muted-foreground">Rata-rata Kelengkapan</p>
+          </CardContent></Card>
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Memuat data...</div>
       ) : reports.length === 0 ? (

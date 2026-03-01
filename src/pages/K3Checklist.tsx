@@ -53,6 +53,32 @@ const K3Checklist = () => {
 
       {view.type === "list" && (
         <>
+          {/* K3 summary stats */}
+          {!isLoading && checklists.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Card><CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold font-heading text-foreground">{checklists.length}</p>
+                <p className="text-xs text-muted-foreground">Total Inspeksi</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold font-heading text-primary">{checklists.filter((c: any) => c.status === "completed").length}</p>
+                <p className="text-xs text-muted-foreground">Selesai</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4 text-center">
+                <p className={`text-2xl font-bold font-heading ${(() => { const avg = checklists.reduce((s: number, c: any) => s + (c.score_percent || 0), 0) / checklists.length; return avg >= 80 ? "text-pub-emerald" : avg >= 50 ? "text-pub-amber" : "text-destructive"; })()}`}>
+                  {Math.round(checklists.reduce((s: number, c: any) => s + (c.score_percent || 0), 0) / checklists.length)}%
+                </p>
+                <p className="text-xs text-muted-foreground">Rata-rata Skor</p>
+              </CardContent></Card>
+              <Card><CardContent className="p-4 text-center">
+                <p className="text-2xl font-bold font-heading text-pub-amber">
+                  {checklists.reduce((s: number, c: any) => s + (c.total_items - c.completed_items), 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">Item Belum Patuh</p>
+              </CardContent></Card>
+            </div>
+          )}
+
           {/* Project filter */}
           <div className="max-w-xs">
             <Select value={selectedProject || "all"} onValueChange={(v) => setSelectedProject(v === "all" ? undefined : v)}>
