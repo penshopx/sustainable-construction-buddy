@@ -20,6 +20,10 @@ import {
   Briefcase,
   Lightbulb,
   CalendarDays,
+  Store,
+  Bot,
+  ShoppingBag,
+  Package,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -58,8 +62,22 @@ const items = [
   { title: "Leaderboard", url: "/leaderboard", icon: Trophy },
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
+  { title: "Marketplace", url: "/marketplace", icon: Store },
+  { title: "Direktori Perusahaan", url: "/direktori", icon: Building2 },
+  { title: "Helpdesk AI", url: "/helpdesk", icon: Bot },
+  { title: "Pesanan Saya", url: "/pesanan", icon: ShoppingBag },
+  { title: "Produk Saya", url: "/produk-saya", icon: Package },
   { title: "Notifikasi", url: "/notifications", icon: Bell },
   { title: "Profil Saya", url: "/profile", icon: User },
+];
+
+const adminItems = [
+  { title: "Corporate Dashboard", url: "/corporate", icon: Building2 },
+  { title: "Verifikasi PANCEK", url: "/admin/pancek", icon: ShieldAlert },
+  { title: "Kelola Marketplace", url: "/admin/marketplace", icon: Store },
+  { title: "Kelola Pesanan", url: "/admin/pesanan", icon: ShoppingBag },
+  { title: "Statistik Penjualan", url: "/admin/statistik", icon: BarChart3 },
+  { title: "Panel Admin", url: "/admin", icon: Shield },
 ];
 
 export function AppSidebar() {
@@ -72,7 +90,6 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <div className="flex flex-col items-center gap-2 p-4 border-b border-sidebar-border">
-        {/* Logo PUB */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -117,49 +134,21 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
-              {isAdmin && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/corporate"
-                        end
-                        className="hover:bg-sidebar-accent/50"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                      >
-                        <Building2 className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>Corporate Dashboard</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/admin/pancek"
-                        end
-                        className="hover:bg-sidebar-accent/50"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                      >
-                        <ShieldAlert className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>Verifikasi PANCEK</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/admin"
-                        end
-                        className="hover:bg-sidebar-accent/50"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                      >
-                        <Shield className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>Panel Admin</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
-              )}
+              {isAdmin && adminItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      end
+                      className="hover:bg-sidebar-accent/50"
+                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -36,6 +36,15 @@ import AdminInnovationReview from "./pages/admin/AdminInnovationReview";
 import ProposalDetail from "./pages/ProposalDetail";
 import PubPrograms from "./pages/Programs";
 import ProgramDetail from "./pages/ProgramDetail";
+import Marketplace from "./pages/Marketplace";
+import CompanyDirectory from "./pages/CompanyDirectory";
+import HelpdeskAI from "./pages/HelpdeskAI";
+import MyOrders from "./pages/MyOrders";
+import MyProducts from "./pages/MyProducts";
+import AdminMarketplace from "./pages/admin/AdminMarketplace";
+import AdminOrders from "./pages/admin/AdminOrders";
+import AdminSalesStats from "./pages/admin/AdminSalesStats";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -67,11 +76,19 @@ const App = () => (
             <Route path="/compliance" element={<DashboardLayout><ComplianceTracker /></DashboardLayout>} />
             <Route path="/smap" element={<DashboardLayout><SmapDashboard /></DashboardLayout>} />
             <Route path="/pancek" element={<DashboardLayout><SmapDashboard /></DashboardLayout>} />
+            <Route path="/marketplace" element={<DashboardLayout><Marketplace /></DashboardLayout>} />
+            <Route path="/direktori" element={<DashboardLayout><CompanyDirectory /></DashboardLayout>} />
+            <Route path="/helpdesk" element={<DashboardLayout><HelpdeskAI /></DashboardLayout>} />
+            <Route path="/pesanan" element={<DashboardLayout><MyOrders /></DashboardLayout>} />
+            <Route path="/produk-saya" element={<DashboardLayout><MyProducts /></DashboardLayout>} />
             <Route path="/admin" element={<DashboardLayout><AdminGuard><AdminDashboard /></AdminGuard></DashboardLayout>} />
             <Route path="/corporate" element={<DashboardLayout><AdminGuard><CorporateDashboard /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/pancek" element={<DashboardLayout><AdminGuard><AdminPancekVerification /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/inovasi" element={<DashboardLayout><AdminGuard><AdminInnovationReview /></AdminGuard></DashboardLayout>} />
-            <Route path="/inovasi" element={<Innovation />} />
+            <Route path="/admin/marketplace" element={<DashboardLayout><AdminGuard><AdminMarketplace /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/pesanan" element={<DashboardLayout><AdminGuard><AdminOrders /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/statistik" element={<DashboardLayout><AdminGuard><AdminSalesStats /></AdminGuard></DashboardLayout>} />
+            <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />
             <Route path="/program-kegiatan/:id" element={<DashboardLayout><ProgramDetail /></DashboardLayout>} />
