@@ -23,7 +23,7 @@ import RiskRegister from "./pages/RiskRegister";
 import BudgetTracker from "./pages/BudgetTracker";
 import K3Checklist from "./pages/K3Checklist";
 import LkutReport from "./pages/LkutReport";
-import PerformanceGrade from "./pages/PerformanceGrade";
+// PerformanceGrade is now embedded as a tab in LkutReport
 import ComplianceTracker from "./pages/ComplianceTracker";
 import SmapDashboard from "./pages/SmapDashboard";
 import Notifications from "./pages/Notifications";
@@ -80,7 +80,7 @@ const App = () => (
             <Route path="/budget-tracker" element={<DashboardLayout><BudgetTracker /></DashboardLayout>} />
             <Route path="/k3-checklist" element={<DashboardLayout><K3Checklist /></DashboardLayout>} />
             <Route path="/lkut" element={<DashboardLayout><LkutReport /></DashboardLayout>} />
-            <Route path="/grading" element={<DashboardLayout><PerformanceGrade /></DashboardLayout>} />
+            {/* Grading is now a tab inside LKUT */}
             <Route path="/compliance" element={<DashboardLayout><ComplianceTracker /></DashboardLayout>} />
             <Route path="/smap" element={<DashboardLayout><SmapDashboard /></DashboardLayout>} />
             <Route path="/pancek" element={<DashboardLayout><PancekAssessment /></DashboardLayout>} />
