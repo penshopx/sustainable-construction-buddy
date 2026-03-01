@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { usePerformanceGrades, gradeColor, gradeBg, PerformanceGrade } from "@/hooks/usePerformanceGrades";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { exportGradingPdf } from "@/lib/gradingPdf";
 import GradeTrendChart from "@/components/grading/GradeTrendChart";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Building2,
+  CheckCircle2,
+  XCircle,
+  Database,
 } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
@@ -85,7 +89,7 @@ function getRecommendations(grade: PerformanceGrade): { pillar: string; score: n
 
 export default function PerformanceGradePage() {
   const { grades, loading, computing, computeGrade } = usePerformanceGrades();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [detailGrade, setDetailGrade] = useState<PerformanceGrade | null>(null);
   const [showComputeDialog, setShowComputeDialog] = useState(false);
   const [bujkForm, setBujkForm] = useState({
@@ -94,16 +98,43 @@ export default function PerformanceGradePage() {
     sbu_number: '',
     bujk_qualification: 'menengah',
   });
+  const [dataSources, setDataSources] = useState<{
+    lkut: number;
+    projects: number;
+    risks: number;
+    k3: number;
+    budgets: number;
+    loading: boolean;
+  }>({ lkut: 0, projects: 0, risks: 0, k3: 0, budgets: 0, loading: true });
 
-  // Pre-fill from profile when dialog opens
+  // Pre-fill from profile & fetch data source counts when dialog opens
   useEffect(() => {
-    if (showComputeDialog && profile) {
+    if (!showComputeDialog || !user) return;
+    if (profile) {
       setBujkForm(prev => ({
         ...prev,
         company_name: prev.company_name || profile.company || '',
       }));
     }
-  }, [showComputeDialog, profile]);
+    // Fetch data source counts
+    setDataSources(prev => ({ ...prev, loading: true }));
+    Promise.all([
+      supabase.from("lkut_reports").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("projects").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("risk_registers").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("k3_checklists").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("budget_entries").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    ]).then(([lkut, proj, risk, k3, budget]) => {
+      setDataSources({
+        lkut: lkut.count || 0,
+        projects: proj.count || 0,
+        risks: risk.count || 0,
+        k3: k3.count || 0,
+        budgets: budget.count || 0,
+        loading: false,
+      });
+    });
+  }, [showComputeDialog, profile, user]);
 
   const latestGrade = grades[0];
   const prevGrade = grades[1] || null;
@@ -581,6 +612,54 @@ export default function PerformanceGradePage() {
                   <SelectItem value="besar">Besar</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Sumber Data yang Akan Dihitung */}
+            <div className="rounded-lg border border-border p-4 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <Database className="w-4 h-4 text-accent" />
+                <span className="font-heading font-semibold text-sm text-foreground">Sumber Data Perhitungan</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Grading dihitung otomatis dari data berikut yang sudah Anda input di modul lain:
+              </p>
+              {dataSources.loading ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-3 h-3 animate-spin" /> Memuat status data...
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {[
+                    { label: "LKUT (Laporan Keuangan)", count: dataSources.lkut, pillar: "Keuangan & Kepatuhan", link: "/lkut" },
+                    { label: "Proyek", count: dataSources.projects, pillar: "Kinerja Proyek", link: "/projects" },
+                    { label: "Budget Tracker", count: dataSources.budgets, pillar: "Deviasi Anggaran", link: "/budget" },
+                    { label: "Risk Register", count: dataSources.risks, pillar: "Risk & K3", link: "/risk-register" },
+                    { label: "K3 Checklist", count: dataSources.k3, pillar: "Kepatuhan K3", link: "/k3-checklist" },
+                  ].map(src => (
+                    <div key={src.label} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        {src.count > 0 ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-pub-emerald" />
+                        ) : (
+                          <XCircle className="w-3.5 h-3.5 text-destructive" />
+                        )}
+                        <span className="text-foreground">{src.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`font-medium ${src.count > 0 ? "text-pub-emerald" : "text-destructive"}`}>
+                          {src.count > 0 ? `${src.count} data` : "Belum ada"}
+                        </span>
+                        <span className="text-muted-foreground">→ {src.pillar}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!dataSources.loading && (dataSources.lkut === 0 || dataSources.projects === 0) && (
+                <p className="text-xs text-pub-amber bg-pub-amber/10 rounded p-2">
+                  ⚠️ Data LKUT dan Proyek sangat penting untuk hasil grading yang akurat. Lengkapi terlebih dahulu di modul terkait.
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
