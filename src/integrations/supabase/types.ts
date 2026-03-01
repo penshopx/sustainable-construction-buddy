@@ -1047,6 +1047,222 @@ export type Database = {
         }
         Relationships: []
       }
+      mentor_chunks: {
+        Row: {
+          chunk_index: number
+          content: string
+          created_at: string
+          id: string
+          knowledge_base_id: string
+          metadata: Json
+          user_id: string
+        }
+        Insert: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          id?: string
+          knowledge_base_id: string
+          metadata?: Json
+          user_id: string
+        }
+        Update: {
+          chunk_index?: number
+          content?: string
+          created_at?: string
+          id?: string
+          knowledge_base_id?: string
+          metadata?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_chunks_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "mentor_knowledge_bases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentor_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          knowledge_base_id: string | null
+          mentor_type: string
+          project_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          knowledge_base_id?: string | null
+          mentor_type?: string
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          knowledge_base_id?: string | null
+          mentor_type?: string
+          project_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_conversations_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "mentor_knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mentor_conversations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentor_external_bots: {
+        Row: {
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          url?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      mentor_knowledge_bases: {
+        Row: {
+          chunk_count: number
+          created_at: string
+          description: string
+          file_name: string
+          file_size: number
+          file_type: string
+          file_url: string
+          id: string
+          project_id: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chunk_count?: number
+          created_at?: string
+          description?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          project_id?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chunk_count?: number
+          created_at?: string
+          description?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          file_url?: string
+          id?: string
+          project_id?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_knowledge_bases_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentor_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "mentor_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_bookmarks: {
         Row: {
           created_at: string

@@ -1,202 +1,172 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
+import { useMentorChat, MentorType } from "@/hooks/useMentorChat";
+import MentorChatPanel from "@/components/mentor/MentorChatPanel";
+import KnowledgeBaseManager from "@/components/mentor/KnowledgeBaseManager";
+import ExternalBotManager from "@/components/mentor/ExternalBotManager";
 import {
-  MessageCircle, Send, Loader2, Bot, User, Trash2,
-  Sparkles, HardHat, BookOpen, Shield, DollarSign
+  BookOpen, Brain, Wrench, HardHat, Shield, DollarSign,
+  FileText, Lightbulb, Target, TrendingUp, AlertTriangle,
 } from "lucide-react";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
-const quickPrompts = [
-  { icon: HardHat, text: "Apa itu WBS dan bagaimana cara membuatnya?" },
-  { icon: Shield, text: "Jelaskan langkah-langkah identifikasi risiko proyek konstruksi" },
-  { icon: DollarSign, text: "Bagaimana cara membuat RAB yang akurat?" },
-  { icon: BookOpen, text: "Apa saja prinsip Good Corporate Governance untuk BUJK?" },
+const TABS: { key: MentorType; label: string; icon: React.ElementType; color: string }[] = [
+  { key: "learning", label: "Pendamping Belajar", icon: BookOpen, color: "text-blue-500" },
+  { key: "expert", label: "Pakar Cerdas", icon: Brain, color: "text-pub-amber" },
+  { key: "project", label: "Problem Solver", icon: Wrench, color: "text-emerald-500" },
 ];
 
+const QUICK_PROMPTS: Record<MentorType, { icon: React.ElementType; text: string }[]> = {
+  learning: [
+    { icon: BookOpen, text: "Rangkum poin-poin utama dari modul ini" },
+    { icon: Lightbulb, text: "Jelaskan konsep yang paling penting dari materi ini" },
+    { icon: Target, text: "Buatkan soal latihan dari modul ini" },
+    { icon: FileText, text: "Apa yang harus saya pahami sebelum lanjut ke bab berikutnya?" },
+  ],
+  expert: [
+    { icon: HardHat, text: "Apa itu WBS dan bagaimana cara membuatnya?" },
+    { icon: Shield, text: "Jelaskan langkah identifikasi risiko proyek konstruksi" },
+    { icon: DollarSign, text: "Bagaimana cara membuat RAB yang akurat?" },
+    { icon: FileText, text: "Apa saja prinsip Good Corporate Governance untuk BUJK?" },
+  ],
+  project: [
+    { icon: AlertTriangle, text: "Analisis risiko utama proyek ini dan rekomendasikan mitigasi" },
+    { icon: TrendingUp, text: "Evaluasi kinerja anggaran proyek ini" },
+    { icon: Target, text: "Apa langkah prioritas untuk mengatasi keterlambatan?" },
+    { icon: Shield, text: "Review kepatuhan K3 proyek ini" },
+  ],
+};
+
+const EMPTY_TITLES: Record<MentorType, string> = {
+  learning: "Mentor Pembelajaran 📚",
+  expert: "Pakar Cerdas Konstruksi 🧠",
+  project: "Problem Solver Proyek 🔧",
+};
+
+const EMPTY_DESCS: Record<MentorType, string> = {
+  learning: "Upload modul pembelajaran, lalu tanyakan apapun tentang materi tersebut. Saya akan mendampingi Anda belajar.",
+  expert: "Saya adalah perpustakaan hidup manajemen konstruksi. Tanyakan regulasi, standar, atau best practice apapun.",
+  project: "Pilih proyek, lalu saya akan menganalisis data dan membantu menyelesaikan masalah spesifik proyek Anda.",
+};
+
+interface Project {
+  id: string;
+  name: string;
+  status: string;
+}
+
 const Mentor = () => {
-  const { profile } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<MentorType>("learning");
+  const mentor = useMentorChat(activeTab);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages]);
-
-  const sendMessage = async (text?: string) => {
-    const msg = text || input.trim();
-    if (!msg || loading) return;
-
-    const userMsg: Message = { role: "user", content: msg };
-    const newMessages = [...messages, userMsg];
-    setMessages(newMessages);
-    setInput("");
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("chat-mentor", {
-        body: {
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
-          userLevel: profile?.current_level || "Pemula",
-        },
-      });
-
-      if (error) throw error;
-
-      setMessages([...newMessages, { role: "assistant", content: data.content }]);
-    } catch (err: any) {
-      toast.error("Gagal mengirim pesan");
-      setMessages(newMessages); // keep user message
-    }
-
-    setLoading(false);
-    inputRef.current?.focus();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+    if (!user) return;
+    supabase
+      .from("projects")
+      .select("id, name, status")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setProjects((data as Project[]) || []));
+  }, [user]);
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
-      {/* Header */}
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold font-heading text-foreground flex items-center gap-3">
-          <MessageCircle className="w-7 h-7 text-pub-amber" />
-          Mentor Digital
-        </h1>
-        <p className="text-muted-foreground font-body mt-1">
-          Asisten AI ahli manajemen konstruksi — tanyakan apapun seputar kompetensi BUJK.
-        </p>
-      </div>
-
-      {/* Chat area */}
-      <div
-        ref={scrollRef}
-        className="flex-1 overflow-y-auto rounded-2xl border border-border bg-card shadow-card p-4 space-y-4"
-      >
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <div className="w-16 h-16 rounded-2xl bg-pub-amber/10 flex items-center justify-center mb-4">
-              <Bot className="w-8 h-8 text-pub-amber" />
-            </div>
-            <h3 className="font-heading font-bold text-foreground text-lg mb-2">
-              Halo! Saya Mentor Digital PUB 👷
-            </h3>
-            <p className="text-sm text-muted-foreground font-body max-w-md mb-6">
-              Saya siap membantu Anda memahami konsep manajemen konstruksi, regulasi BUJK, dan meningkatkan kompetensi manajerial Anda.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-              {quickPrompts.map((qp, i) => (
-                <button
-                  key={i}
-                  onClick={() => sendMessage(qp.text)}
-                  className="flex items-start gap-3 p-3 rounded-xl border border-border bg-background hover:bg-muted transition-colors text-left group"
-                >
-                  <qp.icon className="w-5 h-5 text-pub-amber shrink-0 mt-0.5" />
-                  <span className="text-xs font-body text-muted-foreground group-hover:text-foreground transition-colors">
-                    {qp.text}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <AnimatePresence>
-          {messages.map((msg, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              {msg.role === "assistant" && (
-                <div className="w-8 h-8 rounded-lg bg-pub-amber/10 flex items-center justify-center shrink-0 mt-1">
-                  <Bot className="w-4 h-4 text-pub-amber" />
-                </div>
-              )}
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground rounded-tr-md"
-                    : "bg-muted text-foreground rounded-tl-md"
-                }`}
-              >
-                {msg.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none text-foreground [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_li]:my-0.5">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <p className="text-sm font-body whitespace-pre-wrap">{msg.content}</p>
-                )}
-              </div>
-              {msg.role === "user" && (
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-1">
-                  <User className="w-4 h-4 text-primary" />
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {loading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
-            <div className="w-8 h-8 rounded-lg bg-pub-amber/10 flex items-center justify-center shrink-0">
-              <Bot className="w-4 h-4 text-pub-amber" />
-            </div>
-            <div className="bg-muted rounded-2xl rounded-tl-md px-4 py-3">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="font-body">Sedang mengetik...</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
-
-      {/* Input area */}
-      <div className="mt-3 flex gap-2">
-        {messages.length > 0 && (
-          <button
-            onClick={() => setMessages([])}
-            className="shrink-0 w-10 h-10 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-destructive hover:border-destructive/30 transition-colors"
-            title="Hapus percakapan"
-          >
-            <Trash2 className="w-4 h-4" />
+    <div className="max-w-6xl mx-auto flex flex-col h-[calc(100vh-8rem)]">
+      {/* Tab Header */}
+      <div className="flex items-center gap-1 mb-4 overflow-x-auto pb-1">
+        {TABS.map(tab => (
+          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-heading font-semibold whitespace-nowrap transition-all ${
+              activeTab === tab.key
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            }`}>
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
           </button>
-        )}
-        <div className="flex-1 relative">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Tanyakan tentang manajemen konstruksi..."
-            rows={1}
-            className="w-full px-4 py-3 pr-12 rounded-xl border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+        ))}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex gap-4 min-h-0">
+        {/* Sidebar */}
+        <div className="w-72 shrink-0 hidden lg:flex flex-col gap-4 overflow-y-auto">
+          {activeTab === "learning" && (
+            <KnowledgeBaseManager
+              label="Modul Pembelajaran"
+              knowledgeBases={mentor.knowledgeBases}
+              selectedKbId={mentor.selectedKbId}
+              onSelect={mentor.setSelectedKbId}
+              onUpload={mentor.uploadKnowledgeBase}
+              onDelete={mentor.deleteKnowledgeBase}
+            />
+          )}
+
+          {activeTab === "expert" && (
+            <>
+              <div className="p-3 rounded-xl border border-border bg-card">
+                <h4 className="text-sm font-heading font-semibold text-foreground mb-2">Pakar Cerdas AI</h4>
+                <p className="text-xs text-muted-foreground">
+                  Chatbot built-in dengan pengetahuan mendalam tentang manajemen konstruksi Indonesia, regulasi, dan best practices.
+                </p>
+              </div>
+              <ExternalBotManager
+                bots={mentor.externalBots}
+                onAdd={mentor.addExternalBot}
+                onDelete={mentor.deleteExternalBot}
+              />
+            </>
+          )}
+
+          {activeTab === "project" && (
+            <>
+              {/* Project Selector */}
+              <div className="space-y-2">
+                <h4 className="text-sm font-heading font-semibold text-foreground">Pilih Proyek</h4>
+                <div className="space-y-1 max-h-40 overflow-y-auto">
+                  {projects.length === 0 && <p className="text-xs text-muted-foreground py-2">Belum ada proyek.</p>}
+                  {projects.map(p => (
+                    <button key={p.id} onClick={() => mentor.setSelectedProjectId(p.id === mentor.selectedProjectId ? null : p.id)}
+                      className={`w-full text-left flex items-center gap-2 p-2.5 rounded-xl transition-colors text-sm ${
+                        p.id === mentor.selectedProjectId
+                          ? "bg-primary/10 border border-primary/20 text-foreground"
+                          : "hover:bg-muted border border-transparent text-muted-foreground"
+                      }`}>
+                      <Wrench className="w-4 h-4 shrink-0" />
+                      <span className="truncate">{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <KnowledgeBaseManager
+                label="Brain Project (Dokumen)"
+                knowledgeBases={mentor.knowledgeBases}
+                selectedKbId={mentor.selectedKbId}
+                onSelect={mentor.setSelectedKbId}
+                onUpload={mentor.uploadKnowledgeBase}
+                onDelete={mentor.deleteKnowledgeBase}
+                projectId={mentor.selectedProjectId || undefined}
+              />
+            </>
+          )}
+        </div>
+
+        {/* Chat Panel */}
+        <div className="flex-1 min-w-0">
+          <MentorChatPanel
+            messages={mentor.messages}
+            isLoading={mentor.isLoading}
+            conversations={mentor.conversations}
+            activeConversationId={mentor.activeConversationId}
+            onSend={mentor.sendMessage}
+            onSelectConversation={mentor.selectConversation}
+            onNewConversation={mentor.startNewConversation}
+            onDeleteConversation={mentor.deleteConversation}
+            quickPrompts={QUICK_PROMPTS[activeTab]}
+            emptyTitle={EMPTY_TITLES[activeTab]}
+            emptyDescription={EMPTY_DESCS[activeTab]}
           />
-          <button
-            onClick={() => sendMessage()}
-            disabled={loading || !input.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-accent-foreground hover:brightness-110 transition-all disabled:opacity-30"
-          >
-            <Send className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </div>
