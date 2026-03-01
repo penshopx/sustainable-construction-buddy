@@ -47,6 +47,8 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminSalesStats from "./pages/admin/AdminSalesStats";
 import AdminQuizQuestions from "./pages/admin/AdminQuizQuestions";
 import AdminModules from "./pages/admin/AdminModules";
+import PancekAssessment from "./pages/PancekAssessment";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
             <Route path="/assessment" element={<DashboardLayout><Assessment /></DashboardLayout>} />
             <Route path="/courses" element={<DashboardLayout><Courses /></DashboardLayout>} />
@@ -78,7 +81,7 @@ const App = () => (
             <Route path="/grading" element={<DashboardLayout><PerformanceGrade /></DashboardLayout>} />
             <Route path="/compliance" element={<DashboardLayout><ComplianceTracker /></DashboardLayout>} />
             <Route path="/smap" element={<DashboardLayout><SmapDashboard /></DashboardLayout>} />
-            <Route path="/pancek" element={<DashboardLayout><SmapDashboard /></DashboardLayout>} />
+            <Route path="/pancek" element={<DashboardLayout><PancekAssessment /></DashboardLayout>} />
             <Route path="/marketplace" element={<DashboardLayout><Marketplace /></DashboardLayout>} />
             <Route path="/direktori" element={<DashboardLayout><CompanyDirectory /></DashboardLayout>} />
             <Route path="/direktori/:companyId" element={<DashboardLayout><CompanyDetail /></DashboardLayout>} />
