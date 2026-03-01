@@ -3,6 +3,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   GraduationCap, Clock, CheckCircle2, PlayCircle, Lock,
   Star, Award, Crown, Gem, BookOpen, ArrowRight
@@ -22,6 +24,7 @@ interface Module {
   id: string;
   title: string;
   description: string;
+  content: string;
   level: string;
   duration_minutes: number;
   sort_order: number;
@@ -166,12 +169,19 @@ const Courses = () => {
           <div className="p-8">
             <p className="text-muted-foreground font-body leading-relaxed mb-6">{activeModule.description}</p>
 
-            <div className="bg-muted/50 rounded-xl p-6 mb-6 border border-border">
-              <h3 className="font-heading font-bold text-foreground mb-3">Konten Pembelajaran</h3>
-              <p className="text-sm text-muted-foreground font-body leading-relaxed">
-                Materi pembelajaran untuk modul ini akan segera tersedia. Saat ini Anda dapat menandai modul sebagai selesai untuk melacak progress Anda.
-              </p>
-            </div>
+            {activeModule.content ? (
+              <div className="bg-muted/30 rounded-xl p-6 mb-6 border border-border prose prose-sm max-w-none dark:prose-invert font-body">
+                <h3 className="font-heading font-bold text-foreground mb-3">Konten Pembelajaran</h3>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeModule.content}</ReactMarkdown>
+              </div>
+            ) : (
+              <div className="bg-muted/50 rounded-xl p-6 mb-6 border border-border">
+                <h3 className="font-heading font-bold text-foreground mb-3">Konten Pembelajaran</h3>
+                <p className="text-sm text-muted-foreground font-body leading-relaxed">
+                  Materi untuk modul ini sedang dalam proses penyusunan oleh tim ahli. Anda tetap dapat menandai modul sebagai selesai untuk melacak progress Anda.
+                </p>
+              </div>
+            )}
 
             {activeModule.progress?.status !== "completed" && (
               <button
