@@ -26,6 +26,9 @@ const K3Checklist = () => {
   const { projects } = useProjects();
   const { checklists, isLoading, createChecklist, deleteChecklist } = useK3Checklists(selectedProject);
 
+  // Auto-show create form when no checklists exist and not loading
+  const effectiveView = (!isLoading && checklists.length === 0 && view.type === "list") ? { type: "create" as const } : view;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -39,19 +42,19 @@ const K3Checklist = () => {
             <p className="text-sm text-muted-foreground font-body">Inspeksi keselamatan kerja proyek</p>
           </div>
         </div>
-        {view.type === "list" && (
+        {effectiveView.type === "list" && (
           <Button onClick={() => setView({ type: "create" })} className="bg-gradient-amber text-accent-foreground font-heading shadow-amber hover:brightness-110">
             <Plus className="w-4 h-4 mr-1" /> Buat Inspeksi
           </Button>
         )}
-        {view.type !== "list" && (
+        {effectiveView.type !== "list" && (
           <Button variant="outline" onClick={() => setView({ type: "list" })}>
             <ArrowLeft className="w-4 h-4 mr-1" /> Kembali
           </Button>
         )}
       </div>
 
-      {view.type === "list" && (
+      {effectiveView.type === "list" && (
         <>
           {/* K3 summary stats */}
           {!isLoading && checklists.length > 0 && (
@@ -143,7 +146,7 @@ const K3Checklist = () => {
         </>
       )}
 
-      {view.type === "create" && (
+      {effectiveView.type === "create" && (
         <CreateForm
           projectId={selectedProject}
           projects={projects}
