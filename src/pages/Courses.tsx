@@ -8,7 +8,8 @@ import remarkGfm from "remark-gfm";
 import {
   GraduationCap, Clock, CheckCircle2, PlayCircle, Lock,
   Star, Award, Crown, Gem, BookOpen, ArrowRight, HelpCircle, Trophy,
-  BookMarked, Filter, Search, ArrowUpDown, Bookmark, AlertCircle
+  BookMarked, Filter, Search, ArrowUpDown, Bookmark, AlertCircle,
+  ClipboardCheck, FileCheck, BarChart3
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,33 @@ const domainIcons: Record<string, any> = {
   "Regulasi": BookMarked,
 };
 
+type QuizType = "pre_test" | "chapter_test" | "post_test";
+
+const QUIZ_TYPE_LABELS: Record<QuizType, string> = {
+  pre_test: "Pra-Test",
+  chapter_test: "Test Bab",
+  post_test: "Post-Test",
+};
+
+const QUIZ_TYPE_ICONS: Record<QuizType, any> = {
+  pre_test: ClipboardCheck,
+  chapter_test: HelpCircle,
+  post_test: FileCheck,
+};
+
+const GRADE_CONFIG = [
+  { min: 90, label: "Excellent", color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  { min: 80, label: "Baik Sekali", color: "text-pub-sky", bg: "bg-pub-sky/10" },
+  { min: 70, label: "Baik", color: "text-primary", bg: "bg-primary/10" },
+  { min: 60, label: "Cukup", color: "text-pub-amber", bg: "bg-pub-amber/10" },
+  { min: 50, label: "Kurang", color: "text-orange-500", bg: "bg-orange-500/10" },
+  { min: 0, label: "Buruk", color: "text-destructive", bg: "bg-destructive/10" },
+];
+
+function getGrade(score: number) {
+  return GRADE_CONFIG.find(g => score >= g.min) || GRADE_CONFIG[GRADE_CONFIG.length - 1];
+}
+
 interface Module {
   id: string;
   title: string;
@@ -51,7 +79,8 @@ interface Module {
   domain_id: string;
   domain_name: string;
   progress?: { status: string; progress_percent: number; id?: string };
-  bestQuizScore?: number | null;
+  quizScores: Record<QuizType, number | null>;
+  averageScore: number | null;
   isBookmarked?: boolean;
 }
 
@@ -67,6 +96,7 @@ interface QuizQuestion {
   correct_answer: number;
   explanation: string;
   sort_order: number;
+  quiz_type: QuizType;
 }
 
 interface QuizState {
@@ -76,6 +106,7 @@ interface QuizState {
   showResult: boolean;
   score: number;
   submitted: boolean;
+  quizType: QuizType;
 }
 
 const ModuleCardSkeleton = () => (
@@ -108,6 +139,53 @@ const Courses = () => {
   const [quiz, setQuiz] = useState<QuizState | null>(null);
   const [quizLoading, setQuizLoading] = useState(false);
 
+  const enrichModules = (
+    modulesData: any[],
+    progressData: any[],
+    quizResults: any[],
+    bookmarksData: any[]
+  ): Module[] => {
+    // Build best scores per module per quiz_type
+    const bestScores: Record<string, Partial<Record<QuizType, number>>> = {};
+    (quizResults || []).forEach((r: any) => {
+      const key = r.module_id;
+      const qt = (r.quiz_type || "chapter_test") as QuizType;
+      if (!bestScores[key]) bestScores[key] = {};
+      if (!bestScores[key][qt] || r.score > bestScores[key][qt]!) {
+        bestScores[key][qt] = r.score;
+      }
+    });
+
+    const bookmarkedIds = new Set((bookmarksData || []).map((b: any) => b.module_id));
+
+    return (modulesData || []).map((m: any) => {
+      const prog = (progressData || []).find((p: any) => p.module_id === m.id);
+      const scores = bestScores[m.id] || {};
+      const quizScores: Record<QuizType, number | null> = {
+        pre_test: scores.pre_test ?? null,
+        chapter_test: scores.chapter_test ?? null,
+        post_test: scores.post_test ?? null,
+      };
+
+      // Calculate average of available scores
+      const availableScores = Object.values(quizScores).filter(s => s !== null) as number[];
+      const averageScore = availableScores.length > 0
+        ? Math.round(availableScores.reduce((a, b) => a + b, 0) / availableScores.length)
+        : null;
+
+      return {
+        ...m,
+        domain_name: m.competency_domains?.name || "",
+        progress: prog
+          ? { status: prog.status, progress_percent: prog.progress_percent, id: prog.id }
+          : undefined,
+        quizScores,
+        averageScore,
+        isBookmarked: bookmarkedIds.has(m.id),
+      };
+    });
+  };
+
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
@@ -115,35 +193,12 @@ const Courses = () => {
         supabase.from("competency_domains").select("*").order("sort_order"),
         supabase.from("e_course_modules").select("*, competency_domains!inner(name)").order("sort_order"),
         supabase.from("module_progress").select("*").eq("user_id", user.id),
-        supabase.from("module_quiz_results" as any).select("module_id, score").eq("user_id", user.id),
+        supabase.from("module_quiz_results" as any).select("module_id, score, quiz_type").eq("user_id", user.id),
         supabase.from("module_bookmarks" as any).select("module_id").eq("user_id", user.id),
       ]);
 
       setDomains(domainsData || []);
-
-      const bestScores: Record<string, number> = {};
-      ((quizResults as any[]) || []).forEach((r: any) => {
-        if (!bestScores[r.module_id] || r.score > bestScores[r.module_id]) {
-          bestScores[r.module_id] = r.score;
-        }
-      });
-
-      const bookmarkedIds = new Set(((bookmarksData as any[]) || []).map((b: any) => b.module_id));
-
-      const enriched: Module[] = (modulesData || []).map((m: any) => {
-        const prog = (progressData || []).find((p: any) => p.module_id === m.id);
-        return {
-          ...m,
-          domain_name: m.competency_domains?.name || "",
-          progress: prog
-            ? { status: prog.status, progress_percent: prog.progress_percent, id: prog.id }
-            : undefined,
-          bestQuizScore: bestScores[m.id] ?? null,
-          isBookmarked: bookmarkedIds.has(m.id),
-        };
-      });
-
-      setModules(enriched);
+      setModules(enrichModules(modulesData || [], progressData || [], quizResults || [], bookmarksData || []));
       setLoading(false);
     };
     fetchData();
@@ -159,7 +214,6 @@ const Courses = () => {
     return true;
   });
 
-  // Sorting
   const sorted = [...filtered].sort((a, b) => {
     switch (sortBy) {
       case "duration_asc": return a.duration_minutes - b.duration_minutes;
@@ -168,7 +222,7 @@ const Courses = () => {
         const order = ["Pemula", "Muda", "Madya", "Utama"];
         return order.indexOf(a.level) - order.indexOf(b.level);
       }
-      case "score": return (b.bestQuizScore ?? -1) - (a.bestQuizScore ?? -1);
+      case "score": return (b.averageScore ?? -1) - (a.averageScore ?? -1);
       default: return 0;
     }
   });
@@ -178,7 +232,6 @@ const Courses = () => {
   const inProgressModules = modules.filter(m => m.progress?.status === "in_progress").length;
   const overallProgress = totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0;
 
-  // Domain progress chart data
   const domainChartData = useMemo(() => {
     return domains.map((d) => {
       const domainModules = modules.filter((m) => m.domain_id === d.id);
@@ -196,10 +249,8 @@ const Courses = () => {
 
   const domainBarColors = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--pub-amber, 38 92% 50%))", "hsl(var(--pub-sky, 199 89% 48%))"];
 
-  // Reminder: incomplete modules
   const incompleteModules = modules.filter(m => m.progress?.status === "in_progress");
 
-  // Toggle bookmark
   const toggleBookmark = async (e: React.MouseEvent, mod: Module) => {
     e.stopPropagation();
     if (!user) return;
@@ -246,16 +297,17 @@ const Courses = () => {
     toast.success(`Memulai: ${mod.title}`);
   };
 
-  const startQuiz = async (mod: Module) => {
+  const startQuiz = async (mod: Module, quizType: QuizType) => {
     setQuizLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from("module_quiz_questions" as any)
       .select("*")
       .eq("module_id", mod.id)
-      .order("sort_order");
+      .eq("quiz_type", quizType)
+      .order("sort_order") as any);
 
     if (error || !data || data.length === 0) {
-      toast.info("Belum ada kuis untuk modul ini.");
+      toast.info(`Belum ada soal ${QUIZ_TYPE_LABELS[quizType]} untuk modul ini.`);
       setQuizLoading(false);
       return;
     }
@@ -267,6 +319,7 @@ const Courses = () => {
       correct_answer: q.correct_answer,
       explanation: q.explanation,
       sort_order: q.sort_order,
+      quiz_type: q.quiz_type,
     }));
 
     setQuiz({
@@ -276,6 +329,7 @@ const Courses = () => {
       showResult: false,
       score: 0,
       submitted: false,
+      quizType,
     });
     setQuizLoading(false);
   };
@@ -320,36 +374,49 @@ const Courses = () => {
       total_questions: quiz.questions.length,
       correct_answers: correct,
       passed,
+      quiz_type: quiz.quizType,
     } as any);
 
-    if (passed && activeModule.progress?.id && activeModule.progress.status !== "completed") {
+    // Update local state
+    const newScores = { ...activeModule.quizScores };
+    if (newScores[quiz.quizType] === null || score > (newScores[quiz.quizType] ?? 0)) {
+      newScores[quiz.quizType] = score;
+    }
+    const availableScores = Object.values(newScores).filter(s => s !== null) as number[];
+    const newAverage = availableScores.length > 0
+      ? Math.round(availableScores.reduce((a, b) => a + b, 0) / availableScores.length)
+      : null;
+
+    // Check if all 3 quizzes passed → mark module completed
+    const allThreeDone = newScores.pre_test !== null && newScores.chapter_test !== null && newScores.post_test !== null;
+    const shouldComplete = allThreeDone && (newAverage ?? 0) >= 60 && activeModule.progress?.id && activeModule.progress.status !== "completed";
+
+    if (shouldComplete) {
       await supabase
         .from("module_progress")
         .update({ status: "completed", progress_percent: 100, completed_at: new Date().toISOString() })
-        .eq("id", activeModule.progress.id);
-
-      const updated = modules.map((m) =>
-        m.id === activeModule.id
-          ? { ...m, progress: { ...m.progress!, status: "completed", progress_percent: 100 }, bestQuizScore: Math.max(score, m.bestQuizScore ?? 0) }
-          : m
-      );
-      setModules(updated);
-    } else {
-      // Update best score in local state
-      const updated = modules.map((m) =>
-        m.id === activeModule.id
-          ? { ...m, bestQuizScore: Math.max(score, m.bestQuizScore ?? 0) }
-          : m
-      );
-      setModules(updated);
+        .eq("id", activeModule.progress!.id!);
     }
 
+    const updatedModule = {
+      ...activeModule,
+      quizScores: newScores,
+      averageScore: newAverage,
+      ...(shouldComplete ? { progress: { ...activeModule.progress!, status: "completed", progress_percent: 100 } } : {}),
+    };
+
+    setModules(prev => prev.map(m => m.id === activeModule.id ? updatedModule : m));
+    setActiveModule(updatedModule);
     setQuiz(prev => prev ? { ...prev, submitted: true, showResult: true, score } : null);
-    
+
     if (passed) {
-      toast.success(`Selamat! Anda lulus kuis dengan skor ${score}%! 🎉`);
+      toast.success(`Selamat! ${QUIZ_TYPE_LABELS[quiz.quizType]} lulus dengan skor ${score}%! 🎉`);
     } else {
       toast.error(`Skor ${score}%. Minimal 70% untuk lulus. Coba lagi!`);
+    }
+
+    if (shouldComplete) {
+      toast.success(`Modul "${activeModule.title}" selesai! Skor rata-rata: ${newAverage}% — ${getGrade(newAverage!).label}`);
     }
   };
 
@@ -377,6 +444,7 @@ const Courses = () => {
     const q = quiz.questions[quiz.currentIndex];
     const selectedAnswer = quiz.answers[quiz.currentIndex];
     const allAnswered = Object.keys(quiz.answers).length === quiz.questions.length;
+    const QuizIcon = QUIZ_TYPE_ICONS[quiz.quizType];
 
     return (
       <div className="max-w-3xl mx-auto">
@@ -392,6 +460,7 @@ const Courses = () => {
             <Card className="overflow-hidden">
               <div className={`p-8 text-center ${quiz.score >= 70 ? 'bg-emerald-500/10' : 'bg-destructive/10'}`}>
                 <Trophy className={`w-16 h-16 mx-auto mb-4 ${quiz.score >= 70 ? 'text-emerald-500' : 'text-destructive'}`} />
+                <Badge variant="outline" className="mb-2">{QUIZ_TYPE_LABELS[quiz.quizType]}</Badge>
                 <h2 className="text-2xl font-bold font-heading text-foreground">
                   {quiz.score >= 70 ? "Selamat, Anda Lulus! 🎉" : "Belum Lulus 😔"}
                 </h2>
@@ -399,6 +468,15 @@ const Courses = () => {
                 <p className="text-muted-foreground mt-1">
                   {quiz.questions.filter((_, i) => quiz.answers[i] === _.correct_answer).length} dari {quiz.questions.length} benar
                 </p>
+                {/* Grade */}
+                {(() => {
+                  const grade = getGrade(quiz.score);
+                  return (
+                    <div className={`inline-flex items-center gap-2 mt-3 px-4 py-2 rounded-full ${grade.bg}`}>
+                      <span className={`text-sm font-bold font-heading ${grade.color}`}>{grade.label}</span>
+                    </div>
+                  );
+                })()}
               </div>
               <CardContent className="p-6 space-y-4">
                 {quiz.questions.map((question, i) => {
@@ -422,14 +500,54 @@ const Courses = () => {
                     </div>
                   );
                 })}
+
+                {/* Average score summary if all 3 done */}
+                {activeModule.quizScores.pre_test !== null && activeModule.quizScores.chapter_test !== null && activeModule.quizScores.post_test !== null && (
+                  <div className="mt-6 p-5 rounded-xl border-2 border-primary/20 bg-primary/5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <BarChart3 className="w-5 h-5 text-primary" />
+                      <h3 className="font-heading font-bold text-foreground">Ringkasan Penilaian Modul</h3>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                      {(["pre_test", "chapter_test", "post_test"] as QuizType[]).map(qt => {
+                        const s = activeModule.quizScores[qt]!;
+                        const g = getGrade(s);
+                        return (
+                          <div key={qt} className="text-center p-3 rounded-lg bg-card border border-border">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{QUIZ_TYPE_LABELS[qt]}</p>
+                            <p className={`text-xl font-bold font-heading ${g.color}`}>{s}%</p>
+                            <p className={`text-xs font-medium ${g.color}`}>{g.label}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="text-center">
+                      {(() => {
+                        const avg = activeModule.averageScore!;
+                        const g = getGrade(avg);
+                        return (
+                          <>
+                            <p className="text-xs text-muted-foreground mb-1">Skor Rata-Rata</p>
+                            <p className={`text-3xl font-bold font-heading ${g.color}`}>{avg}%</p>
+                            <div className={`inline-flex items-center gap-2 mt-2 px-4 py-1.5 rounded-full ${g.bg}`}>
+                              <Trophy className={`w-4 h-4 ${g.color}`} />
+                              <span className={`text-sm font-bold font-heading ${g.color}`}>Predikat: {g.label}</span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3 pt-2">
                   {quiz.score < 70 && (
-                    <Button onClick={() => startQuiz(activeModule)} variant="outline" className="gap-2">
+                    <Button onClick={() => startQuiz(activeModule, quiz.quizType)} variant="outline" className="gap-2">
                       <HelpCircle className="w-4 h-4" /> Coba Lagi
                     </Button>
                   )}
-                  <Button onClick={() => { setQuiz(null); if (quiz.score >= 70) setActiveModule(null); }}>
-                    {quiz.score >= 70 ? "Kembali ke Daftar" : "Review Materi"}
+                  <Button onClick={() => setQuiz(null)}>
+                    Kembali ke Modul
                   </Button>
                 </div>
               </CardContent>
@@ -438,8 +556,8 @@ const Courses = () => {
         ) : (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="flex items-center gap-3">
-              <HelpCircle className="w-5 h-5 text-primary" />
-              <h2 className="font-heading font-bold text-foreground">Kuis: {activeModule.title}</h2>
+              <QuizIcon className="w-5 h-5 text-primary" />
+              <h2 className="font-heading font-bold text-foreground">{QUIZ_TYPE_LABELS[quiz.quizType]}: {activeModule.title}</h2>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>Soal {quiz.currentIndex + 1} dari {quiz.questions.length}</span>
@@ -477,7 +595,7 @@ const Courses = () => {
                     </Button>
                   ) : (
                     <Button onClick={submitQuiz} disabled={!allAnswered} className="gap-2">
-                      <Trophy className="w-4 h-4" /> Submit Kuis
+                      <Trophy className="w-4 h-4" /> Submit
                     </Button>
                   )}
                 </div>
@@ -509,6 +627,9 @@ const Courses = () => {
 
   // ===== MODULE DETAIL VIEW =====
   if (activeModule) {
+    const quizTypes: QuizType[] = ["pre_test", "chapter_test", "post_test"];
+    const allQuizzesDone = quizTypes.every(qt => activeModule.quizScores[qt] !== null);
+
     return (
       <div className="max-w-4xl mx-auto">
         <button
@@ -539,15 +660,75 @@ const Courses = () => {
               <span className="flex items-center gap-1">
                 <Clock className="w-4 h-4" /> {activeModule.duration_minutes} menit
               </span>
-              {activeModule.bestQuizScore !== null && activeModule.bestQuizScore !== undefined && (
+              {activeModule.averageScore !== null && (
                 <span className="flex items-center gap-1">
-                  <Trophy className="w-4 h-4" /> Skor terbaik: {activeModule.bestQuizScore}%
+                  <Trophy className="w-4 h-4" /> Rata-rata: {activeModule.averageScore}% — {getGrade(activeModule.averageScore).label}
                 </span>
               )}
             </div>
           </div>
 
           <div className="p-8">
+            {/* Quiz Progress Cards */}
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {quizTypes.map(qt => {
+                const score = activeModule.quizScores[qt];
+                const Icon = QUIZ_TYPE_ICONS[qt];
+                const done = score !== null;
+                const grade = done ? getGrade(score) : null;
+
+                return (
+                  <button
+                    key={qt}
+                    onClick={() => startQuiz(activeModule, qt)}
+                    disabled={quizLoading}
+                    className={`p-4 rounded-xl border-2 text-center transition-all hover:shadow-md ${
+                      done
+                        ? `border-emerald-500/30 bg-emerald-500/5`
+                        : qt === "pre_test"
+                          ? "border-primary/30 bg-primary/5 animate-pulse"
+                          : "border-border bg-muted/30"
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 mx-auto mb-2 ${done ? grade!.color : 'text-muted-foreground'}`} />
+                    <p className="text-xs font-heading font-semibold text-foreground">{QUIZ_TYPE_LABELS[qt]}</p>
+                    {done ? (
+                      <>
+                        <p className={`text-lg font-bold font-heading mt-1 ${grade!.color}`}>{score}%</p>
+                        <p className={`text-[10px] font-medium ${grade!.color}`}>{grade!.label}</p>
+                      </>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {qt === "pre_test" ? "Mulai di sini →" : "Belum dikerjakan"}
+                      </p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Average Score Summary */}
+            {allQuizzesDone && activeModule.averageScore !== null && (
+              <div className="mb-6 p-5 rounded-xl border-2 border-primary/20 bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <BarChart3 className="w-6 h-6 text-primary" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Skor Rata-Rata Modul</p>
+                      <p className={`text-2xl font-bold font-heading ${getGrade(activeModule.averageScore).color}`}>
+                        {activeModule.averageScore}%
+                      </p>
+                    </div>
+                  </div>
+                  <div className={`px-4 py-2 rounded-full ${getGrade(activeModule.averageScore).bg}`}>
+                    <span className={`text-sm font-bold font-heading ${getGrade(activeModule.averageScore).color}`}>
+                      {getGrade(activeModule.averageScore).label}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <p className="text-muted-foreground font-body leading-relaxed mb-6">{activeModule.description}</p>
 
             {activeModule.content ? (
@@ -565,26 +746,6 @@ const Courses = () => {
             )}
 
             <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={() => startQuiz(activeModule)}
-                disabled={quizLoading}
-                variant="outline"
-                className="gap-2"
-              >
-                <HelpCircle className="w-4 h-4" />
-                {quizLoading ? "Memuat..." : "Mulai Kuis"}
-              </Button>
-
-              {activeModule.progress?.status !== "completed" && (
-                <Button
-                  onClick={() => completeModule(activeModule)}
-                  className="gap-2"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Tandai Selesai
-                </Button>
-              )}
-
               {activeModule.progress?.status === "completed" && (
                 <div className="flex items-center gap-2 text-emerald-500 font-heading font-semibold px-3">
                   <CheckCircle2 className="w-5 h-5" />
@@ -711,8 +872,6 @@ const Courses = () => {
       )}
 
       {/* Domain filter */}
-
-      {/* Domain filter */}
       <div className="space-y-3 mb-6">
         <div className="flex flex-wrap gap-2">
           <button
@@ -780,7 +939,7 @@ const Courses = () => {
             { value: "duration_asc", label: "Durasi ↑" },
             { value: "duration_desc", label: "Durasi ↓" },
             { value: "level", label: "Level" },
-            { value: "score", label: "Skor Kuis" },
+            { value: "score", label: "Skor Rata-Rata" },
           ].map((opt) => (
             <button
               key={opt.value}
@@ -840,10 +999,10 @@ const Courses = () => {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sorted.map((mod, i) => {
             const Icon = levelIcons[mod.level] || Star;
-            const color = levelColors[mod.level] || "text-muted-foreground";
             const DomainIcon = domainIcons[mod.domain_name] || BookOpen;
             const isCompleted = mod.progress?.status === "completed";
             const isInProgress = mod.progress?.status === "in_progress";
+            const quizzesDone = (["pre_test", "chapter_test", "post_test"] as QuizType[]).filter(qt => mod.quizScores[qt] !== null).length;
 
             return (
               <motion.div
@@ -873,10 +1032,10 @@ const Courses = () => {
                     {mod.level}
                   </Badge>
                   <div className="flex items-center gap-1.5">
-                    {mod.bestQuizScore !== null && mod.bestQuizScore !== undefined && (
-                      <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${mod.bestQuizScore >= 70 ? 'border-emerald-500/30 text-emerald-500' : 'border-destructive/30 text-destructive'}`}>
+                    {mod.averageScore !== null && (
+                      <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${getGrade(mod.averageScore).color} border-current/30`}>
                         <Trophy className="w-2.5 h-2.5 mr-0.5" />
-                        {mod.bestQuizScore}% {mod.bestQuizScore >= 70 ? "Lulus" : ""}
+                        {mod.averageScore}%
                       </Badge>
                     )}
                     {isCompleted && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
@@ -888,6 +1047,21 @@ const Courses = () => {
                   {mod.title}
                 </h3>
                 <p className="text-xs text-muted-foreground font-body mb-3 line-clamp-2">{mod.description}</p>
+
+                {/* Quiz progress indicator */}
+                <div className="flex items-center gap-1 mb-3">
+                  {(["pre_test", "chapter_test", "post_test"] as QuizType[]).map(qt => {
+                    const done = mod.quizScores[qt] !== null;
+                    return (
+                      <div
+                        key={qt}
+                        className={`flex-1 h-1.5 rounded-full ${done ? "bg-emerald-500" : "bg-muted"}`}
+                        title={`${QUIZ_TYPE_LABELS[qt]}: ${done ? `${mod.quizScores[qt]}%` : "Belum"}`}
+                      />
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground mb-2">{quizzesDone}/3 test selesai</p>
 
                 <div className="flex items-center justify-between text-xs text-muted-foreground font-body">
                   <span className="flex items-center gap-1">
