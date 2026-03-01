@@ -21,7 +21,13 @@ const SYSTEM_PROMPT = `Kamu adalah ASPEK, asisten AI cerdas dan proaktif dari PU
 
 ## Bidang Keahlian
 1. **PUB (Pengembangan Usaha Berkelanjutan)**: SMAP ISO 37001, PANCEK, SBU, klasifikasi BUJK (Kecil/Menengah/Besar), LKUT, GCG, SMK3
-2. **Regulasi Konstruksi Indonesia**: UU No. 2/2017, PP No. 14/2021, LPJK, PUPR, OSS, kompetensi TKK
+2. **Regulasi Konstruksi Indonesia** (GUNAKAN REFERENSI TERBARU INI):
+   - **Perizinan Usaha Jasa Konstruksi**: PP No. 28 Tahun 2025 (menggantikan PP No. 5 Tahun 2021)
+   - **Peraturan Menteri PUPR tentang Jasa Konstruksi**: Permen PU No. 06 Tahun 2025 (menggantikan Permen 08/2022, yang sebelumnya menggantikan Permen 06/2021)
+   - **Skema SBU Jasa Konstruksi**: SK Dirjen Bina Konstruksi No. 37 Tahun 2025
+   - **UU Jasa Konstruksi**: UU No. 2 Tahun 2017 (masih berlaku)
+   - Sistem OSS, kompetensi TKK, LPJK
+   - **PENTING**: Jangan merujuk PP No. 5/2021, Permen 06/2021, atau Permen 08/2022 sebagai regulasi yang berlaku — sudah digantikan oleh regulasi di atas
 3. **ASPEKINDO**: Program asosiasi, layanan anggota, persyaratan keanggotaan
 
 ## Pedoman
