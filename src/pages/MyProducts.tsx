@@ -92,7 +92,21 @@ export default function MyProducts() {
         <div className="text-center py-16 text-muted-foreground">
           <Package className="w-12 h-12 mx-auto mb-3 opacity-30" />
           <p className="font-heading font-semibold">Belum ada produk</p>
-          <p className="text-sm">Tambahkan produk atau jasa Anda untuk mulai berjualan.</p>
+          <p className="text-sm mb-6">Tambahkan produk atau jasa Anda untuk mulai berjualan di marketplace BUJK.</p>
+          <div className="grid sm:grid-cols-3 gap-3 max-w-2xl mx-auto text-left">
+            {[
+              { name: "Template RAB Gedung 5 Lt", cat: "Template", price: "Rp 250.000", stock: "∞ Digital" },
+              { name: "Jasa Konsultasi SBU", cat: "Jasa Perusahaan", price: "Rp 2.500.000", stock: "10 slot/bln" },
+              { name: "SOP K3 Konstruksi Lengkap", cat: "SOP", price: "Rp 175.000", stock: "∞ Digital" },
+            ].map((ex, i) => (
+              <div key={i} className="p-3 rounded-lg border border-dashed border-border bg-muted/30">
+                <p className="text-xs font-heading font-semibold text-foreground">{ex.name}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{ex.cat} · {ex.price}</p>
+                <p className="text-[10px] text-muted-foreground">Stok: {ex.stock}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-4">👆 Contoh produk yang bisa Anda tawarkan di marketplace</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -141,11 +155,11 @@ export default function MyProducts() {
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
             <div>
               <Label>Nama Produk/Jasa *</Label>
-              <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+              <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="cth: Template RAB Proyek Gedung" />
             </div>
             <div>
               <Label>Deskripsi</Label>
-              <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
+              <Textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder="cth: Template RAB lengkap dalam format Excel, mencakup pekerjaan struktur, arsitektur, dan MEP. Sudah disesuaikan dengan standar SNI dan format PUPR." />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -171,15 +185,15 @@ export default function MyProducts() {
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Harga (Rp)</Label>
-                <Input type="number" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) || 0 }))} />
+                <Input type="number" value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) || 0 }))} placeholder="cth: 250000" />
               </div>
               <div>
                 <Label>Satuan</Label>
-                <Input value={form.unit} onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))} />
+                <Input value={form.unit} onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))} placeholder="cth: paket" />
               </div>
               <div>
                 <Label>Stok</Label>
-                <Input type="number" value={form.stock} onChange={(e) => setForm((f) => ({ ...f, stock: Number(e.target.value) || 0 }))} />
+                <Input type="number" value={form.stock} onChange={(e) => setForm((f) => ({ ...f, stock: Number(e.target.value) || 0 }))} placeholder="cth: 100" />
               </div>
             </div>
             <div>
@@ -219,7 +233,7 @@ export default function MyProducts() {
             </div>
             <div>
               <Label>Lokasi</Label>
-              <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
+              <Input value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} placeholder="cth: Jakarta Selatan" />
             </div>
             <Button className="w-full" onClick={handleSubmit} disabled={!form.title || isPending}>
               {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}

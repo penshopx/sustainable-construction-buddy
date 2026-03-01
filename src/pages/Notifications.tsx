@@ -93,7 +93,21 @@ const Notifications = () => {
       ) : notifications.length === 0 ? (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-16">
           <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground font-body">Belum ada notifikasi</p>
+          <p className="text-muted-foreground font-body font-semibold">Belum ada notifikasi</p>
+          <p className="text-sm text-muted-foreground mt-1 mb-6">Anda akan menerima notifikasi saat:</p>
+          <div className="grid sm:grid-cols-3 gap-3 max-w-lg mx-auto text-left">
+            {[
+              { emoji: "🎉", title: "Naik Level", desc: "Level kompetensi Anda meningkat" },
+              { emoji: "🏆", title: "Sertifikat Baru", desc: "Sertifikat berhasil diterbitkan" },
+              { emoji: "📋", title: "PANCEK Terverifikasi", desc: "Asesmen diverifikasi oleh Asosiasi" },
+            ].map((ex, i) => (
+              <div key={i} className="p-3 rounded-lg border border-dashed border-border bg-muted/30">
+                <span className="text-lg">{ex.emoji}</span>
+                <p className="text-xs font-heading font-semibold text-foreground mt-1">{ex.title}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{ex.desc}</p>
+              </div>
+            ))}
+          </div>
         </motion.div>
       ) : (
         <div className="space-y-2">
