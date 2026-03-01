@@ -285,11 +285,19 @@ export default function Certificates() {
                     )}
                   </Button>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {noModules
-                      ? "Modul untuk level ini belum tersedia."
-                      : `Selesaikan ${s.totalModules - s.completedModules} modul lagi untuk mendapatkan sertifikat.`}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {noModules
+                        ? "Modul untuk level ini belum tersedia."
+                        : `Selesaikan ${s.totalModules - s.completedModules} modul lagi untuk mendapatkan sertifikat.`}
+                    </p>
+                    {!noModules && !hasCert && (
+                      <div className="text-xs text-muted-foreground/70 bg-muted/30 rounded-lg p-2.5 border border-dashed border-border">
+                        <p className="font-heading font-semibold text-foreground/80 mb-1">💡 Tips:</p>
+                        <p>Buka menu <strong>E-Learning</strong> → pilih modul level <strong>{s.level}</strong> → selesaikan materi & kuis (min. 70%) untuk mendapat sertifikat digital.</p>
+                      </div>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

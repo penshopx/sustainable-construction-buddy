@@ -82,7 +82,7 @@ export function ProjectForm({ onSubmit, isSubmitting, initialData }: ProjectForm
               </div>
               <div className="space-y-2">
                 <Label>Deskripsi</Label>
-                <Textarea value={form.description} onChange={e => update('description', e.target.value)} placeholder="Deskripsi singkat proyek..." rows={3} />
+                <Textarea value={form.description} onChange={e => update('description', e.target.value)} placeholder="cth: Pembangunan gedung kantor 5 lantai dengan struktur beton bertulang, luas bangunan 3.200 m², meliputi pekerjaan struktur, arsitektur, MEP, dan lanskap." rows={3} />
               </div>
             </CardContent>
           </Card>
@@ -93,7 +93,7 @@ export function ProjectForm({ onSubmit, isSubmitting, initialData }: ProjectForm
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nilai Proyek (Rp)</Label>
-                  <Input type="number" value={form.value_amount || ''} onChange={e => update('value_amount', Number(e.target.value))} placeholder="10000000000" />
+                  <Input type="number" value={form.value_amount || ''} onChange={e => update('value_amount', Number(e.target.value))} placeholder="cth: 25000000000 (Rp 25 Miliar)" />
                   <p className="text-xs text-muted-foreground">Rp {(form.value_amount / 1_000_000_000).toFixed(1)} Miliar</p>
                 </div>
                 <div className="space-y-2">

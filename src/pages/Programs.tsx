@@ -64,8 +64,8 @@ function ProgramForm({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="space-y-4">
-      <Input placeholder="Judul Program" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-      <Textarea placeholder="Deskripsi" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
+      <Input placeholder="cth: Workshop Manajemen Proyek Konstruksi 2025" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+      <Textarea placeholder="cth: Workshop 2 hari tentang teknik penjadwalan proyek menggunakan Critical Path Method (CPM) dan penerapan Earned Value Management (EVM) untuk BUJK." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
       <div className="grid grid-cols-2 gap-3">
         <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
           <SelectTrigger><SelectValue /></SelectTrigger>
@@ -85,7 +85,7 @@ function ProgramForm({ onClose }: { onClose: () => void }) {
           </SelectContent>
         </Select>
       </div>
-      <Input placeholder="Lokasi" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
+      <Input placeholder="cth: Hotel Grand Sahid Jaya, Jakarta Pusat" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground mb-1 block">Tanggal Mulai</label>
@@ -196,8 +196,8 @@ function UpdateForm({ programs, onClose }: { programs: PubProgram[]; onClose: ()
           {programs.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Input placeholder="Judul Update" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-      <Textarea placeholder="Isi update..." value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={4} />
+      <Input placeholder="cth: Jadwal Hari ke-2 Diperbarui" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+      <Textarea placeholder="cth: Sesi pagi diganti ke topik Risk Management karena pembicara utama berhalangan. Peserta diharapkan membawa laptop untuk simulasi." value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} rows={4} />
       <Button className="w-full" disabled={!form.program_id || !form.title.trim() || create.isPending} onClick={async () => {
         try {
           await create.mutateAsync(form);
@@ -242,7 +242,7 @@ function GalleryUploadForm({ programs, onClose }: { programs: PubProgram[]; onCl
         </SelectContent>
       </Select>
       <Input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-      <Input placeholder="Caption (opsional)" value={form.caption} onChange={(e) => setForm({ ...form, caption: e.target.value })} />
+      <Input placeholder="cth: Foto bersama peserta Workshop hari ke-1" value={form.caption} onChange={(e) => setForm({ ...form, caption: e.target.value })} />
       <Button className="w-full" disabled={!file || !form.program_id || uploading} onClick={handleUpload}>
         {uploading ? "Mengupload..." : "Upload Foto"}
       </Button>
@@ -264,14 +264,14 @@ function ParticipantForm({ programs, onClose }: { programs: PubProgram[]; onClos
           {programs.map((p) => <SelectItem key={p.id} value={p.id}>{p.title}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Input placeholder="Nama Lengkap *" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
+      <Input placeholder="cth: Ir. Ahmad Wijaya, S.T." value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
       <div className="grid grid-cols-2 gap-3">
-        <Input placeholder="Perusahaan" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
-        <Input placeholder="Jabatan" value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} />
+        <Input placeholder="cth: PT Mitra Konstruksi" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+        <Input placeholder="cth: Project Manager" value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} />
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <Input type="email" placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-        <Input placeholder="No. Telepon" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+        <Input type="email" placeholder="cth: ahmad@mitracon.co.id" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+        <Input placeholder="cth: 0812-3456-7890" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
       </div>
       <Select value={form.attendance_status} onValueChange={(v) => setForm({ ...form, attendance_status: v })}>
         <SelectTrigger><SelectValue /></SelectTrigger>
@@ -281,7 +281,7 @@ function ParticipantForm({ programs, onClose }: { programs: PubProgram[]; onClos
           <SelectItem value="absent">Tidak Hadir</SelectItem>
         </SelectContent>
       </Select>
-      <Input placeholder="Catatan (opsional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+      <Input placeholder="cth: Alergi makanan laut, butuh sertifikat kehadiran" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
       <Button className="w-full" disabled={!form.program_id || !form.full_name.trim() || create.isPending} onClick={async () => {
         try {
           await create.mutateAsync(form);
