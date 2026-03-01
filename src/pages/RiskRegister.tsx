@@ -46,7 +46,7 @@ const RiskRegisterPage = () => {
             </SelectContent>
           </Select>
 
-          {view.type === 'list' && selectedProjectId && (
+          {view.type === 'list' && (
             <Button onClick={() => setView({ type: 'create' })} className="bg-gradient-amber text-accent-foreground font-heading shadow-amber hover:brightness-110">
               <Plus className="w-4 h-4 mr-1" /> Tambah Risiko
             </Button>
