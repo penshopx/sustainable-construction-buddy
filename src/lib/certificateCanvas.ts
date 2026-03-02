@@ -2,7 +2,6 @@ import type { Certificate } from "@/components/certificates/CertificateHistoryTa
 import logoPub from "@/assets/logo-pub-new.png";
 import logoAspekindo from "@/assets/logo-aspekindo.png";
 import logoLsbuki from "@/assets/logo-lsbuki.png";
-import logoPu from "@/assets/logo-pu.png";
 import logoLpjk from "@/assets/logo-lpjk.png";
 
 const loadImage = (src: string): Promise<HTMLImageElement> =>
@@ -70,11 +69,9 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   leftX += w2 + gap;
   await drawLogo(ctx, logoLsbuki, leftX, logoY, logoMaxW, logoMaxH);
 
-  // Right logos: PU, LPJK
-  let rightX = W - 60 - logoMaxW;
+  // Right logo: LPJK-PU
+  const rightX = W - 60 - logoMaxW;
   await drawLogo(ctx, logoLpjk, rightX, logoY, logoMaxW, logoMaxH);
-  rightX -= logoMaxW + gap;
-  await drawLogo(ctx, logoPu, rightX, logoY, logoMaxW, logoMaxH);
 
   // Header
   ctx.fillStyle = "#1F2937";
