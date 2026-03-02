@@ -6,6 +6,7 @@ import MentorChatPanel from "@/components/mentor/MentorChatPanel";
 import KnowledgeBaseManager from "@/components/mentor/KnowledgeBaseManager";
 import ExternalBotManager from "@/components/mentor/ExternalBotManager";
 import ExpertBotCatalog, { BUILT_IN_BOTS } from "@/components/mentor/ExpertBotCatalog";
+import MiniAppsCatalog from "@/components/mentor/MiniAppsCatalog";
 import {
   BookOpen, Brain, Wrench, HardHat, Shield, DollarSign,
   FileText, Lightbulb, Target, TrendingUp, AlertTriangle,
@@ -159,15 +160,18 @@ const Mentor = () => {
                 ))}
               </div>
             </div>
-            <KnowledgeBaseManager
-              label="Brain Project (Dokumen)"
-              knowledgeBases={mentor.knowledgeBases}
-              selectedKbId={mentor.selectedKbId}
-              onSelect={mentor.setSelectedKbId}
-              onUpload={mentor.uploadKnowledgeBase}
-              onDelete={mentor.deleteKnowledgeBase}
-              projectId={mentor.selectedProjectId || undefined}
-            />
+            <MiniAppsCatalog compact />
+            <div className="mt-2">
+              <KnowledgeBaseManager
+                label="Brain Project (Dokumen)"
+                knowledgeBases={mentor.knowledgeBases}
+                selectedKbId={mentor.selectedKbId}
+                onSelect={mentor.setSelectedKbId}
+                onUpload={mentor.uploadKnowledgeBase}
+                onDelete={mentor.deleteKnowledgeBase}
+                projectId={mentor.selectedProjectId || undefined}
+              />
+            </div>
           </>
         )}
       </div>
@@ -218,6 +222,7 @@ const Mentor = () => {
                   ))}
                 </div>
               </div>
+              <MiniAppsCatalog />
               <KnowledgeBaseManager
                 label="Brain Project (Dokumen)"
                 knowledgeBases={mentor.knowledgeBases}
