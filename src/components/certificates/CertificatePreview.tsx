@@ -93,13 +93,13 @@ export default function CertificatePreview() {
             {/* Signatures */}
             <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-16 md:gap-24">
               <div className="flex flex-col items-center">
-                <div className="w-16 md:w-20 h-6 md:h-8 border-b border-gray-300 mb-0.5" />
-                <p className="text-[7px] md:text-[9px] text-gray-900 font-bold">Eduard Berman Hutagalung, ST</p>
+                <p className="text-[7px] md:text-[9px] text-gray-900 font-bold mb-0.5">Eduard Berman Hutagalung, ST</p>
+                <div className="w-16 md:w-20 h-px bg-gray-300 mb-0.5" />
                 <p className="text-[6px] md:text-[8px] text-gray-500">Ketua PUB ASPEKINDO</p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="w-16 md:w-20 h-6 md:h-8 border-b border-gray-300 mb-0.5" />
-                <p className="text-[7px] md:text-[9px] text-gray-900 font-bold">Tumpal SP Sianipar, SE</p>
+                <p className="text-[7px] md:text-[9px] text-gray-900 font-bold mb-0.5">Tumpal SP Sianipar, SE</p>
+                <div className="w-16 md:w-20 h-px bg-gray-300 mb-0.5" />
                 <p className="text-[6px] md:text-[8px] text-gray-500">Ketua Umum DPN ASPEKINDO</p>
               </div>
             </div>
