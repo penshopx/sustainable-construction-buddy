@@ -164,32 +164,32 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   const leftSigX = W / 2 - sigLineW - 40;
   const rightSigX = W / 2 + 40;
 
-  // Left signature
+  // Left signature - name then line then title
+  ctx.fillStyle = "#111827";
+  ctx.font = "bold 13px Arial, sans-serif";
+  ctx.fillText("Eduard Berman Hutagalung, ST", leftSigX + sigLineW / 2, sigY + 30);
   ctx.strokeStyle = "#D1D5DB";
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(leftSigX, sigY + 40);
   ctx.lineTo(leftSigX + sigLineW, sigY + 40);
   ctx.stroke();
-  ctx.fillStyle = "#111827";
-  ctx.font = "bold 13px Arial, sans-serif";
-  ctx.fillText("Eduard Berman Hutagalung, ST", leftSigX + sigLineW / 2, sigY + 58);
   ctx.fillStyle = "#6B7280";
   ctx.font = "11px Arial, sans-serif";
-  ctx.fillText("Ketua PUB ASPEKINDO", leftSigX + sigLineW / 2, sigY + 73);
+  ctx.fillText("Ketua PUB ASPEKINDO", leftSigX + sigLineW / 2, sigY + 55);
 
-  // Right signature
+  // Right signature - name then line then title
+  ctx.fillStyle = "#111827";
+  ctx.font = "bold 13px Arial, sans-serif";
+  ctx.fillText("Tumpal SP Sianipar, SE", rightSigX + sigLineW / 2, sigY + 30);
   ctx.strokeStyle = "#D1D5DB";
   ctx.beginPath();
   ctx.moveTo(rightSigX, sigY + 40);
   ctx.lineTo(rightSigX + sigLineW, sigY + 40);
   ctx.stroke();
-  ctx.fillStyle = "#111827";
-  ctx.font = "bold 13px Arial, sans-serif";
-  ctx.fillText("Tumpal SP Sianipar, SE", rightSigX + sigLineW / 2, sigY + 58);
   ctx.fillStyle = "#6B7280";
   ctx.font = "11px Arial, sans-serif";
-  ctx.fillText("Ketua Umum DPN ASPEKINDO", rightSigX + sigLineW / 2, sigY + 73);
+  ctx.fillText("Ketua Umum DPN ASPEKINDO", rightSigX + sigLineW / 2, sigY + 55);
 
   // Footer
   ctx.fillStyle = "#D1D5DB";
