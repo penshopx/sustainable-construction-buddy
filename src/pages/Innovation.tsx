@@ -45,7 +45,6 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
   const ungrouped = category.concepts.filter(c => !c.startsWith('🧰') && !c.startsWith('📦') && !c.startsWith('📱'));
 
   const parseItem = (item: string) => {
-    // Remove emoji prefix and "TOOLKIT: " / "TOOLBOX: " / "MINI APP: " labels
     const cleaned = item.replace(/^(🧰 TOOLKIT: |📦 TOOLBOX: |📱 MINI APP: )/, '');
     const dashIdx = cleaned.indexOf(' — ');
     if (dashIdx > 0) {
@@ -55,58 +54,84 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
   };
 
   const sections = [
-    { items: toolkits, label: 'Toolkit — Sistem Terpadu', icon: Wrench, color: 'text-pub-amber', bgColor: 'bg-pub-amber/10', borderColor: 'border-pub-amber/20' },
-    { items: toolboxes, label: 'Toolbox — Template Operasional', icon: Package, color: 'text-pub-sky', bgColor: 'bg-pub-sky/10', borderColor: 'border-pub-sky/20' },
-    { items: miniApps, label: 'Mini Apps — Alat Hitung & Dashboard', icon: AppWindow, color: 'text-pub-emerald', bgColor: 'bg-pub-emerald/10', borderColor: 'border-pub-emerald/20' },
+    { items: miniApps, label: 'Mini Apps', subtitle: 'Alat Hitung & Dashboard Interaktif', icon: AppWindow, color: 'text-pub-emerald', bgColor: 'bg-pub-emerald/5', borderColor: 'border-pub-emerald/20', badgeColor: 'bg-pub-emerald/15 text-pub-emerald' },
+    { items: toolboxes, label: 'Toolbox', subtitle: 'Template & Checklist Operasional', icon: Package, color: 'text-pub-sky', bgColor: 'bg-pub-sky/5', borderColor: 'border-pub-sky/20', badgeColor: 'bg-pub-sky/15 text-pub-sky' },
+    { items: toolkits, label: 'Toolkit', subtitle: 'Sistem Terpadu', icon: Wrench, color: 'text-pub-amber', bgColor: 'bg-pub-amber/5', borderColor: 'border-pub-amber/20', badgeColor: 'bg-pub-amber/15 text-pub-amber' },
   ];
+
+  const totalTools = miniApps.length + toolboxes.length + toolkits.length + ungrouped.length;
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
       <Button variant="ghost" onClick={onBack} className="mb-4 gap-2">
-        <ArrowLeft className="w-4 h-4" /> Kembali
+        <ArrowLeft className="w-4 h-4" /> Kembali ke Katalog
       </Button>
 
-      <div className="flex items-center gap-4 mb-6">
-        <div className="w-14 h-14 rounded-xl bg-accent/15 flex items-center justify-center">
-          <Icon className="w-7 h-7 text-accent" />
+      {/* Header Card */}
+      <Card className="mb-8 overflow-hidden border-none shadow-lg">
+        <div className="bg-gradient-to-br from-pub-navy via-pub-navy to-pub-navy-light p-6 md:p-8">
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+              <Icon className="w-7 h-7 text-pub-amber" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 flex-wrap mb-2">
+                <h2 className="text-2xl font-bold font-heading text-white">{category.name}</h2>
+                <Badge className={stage.color + " text-xs"}>{stage.label}</Badge>
+              </div>
+              <p className="text-white/70 text-sm md:text-base leading-relaxed">{category.description}</p>
+              <div className="flex items-center gap-4 mt-4 text-xs text-white/50">
+                <span className="flex items-center gap-1"><AppWindow className="w-3.5 h-3.5" /> {miniApps.length} mini app</span>
+                <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5" /> {toolboxes.length} toolbox</span>
+                {toolkits.length > 0 && <span className="flex items-center gap-1"><Wrench className="w-3.5 h-3.5" /> {toolkits.length} toolkit</span>}
+                <span className="font-medium text-pub-amber">{totalTools} alat total</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold font-heading">{category.name}</h2>
-          <Badge className={stage.color}>{stage.label}</Badge>
-        </div>
-      </div>
+      </Card>
 
-      <p className="text-muted-foreground mb-8 text-lg">{category.description}</p>
-
-      {/* Toolkit / Toolbox / Mini Apps sections */}
-      <div className="space-y-6 mb-8">
-        {sections.map((section) => {
+      {/* Sections */}
+      <div className="space-y-8 mb-8">
+        {sections.map((section, sIdx) => {
           if (section.items.length === 0) return null;
           const SectionIcon = section.icon;
           return (
-            <div key={section.label}>
-              <div className="flex items-center gap-2 mb-3">
-                <SectionIcon className={`w-5 h-5 ${section.color}`} />
-                <h3 className="text-base font-bold font-heading">{section.label}</h3>
+            <motion.div key={section.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: sIdx * 0.1 }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className={`w-9 h-9 rounded-lg ${section.bgColor} flex items-center justify-center`}>
+                  <SectionIcon className={`w-5 h-5 ${section.color}`} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold font-heading">{section.label}</h3>
+                  <p className="text-xs text-muted-foreground">{section.subtitle}</p>
+                </div>
+                <Badge className={`ml-auto ${section.badgeColor} text-xs`}>{section.items.length} item</Badge>
               </div>
-              <div className="grid md:grid-cols-2 gap-3">
+              <div className="grid gap-4">
                 {section.items.map((item, i) => {
                   const parsed = parseItem(item);
                   return (
-                    <Card key={i} className={`border ${section.borderColor} ${section.bgColor} hover:shadow-card-hover transition-all`}>
-                      <CardContent className="p-4">
-                        <p className="text-sm font-semibold text-foreground mb-1">{parsed.title}</p>
-                        {parsed.desc && <p className="text-xs text-muted-foreground leading-relaxed">{parsed.desc}</p>}
+                    <Card key={i} className={`border ${section.borderColor} hover:shadow-card-hover transition-all group`}>
+                      <CardContent className="p-5">
+                        <div className="flex items-start gap-3">
+                          <div className={`w-8 h-8 rounded-lg ${section.bgColor} flex items-center justify-center shrink-0 mt-0.5`}>
+                            <SectionIcon className={`w-4 h-4 ${section.color}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground mb-1.5">{parsed.title}</p>
+                            {parsed.desc && <p className="text-xs text-muted-foreground leading-relaxed">{parsed.desc}</p>}
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
           );
         })}
 
-        {/* Ungrouped concepts fallback */}
         {ungrouped.length > 0 && (
           <div>
             <h3 className="text-base font-bold font-heading mb-3 flex items-center gap-2">
@@ -126,17 +151,17 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
 
       {/* Programs & Benefits */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
+        <Card className="border-pub-sky/20">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="w-4 h-4 text-pub-sky" /> Program PUB
+              <FileText className="w-4 h-4 text-pub-sky" /> Program PUB Terkait
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {category.programs.map((p, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-pub-emerald shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-pub-sky shrink-0" />
                   <span>{p}</span>
                 </li>
               ))}
@@ -144,17 +169,17 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="border-pub-emerald/20">
+          <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-pub-emerald" /> Manfaat & Dampak
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {category.benefits.map((b, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
-                  <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-pub-violet shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 mt-0.5 text-pub-emerald shrink-0" />
                   <span>{b}</span>
                 </li>
               ))}
@@ -455,12 +480,22 @@ export default function Innovation() {
                                     <CardDescription className="line-clamp-2">{cat.description}</CardDescription>
                                   </CardHeader>
                                   <CardContent>
-                                    <div className="flex items-center text-xs text-muted-foreground gap-1">
-                                      <span>{cat.concepts.filter(c => c.startsWith('🧰')).length} toolkit</span>
-                                      <span>·</span>
-                                      <span>{cat.concepts.filter(c => c.startsWith('📦')).length} toolbox</span>
-                                      <span>·</span>
-                                      <span>{cat.concepts.filter(c => c.startsWith('📱')).length} mini app</span>
+                                    <div className="flex items-center text-xs text-muted-foreground gap-1.5 flex-wrap">
+                                      {cat.concepts.filter(c => c.startsWith('📱')).length > 0 && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-pub-emerald/10 text-pub-emerald">
+                                          <AppWindow className="w-3 h-3" />{cat.concepts.filter(c => c.startsWith('📱')).length} mini app
+                                        </span>
+                                      )}
+                                      {cat.concepts.filter(c => c.startsWith('📦')).length > 0 && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-pub-sky/10 text-pub-sky">
+                                          <Package className="w-3 h-3" />{cat.concepts.filter(c => c.startsWith('📦')).length} toolbox
+                                        </span>
+                                      )}
+                                      {cat.concepts.filter(c => c.startsWith('🧰')).length > 0 && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-pub-amber/10 text-pub-amber">
+                                          <Wrench className="w-3 h-3" />{cat.concepts.filter(c => c.startsWith('🧰')).length} toolkit
+                                        </span>
+                                      )}
                                       <ChevronRight className="w-3 h-3 ml-auto group-hover:translate-x-1 transition-transform" />
                                     </div>
                                   </CardContent>
