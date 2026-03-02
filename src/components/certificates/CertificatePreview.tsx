@@ -55,7 +55,7 @@ export default function CertificatePreview({ logoUrl, signatureUrl }: Props) {
               className="text-lg md:text-2xl font-bold mb-0.5"
               style={{ color }}
             >
-              SERTIFIKAT KOMPETENSI
+              SERTIFIKAT PERSONIL MANAJERIAL BUJK
             </h2>
             <p className="text-[10px] md:text-sm text-gray-500 mb-3">
               Level: {level}
@@ -73,7 +73,7 @@ export default function CertificatePreview({ logoUrl, signatureUrl }: Props) {
             )}
 
             <p className="text-[9px] md:text-xs text-gray-500 max-w-[80%]">
-              Telah menyelesaikan seluruh modul pembelajaran Pengembangan Usaha Berkelanjutan pada level {level}
+              Telah menyelesaikan seluruh modul pembelajaran Personil Manajerial BUJK pada level {level}
             </p>
 
             {/* Decorative line */}

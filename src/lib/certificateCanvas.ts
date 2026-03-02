@@ -53,7 +53,7 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   // Title
   ctx.fillStyle = color;
   ctx.font = "bold 42px Arial, sans-serif";
-  ctx.fillText("SERTIFIKAT KOMPETENSI", W / 2, 160);
+  ctx.fillText("SERTIFIKAT PERSONIL MANAJERIAL BUJK", W / 2, 160);
 
   // Level
   ctx.fillStyle = "#6B7280";
@@ -81,7 +81,7 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   ctx.fillStyle = "#4B5563";
   ctx.font = "16px Arial, sans-serif";
   ctx.fillText("Telah menyelesaikan seluruh modul pembelajaran", W / 2, 430);
-  ctx.fillText(`Pengembangan Usaha Berkelanjutan pada level ${cert.level}`, W / 2, 455);
+  ctx.fillText(`Personil Manajerial BUJK pada level ${cert.level}`, W / 2, 455);
 
   // Decorative line
   ctx.strokeStyle = color;
@@ -121,7 +121,7 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   // Footer
   ctx.fillStyle = "#D1D5DB";
   ctx.font = "12px Arial, sans-serif";
-  ctx.fillText("Pengembangan Usaha Berkelanjutan — Konstruksi Indonesia", W / 2, H - 50);
+  ctx.fillText("Personil Manajerial BUJK — Konstruksi Indonesia", W / 2, H - 50);
 
   // Download
   const link = document.createElement("a");
