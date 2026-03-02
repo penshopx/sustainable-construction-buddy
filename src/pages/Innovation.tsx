@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X, Paperclip, Upload, Wrench, AppWindow, Package } from "lucide-react";
+import { MiniAppGrid } from "@/components/innovation/MiniAppLauncher";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,6 +149,9 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
           </div>
         )}
       </div>
+
+      {/* Interactive Mini Apps */}
+      <MiniAppGrid categorySlug={category.slug} />
 
       {/* Programs & Benefits */}
       <div className="grid md:grid-cols-2 gap-6">
