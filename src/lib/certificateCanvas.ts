@@ -48,7 +48,7 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   ctx.fillStyle = "#1F2937";
   ctx.font = "bold 16px Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("PUB KONSTRUKSI — ASPEKINDO", W / 2, 90);
+  ctx.fillText("PUB ASPEKINDO — Konstruksi", W / 2, 90);
 
   // Title
   ctx.fillStyle = color;
