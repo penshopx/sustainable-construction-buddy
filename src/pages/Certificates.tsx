@@ -5,6 +5,9 @@ import { Award, Loader2 } from "lucide-react";
 import CertificateLevelCard from "@/components/certificates/CertificateLevelCard";
 import CertificateHistoryTable, { type Certificate } from "@/components/certificates/CertificateHistoryTable";
 import GenerateCertDialog from "@/components/certificates/GenerateCertDialog";
+import CertificateProfileForm from "@/components/certificates/CertificateProfileForm";
+import CertificatePreview from "@/components/certificates/CertificatePreview";
+import CertificateStats from "@/components/certificates/CertificateStats";
 import { downloadCertificateAsPng } from "@/lib/certificateCanvas";
 
 const LEVELS = ["Pemula", "Muda", "Madya", "Utama"];
@@ -23,6 +26,8 @@ export default function Certificates() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState<string | null>(null);
   const [dialogLevel, setDialogLevel] = useState<string | null>(null);
+  const [logoUrl, setLogoUrl] = useState("");
+  const [signatureUrl, setSignatureUrl] = useState("");
 
   useEffect(() => {
     if (user) fetchData();
@@ -57,6 +62,13 @@ export default function Certificates() {
       };
     });
 
+    // Use logo/signature from latest cert if available
+    if (certs.length > 0) {
+      const latest = certs[0];
+      if (latest.company_logo_url) setLogoUrl(latest.company_logo_url);
+      if (latest.signature_url) setSignatureUrl(latest.signature_url);
+    }
+
     setStatuses(result);
     setCertificates(certs);
     setLoading(false);
@@ -71,7 +83,7 @@ export default function Certificates() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center">
@@ -80,9 +92,25 @@ export default function Certificates() {
         <div>
           <h1 className="text-2xl font-bold font-heading text-foreground">Sertifikat Digital</h1>
           <p className="text-sm text-muted-foreground">
-            Selesaikan semua modul per level untuk mendapatkan sertifikat
+            Kelola profil, cetak, dan unduh sertifikat kompetensi Anda
           </p>
         </div>
+      </div>
+
+      {/* Stats */}
+      <CertificateStats certificates={certificates} />
+
+      {/* Profile Form + Preview */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <CertificateProfileForm
+          logoUrl={logoUrl}
+          signatureUrl={signatureUrl}
+          onUpdate={(logo, sig) => {
+            setLogoUrl(logo);
+            setSignatureUrl(sig);
+          }}
+        />
+        <CertificatePreview logoUrl={logoUrl} signatureUrl={signatureUrl} />
       </div>
 
       {/* Progress Cards */}
