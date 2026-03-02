@@ -23,8 +23,9 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { level, company_logo_url, signature_url } = await req.json();
+    const { level, module_name } = await req.json();
     if (!level) throw new Error("Level is required");
+    if (!module_name) throw new Error("Module name is required");
 
     // Service client for admin operations
     const adminClient = createClient(supabaseUrl, serviceKey);
@@ -100,8 +101,7 @@ Deno.serve(async (req) => {
         full_name: profile?.full_name || "",
         company: profile?.company || "",
         position: profile?.position || "",
-        company_logo_url: company_logo_url || "",
-        signature_url: signature_url || "",
+        module_name,
       })
       .select()
       .single();

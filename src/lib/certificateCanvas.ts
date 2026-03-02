@@ -109,8 +109,12 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   // Description
   ctx.fillStyle = "#4B5563";
   ctx.font = "16px Arial, sans-serif";
-  ctx.fillText("Telah menyelesaikan seluruh modul pembelajaran", W / 2, 455);
-  ctx.fillText(`Personil Manajerial BUJK pada level ${cert.level}`, W / 2, 480);
+  ctx.fillText("Telah menyelesaikan modul pembelajaran:", W / 2, 450);
+
+  // Module name
+  ctx.fillStyle = "#111827";
+  ctx.font = "bold 22px Arial, sans-serif";
+  ctx.fillText(cert.module_name || "—", W / 2, 485);
 
   // Decorative line
   ctx.strokeStyle = color;

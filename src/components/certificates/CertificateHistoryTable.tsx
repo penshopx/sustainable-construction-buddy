@@ -13,6 +13,7 @@ export interface Certificate {
   position: string;
   company_logo_url: string;
   signature_url: string;
+  module_name: string;
 }
 
 const levelColor = (level: string) => {
@@ -46,7 +47,7 @@ export default function CertificateHistoryTable({ certificates, onDownload }: Pr
           <TableRow>
             <TableHead>No. Sertifikat</TableHead>
             <TableHead>Nama</TableHead>
-            <TableHead>Perusahaan</TableHead>
+            <TableHead>Modul</TableHead>
             <TableHead>Level</TableHead>
             <TableHead>Diterbitkan</TableHead>
             <TableHead className="text-right">Aksi</TableHead>
@@ -57,7 +58,7 @@ export default function CertificateHistoryTable({ certificates, onDownload }: Pr
             <TableRow key={c.id}>
               <TableCell className="font-mono text-xs">{c.certificate_number}</TableCell>
               <TableCell className="font-medium">{c.full_name || "-"}</TableCell>
-              <TableCell>{c.company || "-"}</TableCell>
+              <TableCell className="text-sm">{c.module_name || "-"}</TableCell>
               <TableCell><Badge className={levelColor(c.level)}>{c.level}</Badge></TableCell>
               <TableCell className="text-muted-foreground text-xs">
                 {new Date(c.issued_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
