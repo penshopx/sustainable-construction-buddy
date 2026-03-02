@@ -1,7 +1,9 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X, Paperclip, Upload, Wrench, AppWindow, Package, Target, BarChart, Users, Link2 } from "lucide-react";
+import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X, Paperclip, Upload, Wrench, AppWindow, Package, Target, BarChart, Users, Link2, ExternalLink } from "lucide-react";
 import { MiniAppGrid } from "@/components/innovation/MiniAppLauncher";
+import { findTemplate, type ToolboxTemplate } from "@/components/innovation/toolboxTemplates";
+import ToolboxViewer from "@/components/innovation/ToolboxViewer";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ const statusColors: Record<string, string> = {
 function CategoryDetail({ category, onBack }: { category: InnovationCategory; onBack: () => void }) {
   const Icon = iconMap[category.icon] || Lightbulb;
   const stage = stageLabels[category.stage];
+  const [activeTemplate, setActiveTemplate] = useState<ToolboxTemplate | null>(null);
 
   // Parse concepts into toolkit/toolbox/miniapp groups
   const toolkits = category.concepts.filter(c => c.startsWith('🧰'));
@@ -112,8 +115,14 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
               <div className="grid gap-4">
                 {section.items.map((item, i) => {
                   const parsed = parseItem(item);
+                  const template = (section.label === "Toolbox" || section.label === "Toolkit") ? findTemplate(parsed.title) : undefined;
+                  const isClickable = !!template;
                   return (
-                    <Card key={i} className={`border ${section.borderColor} hover:shadow-card-hover transition-all group`}>
+                    <Card
+                      key={i}
+                      className={`border ${section.borderColor} hover:shadow-card-hover transition-all group ${isClickable ? "cursor-pointer" : ""}`}
+                      onClick={isClickable ? () => setActiveTemplate(template) : undefined}
+                    >
                       <CardContent className="p-5">
                         <div className="flex items-start gap-3">
                           <div className={`w-8 h-8 rounded-lg ${section.bgColor} flex items-center justify-center shrink-0 mt-0.5`}>
@@ -123,6 +132,11 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
                             <p className="text-sm font-semibold text-foreground mb-1.5">{parsed.title}</p>
                             {parsed.desc && <p className="text-xs text-muted-foreground leading-relaxed">{parsed.desc}</p>}
                           </div>
+                          {isClickable && (
+                            <Button variant="outline" size="sm" className={`shrink-0 text-xs gap-1 ${section.color} border-current/30 hover:bg-current/10 opacity-0 group-hover:opacity-100 transition-opacity`}>
+                              Buka Template
+                            </Button>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -191,6 +205,15 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
           </CardContent>
         </Card>
       </div>
+
+      {/* Toolbox/Toolkit Viewer */}
+      {activeTemplate && (
+        <ToolboxViewer
+          template={activeTemplate}
+          open={!!activeTemplate}
+          onOpenChange={(open) => { if (!open) setActiveTemplate(null); }}
+        />
+      )}
     </motion.div>
   );
 }
