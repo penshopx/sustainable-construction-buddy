@@ -1832,11 +1832,14 @@ export type Database = {
         Row: {
           attendance_status: string
           attended_at: string | null
+          checked_in_at: string | null
+          checked_out_at: string | null
           company: string
           created_at: string
           email: string
           full_name: string
           id: string
+          kta_number: string
           notes: string
           phone: string
           position: string
@@ -1846,11 +1849,14 @@ export type Database = {
         Insert: {
           attendance_status?: string
           attended_at?: string | null
+          checked_in_at?: string | null
+          checked_out_at?: string | null
           company?: string
           created_at?: string
           email?: string
           full_name?: string
           id?: string
+          kta_number?: string
           notes?: string
           phone?: string
           position?: string
@@ -1860,11 +1866,14 @@ export type Database = {
         Update: {
           attendance_status?: string
           attended_at?: string | null
+          checked_in_at?: string | null
+          checked_out_at?: string | null
           company?: string
           created_at?: string
           email?: string
           full_name?: string
           id?: string
+          kta_number?: string
           notes?: string
           phone?: string
           position?: string
