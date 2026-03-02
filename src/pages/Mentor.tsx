@@ -17,25 +17,59 @@ const TABS: { key: MentorType; label: string; icon: React.ElementType; color: st
   { key: "project", label: "Problem Solver", icon: Wrench, color: "text-emerald-500" },
 ];
 
-const QUICK_PROMPTS: Record<MentorType, { icon: React.ElementType; text: string }[]> = {
-  learning: [
-    { icon: BookOpen, text: "Rangkum poin-poin utama dari modul ini" },
-    { icon: Lightbulb, text: "Jelaskan konsep yang paling penting dari materi ini" },
-    { icon: Target, text: "Buatkan soal latihan dari modul ini" },
-    { icon: FileText, text: "Apa yang harus saya pahami sebelum lanjut ke bab berikutnya?" },
-  ],
-  expert: [
-    { icon: HardHat, text: "Apa itu WBS dan bagaimana cara membuatnya?" },
+import { Scale } from "lucide-react";
+
+const QUICK_PROMPTS_LEARNING = [
+  { icon: BookOpen, text: "Rangkum poin-poin utama dari modul ini" },
+  { icon: Lightbulb, text: "Jelaskan konsep yang paling penting dari materi ini" },
+  { icon: Target, text: "Buatkan soal latihan dari modul ini" },
+  { icon: FileText, text: "Apa yang harus saya pahami sebelum lanjut ke bab berikutnya?" },
+];
+
+const QUICK_PROMPTS_PROJECT = [
+  { icon: AlertTriangle, text: "Analisis risiko utama proyek ini dan rekomendasikan mitigasi" },
+  { icon: TrendingUp, text: "Evaluasi kinerja anggaran proyek ini" },
+  { icon: Target, text: "Apa langkah prioritas untuk mengatasi keterlambatan?" },
+  { icon: Shield, text: "Review kepatuhan K3 proyek ini" },
+];
+
+const EXPERT_QUICK_PROMPTS: Record<string, { icon: React.ElementType; text: string }[]> = {
+  orchestrator: [
+    { icon: Brain, text: "Apa itu WBS dan bagaimana cara membuatnya?" },
     { icon: Shield, text: "Jelaskan langkah identifikasi risiko proyek konstruksi" },
     { icon: DollarSign, text: "Bagaimana cara membuat RAB yang akurat?" },
     { icon: FileText, text: "Apa saja prinsip Good Corporate Governance untuk BUJK?" },
   ],
-  project: [
-    { icon: AlertTriangle, text: "Analisis risiko utama proyek ini dan rekomendasikan mitigasi" },
-    { icon: TrendingUp, text: "Evaluasi kinerja anggaran proyek ini" },
-    { icon: Target, text: "Apa langkah prioritas untuk mengatasi keterlambatan?" },
-    { icon: Shield, text: "Review kepatuhan K3 proyek ini" },
+  regulasi: [
+    { icon: Scale, text: "Apa saja persyaratan SBU menurut PP 22/2020?" },
+    { icon: FileText, text: "Jelaskan proses perizinan BUJK terbaru sesuai Permen PUPR" },
+    { icon: Scale, text: "Apa perbedaan kualifikasi kecil, menengah, dan besar?" },
+    { icon: FileText, text: "Bagaimana aturan sub-klasifikasi jasa konstruksi terbaru?" },
   ],
+  manpro: [
+    { icon: HardHat, text: "Bagaimana menyusun WBS untuk proyek gedung bertingkat?" },
+    { icon: Target, text: "Jelaskan metode Earned Value Management (EVM)" },
+    { icon: TrendingUp, text: "Cara membuat S-Curve dan menganalisis deviasi progress" },
+    { icon: HardHat, text: "Apa langkah menyusun CPM (Critical Path Method)?" },
+  ],
+  k3: [
+    { icon: Shield, text: "Apa saja elemen SMK3 yang wajib diterapkan di proyek?" },
+    { icon: AlertTriangle, text: "Bagaimana prosedur investigasi kecelakaan kerja?" },
+    { icon: Shield, text: "Jelaskan persyaratan ISO 45001 untuk proyek konstruksi" },
+    { icon: AlertTriangle, text: "Cara membuat JSA (Job Safety Analysis) yang efektif" },
+  ],
+  keuangan: [
+    { icon: DollarSign, text: "Bagaimana cara menyusun laporan LKUT yang benar?" },
+    { icon: DollarSign, text: "Jelaskan komponen neraca keuangan BUJK" },
+    { icon: TrendingUp, text: "Cara menghitung rasio keuangan untuk kualifikasi SBU" },
+    { icon: DollarSign, text: "Apa kewajiban perpajakan khusus untuk jasa konstruksi?" },
+  ],
+};
+
+const getQuickPrompts = (tab: MentorType, expertBotId: string) => {
+  if (tab === "learning") return QUICK_PROMPTS_LEARNING;
+  if (tab === "project") return QUICK_PROMPTS_PROJECT;
+  return EXPERT_QUICK_PROMPTS[expertBotId] || EXPERT_QUICK_PROMPTS.orchestrator;
 };
 
 const EMPTY_TITLES: Record<MentorType, string> = {
@@ -208,7 +242,7 @@ const Mentor = () => {
             onSelectConversation={mentor.selectConversation}
             onNewConversation={mentor.startNewConversation}
             onDeleteConversation={mentor.deleteConversation}
-            quickPrompts={QUICK_PROMPTS[activeTab]}
+            quickPrompts={getQuickPrompts(activeTab, mentor.selectedExpertBotId)}
             emptyTitle={activeTab === "expert"
               ? (BUILT_IN_BOTS.find(b => b.id === mentor.selectedExpertBotId)?.name || EMPTY_TITLES[activeTab])
               : EMPTY_TITLES[activeTab]}
