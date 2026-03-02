@@ -87,7 +87,7 @@ const communitySubItems = [
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Direktori Perusahaan", url: "/direktori", icon: Building2 },
-  { title: "Helpdesk AI", url: "/helpdesk", icon: Bot },
+  { title: "Pakar Cerdas", url: "/helpdesk", icon: Bot },
   { title: "Pesanan Saya", url: "/pesanan", icon: ShoppingBag },
   { title: "Produk Saya", url: "/produk-saya", icon: Package },
 ];
