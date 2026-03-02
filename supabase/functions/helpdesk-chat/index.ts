@@ -91,11 +91,17 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mode = "pembelajaran" } = await req.json();
+    const { messages, mode = "pembelajaran", custom_persona } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const systemPrompt = SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.pembelajaran;
+    // Use custom persona if provided, otherwise use default system prompt
+    let systemPrompt: string;
+    if (custom_persona && custom_persona.trim()) {
+      systemPrompt = `${BASE_PERSONALITY}\n\n## Persona Kustom\n${custom_persona}`;
+    } else {
+      systemPrompt = SYSTEM_PROMPTS[mode] || SYSTEM_PROMPTS.pembelajaran;
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

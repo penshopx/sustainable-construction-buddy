@@ -15,7 +15,11 @@ export type Conversation = {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/helpdesk-chat`;
 
-export function useHelpdeskChat(mode: PakarMode = "pembelajaran") {
+export function useHelpdeskChat(
+  mode: PakarMode = "pembelajaran",
+  customPersona?: string,
+  chatbotId?: string
+) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -80,9 +84,11 @@ export function useHelpdeskChat(mode: PakarMode = "pembelajaran") {
     try {
       if (!conversationId) {
         const title = text.trim().slice(0, 80);
+        const insertData: any = { user_id: user.id, title };
+        if (chatbotId) insertData.chatbot_id = chatbotId;
         const { data: conv, error: convError } = await supabase
           .from("helpdesk_conversations")
-          .insert({ user_id: user.id, title })
+          .insert(insertData)
           .select()
           .single();
         if (convError || !conv) throw new Error("Gagal membuat percakapan");
@@ -102,15 +108,18 @@ export function useHelpdeskChat(mode: PakarMode = "pembelajaran") {
         content: text.trim(),
       });
 
-      // Stream AI response with mode
+      // Stream AI response with mode and optional custom persona
       let assistantSoFar = "";
+      const body: any = { messages: allMessages, mode };
+      if (customPersona) body.custom_persona = customPersona;
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: allMessages, mode }),
+        body: JSON.stringify(body),
       });
 
       if (!resp.ok) {
@@ -199,7 +208,7 @@ export function useHelpdeskChat(mode: PakarMode = "pembelajaran") {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, user, activeConversationId, loadConversations, mode]);
+  }, [messages, isLoading, user, activeConversationId, loadConversations, mode, customPersona, chatbotId]);
 
   return {
     conversations,
