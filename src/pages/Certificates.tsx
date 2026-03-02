@@ -5,7 +5,6 @@ import { Award, Loader2 } from "lucide-react";
 import CertificateLevelCard from "@/components/certificates/CertificateLevelCard";
 import CertificateHistoryTable, { type Certificate } from "@/components/certificates/CertificateHistoryTable";
 import GenerateCertDialog from "@/components/certificates/GenerateCertDialog";
-import CertificateProfileForm from "@/components/certificates/CertificateProfileForm";
 import CertificatePreview from "@/components/certificates/CertificatePreview";
 import CertificateStats from "@/components/certificates/CertificateStats";
 import { downloadCertificateAsPng } from "@/lib/certificateCanvas";
@@ -24,10 +23,8 @@ export default function Certificates() {
   const [statuses, setStatuses] = useState<LevelStatus[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState<string | null>(null);
+  const [generating] = useState<string | null>(null);
   const [dialogLevel, setDialogLevel] = useState<string | null>(null);
-  const [logoUrl, setLogoUrl] = useState("");
-  const [signatureUrl, setSignatureUrl] = useState("");
 
   useEffect(() => {
     if (user) fetchData();
@@ -62,13 +59,6 @@ export default function Certificates() {
       };
     });
 
-    // Use logo/signature from latest cert if available
-    if (certs.length > 0) {
-      const latest = certs[0];
-      if (latest.company_logo_url) setLogoUrl(latest.company_logo_url);
-      if (latest.signature_url) setSignatureUrl(latest.signature_url);
-    }
-
     setStatuses(result);
     setCertificates(certs);
     setLoading(false);
@@ -92,7 +82,7 @@ export default function Certificates() {
         <div>
           <h1 className="text-2xl font-bold font-heading text-foreground">Sertifikat Digital</h1>
           <p className="text-sm text-muted-foreground">
-            Kelola profil, cetak, dan unduh sertifikat kompetensi Anda
+            Kelola dan unduh sertifikat kompetensi Anda
           </p>
         </div>
       </div>
@@ -100,18 +90,8 @@ export default function Certificates() {
       {/* Stats */}
       <CertificateStats certificates={certificates} />
 
-      {/* Profile Form + Preview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <CertificateProfileForm
-          logoUrl={logoUrl}
-          signatureUrl={signatureUrl}
-          onUpdate={(logo, sig) => {
-            setLogoUrl(logo);
-            setSignatureUrl(sig);
-          }}
-        />
-        <CertificatePreview logoUrl={logoUrl} signatureUrl={signatureUrl} />
-      </div>
+      {/* Preview */}
+      <CertificatePreview />
 
       {/* Progress Cards */}
       <div>
