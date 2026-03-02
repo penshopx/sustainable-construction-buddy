@@ -49,22 +49,24 @@ export default function CertificatePreview() {
               </div>
             </div>
 
-            {/* Header */}
-            <p className="text-[10px] md:text-xs font-bold text-gray-700 tracking-wide mb-0.5 mt-8">
-              PUB ASPEKINDO — KONSTRUKSI
-            </p>
+            {/* Legal basis - styled card */}
+            <div className="mt-10 mb-1 px-4 max-w-[88%]">
+              <div className="rounded-md border px-3 py-1.5" style={{ borderColor: `${color}30`, backgroundColor: `${color}08` }}>
+                <p className="text-[5.5px] md:text-[7.5px] text-gray-600 leading-relaxed italic">
+                  Berdasarkan UU No. 02 tahun 2017 tentang Jasa Konstruksi, Permen PU No. 7 tahun 2024 tentang Pengembangan Usaha Berkelanjutan (PUB) serta Permen PU No. 6 tahun 2025, kegiatan PUB ASPEKINDO merupakan salah satu Persyaratan Perpanjangan SBU Jasa Konstruksi.
+                </p>
+                <p className="text-[5.5px] md:text-[7.5px] text-gray-600 leading-relaxed italic mt-0.5">
+                  Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan :
+                </p>
+              </div>
+            </div>
 
-            {/* Legal basis */}
-            <p className="text-[6px] md:text-[8px] text-gray-500 leading-tight mb-0.5 px-4 max-w-[90%]">
-              Berdasarkan UU No. 02 tahun 2017 tentang Jasa Konstruksi, Permen PU No. 7 tahun 2024 tentang Pengembangan Usaha Berkelanjutan (PUB) serta Permen PU No. 6 tahun 2025, kegiatan PUB ASPEKINDO merupakan salah satu Persyaratan Perpanjangan SBU Jasa Konstruksi.
-            </p>
-            <p className="text-[6px] md:text-[8px] text-gray-500 leading-tight mb-1 px-4 max-w-[90%]">
-              Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan Sertifikat Pelatihan Personil Manajerial BUJK :
-            </p>
-
-            {/* Title */}
+            {/* Title - two lines */}
+            <h2 className="text-xs md:text-base font-bold tracking-wide mb-0" style={{ color }}>
+              SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL
+            </h2>
             <h2 className="text-sm md:text-lg font-bold mb-0.5" style={{ color }}>
-              SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL BUJK
+              BUJK — {profile?.company || "Nama Perusahaan"}
             </h2>
             <p className="text-[10px] md:text-sm text-gray-500 mb-1">
               Level: {level}
@@ -75,9 +77,9 @@ export default function CertificatePreview() {
             <h3 className="text-sm md:text-lg font-bold text-gray-900 mb-0.5">
               {profile?.full_name || "Nama Anda"}
             </h3>
-            {(profile?.position || profile?.company) && (
+            {profile?.position && (
               <p className="text-[10px] md:text-sm text-gray-500 mb-1">
-                {[profile?.position, profile?.company].filter(Boolean).join(" — ")}
+                {profile.position}
               </p>
             )}
 
@@ -89,7 +91,7 @@ export default function CertificatePreview() {
             </h4>
 
             {/* Decorative line */}
-            <div className="w-1/3 h-px my-2" style={{ backgroundColor: color }} />
+            <div className="w-1/3 h-px my-1.5" style={{ backgroundColor: color }} />
 
             <p className="text-[8px] md:text-[10px] text-gray-400">No. PUB-XXXXX-XXXXX</p>
 

@@ -73,49 +73,62 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   const rightX = W - 60 - logoMaxW;
   await drawLogo(ctx, logoLpjk, rightX, logoY, logoMaxW, logoMaxH);
 
-  // Header
-  ctx.fillStyle = "#1F2937";
-  ctx.font = "bold 16px Arial, sans-serif";
+  // Legal basis - styled box
   ctx.textAlign = "center";
-  ctx.fillText("PUB ASPEKINDO — KONSTRUKSI", W / 2, 130);
+  const boxX = 100, boxW = W - 200, boxY = 125, boxH = 70;
+  ctx.fillStyle = color + "10";
+  ctx.strokeStyle = color + "30";
+  ctx.lineWidth = 1;
+  // Rounded rect
+  const r = 8;
+  ctx.beginPath();
+  ctx.moveTo(boxX + r, boxY);
+  ctx.lineTo(boxX + boxW - r, boxY);
+  ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + r);
+  ctx.lineTo(boxX + boxW, boxY + boxH - r);
+  ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - r, boxY + boxH);
+  ctx.lineTo(boxX + r, boxY + boxH);
+  ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - r);
+  ctx.lineTo(boxX, boxY + r);
+  ctx.quadraticCurveTo(boxX, boxY, boxX + r, boxY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
 
-  // Legal basis
-  ctx.fillStyle = "#6B7280";
-  ctx.font = "11px Arial, sans-serif";
-  const legalLine1 = "Berdasarkan UU No. 02 tahun 2017 tentang Jasa Konstruksi, Permen PU No. 7 tahun 2024 tentang Pengembangan Usaha";
-  const legalLine2 = "Berkelanjutan (PUB) serta Permen PU No. 6 tahun 2025, kegiatan PUB ASPEKINDO merupakan salah satu";
-  const legalLine3 = "Persyaratan Perpanjangan SBU Jasa Konstruksi.";
-  ctx.fillText(legalLine1, W / 2, 152);
-  ctx.fillText(legalLine2, W / 2, 166);
-  ctx.fillText(legalLine3, W / 2, 180);
+  ctx.fillStyle = "#4B5563";
+  ctx.font = "italic 11px Arial, sans-serif";
+  ctx.fillText("Berdasarkan UU No. 02 tahun 2017 tentang Jasa Konstruksi, Permen PU No. 7 tahun 2024 tentang Pengembangan Usaha", W / 2, boxY + 18);
+  ctx.fillText("Berkelanjutan (PUB) serta Permen PU No. 6 tahun 2025, kegiatan PUB ASPEKINDO merupakan salah satu", W / 2, boxY + 32);
+  ctx.fillText("Persyaratan Perpanjangan SBU Jasa Konstruksi.", W / 2, boxY + 46);
+  ctx.fillText("Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan :", W / 2, boxY + 62);
 
-  ctx.fillText("Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan Sertifikat Pelatihan Personil Manajerial BUJK :", W / 2, 200);
-
-  // Title
+  // Title - two lines
   ctx.fillStyle = color;
+  ctx.font = "bold 30px Arial, sans-serif";
+  ctx.fillText("SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL", W / 2, 228);
   ctx.font = "bold 36px Arial, sans-serif";
-  ctx.fillText("SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL BUJK", W / 2, 240);
+  ctx.fillText(`BUJK — ${cert.company || ""}`, W / 2, 268);
 
   // Level
   ctx.fillStyle = "#6B7280";
   ctx.font = "20px Arial, sans-serif";
-  ctx.fillText(`Level: ${cert.level}`, W / 2, 270);
+  ctx.fillText(`Level: ${cert.level}`, W / 2, 298);
 
   // Awarded to
   ctx.fillStyle = "#9CA3AF";
   ctx.font = "16px Arial, sans-serif";
-  ctx.fillText("Diberikan kepada:", W / 2, 310);
+  ctx.fillText("Diberikan kepada:", W / 2, 335);
 
   // Name
   ctx.fillStyle = "#111827";
   ctx.font = "bold 38px Arial, sans-serif";
-  ctx.fillText(cert.full_name || "—", W / 2, 370);
+  ctx.fillText(cert.full_name || "—", W / 2, 385);
 
-  // Company & position
-  if (cert.position || cert.company) {
+  // Position
+  if (cert.position) {
     ctx.fillStyle = "#6B7280";
     ctx.font = "18px Arial, sans-serif";
-    ctx.fillText([cert.position, cert.company].filter(Boolean).join(" — "), W / 2, 410);
+    ctx.fillText(cert.position, W / 2, 415);
   }
 
   // Description
