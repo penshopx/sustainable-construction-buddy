@@ -6,6 +6,22 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+async function callAI(apiKey: string, prompt: string, maxTokens = 1500): Promise<string> {
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: maxTokens,
+      temperature: 0.3,
+    }),
+  });
+  if (!resp.ok) return "";
+  const data = await resp.json();
+  return data.choices?.[0]?.message?.content || "";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -20,6 +36,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const apiKey = Deno.env.get("LOVABLE_API_KEY");
 
     const userClient = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
@@ -40,7 +57,6 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // Get knowledge base record
     const { data: kb, error: kbError } = await adminClient
       .from("mentor_knowledge_bases")
       .select("*")
@@ -54,17 +70,11 @@ serve(async (req) => {
       });
     }
 
-    // Update status to processing
-    await adminClient
-      .from("mentor_knowledge_bases")
-      .update({ status: "processing" })
-      .eq("id", knowledgeBaseId);
+    await adminClient.from("mentor_knowledge_bases").update({ status: "processing" }).eq("id", knowledgeBaseId);
 
-    // Download file from storage
+    // Download file
     const filePath = kb.file_url.replace(/^.*\/storage\/v1\/object\/public\//, "").replace(/^mentor-uploads\//, "");
-    const { data: fileData, error: dlError } = await adminClient.storage
-      .from("mentor-uploads")
-      .download(filePath);
+    const { data: fileData, error: dlError } = await adminClient.storage.from("mentor-uploads").download(filePath);
 
     if (dlError || !fileData) {
       await adminClient.from("mentor_knowledge_bases").update({ status: "error" }).eq("id", knowledgeBaseId);
@@ -73,83 +83,142 @@ serve(async (req) => {
       });
     }
 
-    // Extract text content
+    // Extract text
     let textContent = "";
     const fileType = kb.file_type || "";
 
     if (fileType.includes("text") || kb.file_name.endsWith(".txt") || kb.file_name.endsWith(".md")) {
       textContent = await fileData.text();
-    } else {
-      // For non-text files, use AI to extract/summarize content
-      const apiKey = Deno.env.get("LOVABLE_API_KEY");
-      if (apiKey) {
-        // Convert to base64 for AI processing
-        const arrayBuffer = await fileData.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-        
-        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages: [
-              {
-                role: "user",
-                content: [
-                  { type: "text", text: "Ekstrak seluruh teks dari dokumen ini. Kembalikan hanya teks konten tanpa komentar tambahan. Jika dokumen berisi tabel, format sebagai teks terstruktur." },
-                  { type: "image_url", image_url: { url: `data:${fileType};base64,${base64}` } },
-                ],
-              },
-            ],
-            max_tokens: 8000,
-          }),
-        });
+    } else if (apiKey) {
+      // Use AI for non-text files (PDF, DOC, etc.)
+      const arrayBuffer = await fileData.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const base64 = btoa(binary);
 
-        if (aiResp.ok) {
-          const aiData = await aiResp.json();
-          textContent = aiData.choices?.[0]?.message?.content || "";
-        }
-      }
+      textContent = await callAI(apiKey,
+        `Ekstrak seluruh teks dari dokumen ini secara lengkap dan terstruktur. Pertahankan heading, sub-heading, dan struktur paragraf. Jangan tambahkan komentar apapun, kembalikan hanya konten dokumen.\n\n[Dokumen dalam format ${fileType}, nama file: ${kb.file_name}]`,
+        8000
+      );
 
+      // If AI extraction failed, try as text
       if (!textContent) {
-        // Fallback: try reading as text
-        try {
-          textContent = await new Response(fileData).text();
-        } catch {
-          textContent = `[Konten file: ${kb.file_name}]`;
-        }
+        try { textContent = await new Response(fileData).text(); } catch { textContent = ""; }
       }
     }
 
-    // Chunk the text (roughly 500-800 chars per chunk with overlap)
-    const chunks = chunkText(textContent, 700, 100);
+    if (!textContent) {
+      await adminClient.from("mentor_knowledge_bases").update({ status: "error" }).eq("id", knowledgeBaseId);
+      return new Response(JSON.stringify({ error: "Gagal mengekstrak teks dari dokumen" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Chunk the text
+    const chunks = chunkText(textContent, 800, 100);
 
     // Delete existing chunks
     await adminClient.from("mentor_chunks").delete().eq("knowledge_base_id", knowledgeBaseId);
 
-    // Insert new chunks
-    if (chunks.length > 0) {
-      const chunkRows = chunks.map((content, i) => ({
-        knowledge_base_id: knowledgeBaseId,
-        user_id: user.id,
-        chunk_index: i,
-        content,
-        metadata: { source: kb.file_name, index: i, total: chunks.length },
-      }));
+    // Generate summaries and keywords per chunk using AI
+    const chunkRows = [];
+    
+    if (apiKey && chunks.length > 0) {
+      // Process chunks in batches of 5 for efficiency
+      for (let batchStart = 0; batchStart < chunks.length; batchStart += 5) {
+        const batch = chunks.slice(batchStart, batchStart + 5);
+        const batchPromises = batch.map(async (content, batchIdx) => {
+          const idx = batchStart + batchIdx;
+          const aiResult = await callAI(apiKey,
+            `Analisis teks berikut dan berikan output dalam format TEPAT ini:
 
+RINGKASAN: [Ringkasan 1-2 kalimat padat dari isi teks]
+KATA_KUNCI: [5-10 kata kunci utama, dipisahkan koma]
+
+Teks:
+"""
+${content.slice(0, 2000)}
+"""`,
+            300
+          );
+
+          let summary = "";
+          let keywords = "";
+
+          if (aiResult) {
+            const summaryMatch = aiResult.match(/RINGKASAN:\s*(.+?)(?:\n|KATA_KUNCI)/s);
+            const keywordsMatch = aiResult.match(/KATA_KUNCI:\s*(.+)/s);
+            summary = summaryMatch?.[1]?.trim() || "";
+            keywords = keywordsMatch?.[1]?.trim() || "";
+          }
+
+          return {
+            knowledge_base_id: knowledgeBaseId,
+            user_id: user.id,
+            chunk_index: idx,
+            content,
+            summary,
+            keywords,
+            metadata: { source: kb.file_name, index: idx, total: chunks.length },
+          };
+        });
+
+        const results = await Promise.all(batchPromises);
+        chunkRows.push(...results);
+      }
+    } else {
+      // Fallback without AI summaries
+      for (let i = 0; i < chunks.length; i++) {
+        chunkRows.push({
+          knowledge_base_id: knowledgeBaseId,
+          user_id: user.id,
+          chunk_index: i,
+          content: chunks[i],
+          summary: "",
+          keywords: "",
+          metadata: { source: kb.file_name, index: i, total: chunks.length },
+        });
+      }
+    }
+
+    // Insert chunks
+    if (chunkRows.length > 0) {
       await adminClient.from("mentor_chunks").insert(chunkRows);
     }
 
-    // Update KB status
-    await adminClient
-      .from("mentor_knowledge_bases")
-      .update({ status: "ready", chunk_count: chunks.length })
-      .eq("id", knowledgeBaseId);
+    // Generate overall document summary
+    let overallSummary = "";
+    if (apiKey) {
+      const chunkSummaries = chunkRows
+        .filter(c => c.summary)
+        .map((c, i) => `Bagian ${i + 1}: ${c.summary}`)
+        .join("\n");
 
-    return new Response(JSON.stringify({ success: true, chunkCount: chunks.length }), {
+      const summaryInput = chunkSummaries || textContent.slice(0, 4000);
+
+      overallSummary = await callAI(apiKey,
+        `Buatkan ringkasan komprehensif dari dokumen "${kb.title}" berdasarkan informasi berikut. Ringkasan harus mencakup:
+1. Tema/topik utama dokumen
+2. Poin-poin kunci (3-7 poin)
+3. Kesimpulan atau takeaway utama
+
+Format dalam Bahasa Indonesia yang jelas dan terstruktur dengan markdown.
+
+Informasi dokumen:
+${summaryInput}`,
+        1000
+      );
+    }
+
+    // Update KB status
+    await adminClient.from("mentor_knowledge_bases").update({
+      status: "ready",
+      chunk_count: chunks.length,
+      summary: overallSummary,
+    }).eq("id", knowledgeBaseId);
+
+    return new Response(JSON.stringify({ success: true, chunkCount: chunks.length, hasSummary: !!overallSummary }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
@@ -162,7 +231,7 @@ serve(async (req) => {
 
 function chunkText(text: string, chunkSize: number, overlap: number): string[] {
   if (!text || text.length === 0) return [];
-  
+
   const chunks: string[] = [];
   const paragraphs = text.split(/\n\n+/);
   let current = "";
@@ -170,17 +239,15 @@ function chunkText(text: string, chunkSize: number, overlap: number): string[] {
   for (const para of paragraphs) {
     if (current.length + para.length > chunkSize && current.length > 0) {
       chunks.push(current.trim());
-      // Keep overlap from end of current
       const overlapText = current.slice(-overlap);
       current = overlapText + "\n\n" + para;
     } else {
       current += (current ? "\n\n" : "") + para;
     }
   }
-
   if (current.trim()) chunks.push(current.trim());
 
-  // If we only got one chunk and it's very long, split by sentences
+  // Split oversized single chunks by sentences
   if (chunks.length === 1 && chunks[0].length > chunkSize * 2) {
     const sentences = chunks[0].split(/(?<=[.!?])\s+/);
     const newChunks: string[] = [];

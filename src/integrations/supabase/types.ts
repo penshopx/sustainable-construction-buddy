@@ -1053,8 +1053,10 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          keywords: string
           knowledge_base_id: string
           metadata: Json
+          summary: string
           user_id: string
         }
         Insert: {
@@ -1062,8 +1064,10 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          keywords?: string
           knowledge_base_id: string
           metadata?: Json
+          summary?: string
           user_id: string
         }
         Update: {
@@ -1071,8 +1075,10 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          keywords?: string
           knowledge_base_id?: string
           metadata?: Json
+          summary?: string
           user_id?: string
         }
         Relationships: [
@@ -1181,6 +1187,7 @@ export type Database = {
           id: string
           project_id: string | null
           status: string
+          summary: string
           title: string
           type: string
           updated_at: string
@@ -1197,6 +1204,7 @@ export type Database = {
           id?: string
           project_id?: string | null
           status?: string
+          summary?: string
           title?: string
           type?: string
           updated_at?: string
@@ -1213,6 +1221,7 @@ export type Database = {
           id?: string
           project_id?: string | null
           status?: string
+          summary?: string
           title?: string
           type?: string
           updated_at?: string

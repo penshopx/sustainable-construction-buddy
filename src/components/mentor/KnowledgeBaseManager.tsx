@@ -83,19 +83,19 @@ export default function KnowledgeBaseManager({
       <div className="space-y-1.5 max-h-48 overflow-y-auto">
         {knowledgeBases.map(kb => (
           <div key={kb.id}
-            className={`flex items-center gap-2 p-2.5 rounded-xl cursor-pointer transition-colors ${
+            className={`flex flex-col gap-1 p-2.5 rounded-xl cursor-pointer transition-colors ${
               kb.id === selectedKbId ? "bg-primary/10 border border-primary/20" : "hover:bg-muted border border-transparent"
             }`}
             onClick={() => kb.status === "ready" && onSelect(kb.id === selectedKbId ? null : kb.id)}>
-            {statusIcons[kb.status] || statusIcons.pending}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate text-foreground">{kb.title}</p>
-              <p className="text-xs text-muted-foreground">{kb.file_name} • {kb.chunk_count} chunk</p>
+            <div className="flex items-center gap-2">
+              {statusIcons[kb.status] || statusIcons.pending}
+              <p className="text-sm font-medium truncate text-foreground flex-1">{kb.title}</p>
+              <button onClick={(e) => { e.stopPropagation(); onDelete(kb.id); }}
+                className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive shrink-0">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); onDelete(kb.id); }}
-              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+            <p className="text-xs text-muted-foreground pl-6">{kb.file_name} • {kb.chunk_count} chunk</p>
           </div>
         ))}
       </div>

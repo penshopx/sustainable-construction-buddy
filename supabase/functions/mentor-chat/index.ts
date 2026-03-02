@@ -107,22 +107,73 @@ serve(async (req) => {
     const { messages, mentorType, knowledgeBaseId, projectId } = await req.json();
     const systemPrompt = SYSTEM_PROMPTS[mentorType] || SYSTEM_PROMPTS.expert;
 
+    // Extract user's latest question for smart retrieval
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+    const queryWords = lastUserMsg.toLowerCase().replace(/[^\w\s]/g, "").split(/\s+/).filter((w: string) => w.length > 2);
+
     // Build context based on mentor type
     let contextText = "";
 
-    if (mentorType === "learning" && knowledgeBaseId) {
-      // Fetch RAG chunks for learning mentor
-      const { data: chunks } = await adminClient
-        .from("mentor_chunks")
-        .select("content, chunk_index")
-        .eq("knowledge_base_id", knowledgeBaseId)
-        .order("chunk_index", { ascending: true })
-        .limit(20);
+    if ((mentorType === "learning" || mentorType === "project") && knowledgeBaseId) {
+      // Fetch KB summary
+      const { data: kb } = await adminClient
+        .from("mentor_knowledge_bases")
+        .select("summary, title")
+        .eq("id", knowledgeBaseId)
+        .single();
 
-      if (chunks?.length) {
-        contextText = "\n\n=== KONTEN MODUL PEMBELAJARAN ===\n" +
-          chunks.map(c => c.content).join("\n\n---\n\n") +
-          "\n=== AKHIR KONTEN MODUL ===\n";
+      // Fetch all chunks with summaries and keywords
+      const { data: allChunks } = await adminClient
+        .from("mentor_chunks")
+        .select("content, summary, keywords, chunk_index")
+        .eq("knowledge_base_id", knowledgeBaseId)
+        .order("chunk_index", { ascending: true });
+
+      if (allChunks?.length) {
+        // Smart retrieval: score each chunk by keyword relevance
+        const scored = allChunks.map(chunk => {
+          const searchable = `${chunk.content} ${chunk.summary} ${chunk.keywords}`.toLowerCase();
+          let score = 0;
+          for (const word of queryWords) {
+            if (searchable.includes(word)) score++;
+          }
+          // Boost chunks whose keywords match
+          const kws = chunk.keywords.toLowerCase();
+          for (const word of queryWords) {
+            if (kws.includes(word)) score += 2;
+          }
+          return { ...chunk, score };
+        });
+
+        // Sort by relevance, take top 8
+        scored.sort((a, b) => b.score - a.score);
+        const relevant = scored.filter(c => c.score > 0).slice(0, 8);
+        // If no keyword match, include first and last chunks for context
+        const selected = relevant.length > 0
+          ? relevant
+          : allChunks.slice(0, 4);
+
+        const label = mentorType === "learning" ? "KONTEN MODUL PEMBELAJARAN" : "DOKUMEN PROYEK";
+        contextText = `\n\n=== ${label}: ${kb?.title || ""} ===\n`;
+
+        // Include overall summary first
+        if (kb?.summary) {
+          contextText += `\n📋 RINGKASAN DOKUMEN:\n${kb.summary}\n\n`;
+        }
+
+        // Include chunk summaries overview
+        const allSummaries = allChunks.filter(c => c.summary).map((c, i) => `${i + 1}. ${c.summary}`);
+        if (allSummaries.length > 0) {
+          contextText += `📑 OVERVIEW BAGIAN-BAGIAN:\n${allSummaries.join("\n")}\n\n`;
+        }
+
+        // Include detailed content of relevant chunks
+        contextText += `📖 DETAIL KONTEN RELEVAN:\n`;
+        for (const chunk of selected) {
+          contextText += `\n--- Bagian ${chunk.chunk_index + 1} ---\n${chunk.content}\n`;
+        }
+
+        contextText += `\n=== AKHIR ${label} ===\n`;
       }
     }
 
@@ -171,20 +222,7 @@ serve(async (req) => {
           k3.map(c => `• ${c.location} [${c.inspection_date}]: ${c.completed_items}/${c.total_items} (${c.status})`).join("\n");
       }
 
-      // Also fetch project brain documents
-      if (knowledgeBaseId) {
-        const { data: chunks } = await adminClient
-          .from("mentor_chunks")
-          .select("content, chunk_index")
-          .eq("knowledge_base_id", knowledgeBaseId)
-          .order("chunk_index", { ascending: true })
-          .limit(15);
-
-        if (chunks?.length) {
-          contextText += "\n\n--- DOKUMEN PROYEK ---\n" +
-            chunks.map(c => c.content).join("\n\n") + "\n";
-        }
-      }
+      // Project brain documents are handled by the shared KB retrieval block above
 
       contextText += "\n=== AKHIR DATA PROYEK ===\n";
     }
