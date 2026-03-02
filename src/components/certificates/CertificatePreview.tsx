@@ -49,28 +49,25 @@ export default function CertificatePreview() {
               </div>
             </div>
 
-            {/* Title - right after logos */}
+            {/* Title */}
             <h2 className="text-xs md:text-base font-bold tracking-wide mt-10 mb-0" style={{ color }}>
               SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL
             </h2>
-            <h2 className="text-sm md:text-lg font-bold mb-1" style={{ color }}>
+            <h2 className="text-sm md:text-lg font-bold mb-0" style={{ color }}>
               BUJK — {profile?.company || "Nama Perusahaan"}
             </h2>
+            <p className="text-[9px] md:text-xs text-gray-500 mb-0.5">
+              Level: {level}
+            </p>
 
-            {/* Legal basis - styled card */}
-            <div className="px-4 max-w-[88%] mb-1">
-              <div className="rounded-md border px-3 py-1.5" style={{ borderColor: `${color}30`, backgroundColor: `${color}08` }}>
-                <p className="text-[5.5px] md:text-[7.5px] text-gray-600 leading-relaxed italic">
-                  Berdasarkan UU No. 02 tahun 2017 tentang Jasa Konstruksi, Permen PU No. 7 tahun 2024 tentang Pengembangan Usaha Berkelanjutan (PUB) serta Permen PU No. 6 tahun 2025, kegiatan PUB ASPEKINDO merupakan salah satu Persyaratan Perpanjangan SBU Jasa Konstruksi.
-                </p>
-                <p className="text-[5.5px] md:text-[7.5px] text-gray-600 leading-relaxed italic mt-0.5">
-                  Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan :
+            {/* Legal basis - compact */}
+            <div className="px-6 max-w-[92%] mb-0.5">
+              <div className="rounded border px-2 py-1" style={{ borderColor: `${color}30`, backgroundColor: `${color}08` }}>
+                <p className="text-[5px] md:text-[7px] text-gray-600 leading-snug italic">
+                  Berdasarkan UU No. 02/2017 tentang Jasa Konstruksi, Permen PU No. 7/2024 tentang PUB serta Permen PU No. 6/2025, kegiatan PUB ASPEKINDO merupakan salah satu Persyaratan Perpanjangan SBU Jasa Konstruksi. Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan :
                 </p>
               </div>
             </div>
-            <p className="text-[10px] md:text-sm text-gray-500 mb-1">
-              Level: {level}
-            </p>
 
             {/* Awarded to */}
             <p className="text-[9px] md:text-xs text-gray-400 mb-0.5">Diberikan kepada:</p>
