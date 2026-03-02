@@ -34,7 +34,7 @@ export default function CertificatePreview() {
           {/* Inner border */}
           <div className="absolute inset-2 border rounded-md" style={{ borderColor: `${color}40` }} />
 
-          <div className="absolute inset-0 bg-white flex flex-col items-center p-4 text-center">
+          <div className="absolute inset-0 bg-white flex flex-col items-center pt-6 p-4 text-center">
             {/* Logos row */}
             <div className="w-full flex items-center justify-between px-4 mb-1">
               {/* Left: PUB, ASPEKINDO, LSBUKI */}
@@ -93,7 +93,7 @@ export default function CertificatePreview() {
             <p className="text-[8px] md:text-[10px] text-gray-400">No. PUB-XXXXX-XXXXX</p>
 
             {/* Signatures */}
-            <div className="absolute bottom-4 left-0 right-0 flex justify-between px-10">
+            <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-16 md:gap-24">
               <div className="flex flex-col items-center">
                 <div className="w-16 md:w-20 h-6 md:h-8 border-b border-gray-300 mb-1" />
                 <p className="text-[7px] md:text-[9px] text-gray-500 font-semibold">Ketua PUB ASPEKINDO</p>
