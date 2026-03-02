@@ -82,7 +82,7 @@ export default function Marketplace() {
           <h1 className="text-2xl font-bold font-heading text-foreground">Marketplace Digital</h1>
           <p className="text-sm text-muted-foreground">Produk digital untuk mendukung profesionalisme BUJK Anda</p>
         </div>
-        <Button onClick={() => navigate("/my-products")} className="gap-2">
+        <Button onClick={() => navigate("/produk-saya")} className="gap-2">
           <Plus className="w-4 h-4" /> Tambah Produk
         </Button>
       </div>
