@@ -178,31 +178,37 @@ export type Database = {
         Row: {
           certificate_number: string
           company: string
+          company_logo_url: string
           full_name: string
           id: string
           issued_at: string
           level: string
           position: string
+          signature_url: string
           user_id: string
         }
         Insert: {
           certificate_number: string
           company?: string
+          company_logo_url?: string
           full_name?: string
           id?: string
           issued_at?: string
           level: string
           position?: string
+          signature_url?: string
           user_id: string
         }
         Update: {
           certificate_number?: string
           company?: string
+          company_logo_url?: string
           full_name?: string
           id?: string
           issued_at?: string
           level?: string
           position?: string
+          signature_url?: string
           user_id?: string
         }
         Relationships: []
