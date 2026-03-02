@@ -1,11 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
-interface Props {
-  logoUrl: string;
-  signatureUrl: string;
-}
+import logoPub from "@/assets/logo-pub-new.png";
+import logoAspekindo from "@/assets/logo-aspekindo.png";
 
 const levelColor: Record<string, string> = {
   Pemula: "#10B981",
@@ -14,7 +11,7 @@ const levelColor: Record<string, string> = {
   Utama: "#F59E0B",
 };
 
-export default function CertificatePreview({ logoUrl, signatureUrl }: Props) {
+export default function CertificatePreview() {
   const { profile } = useAuth();
   const level = profile?.current_level || "Pemula";
   const color = levelColor[level] || "#3B82F6";
@@ -36,17 +33,14 @@ export default function CertificatePreview({ logoUrl, signatureUrl }: Props) {
           <div className="absolute inset-2 border rounded-md" style={{ borderColor: `${color}40` }} />
 
           <div className="absolute inset-0 bg-white flex flex-col items-center justify-center p-6 text-center">
-            {/* Logo top-left */}
-            {logoUrl && (
-              <img
-                src={logoUrl}
-                alt="Logo"
-                className="absolute top-4 left-4 h-8 md:h-10 object-contain"
-              />
-            )}
+            {/* Institutional logos - top */}
+            <div className="absolute top-3 left-0 right-0 flex items-center justify-center gap-4 px-6">
+              <img src={logoPub} alt="Logo PUB" className="h-8 md:h-12 object-contain" />
+              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-8 md:h-12 object-contain" />
+            </div>
 
             {/* Header */}
-            <p className="text-[10px] md:text-xs font-bold text-gray-700 tracking-wide mb-1">
+            <p className="text-[10px] md:text-xs font-bold text-gray-700 tracking-wide mb-1 mt-6">
               PUB ASPEKINDO — KONSTRUKSI
             </p>
 
@@ -80,14 +74,6 @@ export default function CertificatePreview({ logoUrl, signatureUrl }: Props) {
             <div className="w-1/3 h-px my-2" style={{ backgroundColor: color }} />
 
             <p className="text-[8px] md:text-[10px] text-gray-400">No. PUB-XXXXX-XXXXX</p>
-
-            {/* Signature bottom-right */}
-            {signatureUrl && (
-              <div className="absolute bottom-4 right-4 flex flex-col items-end">
-                <img src={signatureUrl} alt="Signature" className="h-6 md:h-10 object-contain" />
-                <span className="text-[8px] text-gray-400">Tanda Tangan</span>
-              </div>
-            )}
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
