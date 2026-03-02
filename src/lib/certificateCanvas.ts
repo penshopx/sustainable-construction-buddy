@@ -77,62 +77,74 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   ctx.fillStyle = "#1F2937";
   ctx.font = "bold 16px Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("PUB ASPEKINDO — KONSTRUKSI", W / 2, 145);
+  ctx.fillText("PUB ASPEKINDO — KONSTRUKSI", W / 2, 130);
+
+  // Legal basis
+  ctx.fillStyle = "#6B7280";
+  ctx.font = "11px Arial, sans-serif";
+  const legalLine1 = "Berdasarkan UU No. 02 tahun 2017 tentang Jasa Konstruksi, Permen PU No. 7 tahun 2024 tentang Pengembangan Usaha";
+  const legalLine2 = "Berkelanjutan (PUB) serta Permen PU No. 6 tahun 2025, kegiatan PUB ASPEKINDO merupakan salah satu";
+  const legalLine3 = "Persyaratan Perpanjangan SBU Jasa Konstruksi.";
+  ctx.fillText(legalLine1, W / 2, 152);
+  ctx.fillText(legalLine2, W / 2, 166);
+  ctx.fillText(legalLine3, W / 2, 180);
+
+  ctx.fillText("Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan Sertifikat Pelatihan Personil Manajerial BUJK :", W / 2, 200);
 
   // Title
   ctx.fillStyle = color;
-  ctx.font = "bold 40px Arial, sans-serif";
-  ctx.fillText("SERTIFIKAT PERSONIL MANAJERIAL BUJK", W / 2, 200);
+  ctx.font = "bold 36px Arial, sans-serif";
+  ctx.fillText("SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL BUJK", W / 2, 240);
 
   // Level
   ctx.fillStyle = "#6B7280";
   ctx.font = "20px Arial, sans-serif";
-  ctx.fillText(`Level: ${cert.level}`, W / 2, 240);
+  ctx.fillText(`Level: ${cert.level}`, W / 2, 270);
 
   // Awarded to
   ctx.fillStyle = "#9CA3AF";
   ctx.font = "16px Arial, sans-serif";
-  ctx.fillText("Diberikan kepada:", W / 2, 300);
+  ctx.fillText("Diberikan kepada:", W / 2, 310);
 
   // Name
   ctx.fillStyle = "#111827";
   ctx.font = "bold 38px Arial, sans-serif";
-  ctx.fillText(cert.full_name || "—", W / 2, 360);
+  ctx.fillText(cert.full_name || "—", W / 2, 370);
 
   // Company & position
   if (cert.position || cert.company) {
     ctx.fillStyle = "#6B7280";
     ctx.font = "18px Arial, sans-serif";
-    ctx.fillText([cert.position, cert.company].filter(Boolean).join(" — "), W / 2, 400);
+    ctx.fillText([cert.position, cert.company].filter(Boolean).join(" — "), W / 2, 410);
   }
 
   // Description
   ctx.fillStyle = "#4B5563";
   ctx.font = "16px Arial, sans-serif";
-  ctx.fillText("Telah menyelesaikan modul pembelajaran:", W / 2, 450);
+  ctx.fillText("Telah menyelesaikan modul Pembelajaran sebagai Personil Manajerial BUJK :", W / 2, 460);
 
   // Module name
   ctx.fillStyle = "#111827";
   ctx.font = "bold 22px Arial, sans-serif";
-  ctx.fillText(cert.module_name || "—", W / 2, 485);
+  ctx.fillText(cert.module_name || "—", W / 2, 495);
 
   // Decorative line
   ctx.strokeStyle = color;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(350, 510);
-  ctx.lineTo(850, 510);
+  ctx.moveTo(350, 520);
+  ctx.lineTo(850, 520);
   ctx.stroke();
 
   // Certificate number
   ctx.fillStyle = "#9CA3AF";
   ctx.font = "14px Arial, sans-serif";
-  ctx.fillText(`No. ${cert.certificate_number}`, W / 2, 545);
+  ctx.fillText(`No. ${cert.certificate_number}`, W / 2, 555);
 
   // Date
   ctx.fillText(
     `Diterbitkan pada ${new Date(cert.issued_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`,
-    W / 2, 570
+    W / 2, 580
   );
 
   // Signatures
