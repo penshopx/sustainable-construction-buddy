@@ -91,6 +91,7 @@ const App = () => (
             <Route path="/helpdesk" element={<DashboardLayout><HelpdeskAI /></DashboardLayout>} />
             <Route path="/pesanan" element={<DashboardLayout><MyOrders /></DashboardLayout>} />
             <Route path="/produk-saya" element={<DashboardLayout><MyProducts /></DashboardLayout>} />
+            <Route path="/my-products" element={<Navigate to="/produk-saya" replace />} />
             <Route path="/admin" element={<DashboardLayout><AdminGuard><AdminDashboard /></AdminGuard></DashboardLayout>} />
             <Route path="/corporate" element={<DashboardLayout><AdminGuard><CorporateDashboard /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/pancek" element={<DashboardLayout><AdminGuard><AdminPancekVerification /></AdminGuard></DashboardLayout>} />
