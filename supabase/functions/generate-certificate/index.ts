@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { level } = await req.json();
+    const { level, company_logo_url, signature_url } = await req.json();
     if (!level) throw new Error("Level is required");
 
     // Service client for admin operations
@@ -100,6 +100,8 @@ Deno.serve(async (req) => {
         full_name: profile?.full_name || "",
         company: profile?.company || "",
         position: profile?.position || "",
+        company_logo_url: company_logo_url || "",
+        signature_url: signature_url || "",
       })
       .select()
       .single();
