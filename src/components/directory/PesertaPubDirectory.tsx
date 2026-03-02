@@ -63,7 +63,7 @@ export default function PesertaPubDirectory() {
   }), [participants]);
 
   const exportCsv = () => {
-    const headers = ["No", "Nama", "Perusahaan (BUJK)", "No. KTA", "Program", "Status", "Check-In", "Check-Out"];
+    const headers = ["No", "Nama", "Utusan BUJK", "No. KTA", "Program", "Status", "Check-In", "Check-Out"];
     const rows = filtered.map((p, i) => [
       i + 1,
       p.full_name,
@@ -170,7 +170,7 @@ export default function PesertaPubDirectory() {
               <TableRow className="bg-muted/50">
                 <TableHead className="w-10 text-center text-xs">No</TableHead>
                 <TableHead className="text-xs">Nama Peserta</TableHead>
-                <TableHead className="text-xs">Usutan BUJK</TableHead>
+                <TableHead className="text-xs">Utusan BUJK</TableHead>
                 <TableHead className="text-xs">No. KTA</TableHead>
                 <TableHead className="text-xs">Program</TableHead>
                 <TableHead className="text-xs text-center">Status</TableHead>
