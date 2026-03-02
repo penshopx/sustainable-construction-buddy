@@ -47,7 +47,7 @@ export default function CertificatePreview({ logoUrl, signatureUrl }: Props) {
 
             {/* Header */}
             <p className="text-[10px] md:text-xs font-bold text-gray-700 tracking-wide mb-1">
-              PUB ASPEKINDO — Konstruksi
+              PUB ASPEKINDO — KONSTRUKSI
             </p>
 
             {/* Title */}
