@@ -21,9 +21,9 @@ const iconMap: Record<string, React.ElementType> = {
 };
 
 const stageLabels: Record<number, { label: string; color: string }> = {
-  1: { label: "Tahap 1: Legal & Kapasitas", color: "bg-pub-sky/15 text-pub-sky" },
-  2: { label: "Tahap 2: Efisiensi & Digitalisasi", color: "bg-pub-amber/15 text-pub-amber" },
-  3: { label: "Tahap 3: Keberlanjutan & Green", color: "bg-pub-emerald/15 text-pub-emerald" },
+  1: { label: "Tahap 1: Tender & Perencanaan", color: "bg-pub-sky/15 text-pub-sky" },
+  2: { label: "Tahap 2: Pelaksanaan & Pengendalian", color: "bg-pub-amber/15 text-pub-amber" },
+  3: { label: "Tahap 3: Strategis & Keberlanjutan", color: "bg-pub-emerald/15 text-pub-emerald" },
 };
 
 const statusColors: Record<string, string> = {
@@ -256,9 +256,9 @@ export default function Innovation() {
   }, [categories, search, stageFilter]);
 
   const roadmapStages = [
-    { stage: 1, title: "Penguatan Legal & Kapasitas", items: ["SBU", "SKK", "K3", "Manajemen Proyek"] },
-    { stage: 2, title: "Efisiensi & Digitalisasi", items: ["Lean", "ERP", "BIM"] },
-    { stage: 3, title: "Keberlanjutan & Green", items: ["Green Construction", "Circular Economy", "ESG"] },
+    { stage: 1, title: "Tender & Perencanaan", items: ["Bid Calculator", "Contract Scanner", "Baseline Toolkit"] },
+    { stage: 2, title: "Pelaksanaan & Pengendalian", items: ["Margin Protection", "Security", "Post-Project"] },
+    { stage: 3, title: "Strategis & Keberlanjutan", items: ["Environmental Risk", "Portfolio Radar", "Survival Simulator"] },
   ];
 
   return (
@@ -272,10 +272,10 @@ export default function Innovation() {
             </Button>
           </div>
           <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-3xl md:text-5xl font-extrabold font-heading text-primary-foreground mb-4">
-            Inovasi PUB <span className="text-gradient-hero">Konstruksi</span>
+            Inovasi PUB <span className="text-gradient-hero">Risk Control</span>
           </motion.h1>
           <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="text-primary-foreground/70 text-lg max-w-2xl mb-6">
-            Modernisasi & Keberlanjutan — dari Green Construction hingga ESG-Based Governance untuk transformasi industri konstruksi Indonesia.
+            Highly Critical & Rare Toolkit System untuk BUJK Kontraktor — dari Tender hingga Pasca Proyek, kendalikan risiko dengan sistem yang jarang dimiliki kompetitor.
           </motion.p>
 
           {/* Roadmap mini */}
