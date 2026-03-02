@@ -49,8 +49,16 @@ export default function CertificatePreview() {
               </div>
             </div>
 
+            {/* Title - right after logos */}
+            <h2 className="text-xs md:text-base font-bold tracking-wide mt-10 mb-0" style={{ color }}>
+              SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL
+            </h2>
+            <h2 className="text-sm md:text-lg font-bold mb-1" style={{ color }}>
+              BUJK — {profile?.company || "Nama Perusahaan"}
+            </h2>
+
             {/* Legal basis - styled card */}
-            <div className="mt-10 mb-1 px-4 max-w-[88%]">
+            <div className="px-4 max-w-[88%] mb-1">
               <div className="rounded-md border px-3 py-1.5" style={{ borderColor: `${color}30`, backgroundColor: `${color}08` }}>
                 <p className="text-[5.5px] md:text-[7.5px] text-gray-600 leading-relaxed italic">
                   Berdasarkan UU No. 02 tahun 2017 tentang Jasa Konstruksi, Permen PU No. 7 tahun 2024 tentang Pengembangan Usaha Berkelanjutan (PUB) serta Permen PU No. 6 tahun 2025, kegiatan PUB ASPEKINDO merupakan salah satu Persyaratan Perpanjangan SBU Jasa Konstruksi.
@@ -60,14 +68,6 @@ export default function CertificatePreview() {
                 </p>
               </div>
             </div>
-
-            {/* Title - two lines */}
-            <h2 className="text-xs md:text-base font-bold tracking-wide mb-0" style={{ color }}>
-              SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL
-            </h2>
-            <h2 className="text-sm md:text-lg font-bold mb-0.5" style={{ color }}>
-              BUJK — {profile?.company || "Nama Perusahaan"}
-            </h2>
             <p className="text-[10px] md:text-sm text-gray-500 mb-1">
               Level: {level}
             </p>

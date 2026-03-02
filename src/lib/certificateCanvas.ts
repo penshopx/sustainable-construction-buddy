@@ -73,13 +73,19 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   const rightX = W - 60 - logoMaxW;
   await drawLogo(ctx, logoLpjk, rightX, logoY, logoMaxW, logoMaxH);
 
-  // Legal basis - styled box
+  // Title - right after logos
   ctx.textAlign = "center";
-  const boxX = 100, boxW = W - 200, boxY = 125, boxH = 70;
+  ctx.fillStyle = color;
+  ctx.font = "bold 30px Arial, sans-serif";
+  ctx.fillText("SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL", W / 2, 130);
+  ctx.font = "bold 36px Arial, sans-serif";
+  ctx.fillText(`BUJK — ${cert.company || ""}`, W / 2, 168);
+
+  // Legal basis - styled box
+  const boxX = 100, boxW = W - 200, boxY = 185, boxH = 70;
   ctx.fillStyle = color + "10";
   ctx.strokeStyle = color + "30";
   ctx.lineWidth = 1;
-  // Rounded rect
   const r = 8;
   ctx.beginPath();
   ctx.moveTo(boxX + r, boxY);
@@ -102,17 +108,10 @@ export async function downloadCertificateAsPng(cert: Certificate) {
   ctx.fillText("Persyaratan Perpanjangan SBU Jasa Konstruksi.", W / 2, boxY + 46);
   ctx.fillText("Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan :", W / 2, boxY + 62);
 
-  // Title - two lines
-  ctx.fillStyle = color;
-  ctx.font = "bold 30px Arial, sans-serif";
-  ctx.fillText("SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL", W / 2, 228);
-  ctx.font = "bold 36px Arial, sans-serif";
-  ctx.fillText(`BUJK — ${cert.company || ""}`, W / 2, 268);
-
   // Level
   ctx.fillStyle = "#6B7280";
   ctx.font = "20px Arial, sans-serif";
-  ctx.fillText(`Level: ${cert.level}`, W / 2, 298);
+  ctx.fillText(`Level: ${cert.level}`, W / 2, 285);
 
   // Awarded to
   ctx.fillStyle = "#9CA3AF";
