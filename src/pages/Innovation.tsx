@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X, Paperclip, Upload, Wrench, AppWindow, Package } from "lucide-react";
+import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X, Paperclip, Upload, Wrench, AppWindow, Package, Target, BarChart, Users, Link2 } from "lucide-react";
 import { MiniAppGrid } from "@/components/innovation/MiniAppLauncher";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import { useInnovationCategories, useInnovationProposals, useCreateProposal, use
 import { toast } from "sonner";
 
 const iconMap: Record<string, React.ElementType> = {
-  Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb,
+  Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, Target, BarChart, Users, Link2,
 };
 
 const stageLabels: Record<number, { label: string; color: string }> = {
@@ -336,9 +336,9 @@ export default function Innovation() {
   }, [categories, search, stageFilter]);
 
   const roadmapStages = [
-    { stage: 1, title: "Tender & Perencanaan", items: ["Bid Calculator", "Contract Scanner", "Baseline Toolkit"] },
-    { stage: 2, title: "Pelaksanaan & Pengendalian", items: ["Margin Protection", "Security", "Post-Project"] },
-    { stage: 3, title: "Strategis & Keberlanjutan", items: ["Environmental Risk", "Portfolio Radar", "Survival Simulator"] },
+    { stage: 1, title: "Strategi, Keuangan & Perencanaan", items: ["Tender Intelligence", "Financial Control", "Planning Excellence"] },
+    { stage: 2, title: "Pelaksanaan, SDM & Keamanan", items: ["Execution Control", "Supply Chain", "Human Capital", "Risk Security"] },
+    { stage: 3, title: "Teknologi, ESG & Keberlanjutan", items: ["Digital Transformation", "Environmental ESG", "Post-Project"] },
   ];
 
   return (
