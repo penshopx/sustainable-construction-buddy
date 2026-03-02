@@ -53,6 +53,7 @@ export function useMentorChat(mentorType: MentorType) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [externalBots, setExternalBots] = useState<ExternalBot[]>([]);
+  const [selectedExpertBotId, setSelectedExpertBotId] = useState<string>("orchestrator");
 
   const loadKnowledgeBases = useCallback(async () => {
     if (!user) return;
@@ -227,6 +228,7 @@ export function useMentorChat(mentorType: MentorType) {
           mentorType,
           knowledgeBaseId: selectedKbId,
           projectId: selectedProjectId,
+          expertBotId: mentorType === "expert" ? selectedExpertBotId : undefined,
         }),
       });
 
@@ -317,7 +319,7 @@ export function useMentorChat(mentorType: MentorType) {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, user, activeConversationId, mentorType, selectedKbId, selectedProjectId, loadConversations]);
+  }, [messages, isLoading, user, activeConversationId, mentorType, selectedKbId, selectedProjectId, selectedExpertBotId, loadConversations]);
 
   // External bot CRUD
   const addExternalBot = useCallback(async (bot: Omit<ExternalBot, "id" | "is_active">) => {
@@ -337,6 +339,7 @@ export function useMentorChat(mentorType: MentorType) {
     conversations, activeConversationId,
     messages, isLoading,
     externalBots,
+    selectedExpertBotId, setSelectedExpertBotId,
     uploadKnowledgeBase, deleteKnowledgeBase,
     sendMessage, selectConversation, startNewConversation, deleteConversation,
     addExternalBot, deleteExternalBot,

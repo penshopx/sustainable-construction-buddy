@@ -5,6 +5,7 @@ import { useMentorChat, MentorType } from "@/hooks/useMentorChat";
 import MentorChatPanel from "@/components/mentor/MentorChatPanel";
 import KnowledgeBaseManager from "@/components/mentor/KnowledgeBaseManager";
 import ExternalBotManager from "@/components/mentor/ExternalBotManager";
+import ExpertBotCatalog, { BUILT_IN_BOTS } from "@/components/mentor/ExpertBotCatalog";
 import {
   BookOpen, Brain, Wrench, HardHat, Shield, DollarSign,
   FileText, Lightbulb, Target, TrendingUp, AlertTriangle,
@@ -102,11 +103,10 @@ const Mentor = () => {
         )}
         {activeTab === "expert" && (
           <>
-            <div className="mb-3">
-              <h4 className="text-sm font-heading font-semibold text-foreground mb-1">Pakar Cerdas AI</h4>
-              <p className="text-xs text-muted-foreground">Chatbot built-in manajemen konstruksi Indonesia.</p>
+            <ExpertBotCatalog compact selectedBotId={mentor.selectedExpertBotId} onSelect={mentor.setSelectedExpertBotId} />
+            <div className="mt-2">
+              <ExternalBotManager bots={mentor.externalBots} onAdd={mentor.addExternalBot} onDelete={mentor.deleteExternalBot} />
             </div>
-            <ExternalBotManager bots={mentor.externalBots} onAdd={mentor.addExternalBot} onDelete={mentor.deleteExternalBot} />
           </>
         )}
         {activeTab === "project" && (
@@ -155,12 +155,7 @@ const Mentor = () => {
 
           {activeTab === "expert" && (
             <>
-              <div className="p-3 rounded-xl border border-border bg-card">
-                <h4 className="text-sm font-heading font-semibold text-foreground mb-2">Pakar Cerdas AI</h4>
-                <p className="text-xs text-muted-foreground">
-                  Chatbot built-in dengan pengetahuan mendalam tentang manajemen konstruksi Indonesia, regulasi, dan best practices.
-                </p>
-              </div>
+              <ExpertBotCatalog selectedBotId={mentor.selectedExpertBotId} onSelect={mentor.setSelectedExpertBotId} />
               <ExternalBotManager
                 bots={mentor.externalBots}
                 onAdd={mentor.addExternalBot}
@@ -214,8 +209,12 @@ const Mentor = () => {
             onNewConversation={mentor.startNewConversation}
             onDeleteConversation={mentor.deleteConversation}
             quickPrompts={QUICK_PROMPTS[activeTab]}
-            emptyTitle={EMPTY_TITLES[activeTab]}
-            emptyDescription={EMPTY_DESCS[activeTab]}
+            emptyTitle={activeTab === "expert"
+              ? (BUILT_IN_BOTS.find(b => b.id === mentor.selectedExpertBotId)?.name || EMPTY_TITLES[activeTab])
+              : EMPTY_TITLES[activeTab]}
+            emptyDescription={activeTab === "expert"
+              ? (BUILT_IN_BOTS.find(b => b.id === mentor.selectedExpertBotId)?.description || EMPTY_DESCS[activeTab])
+              : EMPTY_DESCS[activeTab]}
           />
         </div>
       </div>
