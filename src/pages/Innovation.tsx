@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X, Paperclip, Upload } from "lucide-react";
+import { Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, ChevronRight, Send, ArrowLeft, CheckCircle2, FileText, Trash2, Search, X, Paperclip, Upload, Wrench, AppWindow, Package } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,28 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
   const Icon = iconMap[category.icon] || Lightbulb;
   const stage = stageLabels[category.stage];
 
+  // Parse concepts into toolkit/toolbox/miniapp groups
+  const toolkits = category.concepts.filter(c => c.startsWith('🧰'));
+  const toolboxes = category.concepts.filter(c => c.startsWith('📦'));
+  const miniApps = category.concepts.filter(c => c.startsWith('📱'));
+  const ungrouped = category.concepts.filter(c => !c.startsWith('🧰') && !c.startsWith('📦') && !c.startsWith('📱'));
+
+  const parseItem = (item: string) => {
+    // Remove emoji prefix and "TOOLKIT: " / "TOOLBOX: " / "MINI APP: " labels
+    const cleaned = item.replace(/^(🧰 TOOLKIT: |📦 TOOLBOX: |📱 MINI APP: )/, '');
+    const dashIdx = cleaned.indexOf(' — ');
+    if (dashIdx > 0) {
+      return { title: cleaned.slice(0, dashIdx), desc: cleaned.slice(dashIdx + 3) };
+    }
+    return { title: cleaned, desc: '' };
+  };
+
+  const sections = [
+    { items: toolkits, label: 'Toolkit — Sistem Terpadu', icon: Wrench, color: 'text-pub-amber', bgColor: 'bg-pub-amber/10', borderColor: 'border-pub-amber/20' },
+    { items: toolboxes, label: 'Toolbox — Template Operasional', icon: Package, color: 'text-pub-sky', bgColor: 'bg-pub-sky/10', borderColor: 'border-pub-sky/20' },
+    { items: miniApps, label: 'Mini Apps — Alat Hitung & Dashboard', icon: AppWindow, color: 'text-pub-emerald', bgColor: 'bg-pub-emerald/10', borderColor: 'border-pub-emerald/20' },
+  ];
+
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
       <Button variant="ghost" onClick={onBack} className="mb-4 gap-2">
@@ -56,25 +78,54 @@ function CategoryDetail({ category, onBack }: { category: InnovationCategory; on
 
       <p className="text-muted-foreground mb-8 text-lg">{category.description}</p>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-pub-amber" /> Konsep & Ruang Inovasi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* Toolkit / Toolbox / Mini Apps sections */}
+      <div className="space-y-6 mb-8">
+        {sections.map((section) => {
+          if (section.items.length === 0) return null;
+          const SectionIcon = section.icon;
+          return (
+            <div key={section.label}>
+              <div className="flex items-center gap-2 mb-3">
+                <SectionIcon className={`w-5 h-5 ${section.color}`} />
+                <h3 className="text-base font-bold font-heading">{section.label}</h3>
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">
+                {section.items.map((item, i) => {
+                  const parsed = parseItem(item);
+                  return (
+                    <Card key={i} className={`border ${section.borderColor} ${section.bgColor} hover:shadow-card-hover transition-all`}>
+                      <CardContent className="p-4">
+                        <p className="text-sm font-semibold text-foreground mb-1">{parsed.title}</p>
+                        {parsed.desc && <p className="text-xs text-muted-foreground leading-relaxed">{parsed.desc}</p>}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Ungrouped concepts fallback */}
+        {ungrouped.length > 0 && (
+          <div>
+            <h3 className="text-base font-bold font-heading mb-3 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-pub-amber" /> Konsep & Ruang Inovasi
+            </h3>
             <ul className="space-y-2">
-              {category.concepts.map((c, i) => (
+              {ungrouped.map((c, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
                   <ChevronRight className="w-3.5 h-3.5 mt-0.5 text-pub-amber shrink-0" />
                   <span>{c}</span>
                 </li>
               ))}
             </ul>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+      </div>
 
+      {/* Programs & Benefits */}
+      <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -405,9 +456,11 @@ export default function Innovation() {
                                   </CardHeader>
                                   <CardContent>
                                     <div className="flex items-center text-xs text-muted-foreground gap-1">
-                                      <span>{cat.concepts.length} konsep</span>
+                                      <span>{cat.concepts.filter(c => c.startsWith('🧰')).length} toolkit</span>
                                       <span>·</span>
-                                      <span>{cat.programs.length} program</span>
+                                      <span>{cat.concepts.filter(c => c.startsWith('📦')).length} toolbox</span>
+                                      <span>·</span>
+                                      <span>{cat.concepts.filter(c => c.startsWith('📱')).length} mini app</span>
                                       <ChevronRight className="w-3 h-3 ml-auto group-hover:translate-x-1 transition-transform" />
                                     </div>
                                   </CardContent>
