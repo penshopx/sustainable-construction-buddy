@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Loader2 } from "lucide-react";
 import { usePubParticipantsDirectory, type PubParticipantEntry } from "@/hooks/usePubParticipantsDirectory";
+import { useAdmin } from "@/hooks/useAdmin";
+import AdminPesertaDialog from "@/components/directory/AdminPesertaDialog";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   registered: { label: "Terdaftar", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300" },
@@ -28,6 +30,7 @@ function fmtDate(iso: string | null) {
 }
 
 export default function PesertaPubDirectory() {
+  const { isAdmin } = useAdmin();
   const { data: participants = [], isLoading } = usePubParticipantsDirectory();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -148,6 +151,7 @@ export default function PesertaPubDirectory() {
         <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCsv} disabled={filtered.length === 0}>
           <Download className="w-4 h-4" /> CSV
         </Button>
+        {isAdmin && <AdminPesertaDialog mode="add" />}
       </div>
 
       {/* Table */}
@@ -180,6 +184,7 @@ export default function PesertaPubDirectory() {
                 <TableHead className="text-xs">
                   <div className="flex items-center gap-1"><LogOut className="w-3 h-3" /> Check-Out</div>
                 </TableHead>
+                {isAdmin && <TableHead className="text-xs w-10"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -205,6 +210,11 @@ export default function PesertaPubDirectory() {
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{fmtDateTime(p.checked_in_at)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{fmtDateTime(p.checked_out_at)}</TableCell>
+                    {isAdmin && (
+                      <TableCell className="p-1">
+                        <AdminPesertaDialog mode="edit" participant={p} />
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
