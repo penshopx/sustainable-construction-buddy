@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import type { PakarMode } from "@/pages/HelpdeskAI";
 
 export type Msg = { role: "user" | "assistant"; content: string };
 
@@ -14,7 +15,7 @@ export type Conversation = {
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/helpdesk-chat`;
 
-export function useHelpdeskChat() {
+export function useHelpdeskChat(mode: PakarMode = "pembelajaran") {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -22,7 +23,6 @@ export function useHelpdeskChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
 
-  // Load conversations list
   const loadConversations = useCallback(async () => {
     if (!user) return;
     setLoadingConversations(true);
@@ -39,7 +39,6 @@ export function useHelpdeskChat() {
     loadConversations();
   }, [loadConversations]);
 
-  // Load messages for active conversation
   const loadMessages = useCallback(async (conversationId: string) => {
     const { data } = await supabase
       .from("helpdesk_messages")
@@ -79,7 +78,6 @@ export function useHelpdeskChat() {
     let conversationId = activeConversationId;
 
     try {
-      // Create conversation if new
       if (!conversationId) {
         const title = text.trim().slice(0, 80);
         const { data: conv, error: convError } = await supabase
@@ -91,14 +89,12 @@ export function useHelpdeskChat() {
         conversationId = conv.id;
         setActiveConversationId(conversationId);
       } else {
-        // Update timestamp
         await supabase
           .from("helpdesk_conversations")
           .update({ updated_at: new Date().toISOString() })
           .eq("id", conversationId);
       }
 
-      // Save user message
       await supabase.from("helpdesk_messages").insert({
         conversation_id: conversationId,
         user_id: user.id,
@@ -106,7 +102,7 @@ export function useHelpdeskChat() {
         content: text.trim(),
       });
 
-      // Stream AI response
+      // Stream AI response with mode
       let assistantSoFar = "";
       const resp = await fetch(CHAT_URL, {
         method: "POST",
@@ -114,7 +110,7 @@ export function useHelpdeskChat() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: allMessages }),
+        body: JSON.stringify({ messages: allMessages, mode }),
       });
 
       if (!resp.ok) {
@@ -188,7 +184,6 @@ export function useHelpdeskChat() {
         }
       }
 
-      // Save assistant message
       if (assistantSoFar && conversationId) {
         await supabase.from("helpdesk_messages").insert({
           conversation_id: conversationId,
@@ -204,7 +199,7 @@ export function useHelpdeskChat() {
     } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, user, activeConversationId, loadConversations]);
+  }, [messages, isLoading, user, activeConversationId, loadConversations, mode]);
 
   return {
     conversations,
