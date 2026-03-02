@@ -183,6 +183,7 @@ export type Database = {
           id: string
           issued_at: string
           level: string
+          module_name: string
           position: string
           signature_url: string
           user_id: string
@@ -195,6 +196,7 @@ export type Database = {
           id?: string
           issued_at?: string
           level: string
+          module_name?: string
           position?: string
           signature_url?: string
           user_id: string
@@ -207,6 +209,7 @@ export type Database = {
           id?: string
           issued_at?: string
           level?: string
+          module_name?: string
           position?: string
           signature_url?: string
           user_id?: string

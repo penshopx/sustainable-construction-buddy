@@ -73,9 +73,12 @@ export default function CertificatePreview() {
               </p>
             )}
 
-            <p className="text-[9px] md:text-xs text-gray-500 max-w-[80%]">
-              Telah menyelesaikan seluruh modul pembelajaran Personil Manajerial BUJK pada level {level}
+            <p className="text-[9px] md:text-xs text-gray-500">
+              Telah menyelesaikan modul pembelajaran:
             </p>
+            <h4 className="text-[10px] md:text-sm font-bold text-gray-900 mt-0.5">
+              Nama Modul
+            </h4>
 
             {/* Decorative line */}
             <div className="w-1/3 h-px my-2" style={{ backgroundColor: color }} />
