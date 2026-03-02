@@ -34,23 +34,21 @@ export default function CertificatePreview() {
           {/* Inner border */}
           <div className="absolute inset-2 border rounded-md" style={{ borderColor: `${color}40` }} />
 
-          <div className="absolute inset-0 bg-white flex flex-col items-center pt-6 p-4 text-center">
-            {/* Logos row */}
-            <div className="w-full flex items-center justify-between px-4 mb-1">
-              {/* Left: PUB, ASPEKINDO, LSBUKI */}
+          <div className="absolute inset-0 bg-white flex flex-col items-center p-4 text-center">
+            {/* Logos row - fixed position */}
+            <div className="absolute top-3 left-0 right-0 flex items-center justify-between px-6">
               <div className="flex items-center gap-2">
-                <img src={logoPub} alt="PUB" className="h-5 md:h-8 object-contain" />
-                <img src={logoAspekindo} alt="ASPEKINDO" className="h-5 md:h-8 object-contain" />
-                <img src={logoLsbuki} alt="LSBUKI" className="h-5 md:h-8 object-contain" />
+                <img src={logoPub} alt="PUB" className="h-6 md:h-10 object-contain" />
+                <img src={logoAspekindo} alt="ASPEKINDO" className="h-6 md:h-10 object-contain" />
+                <img src={logoLsbuki} alt="LSBUKI" className="h-6 md:h-10 object-contain" />
               </div>
-              {/* Right: LPJK-PU */}
               <div className="flex items-center gap-2">
-                <img src={logoLpjk} alt="LPJK-PU" className="h-5 md:h-8 object-contain" />
+                <img src={logoLpjk} alt="LPJK-PU" className="h-6 md:h-10 object-contain" />
               </div>
             </div>
 
-            {/* Title */}
-            <h2 className="text-xs md:text-base font-bold tracking-wide mb-0" style={{ color }}>
+            {/* Title - pushed down from logos */}
+            <h2 className="text-xs md:text-base font-bold tracking-wide mt-14 mb-0" style={{ color }}>
               SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL
             </h2>
             <h2 className="text-sm md:text-lg font-bold mb-0" style={{ color }}>
