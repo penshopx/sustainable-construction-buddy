@@ -3,6 +3,9 @@ import { Eye } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import logoPub from "@/assets/logo-pub-new.png";
 import logoAspekindo from "@/assets/logo-aspekindo.png";
+import logoLsbuki from "@/assets/logo-lsbuki.png";
+import logoPu from "@/assets/logo-pu.png";
+import logoLpjk from "@/assets/logo-lpjk.png";
 
 const levelColor: Record<string, string> = {
   Pemula: "#10B981",
@@ -33,35 +36,41 @@ export default function CertificatePreview() {
           <div className="absolute inset-2 border rounded-md" style={{ borderColor: `${color}40` }} />
 
           <div className="absolute inset-0 bg-white flex flex-col items-center justify-center p-6 text-center">
-            {/* Institutional logos - top */}
-            <div className="absolute top-3 left-0 right-0 flex items-center justify-center gap-4 px-6">
-              <img src={logoPub} alt="Logo PUB" className="h-8 md:h-12 object-contain" />
-              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-8 md:h-12 object-contain" />
+            {/* Logos row */}
+            <div className="absolute top-3 left-0 right-0 flex items-center justify-between px-6">
+              {/* Left: PUB, ASPEKINDO, LSBUKI */}
+              <div className="flex items-center gap-2">
+                <img src={logoPub} alt="PUB" className="h-6 md:h-10 object-contain" />
+                <img src={logoAspekindo} alt="ASPEKINDO" className="h-6 md:h-10 object-contain" />
+                <img src={logoLsbuki} alt="LSBUKI" className="h-6 md:h-10 object-contain" />
+              </div>
+              {/* Right: PU, LPJK */}
+              <div className="flex items-center gap-2">
+                <img src={logoPu} alt="PU" className="h-6 md:h-10 object-contain" />
+                <img src={logoLpjk} alt="LPJK" className="h-6 md:h-10 object-contain" />
+              </div>
             </div>
 
             {/* Header */}
-            <p className="text-[10px] md:text-xs font-bold text-gray-700 tracking-wide mb-1 mt-6">
+            <p className="text-[10px] md:text-xs font-bold text-gray-700 tracking-wide mb-1 mt-8">
               PUB ASPEKINDO — KONSTRUKSI
             </p>
 
             {/* Title */}
-            <h2
-              className="text-lg md:text-2xl font-bold mb-0.5"
-              style={{ color }}
-            >
+            <h2 className="text-base md:text-xl font-bold mb-0.5" style={{ color }}>
               SERTIFIKAT PERSONIL MANAJERIAL BUJK
             </h2>
-            <p className="text-[10px] md:text-sm text-gray-500 mb-3">
+            <p className="text-[10px] md:text-sm text-gray-500 mb-2">
               Level: {level}
             </p>
 
             {/* Awarded to */}
             <p className="text-[9px] md:text-xs text-gray-400 mb-1">Diberikan kepada:</p>
-            <h3 className="text-base md:text-xl font-bold text-gray-900 mb-0.5">
+            <h3 className="text-sm md:text-lg font-bold text-gray-900 mb-0.5">
               {profile?.full_name || "Nama Anda"}
             </h3>
             {(profile?.position || profile?.company) && (
-              <p className="text-[10px] md:text-sm text-gray-500 mb-2">
+              <p className="text-[10px] md:text-sm text-gray-500 mb-1">
                 {[profile?.position, profile?.company].filter(Boolean).join(" — ")}
               </p>
             )}
@@ -74,6 +83,18 @@ export default function CertificatePreview() {
             <div className="w-1/3 h-px my-2" style={{ backgroundColor: color }} />
 
             <p className="text-[8px] md:text-[10px] text-gray-400">No. PUB-XXXXX-XXXXX</p>
+
+            {/* Signatures */}
+            <div className="absolute bottom-4 left-0 right-0 flex justify-between px-10">
+              <div className="flex flex-col items-center">
+                <div className="w-16 md:w-20 h-6 md:h-8 border-b border-gray-300 mb-1" />
+                <p className="text-[7px] md:text-[9px] text-gray-500 font-semibold">Ketua PUB ASPEKINDO</p>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="w-16 md:w-20 h-6 md:h-8 border-b border-gray-300 mb-1" />
+                <p className="text-[7px] md:text-[9px] text-gray-500 font-semibold">Ketua Umum DPN ASPEKINDO</p>
+              </div>
+            </div>
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
