@@ -9,6 +9,10 @@ const CashflowStressTest = lazy(() => import("./CashflowStressTest"));
 const MarginLeakScanner = lazy(() => import("./MarginLeakScanner"));
 const FuelLossTracker = lazy(() => import("./FuelLossTracker"));
 const SurvivalSimulator = lazy(() => import("./SurvivalSimulator"));
+const ProductivityChecker = lazy(() => import("./ProductivityChecker"));
+const DustNoiseIndex = lazy(() => import("./DustNoiseIndex"));
+const RetentionPlanner = lazy(() => import("./RetentionPlanner"));
+const MultiProjectRadar = lazy(() => import("./MultiProjectRadar"));
 
 export interface MiniAppDef {
   id: string;
@@ -23,6 +27,10 @@ export const miniAppRegistry: MiniAppDef[] = [
   { id: "margin-leak", name: "Margin Leak Scanner", description: "Deteksi sumber kebocoran margin proyek", categorySlug: "margin-protection" },
   { id: "fuel-loss", name: "Equipment & Fuel Loss Tracker", description: "Monitor anomali konsumsi BBM alat berat", categorySlug: "project-security" },
   { id: "survival-sim", name: "Business Survival Simulator", description: "Berapa bulan perusahaan bertahan?", categorySlug: "business-survival" },
+  { id: "productivity-checker", name: "Productivity Reality Checker", description: "Bandingkan estimasi produktivitas vs standar histori", categorySlug: "realistic-baseline" },
+  { id: "dust-noise", name: "Dust & Noise Risk Index", description: "Hitung skor risiko protes masyarakat dari debu & kebisingan", categorySlug: "environmental-risk" },
+  { id: "retention-planner", name: "Retention Recovery Planner", description: "Tracking retensi proyek & jatuh tempo pencairan", categorySlug: "post-project-recovery" },
+  { id: "multi-project-radar", name: "Multi-Project Risk Radar", description: "Pantau risiko gabungan semua proyek aktif", categorySlug: "multi-project-radar" },
 ];
 
 const componentMap: Record<string, React.LazyExoticComponent<() => JSX.Element>> = {
@@ -31,6 +39,10 @@ const componentMap: Record<string, React.LazyExoticComponent<() => JSX.Element>>
   "margin-leak": MarginLeakScanner,
   "fuel-loss": FuelLossTracker,
   "survival-sim": SurvivalSimulator,
+  "productivity-checker": ProductivityChecker,
+  "dust-noise": DustNoiseIndex,
+  "retention-planner": RetentionPlanner,
+  "multi-project-radar": MultiProjectRadar,
 };
 
 export function MiniAppLauncher({ appId, children }: { appId: string; children?: React.ReactNode }) {
