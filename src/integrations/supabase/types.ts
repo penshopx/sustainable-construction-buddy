@@ -216,6 +216,42 @@ export type Database = {
         }
         Relationships: []
       }
+      chatbot_knowledge_links: {
+        Row: {
+          chatbot_id: string
+          created_at: string
+          id: string
+          knowledge_base_id: string
+        }
+        Insert: {
+          chatbot_id: string
+          created_at?: string
+          id?: string
+          knowledge_base_id: string
+        }
+        Update: {
+          chatbot_id?: string
+          created_at?: string
+          id?: string
+          knowledge_base_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_knowledge_links_chatbot_id_fkey"
+            columns: ["chatbot_id"]
+            isOneToOne: false
+            referencedRelation: "custom_chatbots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chatbot_knowledge_links_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "mentor_knowledge_bases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competency_domains: {
         Row: {
           description: string
@@ -309,6 +345,65 @@ export type Database = {
         }
         Relationships: []
       }
+      custom_chatbots: {
+        Row: {
+          avatar_url: string
+          created_at: string
+          description: string
+          id: string
+          is_public: boolean
+          mode: string
+          name: string
+          persona: string
+          project_id: string | null
+          share_token: string | null
+          tools: Json
+          updated_at: string
+          user_id: string
+          welcome_message: string
+        }
+        Insert: {
+          avatar_url?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_public?: boolean
+          mode?: string
+          name?: string
+          persona?: string
+          project_id?: string | null
+          share_token?: string | null
+          tools?: Json
+          updated_at?: string
+          user_id: string
+          welcome_message?: string
+        }
+        Update: {
+          avatar_url?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_public?: boolean
+          mode?: string
+          name?: string
+          persona?: string
+          project_id?: string | null
+          share_token?: string | null
+          tools?: Json
+          updated_at?: string
+          user_id?: string
+          welcome_message?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_chatbots_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       e_course_modules: {
         Row: {
           content: string
@@ -355,6 +450,7 @@ export type Database = {
       }
       helpdesk_conversations: {
         Row: {
+          chatbot_id: string | null
           created_at: string
           id: string
           title: string
@@ -362,6 +458,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          chatbot_id?: string | null
           created_at?: string
           id?: string
           title?: string
@@ -369,13 +466,22 @@ export type Database = {
           user_id: string
         }
         Update: {
+          chatbot_id?: string | null
           created_at?: string
           id?: string
           title?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "helpdesk_conversations_chatbot_id_fkey"
+            columns: ["chatbot_id"]
+            isOneToOne: false
+            referencedRelation: "custom_chatbots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       helpdesk_messages: {
         Row: {
