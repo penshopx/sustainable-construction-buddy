@@ -50,20 +50,28 @@ export default function CertificatePreview() {
             </div>
 
             {/* Header */}
-            <p className="text-[10px] md:text-xs font-bold text-gray-700 tracking-wide mb-1 mt-8">
+            <p className="text-[10px] md:text-xs font-bold text-gray-700 tracking-wide mb-0.5 mt-8">
               PUB ASPEKINDO — KONSTRUKSI
             </p>
 
+            {/* Legal basis */}
+            <p className="text-[6px] md:text-[8px] text-gray-500 leading-tight mb-0.5 px-4 max-w-[90%]">
+              Berdasarkan UU No. 02 tahun 2017 tentang Jasa Konstruksi, Permen PU No. 7 tahun 2024 tentang Pengembangan Usaha Berkelanjutan (PUB) serta Permen PU No. 6 tahun 2025, kegiatan PUB ASPEKINDO merupakan salah satu Persyaratan Perpanjangan SBU Jasa Konstruksi.
+            </p>
+            <p className="text-[6px] md:text-[8px] text-gray-500 leading-tight mb-1 px-4 max-w-[90%]">
+              Atas partisipasi dalam kegiatan PUB ASPEKINDO, diberikan Sertifikat Pelatihan Personil Manajerial BUJK :
+            </p>
+
             {/* Title */}
-            <h2 className="text-base md:text-xl font-bold mb-0.5" style={{ color }}>
-              SERTIFIKAT PERSONIL MANAJERIAL BUJK
+            <h2 className="text-sm md:text-lg font-bold mb-0.5" style={{ color }}>
+              SERTIFIKAT PELATIHAN PERSONIL MANAJERIAL BUJK
             </h2>
-            <p className="text-[10px] md:text-sm text-gray-500 mb-2">
+            <p className="text-[10px] md:text-sm text-gray-500 mb-1">
               Level: {level}
             </p>
 
             {/* Awarded to */}
-            <p className="text-[9px] md:text-xs text-gray-400 mb-1">Diberikan kepada:</p>
+            <p className="text-[9px] md:text-xs text-gray-400 mb-0.5">Diberikan kepada:</p>
             <h3 className="text-sm md:text-lg font-bold text-gray-900 mb-0.5">
               {profile?.full_name || "Nama Anda"}
             </h3>
@@ -74,7 +82,7 @@ export default function CertificatePreview() {
             )}
 
             <p className="text-[9px] md:text-xs text-gray-500">
-              Telah menyelesaikan modul pembelajaran:
+              Telah menyelesaikan modul Pembelajaran sebagai Personil Manajerial BUJK :
             </p>
             <h4 className="text-[10px] md:text-sm font-bold text-gray-900 mt-0.5">
               Nama Modul
