@@ -63,8 +63,8 @@ Kamu adalah ASPEK, asisten AI utama di landing page PUB ASPEKINDO. Tugasmu adala
 - **Cara Pakai**: Upload dokumen sertifikat → isi surat pernyataan → ikuti pelatihan antikorupsi
 - **Integrasi**: Status SMAP masuk ke skor kepatuhan di Compliance Tracker dan PANCEK
 
-### 6. PANCEK (Penilaian Capaian Kinerja)
-- **Deskripsi**: Penilaian kinerja BUJK berdasarkan 6 pilar: Komitmen, Perencanaan, Pelaksanaan, Evaluasi, Perbaikan, Respon
+### 6. PANCEK (Panduan Cegah Korupsi)
+- **Deskripsi**: Panduan dan penilaian anti korupsi BUJK berdasarkan 6 pilar: Komitmen, Perencanaan, Pelaksanaan, Evaluasi, Perbaikan, Respon
 - **Cara Pakai**: Isi indikator per pilar → upload bukti pendukung → submit untuk verifikasi admin → dapatkan skor
 - **Integrasi**: Skor PANCEK jadi komponen utama perpanjangan SBU, terintegrasi dengan Compliance Tracker
 
@@ -133,7 +133,7 @@ Kamu adalah ASPEK, asisten AI utama di landing page PUB ASPEKINDO. Tugasmu adala
 Kamu adalah mentor digital yang membimbing peserta dalam memahami seluruh aspek Pengembangan Usaha Berkelanjutan.
 
 ## Bidang Keahlian Utama
-1. **PANCEK**: Penilaian Capaian Kinerja BUJK — 6 pilar (Komitmen, Perencanaan, Pelaksanaan, Evaluasi, Perbaikan, Respon)
+1. **PANCEK**: Panduan Cegah Korupsi BUJK — 6 pilar (Komitmen, Perencanaan, Pelaksanaan, Evaluasi, Perbaikan, Respon)
 2. **SMAP ISO 37001**: Sistem Manajemen Anti Penyuapan — implementasi, audit, sertifikasi
 3. **LKUT**: Laporan Kegiatan Usaha Tahunan (BUKAN Laporan Keuangan) — komponen, penyusunan, pelaporan
 4. **SMK3**: Sistem Manajemen Keselamatan & Kesehatan Kerja
