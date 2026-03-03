@@ -84,7 +84,7 @@ const IndustryProblemSection = () => {
                   <p className="text-3xl font-extrabold font-heading text-destructive mb-1">{p.stat}</p>
                   <h3 className="text-lg font-bold font-heading text-foreground mb-2">{p.title}</h3>
                   <p className="text-sm text-muted-foreground font-body leading-relaxed mb-3">{p.detail}</p>
-                  <p className="text-xs text-muted-foreground/60 font-body italic">Sumber: {p.source}</p>
+                  <p className="text-xs text-foreground/80 font-body italic mt-2 px-2 py-1 rounded bg-background/80 border border-border/50 inline-block">📎 Sumber: {p.source}</p>
                 </div>
               </div>
             </motion.div>
@@ -119,7 +119,7 @@ const IndustryProblemSection = () => {
             >
               <p className="text-2xl md:text-3xl font-extrabold font-heading text-pub-amber">{d.value}</p>
               <p className="text-sm font-semibold text-foreground mt-1 font-heading">{d.label}</p>
-              <p className="text-xs text-muted-foreground font-body mt-0.5">{d.sub}</p>
+              <p className="text-xs text-foreground/70 font-body mt-1 px-2 py-0.5 rounded bg-background/60 border border-border/40 inline-block">📎 {d.sub}</p>
             </motion.div>
           ))}
         </div>

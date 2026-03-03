@@ -4,7 +4,7 @@ import logoPub from "@/assets/logo-pub-new.png";
 import logoAspekindo from "@/assets/logo-aspekindo.png";
 import logoLsbuki from "@/assets/logo-lsbuki.webp";
 import logoPu from "@/assets/logo-pu.png";
-import logoLpjk from "@/assets/logo-lpjk.png";
+
 
 const credentials = [
   { value: "UU 02/2017", label: "Dasar Hukum", sub: "Undang-Undang Jasa Konstruksi" },
@@ -24,10 +24,9 @@ const reach = [
 
 const logos = [
   { src: logoPu, alt: "Kementerian PUPR", name: "Kementerian PUPR" },
-  { src: logoPub, alt: "PUB ASPEKINDO", name: "PUB" },
+  { src: logoPub, alt: "PUB ASPEKINDO", name: "PUB ASPEKINDO" },
   { src: logoAspekindo, alt: "ASPEKINDO", name: "ASPEKINDO" },
   { src: logoLsbuki, alt: "LSBU KI", name: "LSBU KI" },
-  { src: logoLpjk, alt: "Konstruksi Indonesia", name: "Konstruksi Indonesia" },
 ];
 
 const SocialProofSection = () => {

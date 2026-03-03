@@ -20,7 +20,7 @@ Saya siap membantu Anda seputar:
 - 📊 **PANCEK** — penilaian kinerja berkelanjutan
 - 🏗️ **Regulasi Konstruksi** — UU, PP, dan peraturan terkait
 - 🔒 **SMAP ISO 37001** — anti penyuapan
-- 📈 **LKUT** — laporan kinerja usaha tahunan
+- 📈 **LKUT** — laporan kegiatan usaha tahunan
 
 Apa yang ingin Anda ketahui hari ini? 😊`,
 };

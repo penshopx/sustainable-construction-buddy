@@ -139,7 +139,7 @@ const STEPS = [
     id: "lkut",
     icon: FileText,
     title: "Laporan LKUT",
-    subtitle: "Laporan Kinerja Usaha Tahunan",
+    subtitle: "Laporan Kegiatan Usaha Tahunan",
     description:
       "Buat laporan LKUT komprehensif mencakup SBU, keuangan, SDM, sertifikasi, dan penghargaan. Ekspor ke PDF.",
     color: "from-indigo-600 to-violet-500",

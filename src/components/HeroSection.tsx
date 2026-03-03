@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import logoPub from "@/assets/logo-pub-new.png";
 import logoAspekindo from "@/assets/logo-aspekindo.png";
-import logoLsbuki from "@/assets/logo-lsbuki.webp";
 
 const shockStats = [
   { value: "65%", label: "BUJK gagal perpanjang SBU karena tidak memenuhi kewajiban PUB", icon: AlertTriangle },
@@ -31,10 +30,11 @@ const HeroSection = () => {
           transition={{ duration: 0.6 }}
           className="flex items-center gap-3 mb-8"
         >
-          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[hsl(0,0%,100%)/12%] backdrop-blur-sm border border-[hsl(0,0%,100%)/10%]">
-            <img src={logoPub} alt="Logo PUB" className="h-12 w-auto object-contain" />
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[hsl(0,0%,100%)/12%] backdrop-blur-sm border border-[hsl(0,0%,100%)/10%]">
+            <img src={logoPub} alt="Logo PUB ASPEKINDO" className="h-12 w-auto object-contain" />
+            <span className="text-[hsl(0,0%,90%)] font-bold font-heading text-sm leading-tight">PUB<br/>ASPEKINDO</span>
+            <div className="w-px h-8 bg-[hsl(0,0%,100%)/20%]" />
             <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-10 w-auto object-contain" />
-            <img src={logoLsbuki} alt="Logo LSBUKI" className="h-10 w-auto object-contain" />
           </div>
         </motion.div>
 
