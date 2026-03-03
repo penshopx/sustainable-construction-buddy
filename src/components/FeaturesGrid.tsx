@@ -12,7 +12,7 @@ const features = [
   { icon: Wrench, title: "Toolkit Proyek", desc: "Risk Register, Budget Tracker, K3 Checklist, Generator Dokumen" },
   { icon: BarChart3, title: "Kinerja & Grading", desc: "Scoring otomatis 4 pilar dengan grade A–E terverifikasi" },
   { icon: Shield, title: "SMAP & PANCEK", desc: "Sistem Manajemen Anti Penyuapan dan penilaian kinerja BUJK" },
-  { icon: FileText, title: "LKUT Digital", desc: "Laporan Kinerja Usaha Tahunan untuk perpanjangan SBU" },
+  { icon: FileText, title: "LKUT Digital", desc: "Laporan Kegiatan Usaha Tahunan untuk perpanjangan SBU" },
   { icon: Building2, title: "Direktori & Profil BUJK", desc: "Promosi perusahaan dan jaringan antar BUJK se-Indonesia" },
   { icon: ShoppingBag, title: "Marketplace", desc: "Jual beli template, tools, dan produk digital konstruksi" },
   { icon: Bot, title: "AI Mentor & Helpdesk", desc: "Konsultan AI 24/7 untuk manajemen konstruksi" },

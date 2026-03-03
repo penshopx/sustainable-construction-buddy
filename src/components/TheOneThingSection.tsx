@@ -5,7 +5,7 @@ import {
   BarChart3, Shield, FileText, Building2, ShoppingBag, Bot,
   Award, Lightbulb, BookCheck, Zap,
 } from "lucide-react";
-import logoPub from "@/assets/logo-pub-new.png";
+
 
 const pillars = [
   { icon: ClipboardCheck, title: "Assessment & Pre-test", desc: "Tentukan level kompetensi personil secara digital & objektif" },
@@ -13,7 +13,7 @@ const pillars = [
   { icon: Wrench, title: "100 Mini Apps & Generator", desc: "Risk Register, Budget Tracker, K3 Checklist, dan 97 tools lainnya" },
   { icon: BarChart3, title: "Kinerja & Grading A–E", desc: "Scoring otomatis 4 pilar kinerja dengan grade terverifikasi" },
   { icon: Shield, title: "SMAP, PANCEK, & K3", desc: "Sistem Anti Penyuapan, penilaian kinerja, dan manajemen K3" },
-  { icon: FileText, title: "LKUT Digital", desc: "Laporan Kinerja Usaha Tahunan untuk perpanjangan SBU" },
+  { icon: FileText, title: "LKUT Digital", desc: "Laporan Kegiatan Usaha Tahunan untuk perpanjangan SBU" },
   { icon: Building2, title: "Direktori BUJK", desc: "Profil perusahaan & jaringan antar BUJK se-Indonesia" },
   { icon: Bot, title: "AI Mentor 24/7", desc: "Konsultan AI untuk manajemen konstruksi kapan saja" },
   { icon: Award, title: "Sertifikat Digital", desc: "Bukti kompetensi terverifikasi untuk portofolio profesional" },

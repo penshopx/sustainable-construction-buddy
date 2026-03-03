@@ -49,7 +49,7 @@ export const MINI_APPS: MiniApp[] = [
   {
     id: "lkut-report",
     name: "LKUT Report",
-    description: "Laporan kinerja usaha tahunan",
+    description: "Laporan kegiatan usaha tahunan",
     icon: FileText,
     color: "text-purple-500",
     category: "module",
