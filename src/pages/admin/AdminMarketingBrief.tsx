@@ -21,7 +21,27 @@ Dengan 202.000+ BUJK yang wajib memiliki SBU dan tingkat kegagalan perpanjangan 
 2. **Minimnya akses pelatihan terstruktur** untuk tenaga konstruksi di daerah
 3. **Data operasional tersebar** di spreadsheet tanpa integrasi dan analisis
 4. **Tidak ada platform terpadu** yang menghubungkan compliance, kompetensi, dan bisnis konstruksi
-5. **Biaya konsultasi tinggi** untuk memenuhi regulasi PP 14/2021 dan Permen PUPR`,
+5. **Biaya konsultasi tinggi** untuk memenuhi regulasi terbaru sektor jasa konstruksi`,
+  },
+  regulasi: {
+    title: "Dasar Hukum",
+    icon: FileText,
+    content: `**📜 Undang-Undang**
+- UU No. 2 Tahun 2017 tentang Jasa Konstruksi
+
+**📋 Peraturan Pemerintah**
+- PP No. 5 Tahun 2021 tentang Penyelenggaraan Perizinan Berusaha Berbasis Risiko
+- PP No. 14 Tahun 2021 tentang Perubahan Atas PP No. 22 Tahun 2020 tentang Peraturan Pelaksanaan UU No. 2 Tahun 2017 tentang Jasa Konstruksi
+- PP No. 28 Tahun 2025 tentang Penyelenggaraan Perizinan Berusaha Berbasis Risiko
+
+**📑 Peraturan Menteri**
+- Permen PU No. 8 Tahun 2022 tentang Tata Cara Pelaksanaan Pemenuhan Sertifikat Standar Jasa Konstruksi dalam Rangka Mendukung Kemudahan Perizinan Berusaha bagi Pelaku Usaha Jasa Konstruksi
+- Permen PUPR No. 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan
+- Permen PU No. 6 Tahun 2025 tentang Standar Kegiatan Usaha dan/atau Standar Produk/Jasa, Pelaksanaan, Pengawasan, dan Pengenaan Sanksi pada Penyelenggaraan Perizinan Berusaha Berbasis Risiko Sektor Pekerjaan Umum
+
+**📌 Surat Edaran & SK**
+- SE No. 05/SE/LPJK/2025 tentang Pedoman Pelaporan Penyelenggaraan Pengembangan Usaha Berkelanjutan
+- SK Dirjen Bina Konstruksi No. 37 Tahun 2025 tentang Skema Kompetensi Sertifikat Badan Usaha Jasa Konstruksi`,
   },
   features: {
     title: "Keunggulan Fitur",
