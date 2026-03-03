@@ -55,6 +55,8 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCertificates from "./pages/admin/AdminCertificates";
 import AdminQuestions from "./pages/admin/AdminQuestions";
 import AdminRoleConflicts from "./pages/admin/AdminRoleConflicts";
+import AdminSummary from "./pages/admin/AdminSummary";
+import AdminMarketingBrief from "./pages/admin/AdminMarketingBrief";
 import PitchDeck from "./pages/PitchDeck";
 
 const queryClient = new QueryClient();
@@ -110,6 +112,8 @@ const App = () => (
             <Route path="/admin/certificates" element={<DashboardLayout><AdminGuard><AdminCertificates /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/questions" element={<DashboardLayout><AdminGuard><AdminQuestions /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/role-conflicts" element={<DashboardLayout><AdminGuard><AdminRoleConflicts /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/rangkuman" element={<DashboardLayout><AdminGuard><AdminSummary /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/marketing-brief" element={<DashboardLayout><AdminGuard><AdminMarketingBrief /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />

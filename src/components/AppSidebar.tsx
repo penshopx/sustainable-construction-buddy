@@ -111,6 +111,8 @@ const adminItems = [
   { title: "Kelola Sertifikat", url: "/admin/certificates", icon: Award },
   { title: "Bank Soal", url: "/admin/questions", icon: ClipboardCheck },
   { title: "Konflik Peran", url: "/admin/role-conflicts", icon: ShieldAlert },
+  { title: "Rangkuman Platform", url: "/admin/rangkuman", icon: BarChart3 },
+  { title: "Brief Marketing", url: "/admin/marketing-brief", icon: Briefcase },
   { title: "Panel Admin", url: "/admin", icon: Shield },
 ];
 
