@@ -12,7 +12,7 @@ const pillars = [
   { icon: GraduationCap, title: "E-Course & Modul", desc: "Pembelajaran terstruktur per level dari Pemula hingga Utama" },
   { icon: Wrench, title: "100 Mini Apps & Generator", desc: "Risk Register, Budget Tracker, K3 Checklist, dan 97 tools lainnya" },
   { icon: BarChart3, title: "Kinerja & Grading A–E", desc: "Scoring otomatis 4 pilar kinerja dengan grade terverifikasi" },
-  { icon: Shield, title: "SMAP, PANCEK, & K3", desc: "Sistem Anti Penyuapan, penilaian kinerja, dan manajemen K3" },
+  { icon: Shield, title: "SMAP, PANCEK, & K3", desc: "Sistem Anti Penyuapan, Panduan Cegah Korupsi, dan manajemen K3" },
   { icon: FileText, title: "LKUT Digital", desc: "Laporan Kegiatan Usaha Tahunan untuk perpanjangan SBU" },
   { icon: Building2, title: "Direktori BUJK", desc: "Profil perusahaan & jaringan antar BUJK se-Indonesia" },
   { icon: Bot, title: "AI Mentor 24/7", desc: "Konsultan AI untuk manajemen konstruksi kapan saja" },
