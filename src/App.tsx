@@ -55,6 +55,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminCertificates from "./pages/admin/AdminCertificates";
 import AdminQuestions from "./pages/admin/AdminQuestions";
 import AdminRoleConflicts from "./pages/admin/AdminRoleConflicts";
+import PitchDeck from "./pages/PitchDeck";
 
 const queryClient = new QueryClient();
 
@@ -114,6 +115,7 @@ const App = () => (
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />
             <Route path="/program-kegiatan/:id" element={<DashboardLayout><ProgramDetail /></DashboardLayout>} />
             <Route path="/install" element={<Install />} />
+            <Route path="/pitch-deck" element={<PitchDeck />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
