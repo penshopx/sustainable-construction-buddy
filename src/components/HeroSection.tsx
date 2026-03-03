@@ -94,14 +94,14 @@ const HeroSection = () => {
           {shockStats.map((stat, i) => (
             <div
               key={i}
-              className="flex items-start gap-4 p-5 rounded-xl bg-[hsl(0,0%,100%)/6%] backdrop-blur-sm border border-[hsl(0,0%,100%)/8%]"
+              className="flex items-start gap-4 p-5 rounded-xl bg-[hsl(220,30%,10%)/90%] backdrop-blur-md border border-[hsl(0,0%,100%)/12%]"
             >
-              <div className="w-12 h-12 rounded-lg bg-pub-amber/15 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-lg bg-pub-amber/20 flex items-center justify-center shrink-0">
                 <stat.icon className="w-6 h-6 text-pub-amber" />
               </div>
               <div>
                 <p className="text-2xl md:text-3xl font-extrabold font-heading text-pub-amber">{stat.value}</p>
-                <p className="text-sm text-[hsl(0,0%,65%)] font-body leading-snug mt-1">{stat.label}</p>
+                <p className="text-sm text-[hsl(0,0%,85%)] font-body leading-snug mt-1">{stat.label}</p>
               </div>
             </div>
           ))}
