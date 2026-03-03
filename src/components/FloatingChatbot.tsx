@@ -13,22 +13,26 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/helpdesk-cha
 
 const GREETING: Msg = {
   role: "assistant",
-  content: `👋 Halo! Saya **ASPEK**, asisten AI PUB ASPEKINDO.
+  content: `👋 Halo! Saya **ASPEK**, Atentif Agentic AI dari PUB ASPEKINDO.
 
-Saya siap membantu Anda seputar:
-- 📋 **SBU** — persyaratan, perpanjangan, klasifikasi
-- 📊 **PANCEK** — penilaian kinerja berkelanjutan
-- 🏗️ **Regulasi Konstruksi** — UU, PP, dan peraturan terkait
-- 🔒 **SMAP ISO 37001** — anti penyuapan
-- 📈 **LKUT** — laporan kegiatan usaha tahunan
+Saya bisa membantu Anda memahami **seluruh fitur platform** ini:
 
-Apa yang ingin Anda ketahui hari ini? 😊`,
+🔹 **Assessment & E-Course** — Ukur & tingkatkan kompetensi
+🔹 **100 Mini Apps** — Risk, Budget, K3, dan 97 tools lainnya
+🔹 **PANCEK, SMAP, LKUT** — Kepatuhan & perpanjangan SBU
+🔹 **Grading A–E** — Skor kinerja BUJK terverifikasi
+🔹 **AI Mentor & Innovation Hub** — Konsultan AI & 100 inovasi
+🔹 **Marketplace & Sertifikat** — Produk digital & bukti kompetensi
+
+Tanyakan apa saja — mulai dari cara pakai, integrasi antar fitur, atau strategi optimasi! 🚀`,
 };
 
 const PROACTIVE_STARTERS = [
-  "Apa syarat perpanjangan SBU?",
-  "Jelaskan tentang PANCEK",
-  "Bagaimana cara daftar anggota ASPEKINDO?",
+  "Apa saja fitur utama PUB ASPEKINDO?",
+  "Bagaimana cara mempersiapkan perpanjangan SBU?",
+  "Jelaskan integrasi antar fitur di platform ini",
+  "Fitur apa yang paling penting untuk BUJK kecil?",
+  "Bagaimana cara mengoptimalkan penggunaan platform?",
 ];
 
 interface FloatingChatbotProps {
@@ -79,7 +83,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: allMessages }),
+        body: JSON.stringify({ messages: allMessages, mode: variant === "landing" ? "landing" : "pembelajaran" }),
       });
 
       if (!resp.ok) {
@@ -179,7 +183,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
               >
                 <p className="text-foreground font-medium">💡 Ada pertanyaan?</p>
                 <p className="text-muted-foreground text-xs mt-1">
-                  Tanya ASPEK tentang SBU, PANCEK, atau regulasi konstruksi!
+                  Tanya ASPEK tentang fitur, cara pakai, atau strategi optimasi platform!
                 </p>
                 <div className="absolute bottom-[-6px] right-6 w-3 h-3 bg-card border-b border-r border-border rotate-45" />
               </motion.div>
@@ -223,7 +227,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                 <Bot className="w-5 h-5 text-primary-foreground" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-primary-foreground font-semibold text-sm">ASPEK — AI Assistant</p>
+                <p className="text-primary-foreground font-semibold text-sm">ASPEK — Atentif Agentic AI</p>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-primary-foreground/70 text-xs">Online • Siap membantu</span>
