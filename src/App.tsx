@@ -51,6 +51,10 @@ import AdminModules from "./pages/admin/AdminModules";
 import PancekAssessment from "./pages/PancekAssessment";
 import ResetPassword from "./pages/ResetPassword";
 import Onboarding from "./pages/Onboarding";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminCertificates from "./pages/admin/AdminCertificates";
+import AdminQuestions from "./pages/admin/AdminQuestions";
+import AdminRoleConflicts from "./pages/admin/AdminRoleConflicts";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +105,10 @@ const App = () => (
             <Route path="/admin/statistik" element={<DashboardLayout><AdminGuard><AdminSalesStats /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/quiz" element={<DashboardLayout><AdminGuard><AdminQuizQuestions /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/modules" element={<DashboardLayout><AdminGuard><AdminModules /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/users" element={<DashboardLayout><AdminGuard><AdminUsers /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/certificates" element={<DashboardLayout><AdminGuard><AdminCertificates /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/questions" element={<DashboardLayout><AdminGuard><AdminQuestions /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/role-conflicts" element={<DashboardLayout><AdminGuard><AdminRoleConflicts /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />

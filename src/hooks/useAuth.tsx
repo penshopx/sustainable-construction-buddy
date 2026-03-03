@@ -22,6 +22,7 @@ interface Profile {
   current_level: string;
   total_score: number;
   avatar_url: string | null;
+  bujk_qualification: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
