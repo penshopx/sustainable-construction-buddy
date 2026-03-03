@@ -187,7 +187,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
             <Button
               onClick={() => { setIsOpen(true); setShowHint(false); }}
               size="icon"
-              className="w-14 h-14 rounded-full shadow-xl bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all"
+              className="w-14 h-14 rounded-full shadow-xl bg-pub-emerald hover:bg-pub-emerald/90 transition-all"
             >
               <motion.div
                 animate={{ rotate: [0, 10, -10, 0] }}
