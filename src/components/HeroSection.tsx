@@ -1,136 +1,111 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Building2, Shield, TrendingUp } from "lucide-react";
+import { ArrowRight, AlertTriangle, TrendingDown, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import logoPub from "@/assets/logo-pub-new.png";
-import logoAspekindo from "@/assets/logo-aspekindo.jpg";
+import logoAspekindo from "@/assets/logo-aspekindo.png";
 import logoLsbuki from "@/assets/logo-lsbuki.webp";
-import dashboardMockup from "@/assets/dashboard-mockup.png";
+
+const shockStats = [
+  { value: "65%", label: "BUJK gagal perpanjang SBU karena tidak memenuhi kewajiban PUB", icon: AlertTriangle },
+  { value: "Rp 847 T", label: "Nilai proyek konstruksi Indonesia 2024 — persaingan makin ketat", icon: TrendingDown },
+  { value: "202.000+", label: "BUJK terdaftar, mayoritas belum punya sistem kompetensi digital", icon: Users },
+];
 
 const HeroSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-      {/* Background image */}
+    <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+      {/* Background */}
       <div className="absolute inset-0">
-        <img
-          src={heroImage}
-          alt="Proyek konstruksi modern"
-          className="w-full h-full object-cover"
-          loading="eager"
-        />
-        <div className="absolute inset-0 bg-hero opacity-85" />
-        <div className="absolute inset-0 bg-gradient-to-r from-pub-navy/95 via-pub-navy/80 to-pub-navy/40" />
+        <img src={heroImage} alt="Proyek konstruksi modern" className="w-full h-full object-cover" loading="eager" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(220,60%,8%)/95%] via-[hsl(220,50%,12%)/90%] to-[hsl(220,40%,15%)/85%]" />
       </div>
 
-      <div className="relative z-10 container mx-auto px-6 py-20">
-        <div className="grid md:grid-cols-2 gap-12 items-center">
-          {/* Left column - Content */}
-          <div>
-            {/* All 3 logos in a row */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7 }}
-              className="inline-flex items-center gap-1.5 mb-4 px-4 py-3 rounded-xl bg-[hsl(220,10%,72%)]"
-            >
-              <img src={logoPub} alt="Logo PUB" className="h-[90px] w-auto object-contain" />
-              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-[72px] w-auto object-contain mix-blend-multiply rounded-md" />
-              <img src={logoLsbuki} alt="Logo LSBUKI" className="h-[72px] w-auto object-contain mix-blend-multiply rounded-md" />
-            </motion.div>
+      <div className="relative z-10 container mx-auto px-6 py-16 md:py-24">
+        {/* Logos */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex items-center gap-3 mb-8"
+        >
+          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[hsl(0,0%,100%)/12%] backdrop-blur-sm border border-[hsl(0,0%,100%)/10%]">
+            <img src={logoPub} alt="Logo PUB" className="h-12 w-auto object-contain" />
+            <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-10 w-auto object-contain" />
+            <img src={logoLsbuki} alt="Logo LSBUKI" className="h-10 w-auto object-contain" />
+          </div>
+        </motion.div>
 
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.05 }}
-              className="mb-4"
-            >
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pub-amber/15 border border-pub-amber/30 text-pub-amber-light text-sm font-medium font-heading">
-                <Building2 className="w-3.5 h-3.5" />
-                ASPEKINDO — Pemborong Kompeten & Profesional
-              </span>
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-extrabold font-heading text-primary-foreground leading-tight mb-6"
-            >
-              Pengembangan Usaha{" "}
-              <span className="text-gradient-hero">Berkelanjutan</span>
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.2 }}
-              className="text-lg md:text-xl text-primary-foreground/70 leading-relaxed mb-10 max-w-2xl font-body"
-            >
-              Ekosistem kompetensi digital untuk Personil Manajerial BUJK berbasis
-              knowledge capacity — dari assessment hingga leveling berkelanjutan.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.3 }}
-              className="flex flex-wrap gap-4"
-            >
-              <button onClick={() => navigate("/auth")} className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg bg-gradient-amber text-accent-foreground font-semibold font-heading shadow-amber hover:brightness-110 transition-all duration-200">
-                Mulai Assessment
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <button className="inline-flex items-center gap-2 px-6 py-3.5 rounded-lg border border-primary-foreground/20 text-primary-foreground/90 font-semibold font-heading hover:bg-primary-foreground/10 transition-all duration-200">
-                Pelajari Sistem
-              </button>
-            </motion.div>
-
-            {/* Quick stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.5 }}
-              className="flex flex-wrap gap-8 mt-16 pt-8 border-t border-primary-foreground/10"
-            >
-              {[
-                { icon: Shield, label: "Level Kompetensi", value: "4 Tingkat" },
-                { icon: Building2, label: "Domain Keahlian", value: "6 Domain" },
-                { icon: TrendingUp, label: "Evaluasi", value: "Berkelanjutan" },
-              ].map((stat, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-pub-amber/15 flex items-center justify-center">
-                    <stat.icon className="w-5 h-5 text-pub-amber-light" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-primary-foreground/50 font-body">{stat.label}</p>
-                    <p className="text-lg font-semibold text-primary-foreground font-heading">{stat.value}</p>
-                  </div>
-                </div>
-              ))}
-            </motion.div>
+        {/* Attention-grabbing headline */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.1 }}
+          className="max-w-4xl"
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/15 border border-destructive/25 text-destructive text-sm font-semibold font-heading mb-5">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            DATA INDUSTRI KONSTRUKSI 2024
           </div>
 
-          {/* Right column - Dashboard mockup */}
-          <motion.div
-            initial={{ opacity: 0, x: 60 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="hidden md:flex items-center justify-center"
-          >
-            <div className="relative">
-              <div className="absolute -inset-4 bg-pub-amber/10 rounded-2xl blur-2xl" />
-              <img
-                src={dashboardMockup}
-                alt="Dashboard kompetensi PUB"
-                className="relative rounded-2xl shadow-hero border border-primary-foreground/10 w-full max-w-lg"
-                loading="lazy"
-              />
+          <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold font-heading text-[hsl(0,0%,97%)] leading-[1.1] mb-6">
+            Industri Konstruksi Indonesia{" "}
+            <span className="text-gradient-hero">Bernilai Rp 847 Triliun</span>
+            <br />
+            <span className="text-[hsl(0,0%,70%)] text-3xl md:text-4xl lg:text-[2.5rem]">
+              Tapi mayoritas BUJK belum siap bersaing.
+            </span>
+          </h1>
+
+          <p className="text-lg md:text-xl text-[hsl(0,0%,70%)] leading-relaxed mb-10 max-w-3xl font-body">
+            Regulasi semakin ketat, SBU bisa dicabut, dan tender semakin kompetitif. 
+            <strong className="text-[hsl(0,0%,90%)]"> Satu platform </strong> 
+            bisa menyelesaikan semua itu — PUB ASPEKINDO.
+          </p>
+
+          <div className="flex flex-wrap gap-4 mb-16">
+            <button
+              onClick={() => navigate("/auth")}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-lg shadow-amber hover:brightness-110 transition-all duration-200"
+            >
+              Mulai Sekarang — Gratis
+              <ArrowRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => {
+                document.getElementById("masalah-industri")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-[hsl(0,0%,100%)/20%] text-[hsl(0,0%,85%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/8%] transition-all duration-200"
+            >
+              Lihat Data Industri
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Shock stats bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="grid md:grid-cols-3 gap-6"
+        >
+          {shockStats.map((stat, i) => (
+            <div
+              key={i}
+              className="flex items-start gap-4 p-5 rounded-xl bg-[hsl(0,0%,100%)/6%] backdrop-blur-sm border border-[hsl(0,0%,100%)/8%]"
+            >
+              <div className="w-12 h-12 rounded-lg bg-pub-amber/15 flex items-center justify-center shrink-0">
+                <stat.icon className="w-6 h-6 text-pub-amber" />
+              </div>
+              <div>
+                <p className="text-2xl md:text-3xl font-extrabold font-heading text-pub-amber">{stat.value}</p>
+                <p className="text-sm text-[hsl(0,0%,65%)] font-body leading-snug mt-1">{stat.label}</p>
+              </div>
             </div>
-          </motion.div>
-        </div>
+          ))}
+        </motion.div>
       </div>
     </section>
   );
