@@ -219,7 +219,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          onClick={() => navigate("/pancek-assessment")}
+          onClick={() => navigate("/pancek")}
           className="bg-card rounded-xl border border-border p-5 shadow-card hover:shadow-card-hover transition-all text-left group"
         >
           <div className="flex items-center justify-between mb-3">
@@ -242,7 +242,7 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          onClick={() => navigate("/lkut-report")}
+          onClick={() => navigate("/lkut")}
           className="bg-card rounded-xl border border-border p-5 shadow-card hover:shadow-card-hover transition-all text-left group"
         >
           <div className="flex items-center justify-between mb-3">
