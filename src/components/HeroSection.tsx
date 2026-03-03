@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import logoPub from "@/assets/logo-pub-new.png";
 import logoAspekindo from "@/assets/logo-aspekindo.png";
+import logoLsbuki from "@/assets/logo-lsbuki.webp";
 
 const shockStats = [
   { value: "65%", label: "BUJK gagal perpanjang SBU karena tidak memenuhi kewajiban PUB", icon: AlertTriangle },
@@ -35,6 +36,8 @@ const HeroSection = () => {
             <span className="text-[hsl(0,0%,90%)] font-bold font-heading text-sm leading-tight">PUB<br/>ASPEKINDO</span>
             <div className="w-px h-8 bg-[hsl(0,0%,100%)/20%]" />
             <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-10 w-auto object-contain" />
+            <div className="w-px h-8 bg-[hsl(0,0%,100%)/20%]" />
+            <img src={logoLsbuki} alt="Logo LSBU KI" className="h-10 w-auto object-contain" />
           </div>
         </motion.div>
 
