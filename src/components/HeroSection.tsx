@@ -50,18 +50,18 @@ const HeroSection = () => {
             DATA INDUSTRI KONSTRUKSI 2024
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold font-heading text-[hsl(0,0%,97%)] leading-[1.1] mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold font-heading text-[hsl(0,0%,97%)] leading-[1.1] mb-6" style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5)' }}>
             Industri Konstruksi Indonesia{" "}
-            <span className="text-gradient-hero">Bernilai Rp 847 Triliun</span>
+            <span className="text-gradient-hero" style={{ filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.7))' }}>Bernilai Rp 847 Triliun</span>
             <br />
-            <span className="text-[hsl(0,0%,70%)] text-3xl md:text-4xl lg:text-[2.5rem]">
+            <span className="text-[hsl(0,0%,85%)] text-3xl md:text-4xl lg:text-[2.5rem]" style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6)' }}>
               Tapi mayoritas BUJK belum siap bersaing.
             </span>
           </h1>
 
-          <p className="text-lg md:text-xl text-[hsl(0,0%,70%)] leading-relaxed mb-10 max-w-3xl font-body">
+          <p className="text-lg md:text-xl text-[hsl(0,0%,85%)] leading-relaxed mb-10 max-w-3xl font-body" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
             Regulasi semakin ketat, SBU bisa dicabut, dan tender semakin kompetitif. 
-            <strong className="text-[hsl(0,0%,90%)]"> Satu platform </strong> 
+            <strong className="text-[hsl(0,0%,97%)]"> Satu platform </strong> 
             bisa menyelesaikan semua itu — PUB ASPEKINDO.
           </p>
 
