@@ -100,8 +100,8 @@ const HeroSection = () => {
                 <stat.icon className="w-6 h-6 text-pub-amber" />
               </div>
               <div>
-                <p className="text-2xl md:text-3xl font-extrabold font-heading text-pub-amber">{stat.value}</p>
-                <p className="text-sm text-[hsl(0,0%,85%)] font-body leading-snug mt-1">{stat.label}</p>
+                <p className="text-2xl md:text-3xl font-extrabold font-heading text-pub-amber" style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}>{stat.value}</p>
+                <p className="text-sm text-[hsl(0,0%,85%)] font-body leading-snug mt-1" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>{stat.label}</p>
               </div>
             </div>
           ))}
