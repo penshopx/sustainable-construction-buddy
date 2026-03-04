@@ -6,7 +6,7 @@ const problems = [
     icon: FileWarning,
     stat: "65%",
     title: "SBU Terancam Tidak Diperpanjang",
-    detail: "BUJK yang tidak melaksanakan PUB berisiko ditolak perpanjangan SBU oleh LSBU KI. Berdasarkan Permen PU No. 7/2024 dan Permen PU No. 6/2025, PUB adalah syarat wajib.",
+    detail: "BUJK yang tidak melaksanakan PUB berisiko ditolak perpanjangan SBU oleh LSBU. Berdasarkan Permen PU No. 7/2024 dan Permen PU No. 6/2025, PUB adalah syarat wajib.",
     source: "Permen PU No. 7/2024 & No. 6/2025",
   },
   {
