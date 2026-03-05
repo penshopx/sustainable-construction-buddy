@@ -3,7 +3,7 @@ import { Bot, Send, Loader2, X, Sparkles, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -259,9 +259,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                         : "bg-muted/60 border border-border rounded-bl-md"
                     }`}>
                       {msg.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p]:leading-relaxed [&_li]:leading-relaxed">
-                          <ReactMarkdown>{msg.content}</ReactMarkdown>
-                        </div>
+                        <MarkdownRenderer>{msg.content}</MarkdownRenderer>
                       ) : (
                         <p className="whitespace-pre-wrap">{msg.content}</p>
                       )}

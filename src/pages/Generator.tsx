@@ -3,8 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import html2pdf from "html2pdf.js";
 import {
   FileText, Loader2, Download, Copy, CheckCircle2,
@@ -321,34 +320,8 @@ const Generator = () => {
               </button>
             </div>
           </div>
-          <div ref={pdfRef} className="p-6 prose prose-sm max-w-none dark:prose-invert font-body generator-preview">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                table: ({ children }) => (
-                  <div className="overflow-x-auto my-4 rounded-lg border border-border">
-                    <table className="w-full text-sm border-collapse">{children}</table>
-                  </div>
-                ),
-                thead: ({ children }) => (
-                  <thead className="bg-muted/50 dark:bg-muted/30">{children}</thead>
-                ),
-                th: ({ children }) => (
-                  <th className="px-4 py-2.5 text-left font-heading font-semibold text-foreground border-b border-border text-xs uppercase tracking-wide">{children}</th>
-                ),
-                td: ({ children }) => (
-                  <td className="px-4 py-2 text-foreground border-b border-border/50 font-body text-sm">{children}</td>
-                ),
-                tr: ({ children }) => (
-                  <tr className="hover:bg-muted/20 transition-colors">{children}</tr>
-                ),
-                hr: () => (
-                  <hr className="my-1 border-border/20 generator-hr" />
-                ),
-              }}
-            >
-              {result}
-            </ReactMarkdown>
+          <div ref={pdfRef} className="p-6 font-body generator-preview">
+            <MarkdownRenderer>{result}</MarkdownRenderer>
           </div>
         </motion.div>
       )}

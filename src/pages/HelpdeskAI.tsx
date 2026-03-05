@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { useHelpdeskChat, Conversation } from "@/hooks/useHelpdeskChat";
 import { useCustomChatbots, CustomChatbot } from "@/hooks/useCustomChatbots";
 import { useAuth } from "@/hooks/useAuth";
@@ -331,9 +331,7 @@ export default function HelpdeskAI() {
                           msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/50 border border-border"
                         }`}>
                           {msg.role === "assistant" ? (
-                            <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                              <ReactMarkdown>{msg.content}</ReactMarkdown>
-                            </div>
+                            <MarkdownRenderer>{msg.content}</MarkdownRenderer>
                           ) : (
                             <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           )}

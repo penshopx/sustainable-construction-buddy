@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import {
   Send, Loader2, Bot, User, Trash2, Plus,
   MessageCircle, Clock, ChevronLeft,
@@ -117,9 +117,7 @@ export default function MentorChatPanel({
               )}
               <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-tr-md" : "bg-muted text-foreground rounded-tl-md"}`}>
                 {msg.role === "assistant" ? (
-                  <div className="prose prose-sm max-w-none text-foreground [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm [&_li]:my-0.5">
-                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                  </div>
+                  <MarkdownRenderer className="[&_h1]:text-base [&_h2]:text-sm [&_h3]:text-sm">{msg.content}</MarkdownRenderer>
                 ) : (
                   <p className="text-sm font-body whitespace-pre-wrap">{msg.content}</p>
                 )}
