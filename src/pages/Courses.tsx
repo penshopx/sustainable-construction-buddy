@@ -733,7 +733,7 @@ const Courses = () => {
             {activeModule.content ? (
               <div className="bg-muted/30 rounded-xl p-6 mb-6 border border-border prose prose-sm max-w-none dark:prose-invert font-body">
                 <h3 className="font-heading font-bold text-foreground mb-3">Konten Pembelajaran</h3>
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{activeModule.content}</ReactMarkdown>
+                <MarkdownRenderer>{activeModule.content}</MarkdownRenderer>
               </div>
             ) : (
               <div className="bg-muted/50 rounded-xl p-6 mb-6 border border-border">

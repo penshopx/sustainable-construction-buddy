@@ -331,9 +331,7 @@ export default function HelpdeskAI() {
                           msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/50 border border-border"
                         }`}>
                           {msg.role === "assistant" ? (
-                            <div className="prose prose-sm dark:prose-invert max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                              <ReactMarkdown>{msg.content}</ReactMarkdown>
-                            </div>
+                            <MarkdownRenderer>{msg.content}</MarkdownRenderer>
                           ) : (
                             <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                           )}
