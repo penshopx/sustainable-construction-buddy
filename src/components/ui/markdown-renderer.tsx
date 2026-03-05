@@ -15,10 +15,30 @@ function sanitize(raw: string): string {
   const lines = text.split("\n");
   const result: string[] = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  // First pass: collapse blank lines inside table blocks so GFM parses them correctly.
+  const collapsed: string[] = [];
+  let inTableBlock = false;
+  for (const line of lines) {
+    const isTableLine = line.trimStart().startsWith("|");
+    const isBlank = line.trim() === "";
+
+    if (isTableLine) {
+      inTableBlock = true;
+      collapsed.push(line);
+    } else if (inTableBlock && isBlank) {
+      // skip blank lines inside a table block
+      continue;
+    } else {
+      inTableBlock = false;
+      collapsed.push(line);
+    }
+  }
+
+  // Second pass: add spacing before headings / bold lines outside tables
+  for (let i = 0; i < collapsed.length; i++) {
+    const line = collapsed[i];
     const inTable = line.trimStart().startsWith("|");
-    const prevLine = i > 0 ? lines[i - 1] : "";
+    const prevLine = i > 0 ? collapsed[i - 1] : "";
 
     if (!inTable) {
       if (/^#{1,6}\s/.test(line) && prevLine.trim() !== "") result.push("");
