@@ -412,6 +412,7 @@ export type Database = {
           domain_id: string
           duration_minutes: number
           id: string
+          job_segment: string
           level: string
           sort_order: number
           title: string
@@ -423,6 +424,7 @@ export type Database = {
           domain_id: string
           duration_minutes?: number
           id?: string
+          job_segment?: string
           level?: string
           sort_order?: number
           title: string
@@ -434,6 +436,7 @@ export type Database = {
           domain_id?: string
           duration_minutes?: number
           id?: string
+          job_segment?: string
           level?: string
           sort_order?: number
           title?: string
