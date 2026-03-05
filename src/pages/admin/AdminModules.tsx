@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, GraduationCap } from "lucide-react";
+import { Plus, Pencil, Trash2, GraduationCap, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Module {
@@ -20,9 +20,24 @@ interface Module {
   duration_minutes: number;
   sort_order: number;
   content: string;
+  job_segment: string;
 }
 
 interface Domain { id: string; name: string; }
+
+const JOB_SEGMENTS = [
+  { value: "", label: "Semua Jabatan (Umum)" },
+  { value: "PJBU", label: "PJBU — Penanggung Jawab Badan Usaha" },
+  { value: "PJTBU", label: "PJTBU — Penanggung Jawab Teknis Badan Usaha" },
+  { value: "PJKSBU", label: "PJKSBU — Penanggung Jawab K3 Badan Usaha" },
+  { value: "Manajer Proyek", label: "Manajer Proyek" },
+  { value: "Site Manager", label: "Site Manager" },
+  { value: "Manajer Keuangan", label: "Manajer Keuangan" },
+  { value: "Manajer Tender", label: "Manajer Tender" },
+  { value: "Manajer Legal", label: "Manajer Legal" },
+  { value: "Manajer Logistik", label: "Manajer Logistik" },
+  { value: "Manajer K3", label: "Manajer K3" },
+];
 
 export default function AdminModules() {
   const [modules, setModules] = useState<Module[]>([]);
@@ -30,9 +45,11 @@ export default function AdminModules() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Module | null>(null);
+  const [filterSegment, setFilterSegment] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
-  const emptyForm = { title: "", description: "", domain_id: "", level: "Pemula", duration_minutes: 30, sort_order: 0, content: "" };
+  const emptyForm = { title: "", description: "", domain_id: "", level: "Pemula", duration_minutes: 30, sort_order: 0, content: "", job_segment: "" };
   const [form, setForm] = useState(emptyForm);
 
   const fetchData = async () => {
@@ -40,7 +57,7 @@ export default function AdminModules() {
       supabase.from("e_course_modules").select("*").order("sort_order"),
       supabase.from("competency_domains").select("id, name").order("sort_order"),
     ]);
-    if (mRes.data) setModules(mRes.data);
+    if (mRes.data) setModules(mRes.data as Module[]);
     if (dRes.data) setDomains(dRes.data);
     setLoading(false);
   };
@@ -50,7 +67,7 @@ export default function AdminModules() {
   const openCreate = () => { setEditing(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (m: Module) => {
     setEditing(m);
-    setForm({ title: m.title, description: m.description, domain_id: m.domain_id, level: m.level, duration_minutes: m.duration_minutes, sort_order: m.sort_order, content: m.content });
+    setForm({ title: m.title, description: m.description, domain_id: m.domain_id, level: m.level, duration_minutes: m.duration_minutes, sort_order: m.sort_order, content: m.content, job_segment: m.job_segment || "" });
     setDialogOpen(true);
   };
 
@@ -79,6 +96,12 @@ export default function AdminModules() {
 
   const domainName = (id: string) => domains.find(d => d.id === id)?.name || "-";
 
+  const filteredModules = modules.filter(m => {
+    if (filterSegment !== "all" && (m.job_segment || "") !== filterSegment) return false;
+    if (searchQuery && !m.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -91,6 +114,23 @@ export default function AdminModules() {
         <Button onClick={openCreate}><Plus className="w-4 h-4 mr-2" /> Tambah Modul</Button>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input placeholder="Cari modul..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={filterSegment} onValueChange={setFilterSegment}>
+          <SelectTrigger className="w-full sm:w-[260px]"><SelectValue placeholder="Filter jabatan" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Jabatan</SelectItem>
+            {JOB_SEGMENTS.map(s => (
+              <SelectItem key={s.value || "__umum"} value={s.value || "__umum"}>{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="rounded-lg border border-border bg-card shadow-card overflow-hidden">
         <Table>
           <TableHeader>
@@ -98,21 +138,29 @@ export default function AdminModules() {
               <TableHead>Judul</TableHead>
               <TableHead>Domain</TableHead>
               <TableHead>Level</TableHead>
+              <TableHead>Jabatan Kerja</TableHead>
               <TableHead>Durasi</TableHead>
               <TableHead className="text-right">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Memuat...</TableCell></TableRow>
-            ) : modules.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada modul</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Memuat...</TableCell></TableRow>
+            ) : filteredModules.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Tidak ada modul ditemukan</TableCell></TableRow>
             ) : (
-              modules.map(m => (
+              filteredModules.map(m => (
                 <TableRow key={m.id}>
-                  <TableCell className="font-medium">{m.title}</TableCell>
+                  <TableCell className="font-medium max-w-[280px] truncate">{m.title}</TableCell>
                   <TableCell><Badge variant="secondary">{domainName(m.domain_id)}</Badge></TableCell>
                   <TableCell><Badge variant="outline">{m.level}</Badge></TableCell>
+                  <TableCell>
+                    {m.job_segment ? (
+                      <Badge className="bg-primary/10 text-primary border-primary/20">{m.job_segment}</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Umum</span>
+                    )}
+                  </TableCell>
                   <TableCell>{m.duration_minutes} menit</TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(m)}><Pencil className="w-4 h-4" /></Button>
@@ -154,6 +202,17 @@ export default function AdminModules() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <Label>Jabatan Kerja (Segment)</Label>
+              <Select value={form.job_segment} onValueChange={v => setForm({ ...form, job_segment: v })}>
+                <SelectTrigger><SelectValue placeholder="Pilih jabatan kerja" /></SelectTrigger>
+                <SelectContent>
+                  {JOB_SEGMENTS.map(s => (
+                    <SelectItem key={s.value || "__umum"} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
