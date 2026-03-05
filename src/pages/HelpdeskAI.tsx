@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { useHelpdeskChat, Conversation } from "@/hooks/useHelpdeskChat";
 import { useCustomChatbots, CustomChatbot } from "@/hooks/useCustomChatbots";
 import { useAuth } from "@/hooks/useAuth";
