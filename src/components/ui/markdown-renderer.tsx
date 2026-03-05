@@ -18,13 +18,30 @@ function sanitize(raw: string): string {
     // Remove <br> variants
     .replace(/<br\s*\/?>/gi, "\n")
     // Remove other common HTML noise
-    .replace(/<\/?(?:div|span|font)[^>]*>/gi, "")
-    // Ensure blank line before markdown headings so they parse correctly
-    .replace(/([^\n])\n(#{1,6}\s)/g, "$1\n\n$2")
-    // Lines that start with ***text or **text (not already a list) → add blank line before for paragraph break
-    .replace(/\n(\*{1,3}[^*\n])/g, "\n\n$1");
+    .replace(/<\/?(?:div|span|font)[^>]*>/gi, "");
 
-  return text.trim();
+  // Process line-by-line: only add paragraph breaks outside of table rows
+  const lines = text.split("\n");
+  const result: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const inTable = line.trimStart().startsWith("|");
+    const prevLine = i > 0 ? lines[i - 1] : "";
+
+    if (!inTable) {
+      // Ensure blank line before headings
+      if (/^#{1,6}\s/.test(line) && prevLine.trim() !== "") {
+        result.push("");
+      }
+      // Ensure blank line before bold/italic lines (not list items)
+      if (/^\*{1,3}[^*\n]/.test(line) && prevLine.trim() !== "") {
+        result.push("");
+      }
+    }
+    result.push(line);
+  }
+
+  return result.join("\n").trim();
 }
 
 /**
