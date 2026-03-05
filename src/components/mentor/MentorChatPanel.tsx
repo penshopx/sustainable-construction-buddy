@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import {
   Send, Loader2, Bot, User, Trash2, Plus,
   MessageCircle, Clock, ChevronLeft,
