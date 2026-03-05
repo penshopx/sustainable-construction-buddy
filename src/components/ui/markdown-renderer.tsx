@@ -7,13 +7,6 @@ interface MarkdownRendererProps {
   className?: string;
 }
 
-/**
- * Pre-process raw AI / course content:
- * 1. Strip stray HTML tags (<br>, <div>, <span>, <font>)
- * 2. Ensure blank lines before headings so they render as blocks
- * 3. Outside tables, ensure bold/italic lines start a new paragraph
- * 4. Normalise multiple blank lines to max two
- */
 function sanitize(raw: string): string {
   let text = raw
     .replace(/<br\s*\/?>/gi, "\n")
@@ -41,7 +34,7 @@ function sanitize(raw: string): string {
 }
 
 /**
- * Shared markdown renderer with professional table, code-block, and prose styling.
+ * Shared markdown renderer — spreadsheet-quality tables, clean prose.
  */
 export function MarkdownRenderer({ children, className = "" }: MarkdownRendererProps) {
   const cleaned = useMemo(() => sanitize(children), [children]);
@@ -87,32 +80,51 @@ export function MarkdownRenderer({ children, className = "" }: MarkdownRendererP
             <li className="leading-relaxed">{children}</li>
           ),
 
-          /* ——— Table ——— */
+          /* ——— Table (spreadsheet-style) ——— */
           table: ({ children }) => (
-            <div className="overflow-x-auto rounded-lg border border-border my-4 shadow-sm">
-              <table className="min-w-full text-sm border-collapse">{children}</table>
+            <div className="overflow-x-auto rounded-xl border border-border/80 my-5 shadow-md bg-card">
+              <table className="w-full text-sm border-collapse tabular-nums">{children}</table>
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-muted/60">{children}</thead>
+            <thead className="bg-primary/10 dark:bg-primary/15 sticky top-0">
+              {children}
+            </thead>
           ),
           th: ({ children }) => (
-            <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-foreground border-b-2 border-border whitespace-nowrap">
+            <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-primary border-b-2 border-primary/30 border-r border-border/20 last:border-r-0 whitespace-nowrap select-none">
               {children}
             </th>
           ),
+          tbody: ({ children }) => {
+            let rowIdx = 0;
+            return (
+              <tbody className="divide-y divide-border/20">
+                {React.Children.map(children, (child) => {
+                  if (React.isValidElement(child)) {
+                    const isEven = rowIdx % 2 === 0;
+                    rowIdx++;
+                    return React.cloneElement(child as React.ReactElement<any>, {
+                      className: `${isEven ? "bg-transparent" : "bg-muted/25 dark:bg-muted/15"} hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors`,
+                    });
+                  }
+                  return child;
+                })}
+              </tbody>
+            );
+          },
           td: ({ children }) => (
-            <td className="px-4 py-2.5 text-sm text-foreground/90 border-b border-border/60 align-top">
+            <td className="px-4 py-2.5 text-sm text-foreground/90 border-r border-border/20 last:border-r-0 align-top leading-relaxed">
               {children}
             </td>
           ),
-          tr: ({ children }) => (
-            <tr className="hover:bg-muted/30 transition-colors">{children}</tr>
+          tr: ({ children, className: trClassName }) => (
+            <tr className={trClassName || ""}>{children}</tr>
           ),
 
           /* ——— Blockquote ——— */
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-primary/40 bg-primary/5 rounded-r-lg pl-4 pr-3 py-3 my-4 text-sm italic text-foreground/80">
+            <blockquote className="border-l-4 border-primary/40 bg-primary/5 rounded-r-lg pl-4 pr-3 py-3 my-4 text-sm italic text-foreground/80 [&>p]:mb-0">
               {children}
             </blockquote>
           ),
@@ -124,7 +136,6 @@ export function MarkdownRenderer({ children, className = "" }: MarkdownRendererP
             </pre>
           ),
           code: ({ children, className: codeClassName }) => {
-            // Inline code vs block code
             const isBlock = codeClassName?.startsWith("language-");
             if (isBlock) {
               return <code className="text-xs font-mono">{children}</code>;
