@@ -106,9 +106,7 @@ function SectionContent({ section }: { section: TemplateSection }) {
     case "guide":
     case "formula":
       return section.content ? (
-        <div className="prose prose-sm max-w-none text-foreground">
-          <ReactMarkdown>{section.content}</ReactMarkdown>
-        </div>
+        <MarkdownRenderer>{section.content}</MarkdownRenderer>
       ) : null;
     default:
       return null;
