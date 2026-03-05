@@ -731,7 +731,7 @@ const Courses = () => {
             <p className="text-muted-foreground font-body leading-relaxed mb-6">{activeModule.description}</p>
 
             {activeModule.content ? (
-              <div className="bg-muted/30 rounded-xl p-6 mb-6 border border-border prose prose-sm max-w-none dark:prose-invert font-body">
+              <div className="bg-muted/30 rounded-xl p-6 mb-6 border border-border font-body">
                 <h3 className="font-heading font-bold text-foreground mb-3">Konten Pembelajaran</h3>
                 <MarkdownRenderer>{activeModule.content}</MarkdownRenderer>
               </div>
