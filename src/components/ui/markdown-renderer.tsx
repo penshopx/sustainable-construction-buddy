@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useMemo } from "react";
 
 interface MarkdownRendererProps {
   children: string;
@@ -7,10 +8,32 @@ interface MarkdownRendererProps {
 }
 
 /**
+ * Pre-process raw AI output:
+ * 1. Strip <br>, <br/>, <br /> tags
+ * 2. Turn lone lines starting with * or - (bold/italic markers used as bullets) into proper list items
+ * 3. Ensure headings (###) have a blank line before them so they render as blocks
+ */
+function sanitize(raw: string): string {
+  let text = raw
+    // Remove <br> variants
+    .replace(/<br\s*\/?>/gi, "\n")
+    // Remove other common HTML noise
+    .replace(/<\/?(?:div|span|font)[^>]*>/gi, "")
+    // Ensure blank line before markdown headings so they parse correctly
+    .replace(/([^\n])\n(#{1,6}\s)/g, "$1\n\n$2")
+    // Lines that start with ***text or **text (not already a list) → add blank line before for paragraph break
+    .replace(/\n(\*{1,3}[^*\n])/g, "\n\n$1");
+
+  return text.trim();
+}
+
+/**
  * Shared markdown renderer with proper table styling and GFM support.
  * Use this everywhere instead of raw <ReactMarkdown>.
  */
 export function MarkdownRenderer({ children, className = "" }: MarkdownRendererProps) {
+  const cleaned = useMemo(() => sanitize(children), [children]);
+
   return (
     <div className={`prose prose-sm dark:prose-invert max-w-none 
       [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 
@@ -26,7 +49,9 @@ export function MarkdownRenderer({ children, className = "" }: MarkdownRendererP
       [&_ul]:pl-5 [&_ol]:pl-5 [&_ul]:my-2 [&_ol]:my-2
       [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground
       [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
+      [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:text-xs
       [&_hr]:border-border [&_hr]:my-4
+      [&_strong]:font-semibold [&_em]:italic
       ${className}`}
     >
       <ReactMarkdown
@@ -44,7 +69,7 @@ export function MarkdownRenderer({ children, className = "" }: MarkdownRendererP
           ),
         }}
       >
-        {children}
+        {cleaned}
       </ReactMarkdown>
     </div>
   );
