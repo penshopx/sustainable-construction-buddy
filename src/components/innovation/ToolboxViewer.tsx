@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Wrench, Package, Lightbulb, Download, CheckCircle2 } from "lucide-react";
 import { type ToolboxTemplate, type TemplateSection } from "./toolboxTemplates";
-import ReactMarkdown from "react-markdown";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 function SectionChecklist({ items }: { items: string[] }) {
   const [checked, setChecked] = useState<Record<number, boolean>>({});
