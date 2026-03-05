@@ -1,6 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useMemo } from "react";
+import React, { useMemo } from "react";
 
 interface MarkdownRendererProps {
   children: string;
@@ -8,81 +8,155 @@ interface MarkdownRendererProps {
 }
 
 /**
- * Pre-process raw AI output:
- * 1. Strip <br>, <br/>, <br /> tags
- * 2. Turn lone lines starting with * or - (bold/italic markers used as bullets) into proper list items
- * 3. Ensure headings (###) have a blank line before them so they render as blocks
+ * Pre-process raw AI / course content:
+ * 1. Strip stray HTML tags (<br>, <div>, <span>, <font>)
+ * 2. Ensure blank lines before headings so they render as blocks
+ * 3. Outside tables, ensure bold/italic lines start a new paragraph
+ * 4. Normalise multiple blank lines to max two
  */
 function sanitize(raw: string): string {
   let text = raw
-    // Remove <br> variants
     .replace(/<br\s*\/?>/gi, "\n")
-    // Remove other common HTML noise
     .replace(/<\/?(?:div|span|font)[^>]*>/gi, "");
 
-  // Process line-by-line: only add paragraph breaks outside of table rows
   const lines = text.split("\n");
   const result: string[] = [];
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const inTable = line.trimStart().startsWith("|");
     const prevLine = i > 0 ? lines[i - 1] : "";
 
     if (!inTable) {
-      // Ensure blank line before headings
-      if (/^#{1,6}\s/.test(line) && prevLine.trim() !== "") {
-        result.push("");
-      }
-      // Ensure blank line before bold/italic lines (not list items)
-      if (/^\*{1,3}[^*\n]/.test(line) && prevLine.trim() !== "") {
-        result.push("");
-      }
+      if (/^#{1,6}\s/.test(line) && prevLine.trim() !== "") result.push("");
+      if (/^\*{1,3}[^*\n]/.test(line) && prevLine.trim() !== "") result.push("");
     }
     result.push(line);
   }
 
-  return result.join("\n").trim();
+  return result
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /**
- * Shared markdown renderer with proper table styling and GFM support.
- * Use this everywhere instead of raw <ReactMarkdown>.
+ * Shared markdown renderer with professional table, code-block, and prose styling.
  */
 export function MarkdownRenderer({ children, className = "" }: MarkdownRendererProps) {
   const cleaned = useMemo(() => sanitize(children), [children]);
 
   return (
-    <div className={`prose prose-sm dark:prose-invert max-w-none 
-      [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 
-      [&_p]:leading-relaxed [&_li]:leading-relaxed
-      [&_table]:w-full [&_table]:border-collapse [&_table]:text-sm [&_table]:my-3
-      [&_thead]:bg-muted/50 [&_thead]:border-b-2 [&_thead]:border-border
-      [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-semibold [&_th]:text-foreground [&_th]:text-xs [&_th]:uppercase [&_th]:tracking-wider
-      [&_td]:px-3 [&_td]:py-2 [&_td]:border-b [&_td]:border-border [&_td]:text-foreground
-      [&_tr:hover]:bg-muted/30
-      [&_h1]:text-lg [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2
-      [&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-2
-      [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-1
-      [&_ul]:pl-5 [&_ol]:pl-5 [&_ul]:my-2 [&_ol]:my-2
-      [&_blockquote]:border-l-4 [&_blockquote]:border-primary/30 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-muted-foreground
-      [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-xs
-      [&_pre]:bg-muted [&_pre]:p-3 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:text-xs
-      [&_hr]:border-border [&_hr]:my-4
-      [&_strong]:font-semibold [&_em]:italic
-      ${className}`}
-    >
+    <div className={`markdown-renderer ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          /* ——— Headings ——— */
+          h1: ({ children }) => (
+            <h1 className="text-xl font-bold font-heading text-foreground mt-6 mb-3 pb-2 border-b border-border">
+              {children}
+            </h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="text-lg font-bold font-heading text-foreground mt-5 mb-2 pb-1.5 border-b border-border/50">
+              {children}
+            </h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="text-base font-semibold font-heading text-foreground mt-4 mb-2">
+              {children}
+            </h3>
+          ),
+          h4: ({ children }) => (
+            <h4 className="text-sm font-semibold text-foreground mt-3 mb-1">{children}</h4>
+          ),
+
+          /* ——— Paragraph ——— */
+          p: ({ children }) => (
+            <p className="text-sm leading-relaxed text-foreground/90 mb-3">{children}</p>
+          ),
+
+          /* ——— Lists ——— */
+          ul: ({ children }) => (
+            <ul className="text-sm list-disc pl-5 space-y-1.5 mb-3 text-foreground/90">{children}</ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="text-sm list-decimal pl-5 space-y-1.5 mb-3 text-foreground/90">{children}</ol>
+          ),
+          li: ({ children }) => (
+            <li className="leading-relaxed">{children}</li>
+          ),
+
+          /* ——— Table ——— */
           table: ({ children }) => (
-            <div className="overflow-x-auto rounded-lg border border-border my-3">
-              <table className="min-w-full">{children}</table>
+            <div className="overflow-x-auto rounded-lg border border-border my-4 shadow-sm">
+              <table className="min-w-full text-sm border-collapse">{children}</table>
             </div>
           ),
+          thead: ({ children }) => (
+            <thead className="bg-muted/60">{children}</thead>
+          ),
+          th: ({ children }) => (
+            <th className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-foreground border-b-2 border-border whitespace-nowrap">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="px-4 py-2.5 text-sm text-foreground/90 border-b border-border/60 align-top">
+              {children}
+            </td>
+          ),
+          tr: ({ children }) => (
+            <tr className="hover:bg-muted/30 transition-colors">{children}</tr>
+          ),
+
+          /* ——— Blockquote ——— */
+          blockquote: ({ children }) => (
+            <blockquote className="border-l-4 border-primary/40 bg-primary/5 rounded-r-lg pl-4 pr-3 py-3 my-4 text-sm italic text-foreground/80">
+              {children}
+            </blockquote>
+          ),
+
+          /* ——— Code blocks (ASCII diagrams, etc.) ——— */
+          pre: ({ children }) => (
+            <pre className="bg-muted/70 border border-border/50 rounded-lg p-4 my-4 overflow-x-auto text-xs leading-relaxed font-mono whitespace-pre">
+              {children}
+            </pre>
+          ),
+          code: ({ children, className: codeClassName }) => {
+            // Inline code vs block code
+            const isBlock = codeClassName?.startsWith("language-");
+            if (isBlock) {
+              return <code className="text-xs font-mono">{children}</code>;
+            }
+            return (
+              <code className="bg-muted/80 border border-border/40 text-primary px-1.5 py-0.5 rounded text-xs font-mono">
+                {children}
+              </code>
+            );
+          },
+
+          /* ——— Horizontal rule ——— */
+          hr: () => <hr className="border-border my-5" />,
+
+          /* ——— Links ——— */
           a: ({ children, href }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2 hover:text-primary/80">
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors"
+            >
               {children}
             </a>
+          ),
+
+          /* ——— Strong / Em ——— */
+          strong: ({ children }) => (
+            <strong className="font-semibold text-foreground">{children}</strong>
+          ),
+          em: ({ children }) => (
+            <em className="italic">{children}</em>
           ),
         }}
       >
