@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Pencil, Trash2, GraduationCap, Search } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { Plus, Pencil, Trash2, GraduationCap, Search, Eye, FileEdit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Module {
@@ -226,7 +228,24 @@ export default function AdminModules() {
             </div>
             <div>
               <Label>Konten (Markdown)</Label>
-              <Textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={8} />
+              <Tabs defaultValue="edit" className="mt-1">
+                <TabsList className="mb-2">
+                  <TabsTrigger value="edit" className="gap-1.5"><FileEdit className="w-3.5 h-3.5" /> Edit</TabsTrigger>
+                  <TabsTrigger value="preview" className="gap-1.5"><Eye className="w-3.5 h-3.5" /> Preview</TabsTrigger>
+                </TabsList>
+                <TabsContent value="edit">
+                  <Textarea value={form.content} onChange={e => setForm({ ...form, content: e.target.value })} rows={12} className="font-mono text-xs" />
+                </TabsContent>
+                <TabsContent value="preview">
+                  <div className="border border-border rounded-lg p-4 min-h-[200px] max-h-[400px] overflow-y-auto bg-muted/20">
+                    {form.content ? (
+                      <MarkdownRenderer>{form.content}</MarkdownRenderer>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">Belum ada konten untuk dipratinjau.</p>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
           <DialogFooter>
