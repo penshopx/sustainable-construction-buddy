@@ -205,11 +205,11 @@ export default function AdminModules() {
             </div>
             <div>
               <Label>Jabatan Kerja (Segment)</Label>
-              <Select value={form.job_segment} onValueChange={v => setForm({ ...form, job_segment: v })}>
+              <Select value={form.job_segment || "__umum"} onValueChange={v => setForm({ ...form, job_segment: v === "__umum" ? "" : v })}>
                 <SelectTrigger><SelectValue placeholder="Pilih jabatan kerja" /></SelectTrigger>
                 <SelectContent>
                   {JOB_SEGMENTS.map(s => (
-                    <SelectItem key={s.value || "__umum"} value={s.value}>{s.label}</SelectItem>
+                    <SelectItem key={s.value || "__umum"} value={s.value || "__umum"}>{s.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
