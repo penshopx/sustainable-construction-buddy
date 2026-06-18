@@ -56,6 +56,8 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "html2pdf.js": path.resolve(__dirname, "./src/lib/stubs/html2pdf.ts"),
+      "xlsx": path.resolve(__dirname, "./src/lib/stubs/xlsx.ts"),
     },
   },
 }));
