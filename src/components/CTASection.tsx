@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Shield, Clock, Headphones, CheckCircle } from "lucide-react";
 
 const urgencyPoints = [
-  "SBU Anda bisa tidak diperpanjang tanpa bukti PUB",
-  "Kompetitor yang sudah digital akan menyalip Anda",
-  "Regulasi Permen PU 6/2025 sudah berlaku efektif",
+  "Tingkatkan kompetensi manajerial sesuai standar LPJK & Permen PU",
+  "Akses tools digital eksklusif untuk BUJK yang ingin unggul di tender",
+  "Bergabung dengan komunitas kontraktor profesional ASPEKINDO",
 ];
 
 const CTASection = () => {
@@ -21,12 +21,12 @@ const CTASection = () => {
           className="text-center max-w-3xl mx-auto"
         >
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold font-heading text-[hsl(0,0%,97%)] mb-6 leading-tight">
-            Jangan Tunggu Sampai{" "}
-            <span className="text-gradient-hero">SBU Anda Dicabut</span>
+            Jadilah BUJK yang{" "}
+            <span className="text-gradient-hero">Kompeten, Patuh & Berdaya Saing</span>
           </h2>
           <p className="text-lg text-[hsl(0,0%,65%)] font-body mb-8 leading-relaxed">
-            Ribuan BUJK di seluruh Indonesia sudah mulai bergerak. 
-            Pertanyaannya bukan <em>apakah</em> Anda harus bergabung — tapi <em>kapan</em>.
+            ASPEKINDO hadir untuk mendampingi perjalanan transformasi digital BUJK Indonesia — 
+            dari kepatuhan regulasi hingga penguasaan kompetensi manajerial kelas dunia.
           </p>
 
           {/* Urgency checklist */}
@@ -43,10 +43,10 @@ const CTASection = () => {
             onClick={() => navigate("/auth")}
             className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-lg shadow-amber hover:brightness-110 transition-all"
           >
-            Daftar Gratis Sekarang <ArrowRight className="w-5 h-5" />
+            Daftar & Tingkatkan Kompetensi Anda <ArrowRight className="w-5 h-5" />
           </button>
           <p className="text-xs text-[hsl(0,0%,50%)] mt-3 font-body">
-            Gratis untuk anggota ASPEKINDO. Setup kurang dari 5 menit.
+            Platform resmi ASPEKINDO untuk personil manajerial BUJK Indonesia.
           </p>
 
           <div className="flex flex-wrap justify-center gap-8 mt-12">

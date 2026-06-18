@@ -73,7 +73,7 @@ const HeroSection = () => {
               onClick={() => navigate("/auth")}
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-lg shadow-amber hover:brightness-110 transition-all duration-200"
             >
-              Mulai Sekarang — Gratis
+              Bergabung & Jadilah Kontraktor Berdaya Saing
               <ArrowRight className="w-5 h-5" />
             </button>
             <button
