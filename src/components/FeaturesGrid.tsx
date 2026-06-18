@@ -68,7 +68,7 @@ const FeaturesGrid = () => {
             onClick={() => navigate("/auth")}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-amber text-accent-foreground font-semibold font-heading shadow-amber hover:brightness-110 transition-all"
           >
-            Mulai Gratis Sekarang <ArrowRight className="w-4 h-4" />
+            Bergabung & Jadilah Kontraktor Berdaya Saing <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>

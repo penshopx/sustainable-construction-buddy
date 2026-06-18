@@ -129,9 +129,9 @@ const TheOneThingSection = () => {
             onClick={() => navigate("/auth")}
             className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading shadow-amber hover:brightness-110 transition-all"
           >
-            Mulai Gratis Sekarang <ArrowRight className="w-4 h-4" />
+            Bergabung & Jadilah Kontraktor Berdaya Saing <ArrowRight className="w-4 h-4" />
           </button>
-          <p className="text-xs text-muted-foreground mt-3 font-body">Gratis untuk anggota ASPEKINDO. Tanpa kartu kredit.</p>
+          <p className="text-xs text-muted-foreground mt-3 font-body">Platform resmi ASPEKINDO untuk personil manajerial BUJK Indonesia.</p>
         </div>
       </div>
     </section>
