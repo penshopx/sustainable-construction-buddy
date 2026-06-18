@@ -4,7 +4,6 @@ import TheOneThingSection from "@/components/TheOneThingSection";
 import SocialProofSection from "@/components/SocialProofSection";
 import EngineCards from "@/components/EngineCards";
 import TeamSection from "@/components/TeamSection";
-import PricingSection from "@/components/PricingSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import FloatingChatbot from "@/components/FloatingChatbot";
@@ -29,9 +28,6 @@ const Index = () => {
 
       {/* Team credibility */}
       <TeamSection />
-
-      {/* Pricing */}
-      <PricingSection />
 
       {/* A — ACTION: Urgent CTA */}
       <CTASection />
