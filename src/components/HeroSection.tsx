@@ -1,15 +1,15 @@
 import { motion } from "framer-motion";
-import { ArrowRight, AlertTriangle, TrendingDown, Users } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import logoPub from "@/assets/logo-pub-new.png";
 import logoAspekindo from "@/assets/logo-aspekindo.png";
 import logoLsbuki from "@/assets/logo-lsbuki.webp";
 
-const shockStats = [
-  { value: "65%", label: "BUJK gagal perpanjang SBU karena tidak memenuhi kewajiban PUB", icon: AlertTriangle },
-  { value: "Rp 847 T", label: "Nilai proyek konstruksi Indonesia 2024 — persaingan makin ketat", icon: TrendingDown },
-  { value: "202.000+", label: "BUJK terdaftar, mayoritas belum punya sistem kompetensi digital", icon: Users },
+const challenges = [
+  { label: "Regulasi terus berubah", sub: "BUJK dituntut selalu patuh & adaptif" },
+  { label: "SBU makin sulit dipenuhi", sub: "Persyaratan kian berat, proses kian ketat" },
+  { label: "Proyek makin kompetitif", sub: "Efisiensi anggaran, harga naik, tender berat" },
 ];
 
 const HeroSection = () => {
@@ -17,7 +17,6 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0">
         <img src={heroImage} alt="Proyek konstruksi modern" className="w-full h-full object-cover" loading="eager" />
         <div className="absolute inset-0 bg-gradient-to-b from-[hsl(220,60%,8%)/95%] via-[hsl(220,50%,12%)/90%] to-[hsl(220,40%,15%)/85%]" />
@@ -41,7 +40,7 @@ const HeroSection = () => {
           </div>
         </motion.div>
 
-        {/* Attention-grabbing headline */}
+        {/* AIDA: Attention — headline */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -50,22 +49,20 @@ const HeroSection = () => {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/15 border border-destructive/25 text-destructive text-sm font-semibold font-heading mb-5">
             <AlertTriangle className="w-3.5 h-3.5" />
-            DATA INDUSTRI KONSTRUKSI 2024
+            TANTANGAN NYATA BUJK INDONESIA
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold font-heading text-white leading-[1.1] mb-6" style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5)' }}>
-            Industri Konstruksi Indonesia{" "}
-            <span className="text-pub-amber font-extrabold" style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6)' }}>Bernilai Rp 847 Triliun</span>
-            <br />
-            <span className="text-white text-3xl md:text-4xl lg:text-[2.5rem]" style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.9), 0 0 15px rgba(0,0,0,0.6)' }}>
-              Tapi mayoritas BUJK belum siap bersaing.
+          <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold font-heading text-white leading-[1.1] mb-6" style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>
+            Industri Konstruksi Berubah Cepat.{" "}
+            <span className="text-pub-amber" style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.9)' }}>
+              Apakah BUJK Anda Siap?
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-[hsl(0,0%,85%)] leading-relaxed mb-10 max-w-3xl font-body" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
-            Regulasi semakin ketat, SBU bisa dicabut, dan tender semakin kompetitif. 
-            <strong className="text-[hsl(0,0%,97%)]"> Satu platform </strong> 
-            bisa menyelesaikan semua itu — PUB ASPEKINDO.
+            Regulasi berubah, persyaratan SBU semakin berat, dan persaingan tender kian sengit. 
+            <strong className="text-[hsl(0,0%,97%)]"> ASPEKINDO hadir </strong> 
+            sebagai mitra strategis BUJK untuk tumbuh, patuh, dan berdaya saing.
           </p>
 
           <div className="flex flex-wrap gap-4 mb-16">
@@ -76,35 +73,33 @@ const HeroSection = () => {
               Bergabung & Jadilah Kontraktor Berdaya Saing
               <ArrowRight className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => {
-                document.getElementById("masalah-industri")?.scrollIntoView({ behavior: "smooth" });
-              }}
+            <a
+              href="https://dialog.aspekindo-pub.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-[hsl(0,0%,100%)/20%] text-[hsl(0,0%,85%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/8%] transition-all duration-200"
             >
-              Lihat Data Industri
-            </button>
+              Dialog dengan AI Gustafta
+            </a>
           </div>
         </motion.div>
 
-        {/* Shock stats bar */}
+        {/* Challenge cards — qualitative */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
           className="grid md:grid-cols-3 gap-6"
         >
-          {shockStats.map((stat, i) => (
+          {challenges.map((c, i) => (
             <div
               key={i}
               className="flex items-start gap-4 p-5 rounded-xl bg-[hsl(220,30%,10%)/90%] backdrop-blur-md border border-[hsl(0,0%,100%)/12%]"
             >
-              <div className="w-12 h-12 rounded-lg bg-pub-amber/20 flex items-center justify-center shrink-0">
-                <stat.icon className="w-6 h-6 text-pub-amber" />
-              </div>
+              <div className="w-3 h-3 rounded-full bg-pub-amber shrink-0 mt-1.5" />
               <div>
-                <p className="text-2xl md:text-3xl font-extrabold font-heading text-pub-amber" style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}>{stat.value}</p>
-                <p className="text-sm text-[hsl(0,0%,85%)] font-body leading-snug mt-1" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>{stat.label}</p>
+                <p className="text-lg font-bold font-heading text-white" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>{c.label}</p>
+                <p className="text-sm text-[hsl(0,0%,75%)] font-body mt-1">{c.sub}</p>
               </div>
             </div>
           ))}

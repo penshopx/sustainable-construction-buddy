@@ -1,10 +1,9 @@
 import { motion } from "framer-motion";
-import { Building2, Users, Award, Layers, Shield, Globe } from "lucide-react";
+import { Shield, Globe, BookOpen, Award } from "lucide-react";
 import logoPub from "@/assets/logo-pub-new.png";
 import logoAspekindo from "@/assets/logo-aspekindo.png";
 import logoLsbuki from "@/assets/logo-lsbuki.webp";
 import logoPu from "@/assets/logo-pu.png";
-
 
 const credentials = [
   { value: "UU 02/2017", label: "Dasar Hukum", sub: "Undang-Undang Jasa Konstruksi" },
@@ -13,20 +12,18 @@ const credentials = [
   { value: "PP 14/2021", label: "Peraturan Pemerintah", sub: "Kewajiban BUJK" },
 ];
 
-const reach = [
-  { icon: Building2, value: "34", label: "Provinsi", sub: "Jangkauan Nasional" },
-  { icon: Users, value: "5.000+", label: "Personil", sub: "Target Tahun Pertama" },
-  { icon: Award, value: "4 Level", label: "Kompetensi", sub: "Pemula → Utama" },
-  { icon: Layers, value: "6 Domain", label: "Keahlian", sub: "Komprehensif" },
-  { icon: Shield, value: "100+", label: "Tools & Mini Apps", sub: "Siap Pakai" },
-  { icon: Globe, value: "10 Pilar", label: "Inovasi PUB", sub: "Strategic Roadmap" },
-];
-
 const logos = [
   { src: logoPu, alt: "Kementerian PUPR", name: "Kementerian PUPR" },
   { src: logoPub, alt: "PUB ASPEKINDO", name: "PUB ASPEKINDO" },
   { src: logoAspekindo, alt: "ASPEKINDO", name: "ASPEKINDO" },
   { src: logoLsbuki, alt: "LSBU KI", name: "LSBU KI" },
+];
+
+const values = [
+  { icon: Shield, title: "Berbasis Regulasi Resmi", desc: "Seluruh program PUB mengacu pada peraturan perundang-undangan jasa konstruksi yang berlaku." },
+  { icon: Globe, title: "Jangkauan Nasional", desc: "Platform digital yang dapat diakses oleh BUJK dari seluruh wilayah Indonesia kapan saja." },
+  { icon: BookOpen, title: "Pembelajaran Berkelanjutan", desc: "Modul dan program belajar dirancang untuk mendukung pengembangan kompetensi jangka panjang." },
+  { icon: Award, title: "Sertifikasi Terverifikasi", desc: "Setiap pencapaian kompetensi didokumentasikan sebagai bukti nyata pengembangan BUJK." },
 ];
 
 const SocialProofSection = () => {
@@ -63,7 +60,7 @@ const SocialProofSection = () => {
           className="mb-16"
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {credentials.map((c, i) => (
+            {credentials.map((c) => (
               <div key={c.value} className="p-4 rounded-xl bg-pub-amber/5 border border-pub-amber/15 text-center">
                 <p className="text-lg font-extrabold font-heading text-pub-amber">{c.value}</p>
                 <p className="text-sm font-semibold text-foreground mt-1 font-heading">{c.label}</p>
@@ -73,7 +70,7 @@ const SocialProofSection = () => {
           </div>
         </motion.div>
 
-        {/* Platform reach */}
+        {/* Platform values — qualitative, no numbers */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -81,24 +78,28 @@ const SocialProofSection = () => {
           className="text-center mb-10"
         >
           <h3 className="text-2xl md:text-3xl font-bold font-heading text-foreground">
-            Ekosistem yang Dibangun untuk Skala Nasional
+            Ekosistem yang Dibangun untuk BUJK Indonesia
           </h3>
+          <p className="text-muted-foreground mt-2 max-w-xl mx-auto font-body">
+            Lebih dari sekadar aplikasi — PUB ASPEKINDO adalah ekosistem pertumbuhan bersama.
+          </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {reach.map((r, i) => (
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
+          {values.map((v, i) => (
             <motion.div
-              key={r.label}
+              key={v.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className="p-4 rounded-xl bg-muted/50 border border-border text-center"
+              className="p-5 rounded-xl bg-muted/50 border border-border text-center"
             >
-              <r.icon className="w-6 h-6 text-pub-amber mx-auto mb-2" />
-              <p className="text-2xl font-extrabold font-heading text-foreground">{r.value}</p>
-              <p className="text-sm font-semibold text-foreground mt-0.5 font-heading">{r.label}</p>
-              <p className="text-xs text-muted-foreground font-body">{r.sub}</p>
+              <div className="w-12 h-12 rounded-xl bg-pub-amber/10 flex items-center justify-center mx-auto mb-3">
+                <v.icon className="w-6 h-6 text-pub-amber" />
+              </div>
+              <h4 className="text-sm font-bold font-heading text-foreground mb-2">{v.title}</h4>
+              <p className="text-xs text-muted-foreground font-body leading-relaxed">{v.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -108,7 +109,7 @@ const SocialProofSection = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-14 p-6 rounded-xl bg-pub-amber/5 border border-pub-amber/20 text-center max-w-3xl mx-auto"
+          className="mt-4 p-6 rounded-xl bg-pub-amber/5 border border-pub-amber/20 text-center max-w-3xl mx-auto"
         >
           <p className="text-base italic text-muted-foreground font-body leading-relaxed">
             "Setiap Badan Usaha Jasa Konstruksi memiliki kewajiban melaksanakan kegiatan Pengembangan Usaha Berkelanjutan (PUB) untuk meningkatkan kapasitas dan daya saing."

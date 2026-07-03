@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Shield, Clock, Headphones, CheckCircle } from "lucide-react";
+import { ArrowRight, Shield, MessageSquare, Users, CheckCircle } from "lucide-react";
 
-const urgencyPoints = [
+const commitments = [
   "Tingkatkan kompetensi manajerial sesuai standar LPJK & Permen PU",
-  "Akses tools digital eksklusif untuk BUJK yang ingin unggul di tender",
+  "Penuhi persyaratan SBU dengan dokumentasi PUB yang terstruktur",
   "Bergabung dengan komunitas kontraktor profesional ASPEKINDO",
 ];
 
@@ -26,12 +26,11 @@ const CTASection = () => {
           </h2>
           <p className="text-lg text-[hsl(0,0%,65%)] font-body mb-8 leading-relaxed">
             ASPEKINDO hadir untuk mendampingi perjalanan transformasi digital BUJK Indonesia — 
-            dari kepatuhan regulasi hingga penguasaan kompetensi manajerial kelas dunia.
+            dari kepatuhan regulasi hingga penguasaan kompetensi manajerial yang profesional.
           </p>
 
-          {/* Urgency checklist */}
           <div className="space-y-3 mb-10 text-left max-w-md mx-auto">
-            {urgencyPoints.map((point) => (
+            {commitments.map((point) => (
               <div key={point} className="flex items-start gap-3">
                 <CheckCircle className="w-5 h-5 text-pub-amber shrink-0 mt-0.5" />
                 <p className="text-sm text-[hsl(0,0%,75%)] font-body">{point}</p>
@@ -39,21 +38,34 @@ const CTASection = () => {
             ))}
           </div>
 
-          <button
-            onClick={() => navigate("/auth")}
-            className="inline-flex items-center gap-2 px-10 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-lg shadow-amber hover:brightness-110 transition-all"
-          >
-            Daftar & Tingkatkan Kompetensi Anda <ArrowRight className="w-5 h-5" />
-          </button>
-          <p className="text-xs text-[hsl(0,0%,50%)] mt-3 font-body">
+          {/* Dual CTA */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+            <button
+              onClick={() => navigate("/auth")}
+              className="inline-flex items-center justify-center gap-2 px-9 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-lg shadow-amber hover:brightness-110 transition-all"
+            >
+              Daftar & Tingkatkan Kompetensi <ArrowRight className="w-5 h-5" />
+            </button>
+            <a
+              href="https://dialog.aspekindo-pub.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-9 py-4 rounded-xl border border-[hsl(0,0%,100%)/20%] text-[hsl(0,0%,85%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/8%] transition-all"
+            >
+              <MessageSquare className="w-5 h-5" />
+              Dialog dengan Gustafta AI
+            </a>
+          </div>
+
+          <p className="text-xs text-[hsl(0,0%,50%)] mb-12 font-body">
             Platform resmi ASPEKINDO untuk personil manajerial BUJK Indonesia.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-8 mt-12">
+          <div className="flex flex-wrap justify-center gap-8">
             {[
-              { icon: Shield, label: "Data Aman & Terenkripsi" },
-              { icon: Clock, label: "Setup < 5 Menit" },
-              { icon: Headphones, label: "AI Support 24/7" },
+              { icon: Shield, label: "Berbasis Regulasi Resmi" },
+              { icon: Users, label: "Komunitas BUJK Nasional" },
+              { icon: MessageSquare, label: "AI Support Gustafta" },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2 text-[hsl(0,0%,45%)] text-sm font-body">
                 <item.icon className="w-4 h-4" />
