@@ -60,7 +60,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                   <div className="w-5 h-5 rounded-md bg-pub-amber/20 flex items-center justify-center shrink-0">
                     <span className="text-pub-amber font-extrabold text-xs">G</span>
                   </div>
-                  <p className="text-white font-bold text-xs font-heading">Gustafta AI</p>
+                  <p className="text-white font-bold text-xs font-heading">AI PUB-ASPEKINDO</p>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse ml-auto" />
                 </div>
                 <p className="text-[hsl(0,0%,65%)] text-xs font-body leading-relaxed">
@@ -110,10 +110,10 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                 <span className="text-pub-amber font-extrabold text-base font-heading">G</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm font-heading leading-none">GUSTAFTA</p>
+                <p className="text-white font-bold text-sm font-heading leading-none">AI PUB-ASPEKINDO</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[hsl(0,0%,55%)] text-xs font-body">AI Dialog ASPEKINDO · Online</span>
+                  <span className="text-[hsl(0,0%,55%)] text-xs font-body">Dialog Gustafta · Online</span>
                 </div>
               </div>
               <Button
