@@ -7,6 +7,7 @@ import TeamSection from "@/components/TeamSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import FloatingChatbot from "@/components/FloatingChatbot";
+import FloatingGustafta from "@/components/FloatingGustafta";
 
 const Index = () => {
   return (
@@ -33,7 +34,10 @@ const Index = () => {
       <CTASection />
 
       <Footer />
+      {/* Kiri: HelpDesk layanan & info */}
       <FloatingChatbot variant="landing" />
+      {/* Kanan: Gustafta Socratic Dialog */}
+      <FloatingGustafta />
     </main>
   );
 };

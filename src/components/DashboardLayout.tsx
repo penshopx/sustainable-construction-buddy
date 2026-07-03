@@ -8,6 +8,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import FloatingChatbot from "@/components/FloatingChatbot";
+import FloatingGustafta from "@/components/FloatingGustafta";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -67,7 +68,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {children}
           </main>
         </div>
+        {/* Kiri: HelpDesk layanan & info */}
         <FloatingChatbot variant="dashboard" />
+        {/* Kanan: Gustafta Socratic Dialog */}
+        <FloatingGustafta />
       </div>
     </SidebarProvider>
   );
