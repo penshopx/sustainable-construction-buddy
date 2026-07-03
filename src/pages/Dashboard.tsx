@@ -7,7 +7,7 @@ import {
   Star, Award, Crown, Gem, TrendingUp, BookOpen, ClipboardCheck,
   Target, ArrowRight, BarChart3, CheckCircle2, Clock, GraduationCap,
   AlertTriangle, Shield, DollarSign, FolderKanban, Zap, ChevronRight,
-  ShoppingCart, FileText, Package
+  ShoppingCart, FileText, Package, MessageCircle
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
@@ -390,6 +390,30 @@ const Dashboard = () => {
             <p className="font-bold font-heading text-foreground">Proyek Saya</p>
             <p className="text-sm text-muted-foreground font-body mt-1">Kelola proyek & evidence</p>
             <ArrowRight className="w-4 h-4 mt-2 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+          </button>
+
+          {/* AI PUB HelpDesk widget */}
+          <button
+            onClick={() => navigate("/ai-helpdesk")}
+            className="w-full rounded-xl p-5 text-left group overflow-hidden relative border border-[hsl(0,0%,100%)/10%] bg-gradient-to-br from-[hsl(220,60%,14%)] to-[hsl(225,55%,22%)] hover:brightness-110 transition-all shadow-card"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-pub-amber/20 flex items-center justify-center shrink-0">
+                <span className="text-pub-amber font-extrabold text-base font-heading">G</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-emerald-400 text-xs font-body">Online</span>
+                </div>
+                <p className="font-bold font-heading text-white text-sm">AI PUB HelpDesk</p>
+                <p className="text-xs text-[hsl(0,0%,60%)] font-body mt-0.5">Gustafta Socratic Dialog</p>
+              </div>
+              <MessageCircle className="w-4 h-4 text-pub-amber mt-1 group-hover:translate-x-0.5 transition-transform" />
+            </div>
+            <p className="text-xs text-[hsl(0,0%,55%)] font-body mt-3 leading-relaxed">
+              Petakan problem BUJK & dapatkan Blueprint Potensi Diri
+            </p>
           </button>
         </motion.div>
       </div>

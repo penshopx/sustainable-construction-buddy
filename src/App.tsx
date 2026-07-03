@@ -28,6 +28,7 @@ import PerformanceGrade from "./pages/PerformanceGrade";
 import ComplianceTracker from "./pages/ComplianceTracker";
 import SmapDashboard from "./pages/SmapDashboard";
 import Notifications from "./pages/Notifications";
+import AiPubHelpdesk from "./pages/AiPubHelpdesk";
 import AdminGuard from "./components/AdminGuard";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
@@ -96,6 +97,7 @@ const App = () => (
             <Route path="/direktori" element={<DashboardLayout><CompanyDirectory /></DashboardLayout>} />
             <Route path="/direktori/:companyId" element={<DashboardLayout><CompanyDetail /></DashboardLayout>} />
             <Route path="/helpdesk" element={<DashboardLayout><HelpdeskAI /></DashboardLayout>} />
+            <Route path="/ai-helpdesk" element={<DashboardLayout><AiPubHelpdesk /></DashboardLayout>} />
             <Route path="/pesanan" element={<DashboardLayout><MyOrders /></DashboardLayout>} />
             <Route path="/produk-saya" element={<DashboardLayout><MyProducts /></DashboardLayout>} />
             <Route path="/my-products" element={<Navigate to="/produk-saya" replace />} />
