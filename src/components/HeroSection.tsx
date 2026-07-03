@@ -79,7 +79,7 @@ const HeroSection = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-[hsl(0,0%,100%)/20%] text-[hsl(0,0%,85%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/8%] transition-all duration-200"
             >
-              Dialog dengan AI Gustafta
+              Gustafta Socratic Dialog
             </a>
           </div>
         </motion.div>

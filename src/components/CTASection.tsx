@@ -53,7 +53,7 @@ const CTASection = () => {
               className="inline-flex items-center justify-center gap-2 px-9 py-4 rounded-xl border border-[hsl(0,0%,100%)/20%] text-[hsl(0,0%,85%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/8%] transition-all"
             >
               <MessageSquare className="w-5 h-5" />
-              Dialog dengan Gustafta AI
+              Gustafta Socratic Dialog
             </a>
           </div>
 
@@ -65,7 +65,7 @@ const CTASection = () => {
             {[
               { icon: Shield, label: "Berbasis Regulasi Resmi" },
               { icon: Users, label: "Komunitas BUJK Nasional" },
-              { icon: MessageSquare, label: "AI Support Gustafta" },
+              { icon: MessageSquare, label: "AI PUB HelpDesk" },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-2 text-[hsl(0,0%,45%)] text-sm font-body">
                 <item.icon className="w-4 h-4" />

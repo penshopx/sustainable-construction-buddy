@@ -228,15 +228,14 @@ const TheOneThingSection = () => {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading shadow-amber hover:brightness-110 transition-all"
                   >
-                    Coba Dialog Gustafta <ArrowRight className="w-4 h-4" />
+                    Gustafta Socratic Dialog <ArrowRight className="w-4 h-4" />
                   </a>
                   <a
-                    href="https://dialog.aspekindo-pub.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href="#ai-pub-helpdesk"
+                    onClick={e => { e.preventDefault(); document.getElementById('floating-helpdesk-btn')?.click(); }}
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-[hsl(0,0%,100%)/15%] text-[hsl(0,0%,75%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/6%] transition-all text-sm"
                   >
-                    Tanya Gustafta Dulu
+                    Tanya AI PUB HelpDesk
                   </a>
                 </div>
                 <p className="text-xs text-[hsl(0,0%,40%)] mt-3 font-body">

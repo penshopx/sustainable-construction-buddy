@@ -72,7 +72,8 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
 
             <button
               onClick={handleOpen}
-              title="Dialog dengan Gustafta AI"
+              title="AI PUB HelpDesk"
+              id="floating-helpdesk-btn"
               className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-gradient-to-br from-[hsl(220,70%,40%)] to-[hsl(225,60%,55%)] hover:brightness-110 transition-all border-2 border-[hsl(0,0%,100%)/15%]"
             >
               <motion.div
@@ -113,7 +114,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                 <p className="text-white font-bold text-sm font-heading leading-none">AI PUB HelpDesk</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[hsl(0,0%,55%)] text-xs font-body">Dialog Gustafta · Online</span>
+                  <span className="text-[hsl(0,0%,55%)] text-xs font-body">Gustafta Socratic Dialog · Online</span>
                 </div>
               </div>
               <Button
@@ -158,7 +159,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                 onClick={openDialog}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-sm shadow-amber hover:brightness-110 transition-all mb-3"
               >
-                Mulai Dialog dengan Gustafta <ArrowRight className="w-4 h-4" />
+                Mulai Gustafta Socratic Dialog <ArrowRight className="w-4 h-4" />
               </button>
 
               <a
