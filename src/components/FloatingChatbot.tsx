@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, MessageCircle, ChevronRight, Phone, Mail, Globe } from "lucide-react";
+import { X, MessageCircle, ChevronRight, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -122,20 +122,10 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
             <div className="border-t border-border px-4 py-3 bg-muted/30 space-y-2">
               <p className="text-xs font-semibold font-heading text-foreground">Hubungi Kami</p>
               <div className="flex flex-col gap-1.5">
-                <a href="https://aspekindo.or.id" target="_blank" rel="noopener noreferrer"
+                <a href="https://aspekindo.id" target="_blank" rel="noopener noreferrer"
                   className="flex items-center gap-2 text-xs text-muted-foreground hover:text-pub-sky transition-colors font-body">
                   <Globe className="w-3.5 h-3.5" />
-                  aspekindo.or.id
-                </a>
-                <a href="mailto:info@aspekindo.or.id"
-                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-pub-sky transition-colors font-body">
-                  <Mail className="w-3.5 h-3.5" />
-                  info@aspekindo.or.id
-                </a>
-                <a href="tel:+6221xxxxxxxx"
-                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-pub-sky transition-colors font-body">
-                  <Phone className="w-3.5 h-3.5" />
-                  Hubungi Sekretariat
+                  aspekindo.id
                 </a>
               </div>
             </div>
