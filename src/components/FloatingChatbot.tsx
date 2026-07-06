@@ -122,7 +122,7 @@ function findAnswer(input: string): string {
     if (keys.some((k) => q.includes(k))) return ans;
   }
 
-  return "Maaf, saya belum menemukan jawaban yang tepat untuk pertanyaan itu. Silakan telusuri kategori di atas, atau kunjungi <a href='https://aspekindo.id' target='_blank' class='text-pub-sky underline'>aspekindo.id</a> untuk bantuan lebih lanjut.";
+  return "Maaf, saya belum menemukan jawaban yang tepat untuk pertanyaan itu. Silakan telusuri kategori di tab Panduan, hubungi kami di <a href='https://aspekindo.id' target='_blank' class='text-pub-sky underline'>aspekindo.id</a>, atau kunjungi Lembaga Sertifikasi Badan Usaha ASPEKINDO di <a href='https://lsbukonstruksi.co.id' target='_blank' class='text-pub-sky underline'>lsbukonstruksi.co.id</a>.";
 }
 
 export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatbotProps) {
