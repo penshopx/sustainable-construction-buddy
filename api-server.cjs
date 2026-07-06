@@ -18,7 +18,7 @@ Fitur-fitur utama platform:
 2. E-Course — modul pembelajaran digital dengan kuis dan sertifikat
 3. AI Mentor — asisten AI untuk mendampingi belajar modul (3 mode: learning, expert, project)
 4. Gustafta Socratic Dialog — AI khusus untuk memetakan problem BUJK dan menghasilkan Blue Print Potensi Diri
-5. LKUT — Laporan Keuangan Usaha Tahunan, laporan wajib kinerja BUJK
+5. LKUT — Laporan Kegiatan Usaha Tahunan (Permen PUPR No. 7/2024), laporan wajib tahunan BUJK mencakup keuangan, kegiatan usaha, tenaga kerja, dan kinerja proyek
 6. PANCEK — Penilaian Akhir Capaian Kompetensi personil manajerial
 7. SMAP — Sistem Manajemen Anti Penyuapan (ISO 37001)
 8. Proyek Saya — kelola proyek konstruksi, evidence, dan dokumentasi

@@ -44,7 +44,7 @@ const CATEGORIES: Category[] = [
     icon: "📊",
     label: "LKUT, PANCEK & SMAP",
     articles: [
-      { q: "Apa itu LKUT?", a: "LKUT (Laporan Keuangan Usaha Tahunan) adalah laporan wajib yang mencerminkan kesehatan keuangan BUJK. Menu LKUT membantu Anda mengisi dan menyimpan laporan tahunan." },
+      { q: "Apa itu LKUT?", a: "LKUT (Laporan Kegiatan Usaha Tahunan) adalah laporan wajib tahunan BUJK sesuai Permen PUPR No. 7/2024. Mencakup data keuangan, kegiatan usaha, tenaga kerja, dan kinerja proyek. Menu LKUT membantu Anda mengisi dan menyimpan laporan ini." },
       { q: "Apa itu PANCEK?", a: "PANCEK (Penilaian Akhir Capaian Kompetensi) adalah instrumen penilaian komprehensif kompetensi personil manajerial BUJK di akhir periode program." },
       { q: "Apa itu SMAP?", a: "SMAP (Sistem Manajemen Anti Penyuapan) adalah modul untuk memastikan BUJK Anda memenuhi standar tata kelola anti penyuapan sesuai ISO 37001." },
     ],
