@@ -1,15 +1,9 @@
 import { useState } from "react";
-import { X, MessageCircle, ChevronRight, Globe } from "lucide-react";
+import { X, MessageCircle, Maximize2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
-const FAQS = [
-  { q: "Apa itu PUB ASPEKINDO?", a: "PUB (Pengembangan Usaha Berkelanjutan) adalah program ekosistem kompetensi digital ASPEKINDO untuk Personil Manajerial BUJK — mencakup assessment, e-learning, sertifikasi, dan pendampingan." },
-  { q: "Siapa yang bisa bergabung?", a: "Personil Manajerial BUJK (Badan Usaha Jasa Konstruksi) anggota ASPEKINDO — direktur, manajer, maupun staf profesional di bidang konstruksi." },
-  { q: "Apa itu BUJK?", a: "BUJK (Badan Usaha Jasa Konstruksi) adalah perusahaan yang bergerak di bidang jasa konstruksi sesuai UU No. 2 Tahun 2017 tentang Jasa Konstruksi." },
-  { q: "Bagaimana cara mendaftar?", a: "Klik 'Daftar Sekarang' di halaman utama, isi data BUJK dan personil, lalu ikuti proses verifikasi keanggotaan ASPEKINDO." },
-  { q: "Apa itu LKUT & PANCEK?", a: "LKUT (Laporan Keuangan Usaha Tahunan) dan PANCEK (Penilaian Akhir Capaian Kompetensi) adalah instrumen pengukuran kinerja dan kompetensi BUJK wajib bagi anggota." },
-];
+const HELPDESK_URL = "https://aspekindo-pub.com";
 
 interface FloatingChatbotProps {
   variant?: "landing" | "dashboard";
@@ -17,7 +11,16 @@ interface FloatingChatbotProps {
 
 export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const handleOpen = () => {
+    setIsOpen(true);
+    setHasInteracted(true);
+  };
+
+  const openPopup = () => {
+    window.open(HELPDESK_URL, "pub-helpdesk", "width=460,height=720,resizable=yes,scrollbars=yes");
+  };
 
   return (
     <>
@@ -31,30 +34,35 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
             exit={{ scale: 0, opacity: 0 }}
             className="fixed bottom-6 left-6 z-50"
           >
-            <button
-              onClick={() => setIsOpen(true)}
-              title="PUB HelpDesk Layanan"
-              id="floating-helpdesk-btn"
-              className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-gradient-to-br from-pub-sky to-pub-navy hover:brightness-110 transition-all border-2 border-[hsl(0,0%,100%)/20%]"
-            >
-              <MessageCircle className="w-6 h-6 text-white" />
-            </button>
-            {/* Tooltip */}
-            <div className="absolute bottom-16 left-0 pointer-events-none">
+            {!hasInteracted && (
               <motion.div
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 2 }}
-                className="bg-card border border-border rounded-xl px-3 py-2 shadow-card text-xs font-body text-foreground whitespace-nowrap"
+                transition={{ delay: 3 }}
+                className="absolute bottom-16 left-0 bg-card border border-border rounded-xl px-3 py-2 shadow-card text-xs font-body text-foreground whitespace-nowrap pointer-events-none"
               >
                 💬 PUB HelpDesk Layanan
               </motion.div>
-            </div>
+            )}
+            <button
+              onClick={handleOpen}
+              title="PUB HelpDesk Layanan"
+              id="floating-helpdesk-btn"
+              className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-gradient-to-br from-pub-sky to-pub-navy hover:brightness-110 transition-all border-2 border-[hsl(0,0%,100%)/20%] relative"
+            >
+              <MessageCircle className="w-6 h-6 text-white" />
+              {!hasInteracted && (
+                <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pub-sky opacity-75" />
+                  <span className="relative inline-flex rounded-full h-4 w-4 bg-pub-sky" />
+                </span>
+              )}
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Panel */}
+      {/* Dialog panel dengan iframe */}
       <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
@@ -63,71 +71,58 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 left-6 z-50 w-[320px] max-w-[calc(100vw-3rem)] rounded-2xl shadow-2xl overflow-hidden border border-border bg-card"
+            className="fixed bottom-6 left-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl overflow-hidden border border-border flex flex-col"
+            style={{ height: "560px" }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-pub-sky to-pub-navy px-4 py-3 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                <MessageCircle className="w-5 h-5 text-white" />
+            <div className="bg-gradient-to-r from-pub-sky to-pub-navy px-4 py-3 flex items-center gap-3 shrink-0">
+              <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+                <MessageCircle className="w-4 h-4 text-white" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-white font-bold text-sm font-heading leading-none">PUB HelpDesk Layanan</p>
-                <p className="text-white/60 text-xs font-body mt-0.5">Info layanan & pendaftaran ASPEKINDO</p>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10"
-                onClick={() => setIsOpen(false)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Body */}
-            <div className="p-4 space-y-3 max-h-[380px] overflow-y-auto">
-              <p className="text-xs text-muted-foreground font-body">Pertanyaan umum tentang layanan PUB ASPEKINDO:</p>
-
-              {FAQS.map((faq, i) => (
-                <div key={i} className="rounded-xl border border-border overflow-hidden">
-                  <button
-                    className="w-full flex items-center gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
-                    onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  >
-                    <ChevronRight
-                      className={`w-4 h-4 text-pub-sky shrink-0 transition-transform ${openFaq === i ? "rotate-90" : ""}`}
-                    />
-                    <span className="text-xs font-semibold font-heading text-foreground">{faq.q}</span>
-                  </button>
-                  <AnimatePresence>
-                    {openFaq === i && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <p className="text-xs text-muted-foreground font-body px-3 pb-3 leading-relaxed border-t border-border pt-2">
-                          {faq.a}
-                        </p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-white/60 text-xs font-body">ASPEKINDO · Online</span>
                 </div>
-              ))}
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={openPopup}
+                  title="Buka di jendela terpisah"
+                  className="h-7 w-7 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
+                <a
+                  href={HELPDESK_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Buka di tab baru"
+                  className="h-7 w-7 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 rounded-lg text-white/60 hover:text-white hover:bg-white/10"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <X className="w-3.5 h-3.5" />
+                </Button>
+              </div>
             </div>
 
-            {/* Footer — kontak */}
-            <div className="border-t border-border px-4 py-3 bg-muted/30 space-y-2">
-              <p className="text-xs font-semibold font-heading text-foreground">Hubungi Kami</p>
-              <div className="flex flex-col gap-1.5">
-                <a href="https://aspekindo.id" target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-muted-foreground hover:text-pub-sky transition-colors font-body">
-                  <Globe className="w-3.5 h-3.5" />
-                  aspekindo.id
-                </a>
-              </div>
+            {/* Iframe embed */}
+            <div className="flex-1 relative bg-white">
+              <iframe
+                src={HELPDESK_URL}
+                title="PUB HelpDesk Layanan ASPEKINDO"
+                className="w-full h-full border-0 absolute inset-0"
+                allow="microphone; camera"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+              />
             </div>
           </motion.div>
         )}
