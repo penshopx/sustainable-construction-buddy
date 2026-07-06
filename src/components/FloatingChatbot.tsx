@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { X, MessageCircle, Search, ChevronRight, ChevronDown, ArrowLeft, Send } from "lucide-react";
+import { X, MessageCircle, Search, ChevronRight, ChevronDown, ArrowLeft, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FloatingChatbotProps {
   variant?: "landing" | "dashboard";
@@ -88,41 +89,18 @@ const CATEGORIES: Category[] = [
 
 const ALL_ARTICLES = CATEGORIES.flatMap((c) => c.articles.map((a) => ({ ...a, catLabel: c.label })));
 
-function findAnswer(input: string): string {
-  const q = input.toLowerCase();
-  // exact/partial match on question or answer text
-  const match = ALL_ARTICLES.find(
-    (a) => a.q.toLowerCase().includes(q) || q.split(" ").some((word) => word.length > 3 && a.q.toLowerCase().includes(word))
-  );
-  if (match) return match.a;
+const FALLBACK_MSG = "Maaf, saya tidak dapat menjawab saat ini. Silakan telusuri kategori di tab Panduan, hubungi kami di <a href='https://aspekindo.id' target='_blank' class='text-pub-sky underline'>aspekindo.id</a>, atau kunjungi <a href='https://lsbukonstruksi.co.id' target='_blank' class='text-pub-sky underline'>lsbukonstruksi.co.id</a>.";
 
-  // keyword fallback
-  const keywords: [string[], string][] = [
-    [["daftar", "registrasi", "buat akun", "signup"], ALL_ARTICLES[0].a],
-    [["login", "masuk", "password", "lupa"], ALL_ARTICLES[1].a],
-    [["profil", "ubah data"], ALL_ARTICLES[2].a],
-    [["pre-test", "assessment", "ujian", "tes"], ALL_ARTICLES[3].a],
-    [["skor", "level", "nilai kompetensi"], ALL_ARTICLES[5].a],
-    [["e-course", "kursus", "belajar", "modul", "materi"], ALL_ARTICLES[6].a],
-    [["sertifikat", "certificate"], ALL_ARTICLES[8].a],
-    [["lkut", "laporan keuangan"], ALL_ARTICLES[9].a],
-    [["pancek", "penilaian akhir"], ALL_ARTICLES[10].a],
-    [["smap", "anti penyuapan"], ALL_ARTICLES[11].a],
-    [["proyek", "project"], ALL_ARTICLES[12].a],
-    [["risk", "risiko"], ALL_ARTICLES[13].a],
-    [["k3", "keselamatan", "kesehatan kerja"], ALL_ARTICLES[14].a],
-    [["ai mentor", "mentor", "asisten"], ALL_ARTICLES[15].a],
-    [["gustafta", "blueprint", "dialog"], ALL_ARTICLES[17].a],
-    [["poin", "point", "sistem poin"], ALL_ARTICLES[19].a],
-    [["leaderboard", "peringkat"], ALL_ARTICLES[20].a],
-    [["marketplace", "template", "dokumen"], ALL_ARTICLES[21].a],
-    [["direktori", "directory", "perusahaan"], ALL_ARTICLES[22].a],
-  ];
-  for (const [keys, ans] of keywords) {
-    if (keys.some((k) => q.includes(k))) return ans;
+async function askAI(messages: { role: string; content: string }[]): Promise<string> {
+  try {
+    const { data, error } = await supabase.functions.invoke("pub-helpdesk", {
+      body: { messages },
+    });
+    if (error || !data?.reply) return FALLBACK_MSG;
+    return data.reply;
+  } catch {
+    return FALLBACK_MSG;
   }
-
-  return "Maaf, saya belum menemukan jawaban yang tepat untuk pertanyaan itu. Silakan telusuri kategori di tab Panduan, hubungi kami di <a href='https://aspekindo.id' target='_blank' class='text-pub-sky underline'>aspekindo.id</a>, atau kunjungi Lembaga Sertifikasi Badan Usaha ASPEKINDO di <a href='https://lsbukonstruksi.co.id' target='_blank' class='text-pub-sky underline'>lsbukonstruksi.co.id</a>.";
 }
 
 export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatbotProps) {
@@ -136,6 +114,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
   const [chatHistory, setChatHistory] = useState<ChatMsg[]>([
     { from: "bot", text: "Halo! Ada yang bisa saya bantu mengenai fitur-fitur platform PUB ASPEKINDO?" },
   ]);
+  const [aiLoading, setAiLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -151,16 +130,23 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
     setOpenArticle(null);
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const text = chatInput.trim();
-    if (!text) return;
-    const answer = findAnswer(text);
-    setChatHistory((h) => [
-      ...h,
-      { from: "user", text },
-      { from: "bot", text: answer },
-    ]);
+    if (!text || aiLoading) return;
+    // Build message history for AI context (last 10 turns)
+    const aiMessages = [
+      ...chatHistory
+        .filter((m) => m.from === "user" || m.from === "bot")
+        .slice(-10)
+        .map((m) => ({ role: m.from === "user" ? "user" : "assistant", content: m.text })),
+      { role: "user", content: text },
+    ];
+    setChatHistory((h) => [...h, { from: "user", text }]);
     setChatInput("");
+    setAiLoading(true);
+    const reply = await askAI(aiMessages);
+    setAiLoading(false);
+    setChatHistory((h) => [...h, { from: "bot", text: reply }]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -374,6 +360,20 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                       />
                     </div>
                   ))}
+
+                  {/* AI typing indicator */}
+                  {aiLoading && (
+                    <div className="flex justify-start">
+                      <div className="w-6 h-6 rounded-full bg-pub-sky/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
+                        <MessageCircle className="w-3 h-3 text-pub-sky" />
+                      </div>
+                      <div className="bg-muted rounded-2xl rounded-bl-sm border border-border px-3 py-2.5 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-pub-sky animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-pub-sky animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="w-1.5 h-1.5 rounded-full bg-pub-sky animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    </div>
+                  )}
                   <div ref={chatEndRef} />
                 </div>
 
@@ -390,10 +390,10 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                     />
                     <button
                       onClick={sendMessage}
-                      disabled={!chatInput.trim()}
+                      disabled={!chatInput.trim() || aiLoading}
                       className="w-9 h-9 rounded-xl bg-pub-sky flex items-center justify-center text-white hover:bg-pub-sky/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                     >
-                      <Send className="w-4 h-4" />
+                      {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     </button>
                   </div>
                   <p className="text-xs text-muted-foreground font-body mt-1.5 text-center">
