@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, MessageCircle, Search, ChevronRight, ChevronDown, ArrowLeft } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { X, MessageCircle, Search, ChevronRight, ChevronDown, ArrowLeft, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -9,6 +9,7 @@ interface FloatingChatbotProps {
 
 type Article = { q: string; a: string };
 type Category = { icon: string; label: string; articles: Article[] };
+type ChatMsg = { from: "user" | "bot"; text: string };
 
 const CATEGORIES: Category[] = [
   {
@@ -85,25 +86,89 @@ const CATEGORIES: Category[] = [
   },
 ];
 
+const ALL_ARTICLES = CATEGORIES.flatMap((c) => c.articles.map((a) => ({ ...a, catLabel: c.label })));
+
+function findAnswer(input: string): string {
+  const q = input.toLowerCase();
+  // exact/partial match on question or answer text
+  const match = ALL_ARTICLES.find(
+    (a) => a.q.toLowerCase().includes(q) || q.split(" ").some((word) => word.length > 3 && a.q.toLowerCase().includes(word))
+  );
+  if (match) return match.a;
+
+  // keyword fallback
+  const keywords: [string[], string][] = [
+    [["daftar", "registrasi", "buat akun", "signup"], ALL_ARTICLES[0].a],
+    [["login", "masuk", "password", "lupa"], ALL_ARTICLES[1].a],
+    [["profil", "ubah data"], ALL_ARTICLES[2].a],
+    [["pre-test", "assessment", "ujian", "tes"], ALL_ARTICLES[3].a],
+    [["skor", "level", "nilai kompetensi"], ALL_ARTICLES[5].a],
+    [["e-course", "kursus", "belajar", "modul", "materi"], ALL_ARTICLES[6].a],
+    [["sertifikat", "certificate"], ALL_ARTICLES[8].a],
+    [["lkut", "laporan keuangan"], ALL_ARTICLES[9].a],
+    [["pancek", "penilaian akhir"], ALL_ARTICLES[10].a],
+    [["smap", "anti penyuapan"], ALL_ARTICLES[11].a],
+    [["proyek", "project"], ALL_ARTICLES[12].a],
+    [["risk", "risiko"], ALL_ARTICLES[13].a],
+    [["k3", "keselamatan", "kesehatan kerja"], ALL_ARTICLES[14].a],
+    [["ai mentor", "mentor", "asisten"], ALL_ARTICLES[15].a],
+    [["gustafta", "blueprint", "dialog"], ALL_ARTICLES[17].a],
+    [["poin", "point", "sistem poin"], ALL_ARTICLES[19].a],
+    [["leaderboard", "peringkat"], ALL_ARTICLES[20].a],
+    [["marketplace", "template", "dokumen"], ALL_ARTICLES[21].a],
+    [["direktori", "directory", "perusahaan"], ALL_ARTICLES[22].a],
+  ];
+  for (const [keys, ans] of keywords) {
+    if (keys.some((k) => q.includes(k))) return ans;
+  }
+
+  return "Maaf, saya belum menemukan jawaban yang tepat untuk pertanyaan itu. Silakan telusuri kategori di atas, atau kunjungi <a href='https://aspekindo.id' target='_blank' class='text-pub-sky underline'>aspekindo.id</a> untuk bantuan lebih lanjut.";
+}
+
 export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [tab, setTab] = useState<"browse" | "chat">("browse");
   const [search, setSearch] = useState("");
   const [selectedCat, setSelectedCat] = useState<Category | null>(null);
   const [openArticle, setOpenArticle] = useState<number | null>(null);
+  const [chatInput, setChatInput] = useState("");
+  const [chatHistory, setChatHistory] = useState<ChatMsg[]>([
+    { from: "bot", text: "Halo! Ada yang bisa saya bantu mengenai fitur-fitur platform PUB ASPEKINDO?" },
+  ]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
-  const handleOpen = () => {
-    setIsOpen(true);
-    setHasInteracted(true);
+  useEffect(() => {
+    if (tab === "chat") chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatHistory, tab]);
+
+  const handleOpen = () => { setIsOpen(true); setHasInteracted(true); };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setSelectedCat(null);
+    setSearch("");
+    setOpenArticle(null);
   };
 
-  // Search logic
-  const searchResults: (Article & { catLabel: string })[] = search.trim().length > 1
-    ? CATEGORIES.flatMap((c) =>
-        c.articles
-          .filter((a) => a.q.toLowerCase().includes(search.toLowerCase()) || a.a.toLowerCase().includes(search.toLowerCase()))
-          .map((a) => ({ ...a, catLabel: c.label }))
-      )
+  const sendMessage = () => {
+    const text = chatInput.trim();
+    if (!text) return;
+    const answer = findAnswer(text);
+    setChatHistory((h) => [
+      ...h,
+      { from: "user", text },
+      { from: "bot", text: answer },
+    ]);
+    setChatInput("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  };
+
+  const searchResults = search.trim().length > 1
+    ? ALL_ARTICLES.filter((a) => a.q.toLowerCase().includes(search.toLowerCase()) || a.a.toLowerCase().includes(search.toLowerCase()))
     : [];
 
   return (
@@ -156,11 +221,11 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed bottom-6 left-6 z-50 w-[340px] max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl overflow-hidden border border-border bg-card flex flex-col"
-            style={{ height: "520px" }}
+            style={{ height: "540px" }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-pub-sky to-pub-navy px-4 py-3 flex items-center gap-3 shrink-0">
-              {selectedCat && (
+              {tab === "browse" && selectedCat && (
                 <button
                   onClick={() => { setSelectedCat(null); setOpenArticle(null); }}
                   className="h-7 w-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors shrink-0"
@@ -172,126 +237,171 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                 <MessageCircle className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm font-heading leading-none">
-                  {selectedCat ? selectedCat.label : "PUB HelpDesk"}
-                </p>
-                <p className="text-white/60 text-xs font-body mt-0.5 truncate">
-                  {selectedCat ? "Pilih pertanyaan di bawah" : "Panduan fitur aspekindo-pub.com"}
-                </p>
+                <p className="text-white font-bold text-sm font-heading leading-none">PUB HelpDesk</p>
+                <p className="text-white/60 text-xs font-body mt-0.5">Panduan fitur aspekindo-pub.com</p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 shrink-0"
-                onClick={() => { setIsOpen(false); setSelectedCat(null); setSearch(""); setOpenArticle(null); }}
+                onClick={handleClose}
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
 
-            {/* Search bar */}
-            {!selectedCat && (
-              <div className="px-3 pt-3 pb-2 shrink-0 border-b border-border">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Cari panduan..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground font-body focus:outline-none focus:ring-1 focus:ring-pub-sky"
-                  />
-                </div>
-              </div>
-            )}
+            {/* Tab switcher */}
+            <div className="flex border-b border-border shrink-0">
+              <button
+                onClick={() => setTab("browse")}
+                className={`flex-1 py-2 text-xs font-semibold font-heading transition-colors ${tab === "browse" ? "text-pub-sky border-b-2 border-pub-sky" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                📚 Panduan
+              </button>
+              <button
+                onClick={() => setTab("chat")}
+                className={`flex-1 py-2 text-xs font-semibold font-heading transition-colors ${tab === "chat" ? "text-pub-sky border-b-2 border-pub-sky" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                💬 Tanya HelpDesk
+              </button>
+            </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto">
-              {/* Search results */}
-              {!selectedCat && search.trim().length > 1 && (
-                <div className="p-3 space-y-2">
-                  {searchResults.length === 0 ? (
-                    <p className="text-xs text-muted-foreground font-body text-center py-4">
-                      Tidak ditemukan. Coba kata kunci lain.
-                    </p>
-                  ) : (
-                    searchResults.map((r, i) => (
-                      <div key={i} className="rounded-xl border border-border overflow-hidden">
-                        <div className="px-3 py-2">
-                          <p className="text-xs text-pub-sky font-heading mb-0.5">{r.catLabel}</p>
-                          <p className="text-xs font-semibold font-heading text-foreground mb-1">{r.q}</p>
-                          <p className="text-xs text-muted-foreground font-body leading-relaxed">{r.a}</p>
+            {/* ── TAB: BROWSE ── */}
+            {tab === "browse" && (
+              <>
+                {!selectedCat && (
+                  <div className="px-3 pt-3 pb-2 shrink-0">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Cari panduan..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground font-body focus:outline-none focus:ring-1 focus:ring-pub-sky"
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="flex-1 overflow-y-auto">
+                  {/* Search results */}
+                  {!selectedCat && search.trim().length > 1 && (
+                    <div className="p-3 space-y-2">
+                      {searchResults.length === 0 ? (
+                        <p className="text-xs text-muted-foreground font-body text-center py-4">Tidak ditemukan. Coba di tab 💬 Tanya HelpDesk.</p>
+                      ) : (
+                        searchResults.map((r, i) => (
+                          <div key={i} className="rounded-xl border border-border p-3">
+                            <p className="text-xs text-pub-sky font-heading mb-0.5">{r.catLabel}</p>
+                            <p className="text-xs font-semibold font-heading text-foreground mb-1">{r.q}</p>
+                            <p className="text-xs text-muted-foreground font-body leading-relaxed">{r.a}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                  {/* Category list */}
+                  {!selectedCat && search.trim().length <= 1 && (
+                    <div className="p-3 space-y-1.5">
+                      <p className="text-xs text-muted-foreground font-body px-1 mb-2">Pilih topik bantuan:</p>
+                      {CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.label}
+                          onClick={() => { setSelectedCat(cat); setOpenArticle(null); }}
+                          className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 hover:border-pub-sky/30 transition-all text-left group"
+                        >
+                          <span className="text-base shrink-0">{cat.icon}</span>
+                          <span className="text-xs font-semibold font-heading text-foreground flex-1">{cat.label}</span>
+                          <span className="text-xs text-muted-foreground font-body shrink-0">{cat.articles.length}</span>
+                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-pub-sky transition-colors shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* Articles in category */}
+                  {selectedCat && (
+                    <div className="p-3 space-y-2">
+                      {selectedCat.articles.map((article, i) => (
+                        <div key={i} className="rounded-xl border border-border overflow-hidden">
+                          <button
+                            className="w-full flex items-center gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
+                            onClick={() => setOpenArticle(openArticle === i ? null : i)}
+                          >
+                            <ChevronDown className={`w-4 h-4 text-pub-sky shrink-0 transition-transform ${openArticle === i ? "rotate-180" : ""}`} />
+                            <span className="text-xs font-semibold font-heading text-foreground">{article.q}</span>
+                          </button>
+                          <AnimatePresence>
+                            {openArticle === i && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <p className="text-xs text-muted-foreground font-body px-3 pb-3 pt-1 leading-relaxed border-t border-border">
+                                  {article.a}
+                                </p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   )}
                 </div>
-              )}
+              </>
+            )}
 
-              {/* Category list */}
-              {!selectedCat && search.trim().length <= 1 && (
-                <div className="p-3 space-y-1.5">
-                  <p className="text-xs text-muted-foreground font-body px-1 mb-2">Pilih topik bantuan:</p>
-                  {CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.label}
-                      onClick={() => { setSelectedCat(cat); setOpenArticle(null); }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 hover:border-pub-sky/30 transition-all text-left group"
-                    >
-                      <span className="text-base shrink-0">{cat.icon}</span>
-                      <span className="text-xs font-semibold font-heading text-foreground flex-1">{cat.label}</span>
-                      <span className="text-xs text-muted-foreground font-body shrink-0">{cat.articles.length} topik</span>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-pub-sky transition-colors shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Article list in category */}
-              {selectedCat && (
-                <div className="p-3 space-y-2">
-                  {selectedCat.articles.map((article, i) => (
-                    <div key={i} className="rounded-xl border border-border overflow-hidden">
-                      <button
-                        className="w-full flex items-center gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
-                        onClick={() => setOpenArticle(openArticle === i ? null : i)}
-                      >
-                        <ChevronDown
-                          className={`w-4 h-4 text-pub-sky shrink-0 transition-transform ${openArticle === i ? "rotate-180" : ""}`}
-                        />
-                        <span className="text-xs font-semibold font-heading text-foreground">{article.q}</span>
-                      </button>
-                      <AnimatePresence>
-                        {openArticle === i && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <p className="text-xs text-muted-foreground font-body px-3 pb-3 pt-1 leading-relaxed border-t border-border">
-                              {article.a}
-                            </p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+            {/* ── TAB: CHAT ── */}
+            {tab === "chat" && (
+              <>
+                <div className="flex-1 overflow-y-auto p-3 space-y-3">
+                  {chatHistory.map((msg, i) => (
+                    <div key={i} className={`flex ${msg.from === "user" ? "justify-end" : "justify-start"}`}>
+                      {msg.from === "bot" && (
+                        <div className="w-6 h-6 rounded-full bg-pub-sky/20 flex items-center justify-center shrink-0 mr-2 mt-0.5">
+                          <MessageCircle className="w-3 h-3 text-pub-sky" />
+                        </div>
+                      )}
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs font-body leading-relaxed ${
+                          msg.from === "user"
+                            ? "bg-pub-sky text-white rounded-br-sm"
+                            : "bg-muted text-foreground rounded-bl-sm border border-border"
+                        }`}
+                        dangerouslySetInnerHTML={{ __html: msg.text }}
+                      />
                     </div>
                   ))}
+                  <div ref={chatEndRef} />
                 </div>
-              )}
-            </div>
 
-            {/* Footer */}
-            <div className="border-t border-border px-4 py-2.5 bg-muted/20 shrink-0 flex items-center justify-between">
-              <p className="text-xs text-muted-foreground font-body">
-                Butuh bantuan lebih?{" "}
-                <a href="https://aspekindo.id" target="_blank" rel="noopener noreferrer" className="text-pub-sky hover:underline">
-                  aspekindo.id
-                </a>
-              </p>
-              <span className="text-xs text-muted-foreground font-body">PUB ASPEKINDO</span>
-            </div>
+                {/* Chat input */}
+                <div className="border-t border-border p-3 shrink-0">
+                  <div className="flex gap-2 items-end">
+                    <input
+                      type="text"
+                      placeholder="Ketik pertanyaan Anda..."
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      className="flex-1 px-3 py-2 text-xs rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground font-body focus:outline-none focus:ring-1 focus:ring-pub-sky resize-none"
+                    />
+                    <button
+                      onClick={sendMessage}
+                      disabled={!chatInput.trim()}
+                      className="w-9 h-9 rounded-xl bg-pub-sky flex items-center justify-center text-white hover:bg-pub-sky/80 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-body mt-1.5 text-center">
+                    Tekan Enter untuk kirim · PUB ASPEKINDO HelpDesk
+                  </p>
+                </div>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
