@@ -91,6 +91,39 @@ const ALL_ARTICLES = CATEGORIES.flatMap((c) => c.articles.map((a) => ({ ...a, ca
 
 const FALLBACK_MSG = "Maaf, saya tidak dapat menjawab saat ini. Silakan telusuri kategori di tab Panduan, hubungi kami di <a href='https://aspekindo.id' target='_blank' class='text-pub-sky underline'>aspekindo.id</a>, atau kunjungi <a href='https://lsbukonstruksi.co.id' target='_blank' class='text-pub-sky underline'>lsbukonstruksi.co.id</a>.";
 
+// Cari jawaban di knowledge base lokal (prioritas utama)
+function findKBAnswer(query: string): string | null {
+  const q = query.toLowerCase();
+  // Stopwords umum yang diabaikan
+  const stopwords = new Set(["apa","itu","ini","yang","dan","di","ke","dari","cara","bagaimana","apakah","bisa","saya","ada","tidak","untuk","dengan","atau","juga","sudah","bisa","boleh","ya","dong","dong","kah","lah","tolong","jelaskan","ceritakan","tentang"]);
+  const words = q.split(/\s+/).filter(w => w.length > 2 && !stopwords.has(w));
+
+  if (words.length === 0) return null;
+
+  let bestScore = 0;
+  let bestAnswer: string | null = null;
+
+  for (const art of ALL_ARTICLES) {
+    const haystack = (art.q + " " + art.a).toLowerCase();
+    let score = 0;
+    for (const w of words) {
+      if (haystack.includes(w)) score++;
+    }
+    // Bonus jika kata kunci utama ada di pertanyaan KB
+    const qHaystack = art.q.toLowerCase();
+    for (const w of words) {
+      if (qHaystack.includes(w)) score += 1.5;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestAnswer = art.a;
+    }
+  }
+
+  // Hanya pakai jawaban KB jika skor cukup (minimal 2 kata cocok)
+  return bestScore >= 2 ? bestAnswer : null;
+}
+
 async function askAI(messages: { role: string; content: string }[]): Promise<string> {
   try {
     const res = await fetch("/api/helpdesk", {
@@ -137,7 +170,19 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
   const sendMessage = async () => {
     const text = chatInput.trim();
     if (!text || aiLoading) return;
-    // Build message history for AI context (last 10 turns)
+
+    setChatHistory((h) => [...h, { from: "user", text }]);
+    setChatInput("");
+
+    // Prioritas 1: cari di knowledge base lokal
+    const kbAnswer = findKBAnswer(text);
+    if (kbAnswer) {
+      setChatHistory((h) => [...h, { from: "bot", text: kbAnswer }]);
+      return;
+    }
+
+    // Prioritas 2: tanya AI jika KB tidak punya jawaban
+    setAiLoading(true);
     const aiMessages = [
       ...chatHistory
         .filter((m) => m.from === "user" || m.from === "bot")
@@ -145,9 +190,6 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
         .map((m) => ({ role: m.from === "user" ? "user" : "assistant", content: m.text })),
       { role: "user", content: text },
     ];
-    setChatHistory((h) => [...h, { from: "user", text }]);
-    setChatInput("");
-    setAiLoading(true);
     const reply = await askAI(aiMessages);
     setAiLoading(false);
     setChatHistory((h) => [...h, { from: "bot", text: reply }]);
