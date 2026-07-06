@@ -93,10 +93,14 @@ const FALLBACK_MSG = "Maaf, saya tidak dapat menjawab saat ini. Silakan telusuri
 
 async function askAI(messages: { role: string; content: string }[]): Promise<string> {
   try {
-    const { data, error } = await supabase.functions.invoke("pub-helpdesk", {
-      body: { messages },
+    const res = await fetch("/api/helpdesk", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages }),
     });
-    if (error || !data?.reply) return FALLBACK_MSG;
+    if (!res.ok) return FALLBACK_MSG;
+    const data = await res.json();
+    if (!data?.reply) return FALLBACK_MSG;
     return data.reply;
   } catch {
     return FALLBACK_MSG;
