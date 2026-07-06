@@ -77,7 +77,7 @@ app.post("/api/helpdesk", async (req, res) => {
       : "https://api.openai.com/v1/chat/completions";
 
     const model = isOpenRouter
-      ? "google/gemini-2.0-flash-001"
+      ? "openai/gpt-4o-mini"
       : isDeepSeek
       ? "deepseek-chat"
       : "gpt-4o-mini";
