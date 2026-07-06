@@ -1,30 +1,114 @@
 import { useState } from "react";
-import { X, MessageCircle, Maximize2, ExternalLink } from "lucide-react";
+import { X, MessageCircle, Search, ChevronRight, ChevronDown, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-
-const HELPDESK_URL = "https://aspekindo-pub.com";
 
 interface FloatingChatbotProps {
   variant?: "landing" | "dashboard";
 }
 
+type Article = { q: string; a: string };
+type Category = { icon: string; label: string; articles: Article[] };
+
+const CATEGORIES: Category[] = [
+  {
+    icon: "🏠",
+    label: "Memulai & Akun",
+    articles: [
+      { q: "Bagaimana cara mendaftar?", a: "Klik 'Daftar Sekarang' di halaman utama. Isi data email dan buat password. Setelah verifikasi email, lengkapi profil BUJK Anda di halaman Onboarding." },
+      { q: "Bagaimana cara masuk/login?", a: "Buka halaman Login, masukkan email dan password yang terdaftar. Jika lupa password, klik 'Lupa password?' untuk reset via email." },
+      { q: "Cara mengubah profil saya?", a: "Masuk ke menu Profil di sidebar. Anda dapat mengubah nama, jabatan, foto profil, dan data BUJK di sini." },
+    ],
+  },
+  {
+    icon: "📋",
+    label: "Assessment & Kompetensi",
+    articles: [
+      { q: "Apa itu Pre-test Kompetensi?", a: "Pre-test adalah ujian awal untuk mengukur tingkat kompetensi manajerial Anda saat ini. Hasil pre-test menentukan rekomendasi modul pembelajaran yang tepat." },
+      { q: "Bagaimana cara mengikuti assessment?", a: "Buka menu 'Assessment' di sidebar. Klik 'Mulai Pre-test', jawab semua soal, lalu klik Selesai. Hasil dan rekomendasi langsung tampil." },
+      { q: "Apa arti skor dan level kompetensi?", a: "Skor 0–40: Pemula, 41–60: Berkembang, 61–80: Kompeten, 81–100: Ahli. Level ini mencerminkan kesiapan BUJK Anda dalam memenuhi standar kompetensi nasional." },
+    ],
+  },
+  {
+    icon: "🎓",
+    label: "E-Course & Pembelajaran",
+    articles: [
+      { q: "Bagaimana cara mengikuti e-course?", a: "Buka menu 'E-Course'. Pilih modul yang tersedia, klik 'Mulai Belajar'. Selesaikan semua materi dan kuis untuk mendapatkan sertifikat." },
+      { q: "Apa yang terjadi setelah menyelesaikan kuis?", a: "Setelah lulus kuis (nilai ≥70), modul dianggap selesai dan Anda mendapatkan poin kompetensi. Sertifikat dapat diunduh dari menu Sertifikat." },
+      { q: "Apakah sertifikat diakui secara resmi?", a: "Sertifikat PUB ASPEKINDO diakui sebagai bukti pengembangan kompetensi manajerial BUJK dalam kerangka program pembinaan ASPEKINDO." },
+    ],
+  },
+  {
+    icon: "📊",
+    label: "LKUT, PANCEK & SMAP",
+    articles: [
+      { q: "Apa itu LKUT?", a: "LKUT (Laporan Keuangan Usaha Tahunan) adalah laporan wajib yang mencerminkan kesehatan keuangan BUJK. Menu LKUT membantu Anda mengisi dan menyimpan laporan tahunan." },
+      { q: "Apa itu PANCEK?", a: "PANCEK (Penilaian Akhir Capaian Kompetensi) adalah instrumen penilaian komprehensif kompetensi personil manajerial BUJK di akhir periode program." },
+      { q: "Apa itu SMAP?", a: "SMAP (Sistem Manajemen Anti Penyuapan) adalah modul untuk memastikan BUJK Anda memenuhi standar tata kelola anti penyuapan sesuai ISO 37001." },
+    ],
+  },
+  {
+    icon: "🏗️",
+    label: "Proyek & Manajemen",
+    articles: [
+      { q: "Apa itu menu Proyek Saya?", a: "Menu Proyek memungkinkan Anda mengelola daftar proyek konstruksi BUJK, melacak progress, dan menyimpan evidence untuk keperluan dokumentasi kompetensi." },
+      { q: "Bagaimana cara pakai Risk Register?", a: "Buka Proyek → Risk Register. Tambahkan risiko proyek, tentukan level (tinggi/sedang/rendah), dan catat mitigasi. Data ini digunakan sebagai evidence kompetensi manajemen risiko." },
+      { q: "Apa fungsi K3 Checklist?", a: "K3 Checklist membantu memastikan seluruh aspek Keselamatan & Kesehatan Kerja di proyek terpenuhi dan terdokumentasi sesuai regulasi." },
+    ],
+  },
+  {
+    icon: "🤖",
+    label: "AI Mentor & HelpDesk",
+    articles: [
+      { q: "Apa itu AI Mentor?", a: "AI Mentor adalah asisten AI yang membantu Anda belajar modul, menjawab pertanyaan terkait materi pembelajaran, dan memberikan penjelasan mendalam." },
+      { q: "Perbedaan AI Mentor dan Gustafta Dialog?", a: "AI Mentor fokus pada materi pembelajaran (e-course). Gustafta Socratic Dialog (tombol G kanan bawah) fokus memetakan problem BUJK dan menghasilkan Blueprint Potensi Diri." },
+      { q: "Bagaimana cara akses Gustafta Dialog?", a: "Klik tombol 'G' di pojok kanan bawah, atau buka menu 'AI PUB HelpDesk' di sidebar. Dialog berlangsung di platform Gustafta yang terhubung langsung." },
+    ],
+  },
+  {
+    icon: "🏆",
+    label: "Leaderboard & Nilai",
+    articles: [
+      { q: "Apa itu Performance Grade?", a: "Performance Grade adalah nilai keseluruhan kinerja BUJK Anda berdasarkan skor kompetensi, keaktifan modul, kelengkapan data, dan capaian proyek." },
+      { q: "Bagaimana sistem poin bekerja?", a: "Poin diperoleh dari: menyelesaikan modul (+10 poin), lulus kuis (+5 poin), isi LKUT (+20 poin), dan aktivitas lain. Poin menentukan posisi Leaderboard BUJK." },
+      { q: "Apa manfaat masuk Leaderboard?", a: "BUJK dengan peringkat tinggi mendapat visibilitas lebih di Direktori, prioritas dalam program kemitraan, dan pengakuan resmi dari ASPEKINDO." },
+    ],
+  },
+  {
+    icon: "🛒",
+    label: "Marketplace & Direktori",
+    articles: [
+      { q: "Apa itu Marketplace PUB?", a: "Marketplace menyediakan template dokumen konstruksi, RAB, spesifikasi teknis, dan tools yang bisa diunduh atau dibeli oleh anggota BUJK." },
+      { q: "Bagaimana cara daftar di Direktori?", a: "Direktori BUJK otomatis terisi dari profil perusahaan Anda. Lengkapi data profil (SBU, bidang usaha, wilayah) agar BUJK Anda mudah ditemukan." },
+      { q: "Apa itu Inovasi PUB?", a: "Innovation Hub adalah ruang berbagi inovasi, praktik terbaik, dan solusi konstruksi antar anggota ASPEKINDO untuk mendorong daya saing BUJK." },
+    ],
+  },
+];
+
 export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatbotProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [search, setSearch] = useState("");
+  const [selectedCat, setSelectedCat] = useState<Category | null>(null);
+  const [openArticle, setOpenArticle] = useState<number | null>(null);
 
   const handleOpen = () => {
     setIsOpen(true);
     setHasInteracted(true);
   };
 
-  const openPopup = () => {
-    window.open(HELPDESK_URL, "pub-helpdesk", "width=460,height=720,resizable=yes,scrollbars=yes");
-  };
+  // Search logic
+  const searchResults: (Article & { catLabel: string })[] = search.trim().length > 1
+    ? CATEGORIES.flatMap((c) =>
+        c.articles
+          .filter((a) => a.q.toLowerCase().includes(search.toLowerCase()) || a.a.toLowerCase().includes(search.toLowerCase()))
+          .map((a) => ({ ...a, catLabel: c.label }))
+      )
+    : [];
 
   return (
     <>
-      {/* Floating button — LEFT side */}
+      {/* Floating button — LEFT */}
       <AnimatePresence mode="wait">
         {!isOpen && (
           <motion.div
@@ -41,12 +125,12 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                 transition={{ delay: 3 }}
                 className="absolute bottom-16 left-0 bg-card border border-border rounded-xl px-3 py-2 shadow-card text-xs font-body text-foreground whitespace-nowrap pointer-events-none"
               >
-                💬 PUB HelpDesk Layanan
+                ❓ Panduan & Cara Pakai PUB
               </motion.div>
             )}
             <button
               onClick={handleOpen}
-              title="PUB HelpDesk Layanan"
+              title="PUB HelpDesk — Panduan Fitur"
               id="floating-helpdesk-btn"
               className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-gradient-to-br from-pub-sky to-pub-navy hover:brightness-110 transition-all border-2 border-[hsl(0,0%,100%)/20%] relative"
             >
@@ -62,7 +146,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
         )}
       </AnimatePresence>
 
-      {/* Dialog panel dengan iframe */}
+      {/* Panel */}
       <AnimatePresence mode="wait">
         {isOpen && (
           <motion.div
@@ -71,58 +155,142 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 left-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl overflow-hidden border border-border flex flex-col"
-            style={{ height: "560px" }}
+            className="fixed bottom-6 left-6 z-50 w-[340px] max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl overflow-hidden border border-border bg-card flex flex-col"
+            style={{ height: "520px" }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-pub-sky to-pub-navy px-4 py-3 flex items-center gap-3 shrink-0">
+              {selectedCat && (
+                <button
+                  onClick={() => { setSelectedCat(null); setOpenArticle(null); }}
+                  className="h-7 w-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+              )}
               <div className="w-8 h-8 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
                 <MessageCircle className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-sm font-heading leading-none">PUB HelpDesk Layanan</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-white/60 text-xs font-body">ASPEKINDO · Online</span>
-                </div>
+                <p className="text-white font-bold text-sm font-heading leading-none">
+                  {selectedCat ? selectedCat.label : "PUB HelpDesk"}
+                </p>
+                <p className="text-white/60 text-xs font-body mt-0.5 truncate">
+                  {selectedCat ? "Pilih pertanyaan di bawah" : "Panduan fitur aspekindo-pub.com"}
+                </p>
               </div>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={openPopup}
-                  title="Buka di jendela terpisah"
-                  className="h-7 w-7 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <Maximize2 className="w-3.5 h-3.5" />
-                </button>
-                <a
-                  href={HELPDESK_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Buka di tab baru"
-                  className="h-7 w-7 rounded-lg flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-lg text-white/60 hover:text-white hover:bg-white/10"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <X className="w-3.5 h-3.5" />
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 shrink-0"
+                onClick={() => { setIsOpen(false); setSelectedCat(null); setSearch(""); setOpenArticle(null); }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
 
-            {/* Iframe embed */}
-            <div className="flex-1 relative bg-white">
-              <iframe
-                src={HELPDESK_URL}
-                title="PUB HelpDesk Layanan ASPEKINDO"
-                className="w-full h-full border-0 absolute inset-0"
-                allow="microphone; camera"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-              />
+            {/* Search bar */}
+            {!selectedCat && (
+              <div className="px-3 pt-3 pb-2 shrink-0 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Cari panduan..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs rounded-lg bg-muted border border-border text-foreground placeholder:text-muted-foreground font-body focus:outline-none focus:ring-1 focus:ring-pub-sky"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Search results */}
+              {!selectedCat && search.trim().length > 1 && (
+                <div className="p-3 space-y-2">
+                  {searchResults.length === 0 ? (
+                    <p className="text-xs text-muted-foreground font-body text-center py-4">
+                      Tidak ditemukan. Coba kata kunci lain.
+                    </p>
+                  ) : (
+                    searchResults.map((r, i) => (
+                      <div key={i} className="rounded-xl border border-border overflow-hidden">
+                        <div className="px-3 py-2">
+                          <p className="text-xs text-pub-sky font-heading mb-0.5">{r.catLabel}</p>
+                          <p className="text-xs font-semibold font-heading text-foreground mb-1">{r.q}</p>
+                          <p className="text-xs text-muted-foreground font-body leading-relaxed">{r.a}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Category list */}
+              {!selectedCat && search.trim().length <= 1 && (
+                <div className="p-3 space-y-1.5">
+                  <p className="text-xs text-muted-foreground font-body px-1 mb-2">Pilih topik bantuan:</p>
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.label}
+                      onClick={() => { setSelectedCat(cat); setOpenArticle(null); }}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:bg-muted/50 hover:border-pub-sky/30 transition-all text-left group"
+                    >
+                      <span className="text-base shrink-0">{cat.icon}</span>
+                      <span className="text-xs font-semibold font-heading text-foreground flex-1">{cat.label}</span>
+                      <span className="text-xs text-muted-foreground font-body shrink-0">{cat.articles.length} topik</span>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-pub-sky transition-colors shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Article list in category */}
+              {selectedCat && (
+                <div className="p-3 space-y-2">
+                  {selectedCat.articles.map((article, i) => (
+                    <div key={i} className="rounded-xl border border-border overflow-hidden">
+                      <button
+                        className="w-full flex items-center gap-2 p-3 text-left hover:bg-muted/50 transition-colors"
+                        onClick={() => setOpenArticle(openArticle === i ? null : i)}
+                      >
+                        <ChevronDown
+                          className={`w-4 h-4 text-pub-sky shrink-0 transition-transform ${openArticle === i ? "rotate-180" : ""}`}
+                        />
+                        <span className="text-xs font-semibold font-heading text-foreground">{article.q}</span>
+                      </button>
+                      <AnimatePresence>
+                        {openArticle === i && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <p className="text-xs text-muted-foreground font-body px-3 pb-3 pt-1 leading-relaxed border-t border-border">
+                              {article.a}
+                            </p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-border px-4 py-2.5 bg-muted/20 shrink-0 flex items-center justify-between">
+              <p className="text-xs text-muted-foreground font-body">
+                Butuh bantuan lebih?{" "}
+                <a href="https://aspekindo.id" target="_blank" rel="noopener noreferrer" className="text-pub-sky hover:underline">
+                  aspekindo.id
+                </a>
+              </p>
+              <span className="text-xs text-muted-foreground font-body">PUB ASPEKINDO</span>
             </div>
           </motion.div>
         )}
