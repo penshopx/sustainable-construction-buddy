@@ -281,17 +281,28 @@ export function RoleDashboard() {
   const handleQuickSetRole = async (value: string) => {
     if (!user) return;
     setSavingRole(value);
-    const { error } = await supabase
-      .from("profiles")
-      .update({ position: value })
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Gagal menyimpan jabatan");
-    } else {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert(
+          { user_id: user.id, position: value },
+          { onConflict: "user_id" },
+        )
+        .select()
+        .single();
+
+      if (error || !data) {
+        toast.error("Gagal menyimpan jabatan. Silakan coba lagi.");
+        return;
+      }
+
       await refreshProfile();
       toast.success("Jabatan berhasil disimpan!");
+    } catch {
+      toast.error("Gagal menyimpan jabatan. Silakan coba lagi.");
+    } finally {
+      setSavingRole(null);
     }
-    setSavingRole(null);
   };
 
   if (!position || !config) {

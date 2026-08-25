@@ -141,4 +141,131 @@ test.describe("public and unauthenticated user flows", () => {
     await expect(page.getByText("0 order")).toBeVisible();
     expect(pageErrors).toEqual([]);
   });
+
+  test("lets a user without a profile save a dashboard role", async ({ page }) => {
+    const userId = "00000000-0000-4000-8000-000000000011";
+    const fakeUser = {
+      id: userId,
+      aud: "authenticated",
+      role: "authenticated",
+      email: "role-recovery-user@example.test",
+      app_metadata: { provider: "email", providers: ["email"] },
+      user_metadata: {},
+      created_at: "2026-08-25T00:00:00.000Z",
+    };
+    const fakeSession = {
+      access_token: "test-access-token",
+      refresh_token: "test-refresh-token",
+      token_type: "bearer",
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      user: fakeUser,
+    };
+
+    await page.addInitScript(({ session }) => {
+      localStorage.setItem(
+        "sb-vwbgdyykeiilhffwvnku-auth-token",
+        JSON.stringify(session),
+      );
+      localStorage.setItem("pub_onboarding_done", "1");
+    }, { session: fakeSession });
+
+    await page.route("**/auth/v1/**", async (route) => {
+      const requestUrl = route.request().url();
+      if (requestUrl.endsWith("/user")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(fakeUser),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({}),
+      });
+    });
+
+    let savedProfile = null;
+    let profileSaveRequest = null;
+    await page.route("**/rest/v1/**", async (route) => {
+      const request = route.request();
+      const requestUrl = new URL(request.url());
+      const table = requestUrl.pathname.split("/").pop();
+
+      if (table === "profiles" && request.method() === "POST") {
+        const body = request.postDataJSON();
+        const profileData = Array.isArray(body) ? body[0] : body;
+        savedProfile = {
+          avatar_url: null,
+          bujk_qualification: "menengah",
+          company: "",
+          created_at: "2026-08-25T00:00:00.000Z",
+          current_level: "Pemula",
+          full_name: "",
+          id: "00000000-0000-4000-8000-000000000012",
+          position: profileData.position,
+          total_score: 0,
+          updated_at: "2026-08-25T00:00:00.000Z",
+          user_id: profileData.user_id,
+        };
+        profileSaveRequest = profileData;
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify(savedProfile),
+        });
+        return;
+      }
+
+      if (table === "profiles" && requestUrl.searchParams.has("user_id")) {
+        if (savedProfile) {
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(savedProfile),
+          });
+          return;
+        }
+
+        await route.fulfill({
+          status: 406,
+          contentType: "application/json",
+          body: JSON.stringify({
+            code: "PGRST116",
+            message: "JSON object requested, multiple (or no) rows returned",
+            details: "The result contains 0 rows",
+            hint: null,
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        headers: { "content-range": "*/0" },
+        contentType: "application/json",
+        body: request.method() === "HEAD" ? "" : "[]",
+      });
+    });
+
+    await page.goto("/dashboard");
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByText("Pilih Jabatan Anda")).toBeVisible();
+
+    await page.getByRole("button", { name: "PJT", exact: true }).click();
+
+    await expect(page.getByText("Jabatan berhasil disimpan!")).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Dashboard PJT" }),
+    ).toBeVisible();
+    await expect(page.getByText("Pilih Jabatan Anda")).not.toBeVisible();
+    expect(profileSaveRequest).toEqual({
+      user_id: userId,
+      position: "Penanggung Jawab Teknik (PJT)",
+    });
+    expect(savedProfile.position).toBe("Penanggung Jawab Teknik (PJT)");
+  });
 });

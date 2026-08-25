@@ -9,3 +9,4 @@
 - [Startup smoke gate](startup-smoke-gate.md) — jalankan smoke sebelum preview, klaim port eksklusif, dan pastikan proses yang diuji tetap hidup.
 - [Lint warning budget](lint-warning-budget.md) — jadikan any sebagai error dan pertahankan budget warning hanya untuk warning Fast Refresh legacy yang terukur.
 - [Test runner availability](test-runner-availability.md) — Vitest kompatibel dengan Vite 5 dapat diblokir firewall; jangan sisakan scaffold test tanpa dependency yang dapat dipasang.
+- [Supabase single responses](supabase-single-response.md) — mock endpoint Supabase untuk query `.single()` harus mengembalikan objek JSON, bukan array satu elemen.
