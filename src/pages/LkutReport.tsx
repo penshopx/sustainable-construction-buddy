@@ -31,7 +31,7 @@ function statusBadge(status: string) {
 
 function calcCompleteness(r: LkutReport): number {
   let filled = 0;
-  let total = 11;
+  const total = 11;
   if (r.sbu_number) filled++;
   if (r.kta_number) filled++;
   if (r.tkk_replacement !== null) filled++;

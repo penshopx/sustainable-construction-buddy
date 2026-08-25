@@ -8,7 +8,7 @@ interface MarkdownRendererProps {
 }
 
 function sanitize(raw: string): string {
-  let text = raw
+  const text = raw
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/?(?:div|span|font)[^>]*>/gi, "");
 

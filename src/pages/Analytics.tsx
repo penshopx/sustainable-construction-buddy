@@ -62,7 +62,7 @@ const Analytics = () => {
 
       // Fetch latest test answers for domain breakdown
       const latestTest = tests?.[tests.length - 1];
-      let domainScores: Record<string, { correct: number; total: number }> = {};
+      const domainScores: Record<string, { correct: number; total: number }> = {};
 
       if (latestTest) {
         const { data: answers } = await supabase
