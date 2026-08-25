@@ -43,20 +43,41 @@ const Profile = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast.error("Gagal menyimpan profil. Sesi pengguna tidak ditemukan.");
+      return;
+    }
+
     setSaving(true);
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({ full_name: fullName, company, position, bujk_qualification: bujkQualification })
-      .eq("user_id", user!.id);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            user_id: user.id,
+            full_name: fullName,
+            company,
+            position,
+            bujk_qualification: bujkQualification,
+          },
+          { onConflict: "user_id" },
+        )
+        .select()
+        .single();
 
-    if (error) {
-      toast.error("Gagal menyimpan profil.");
-    } else {
+      if (error || !data) {
+        toast.error("Gagal menyimpan profil. Silakan coba lagi.");
+        return;
+      }
+
       await refreshProfile();
       toast.success("Profil berhasil disimpan!");
+    } catch {
+      toast.error("Gagal menyimpan profil. Silakan coba lagi.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const level = profile?.current_level || "Pemula";

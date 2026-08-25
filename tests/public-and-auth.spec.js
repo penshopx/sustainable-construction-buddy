@@ -268,4 +268,138 @@ test.describe("public and unauthenticated user flows", () => {
     });
     expect(savedProfile.position).toBe("Penanggung Jawab Teknik (PJT)");
   });
+
+  test("lets a user without a profile save all profile details", async ({ page }) => {
+    const userId = "00000000-0000-4000-8000-000000000013";
+    const fakeUser = {
+      id: userId,
+      aud: "authenticated",
+      role: "authenticated",
+      email: "profile-recovery-user@example.test",
+      app_metadata: { provider: "email", providers: ["email"] },
+      user_metadata: {},
+      created_at: "2026-08-25T00:00:00.000Z",
+    };
+    const fakeSession = {
+      access_token: "test-access-token",
+      refresh_token: "test-refresh-token",
+      token_type: "bearer",
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      user: fakeUser,
+    };
+
+    await page.addInitScript(({ session }) => {
+      localStorage.setItem(
+        "sb-vwbgdyykeiilhffwvnku-auth-token",
+        JSON.stringify(session),
+      );
+      localStorage.setItem("pub_onboarding_done", "1");
+    }, { session: fakeSession });
+
+    await page.route("**/auth/v1/**", async (route) => {
+      const requestUrl = route.request().url();
+      if (requestUrl.endsWith("/user")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(fakeUser),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({}),
+      });
+    });
+
+    let savedProfile = null;
+    let profileSaveRequest = null;
+    await page.route("**/rest/v1/**", async (route) => {
+      const request = route.request();
+      const requestUrl = new URL(request.url());
+      const table = requestUrl.pathname.split("/").pop();
+
+      if (table === "profiles" && request.method() === "POST") {
+        const body = request.postDataJSON();
+        const profileData = Array.isArray(body) ? body[0] : body;
+        profileSaveRequest = profileData;
+        savedProfile = {
+          avatar_url: null,
+          bujk_qualification: "menengah",
+          company: "",
+          created_at: "2026-08-25T00:00:00.000Z",
+          current_level: "Pemula",
+          full_name: "",
+          id: "00000000-0000-4000-8000-000000000013",
+          position: "",
+          total_score: 0,
+          updated_at: "2026-08-25T00:00:00.000Z",
+          user_id: userId,
+          ...profileData,
+        };
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify(savedProfile),
+        });
+        return;
+      }
+
+      if (table === "profiles" && requestUrl.searchParams.has("user_id")) {
+        if (savedProfile) {
+          await route.fulfill({
+            status: 200,
+            contentType: "application/json",
+            body: JSON.stringify(savedProfile),
+          });
+          return;
+        }
+
+        await route.fulfill({
+          status: 406,
+          contentType: "application/json",
+          body: JSON.stringify({
+            code: "PGRST116",
+            message: "JSON object requested, multiple (or no) rows returned",
+            details: "The result contains 0 rows",
+            hint: null,
+          }),
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        headers: { "content-range": "*/0" },
+        contentType: "application/json",
+        body: request.method() === "HEAD" ? "" : "[]",
+      });
+    });
+
+    await page.goto("/profile");
+
+    const textInputs = page.getByRole("textbox");
+    await textInputs.nth(0).fill("Siti Rahma");
+    await textInputs.nth(1).fill("PT Nusantara Konstruksi");
+
+    const selects = page.getByRole("combobox");
+    await selects.nth(0).click();
+    await page.getByRole("option", { name: "Besar" }).click();
+    await selects.nth(1).click();
+    await page.getByRole("option", { name: "Penanggung Jawab Teknik (PJT)" }).click();
+
+    await page.getByRole("button", { name: "Simpan Profil" }).click();
+
+    await expect(page.getByText("Profil berhasil disimpan!")).toBeVisible();
+    expect(profileSaveRequest).toEqual({
+      user_id: userId,
+      full_name: "Siti Rahma",
+      company: "PT Nusantara Konstruksi",
+      position: "Penanggung Jawab Teknik (PJT)",
+      bujk_qualification: "besar",
+    });
+    expect(savedProfile).toMatchObject(profileSaveRequest);
+  });
 });
