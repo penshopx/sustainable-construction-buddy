@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import { motion } from "framer-motion";
 import {
   ShieldAlert, CheckCircle2, XCircle, Clock, Eye, Send,

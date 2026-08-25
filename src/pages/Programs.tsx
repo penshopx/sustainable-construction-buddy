@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import {
   Calendar, MapPin, Plus, Trash2, Clock, Newspaper, Image as ImageIcon,
   CheckCircle2, PlayCircle, CalendarClock, FolderOpen, ArrowLeft, Filter,

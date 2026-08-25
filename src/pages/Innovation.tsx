@@ -17,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useInnovationCategories, useInnovationProposals, useCreateProposal, useDeleteProposal, type InnovationCategory } from "@/hooks/useInnovations";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 
 const iconMap: Record<string, React.ElementType> = {
   Leaf, Timer, Database, Box, Cpu, Recycle, ShieldCheck, Lightbulb, Target, BarChart, Users, Link2,

@@ -9,7 +9,7 @@ import { useSmapDocuments, type SmapDocument } from "@/hooks/useSmapDocuments";
 import { useAuth } from "@/hooks/useAuth";
 import { GraduationCap, Plus, Save, Trash2, Users, Clock as ClockIcon } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 
 export default function PendidikanAntikorupsiTab() {
   const { profile } = useAuth();

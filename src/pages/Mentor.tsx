@@ -5,7 +5,8 @@ import { useMentorChat, MentorType } from "@/hooks/useMentorChat";
 import MentorChatPanel from "@/components/mentor/MentorChatPanel";
 import KnowledgeBaseManager from "@/components/mentor/KnowledgeBaseManager";
 import ExternalBotManager from "@/components/mentor/ExternalBotManager";
-import ExpertBotCatalog, { BUILT_IN_BOTS } from "@/components/mentor/ExpertBotCatalog";
+import ExpertBotCatalog from "@/components/mentor/ExpertBotCatalog";
+import { BUILT_IN_BOTS } from "@/components/mentor/expert-bot-catalog-data";
 import MiniAppsCatalog from "@/components/mentor/MiniAppsCatalog";
 import {
   BookOpen, Brain, Wrench, HardHat, Shield, DollarSign,

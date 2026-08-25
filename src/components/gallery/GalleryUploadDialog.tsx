@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ImagePlus, Upload, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCreateGalleryItem } from "@/hooks/usePrograms";
 

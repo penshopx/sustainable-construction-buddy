@@ -13,7 +13,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Upload, FileText, Trash2, Loader2,
   ChevronDown, ChevronUp, ExternalLink,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 
 interface IndicatorFormItemProps {
   indicator: PancekIndicator;

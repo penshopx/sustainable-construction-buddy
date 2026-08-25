@@ -9,7 +9,7 @@ import { useSmapDocuments, type SmapDocument } from "@/hooks/useSmapDocuments";
 import { useAuth } from "@/hooks/useAuth";
 import { Award, Plus, Save, Trash2, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import { differenceInDays, parseISO } from "date-fns";
 
 export default function SertifikatIsoTab() {

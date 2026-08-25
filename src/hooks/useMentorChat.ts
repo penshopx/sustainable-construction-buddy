@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 export type MentorType = "learning" | "expert" | "project";

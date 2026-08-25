@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import {
   ClipboardCheck, ArrowRight, ArrowLeft, CheckCircle2, XCircle,
   Trophy, Star, Award, Crown, Gem, Loader2, RotateCcw, Timer, Target

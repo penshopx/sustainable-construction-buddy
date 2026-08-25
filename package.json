@@ -11,7 +11,7 @@
     "build:dev": "vite build --mode development",
     "start": "node server.cjs",
     "test:smoke": "node scripts/smoke-test.cjs",
-    "lint": "eslint . --max-warnings 11",
+    "lint": "eslint . --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {

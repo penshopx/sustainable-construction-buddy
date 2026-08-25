@@ -13,7 +13,7 @@ import {
   FlaskConical, CheckCircle2, AlertTriangle, XCircle, Target, ExternalLink,
   RotateCcw, TrendingUp, ShieldCheck, Copy,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 
 interface PancekTrialProps {
   onCopyToOfficial?: (answers: PancekAnswers) => void;

@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import {
   GraduationCap, Clock, CheckCircle2, PlayCircle, Lock,

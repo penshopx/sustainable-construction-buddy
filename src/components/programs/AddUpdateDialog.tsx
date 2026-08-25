@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Newspaper } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import { useCreateProgramUpdate } from "@/hooks/usePrograms";
 
 interface Props {

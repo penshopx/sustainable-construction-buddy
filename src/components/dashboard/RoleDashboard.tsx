@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import {
   Building2, FileText, Shield, DollarSign, TrendingUp, AlertTriangle,
   CheckCircle2, HardHat, ClipboardCheck, FolderKanban, Users, BarChart3,

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CheckCircle2, XCircle, Eye, Send, User, FileText, Clock, ThumbsUp, ThumbsDown, Search, Download } from "lucide-react";
 import { useAdminInnovationProposals, useUpdateProposalStatus } from "@/hooks/useInnovations";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import * as XLSX from "xlsx";
 
 const statusColors: Record<string, string> = {

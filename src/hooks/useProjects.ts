@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { computeComplexityScore, type ProjectInput } from "@/lib/complexity";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 
 export interface Project {
   id: string;

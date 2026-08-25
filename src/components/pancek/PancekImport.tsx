@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Upload, FileSpreadsheet, FileText, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import * as XLSX from "xlsx";
 import { PANCEK_PILLARS } from "@/lib/pancekIndicators";
 

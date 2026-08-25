@@ -25,7 +25,7 @@ import {
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   ResponsiveContainer,
 } from "recharts";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import { exportPancekPdf } from "@/lib/pancekPdf";
 
 export default function PancekAssessment() {

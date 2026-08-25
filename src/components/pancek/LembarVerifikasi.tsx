@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { exportLembarVerifikasiPdf } from "@/lib/lembarVerifikasiPdf";
 import type { PancekAssessment } from "@/hooks/usePancekAssessment";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/sonner-toast";
 import type { Json } from "@/integrations/supabase/types";
 
 interface VerificationDoc {
