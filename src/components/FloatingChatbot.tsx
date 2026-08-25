@@ -44,7 +44,8 @@ const CATEGORIES: Category[] = [
     icon: "📊",
     label: "LKUT, PANCEK & SMAP",
     articles: [
-      { q: "Apa itu LKUT?", a: "LKUT (Laporan Kegiatan Usaha Tahunan) adalah laporan wajib tahunan BUJK sesuai Permen PUPR No. 7/2024. Mencakup data keuangan, kegiatan usaha, tenaga kerja, dan kinerja proyek. Menu LKUT membantu Anda mengisi dan menyimpan laporan ini." },
+      { q: "Apa itu LKUT?", a: "LKUT (Laporan Kegiatan Usaha Tahunan) adalah laporan tahunan BUJK dengan rujukan Permen PUPR Nomor 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan. Program PUB ASPEKINDO membantu anggota menyiapkan data dan dokumen pendukungnya." },
+      { q: "Apa rujukan PUB-LKUT dan LSBU?", a: "Rujukan PUB-LKUT terdiri dari Permen PUPR Nomor 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan dan Program PUB ASPEKINDO. Untuk informasi Lembaga Sertifikasi Badan Usaha (LSBU), kunjungi <a href='https://lsbukonstruksi.co.id' target='_blank' rel='noopener noreferrer' class='text-pub-sky underline'>lsbukonstruksi.co.id</a>." },
       { q: "Apa itu PANCEK?", a: "PANCEK (Penilaian Akhir Capaian Kompetensi) adalah instrumen penilaian komprehensif kompetensi personil manajerial BUJK di akhir periode program." },
       { q: "Apa itu SMAP?", a: "SMAP (Sistem Manajemen Anti Penyuapan) adalah modul untuk memastikan BUJK Anda memenuhi standar tata kelola anti penyuapan sesuai ISO 37001." },
     ],

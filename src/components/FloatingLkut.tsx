@@ -1,17 +1,37 @@
 import { useState } from "react";
-import { ArrowRight, ChevronDown, FileCheck2, MessageCircle, X } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronDown, ExternalLink, FileCheck2, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
 const FAQS = [
   {
-    question: "Apa itu LKUT?",
-    answer: "LKUT adalah Laporan Kegiatan Usaha Tahunan BUJK. Di PUB ASPEKINDO, Anda dapat menyiapkan data, dokumen pendukung, dan memantau kelengkapan laporan dalam satu tempat.",
+    question: "Apa dasar rujukan LKUT?",
+    answer: "Rujukan utama LKUT adalah Permen PUPR Nomor 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan. Lampirannya memuat format Laporan Kegiatan Usaha Tahunan, termasuk data kepatuhan dan kinerja BUJK.",
   },
   {
-    question: "Apa hubungan PUB dan LSBU?",
-    answer: "LKUT-PUB-LSBU adalah produk asli ASPEKINDO yang mendukung kesiapan data dan kepatuhan BUJK untuk kebutuhan pembinaan, sertifikasi, dan pengembangan usaha berkelanjutan.",
+    question: "Apa peran Program PUB ASPEKINDO?",
+    answer: "Program PUB ASPEKINDO membantu anggota BUJK menyiapkan data, dokumen pendukung, dan pembinaan untuk memenuhi kewajiban serta meningkatkan kemampuan profesional dan usaha secara berkelanjutan.",
+  },
+  {
+    question: "Di mana informasi LSBU?",
+    answer: "Informasi mengenai Lembaga Sertifikasi Badan Usaha (LSBU) dapat diakses melalui situs LSBU Konstruksi pada bagian Rujukan chatbot.",
+  },
+];
+
+const REFERENCES = [
+  {
+    title: "Permen PUPR No. 7 Tahun 2024",
+    detail: "Pengembangan Usaha Berkelanjutan",
+  },
+  {
+    title: "Program PUB ASPEKINDO",
+    detail: "Pembinaan dan pendampingan anggota BUJK",
+  },
+  {
+    title: "LSBU Konstruksi",
+    detail: "lsbukonstruksi.co.id",
+    href: "https://lsbukonstruksi.co.id",
   },
 ];
 
@@ -137,6 +157,40 @@ export default function FloatingLkut() {
                     )}
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2 px-1">
+                  <BookOpen className="h-3.5 w-3.5 text-pub-amber" />
+                  <p className="text-xs font-semibold font-heading text-muted-foreground">Rujukan chatbot</p>
+                </div>
+                {REFERENCES.map((reference) => {
+                  const content = (
+                    <>
+                      <span className="flex-1">
+                        <span className="block text-xs font-semibold font-heading text-foreground">{reference.title}</span>
+                        <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">{reference.detail}</span>
+                      </span>
+                      {reference.href && <ExternalLink className="h-3.5 w-3.5 shrink-0 text-pub-sky" />}
+                    </>
+                  );
+
+                  return reference.href ? (
+                    <a
+                      key={reference.title}
+                      href={reference.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-muted/50"
+                    >
+                      {content}
+                    </a>
+                  ) : (
+                    <div key={reference.title} className="flex items-center gap-2 rounded-xl border border-border p-3">
+                      {content}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
