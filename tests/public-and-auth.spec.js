@@ -35,6 +35,8 @@ test.describe("public and unauthenticated user flows", () => {
     ).toBeVisible();
     await expect(page.getByPlaceholder("email@perusahaan.com")).toBeVisible();
     await expect(page.getByPlaceholder("Minimal 6 karakter")).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toHaveAttribute("autocomplete", "username");
+    await expect(page.locator('input[type="password"]')).toHaveAttribute("autocomplete", "current-password");
 
     await page.getByRole("button", { name: "Lupa password?" }).click();
 
@@ -44,11 +46,34 @@ test.describe("public and unauthenticated user flows", () => {
     await expect(
       page.getByRole("button", { name: "Kirim Link Reset" }),
     ).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toHaveAttribute("autocomplete", "email");
 
     await page.getByRole("button", { name: "Kembali ke login" }).click();
     await expect(
       page.getByRole("heading", { name: "Masuk ke Akun" }),
     ).toBeVisible();
+
+    await page.getByRole("button", { name: "Daftar sekarang" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Daftar Akun Baru" }),
+    ).toBeVisible();
+    await expect(page.locator('input[type="text"]')).toHaveAttribute("autocomplete", "name");
+    await expect(page.locator('input[type="email"]')).toHaveAttribute("autocomplete", "username");
+    await expect(page.locator('input[type="password"]')).toHaveAttribute("autocomplete", "new-password");
+  });
+
+  test("uses new-password autocomplete tokens when setting a reset password", async ({ page }) => {
+    await page.goto("/reset-password#type=recovery");
+
+    await expect(
+      page.getByRole("heading", { name: "Atur Password Baru" }),
+    ).toBeVisible();
+
+    await expect(page.locator('input[autocomplete="username"]')).toHaveCount(1);
+    const passwordInputs = page.locator('input[type="password"]');
+    await expect(passwordInputs).toHaveCount(2);
+    await expect(passwordInputs.nth(0)).toHaveAttribute("autocomplete", "new-password");
+    await expect(passwordInputs.nth(1)).toHaveAttribute("autocomplete", "new-password");
   });
 
   test("renders a safe dashboard for a new user without operational data", async ({ page }) => {

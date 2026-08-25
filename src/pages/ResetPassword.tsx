@@ -90,6 +90,16 @@ export default function ResetPassword() {
             <p className="text-muted-foreground font-body mb-8">Masukkan password baru untuk akun Anda.</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <label className="sr-only" htmlFor="reset-password-username">Email akun</label>
+              <input
+                id="reset-password-username"
+                name="username"
+                type="text"
+                autoComplete="username"
+                tabIndex={-1}
+                className="sr-only"
+              />
+
               <div>
                 <label className="text-sm font-medium text-foreground font-heading mb-1.5 block">Password Baru</label>
                 <input
@@ -97,6 +107,7 @@ export default function ResetPassword() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimal 6 karakter"
+                  autoComplete="new-password"
                   required
                   minLength={6}
                   className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -110,6 +121,7 @@ export default function ResetPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Ulangi password baru"
+                  autoComplete="new-password"
                   required
                   minLength={6}
                   className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
