@@ -73,14 +73,12 @@ const HeroSection = () => {
               Bergabung & Jadilah Kontraktor Berdaya Saing
               <ArrowRight className="w-5 h-5" />
             </button>
-            <a
-              href="https://dialog.aspekindo-pub.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => document.getElementById("floating-helpdesk-btn")?.click()}
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-[hsl(0,0%,100%)/20%] text-[hsl(0,0%,85%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/8%] transition-all duration-200"
             >
-              Gustafta Socratic Dialog
-            </a>
+              Helpdesk Aplikasi
+            </button>
           </div>
         </motion.div>
 

@@ -399,20 +399,20 @@ const Dashboard = () => {
           >
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-xl bg-pub-amber/20 flex items-center justify-center shrink-0">
-                <span className="text-pub-amber font-extrabold text-base font-heading">G</span>
+                <span className="text-pub-amber font-extrabold text-base font-heading">D</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-emerald-400 text-xs font-body">Online</span>
                 </div>
-                <p className="font-bold font-heading text-white text-sm">AI PUB HelpDesk</p>
-                <p className="text-xs text-[hsl(0,0%,60%)] font-body mt-0.5">Gustafta Socratic Dialog</p>
+                <p className="font-bold font-heading text-white text-sm">Helpdesk Aplikasi</p>
+                <p className="text-xs text-[hsl(0,0%,60%)] font-body mt-0.5">DokumenProyek · dikelola oleh PT SKI</p>
               </div>
               <MessageCircle className="w-4 h-4 text-pub-amber mt-1 group-hover:translate-x-0.5 transition-transform" />
             </div>
             <p className="text-xs text-[hsl(0,0%,55%)] font-body mt-3 leading-relaxed">
-              Petakan problem BUJK & dapatkan Blueprint Potensi Diri
+              Panduan PUB ASPEKINDO dan akses layanan DokumenProyek
             </p>
           </button>
         </motion.div>

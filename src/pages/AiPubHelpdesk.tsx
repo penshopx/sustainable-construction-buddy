@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bot, ExternalLink, AlertCircle, Maximize2 } from "lucide-react";
+import { Bot, ExternalLink, AlertCircle, Maximize2, FileText } from "lucide-react";
 
-const GUSTAFTA_URL = "https://dialog.aspekindo-pub.com";
+const DOKUMEN_PROYEK_URL = "https://dokumenproyek.com";
 
 export default function AiPubHelpdesk() {
   const [iframeError, setIframeError] = useState(false);
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const openFullscreen = () => {
-    window.open(GUSTAFTA_URL, "gustafta-dialog", "width=500,height=750,resizable=yes,scrollbars=yes");
+    window.open(DOKUMEN_PROYEK_URL, "dokumenproyek-helpdesk", "width=500,height=750,resizable=yes,scrollbars=yes");
   };
 
   return (
@@ -21,24 +21,24 @@ export default function AiPubHelpdesk() {
         className="flex items-center gap-3 px-4 py-3 rounded-xl mb-3 bg-gradient-to-r from-[hsl(220,60%,14%)] to-[hsl(225,55%,22%)] border border-[hsl(0,0%,100%)/10%]"
       >
         <div className="w-9 h-9 rounded-xl bg-pub-amber/20 flex items-center justify-center shrink-0">
-          <span className="text-pub-amber font-extrabold text-base font-heading">G</span>
+            <FileText className="w-4 h-4 text-pub-amber" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <p className="text-white font-bold text-sm font-heading">Gustafta Socratic Dialog</p>
+            <p className="text-white font-bold text-sm font-heading">Helpdesk Aplikasi</p>
             <div className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-emerald-400 text-xs font-body">Online</span>
             </div>
           </div>
           <p className="text-[hsl(0,0%,55%)] text-xs font-body truncate">
-            Pemetaan problem BUJK · Blue Print Potensi Diri · Konsultasi regulasi
+            DokumenProyek · dikelola oleh PT SKI · panduan aplikasi PUB
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-pub-amber/15 border border-pub-amber/25 text-pub-amber text-xs font-semibold font-heading">
             <Bot className="w-3 h-3" />
-            AI PUB HelpDesk
+            DokumenProyek
           </div>
           <button
             onClick={openFullscreen}
@@ -49,7 +49,7 @@ export default function AiPubHelpdesk() {
             <span className="hidden sm:inline">Jendela terpisah</span>
           </button>
           <a
-            href={GUSTAFTA_URL}
+            href={DOKUMEN_PROYEK_URL}
             target="_blank"
             rel="noopener noreferrer"
             title="Buka di tab baru"
@@ -73,14 +73,14 @@ export default function AiPubHelpdesk() {
         {!iframeLoaded && !iframeError && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-card z-10 gap-4">
             <div className="w-12 h-12 rounded-2xl bg-pub-amber/15 flex items-center justify-center">
-              <span className="text-pub-amber font-extrabold text-2xl font-heading">G</span>
+              <FileText className="w-6 h-6 text-pub-amber" />
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-pub-amber animate-bounce" style={{ animationDelay: "0ms" }} />
               <span className="w-2 h-2 rounded-full bg-pub-amber animate-bounce" style={{ animationDelay: "150ms" }} />
               <span className="w-2 h-2 rounded-full bg-pub-amber animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
-            <p className="text-muted-foreground text-sm font-body">Memuat Gustafta Socratic Dialog...</p>
+            <p className="text-muted-foreground text-sm font-body">Memuat Helpdesk Aplikasi...</p>
           </div>
         )}
 
@@ -93,8 +93,8 @@ export default function AiPubHelpdesk() {
             <div>
               <p className="text-foreground font-bold font-heading mb-1">Dialog tidak dapat dimuat di sini</p>
               <p className="text-muted-foreground text-sm font-body max-w-sm">
-                Gustafta Socratic Dialog memiliki kebijakan keamanan yang mencegah tampil di dalam frame.
-                Gunakan tombol di bawah untuk membuka dialog langsung.
+                DokumenProyek memiliki kebijakan keamanan yang mencegah layanan dimuat di dalam frame.
+                Gunakan tombol di bawah untuk membukanya langsung.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -103,30 +103,30 @@ export default function AiPubHelpdesk() {
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading shadow-amber hover:brightness-110 transition-all"
               >
                 <Maximize2 className="w-4 h-4" />
-                Buka di Jendela Dialog
+                Buka DokumenProyek
               </button>
               <a
-                href={GUSTAFTA_URL}
+                href={DOKUMEN_PROYEK_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border text-foreground font-semibold font-heading hover:bg-muted transition-all text-sm"
               >
                 <ExternalLink className="w-4 h-4" />
-                Buka di Tab Baru
+                Buka DokumenProyek.com
               </a>
             </div>
             <p className="text-xs text-muted-foreground font-body">
-              🔗 dialog.aspekindo-pub.com · Powered by{" "}
+              DokumenProyek.com · Dikelola oleh PT SKI · Engine AI{" "}
               <a href="https://gustafta.my.id" target="_blank" rel="noopener noreferrer" className="text-pub-amber hover:underline">
-                gustafta.my.id
+                Gustafta
               </a>
             </p>
           </div>
         )}
 
         <iframe
-          src={GUSTAFTA_URL}
-          title="Gustafta Socratic Dialog — AI PUB HelpDesk"
+          src={DOKUMEN_PROYEK_URL}
+          title="DokumenProyek — Helpdesk Aplikasi PUB"
           className="w-full h-full border-0"
           style={{ minHeight: "600px" }}
           allow="microphone; camera"

@@ -60,11 +60,11 @@ const CATEGORIES: Category[] = [
   },
   {
     icon: "🤖",
-    label: "AI Mentor & HelpDesk",
+    label: "AI Mentor & Helpdesk Aplikasi",
     articles: [
       { q: "Apa itu AI Mentor?", a: "AI Mentor adalah asisten AI yang membantu Anda belajar modul, menjawab pertanyaan terkait materi pembelajaran, dan memberikan penjelasan mendalam." },
-      { q: "Perbedaan AI Mentor dan Gustafta Dialog?", a: "AI Mentor fokus pada materi pembelajaran (e-course). Gustafta Socratic Dialog (tombol G kanan bawah) fokus memetakan problem BUJK dan menghasilkan Blueprint Potensi Diri." },
-      { q: "Bagaimana cara akses Gustafta Dialog?", a: "Klik tombol 'G' di pojok kanan bawah, atau buka menu 'AI PUB HelpDesk' di sidebar. Dialog berlangsung di platform Gustafta yang terhubung langsung." },
+      { q: "Apa fungsi Helpdesk Aplikasi?", a: "Helpdesk Aplikasi membantu Anda menggunakan fitur PUB ASPEKINDO, menemukan panduan LKUT-PUB-LSBU, dan mengakses layanan DokumenProyek sesuai kebutuhan dokumen proyek Anda." },
+      { q: "Apa hubungan DokumenProyek dan Gustafta?", a: "DokumenProyek adalah layanan dokumen proyek yang dikelola oleh PT SKI. Di dalam Helpdesk Aplikasi, layanan ini dapat didukung oleh engine AI Gustafta. Akses DokumenProyek tersedia di <a href='https://dokumenproyek.com' target='_blank' rel='noopener noreferrer' class='text-pub-sky underline'>dokumenproyek.com</a>." },
     ],
   },
   {

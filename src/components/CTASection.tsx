@@ -46,15 +46,13 @@ const CTASection = () => {
             >
               Daftar & Tingkatkan Kompetensi <ArrowRight className="w-5 h-5" />
             </button>
-            <a
-              href="https://dialog.aspekindo-pub.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => document.getElementById("floating-helpdesk-btn")?.click()}
               className="inline-flex items-center justify-center gap-2 px-9 py-4 rounded-xl border border-[hsl(0,0%,100%)/20%] text-[hsl(0,0%,85%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/8%] transition-all"
             >
               <MessageSquare className="w-5 h-5" />
-              Gustafta Socratic Dialog
-            </a>
+              Buka Helpdesk Aplikasi
+            </button>
           </div>
 
           <p className="text-xs text-[hsl(0,0%,50%)] mb-12 font-body">

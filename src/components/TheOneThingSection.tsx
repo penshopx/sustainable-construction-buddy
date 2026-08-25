@@ -159,7 +159,7 @@ const TheOneThingSection = () => {
           </div>
         </motion.div>
 
-        {/* Dialog Gustafta */}
+        {/* DokumenProyek */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -170,15 +170,15 @@ const TheOneThingSection = () => {
           <div className="bg-gradient-to-r from-[hsl(220,70%,18%)] to-[hsl(230,65%,24%)] px-8 py-5 flex flex-wrap items-center gap-4 justify-between border-b border-[hsl(0,0%,100%)/10%]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-pub-amber/20 flex items-center justify-center">
-                <span className="text-pub-amber font-extrabold font-heading text-lg">G</span>
+                <FileText className="w-5 h-5 text-pub-amber" />
               </div>
               <div>
-                <p className="text-white font-extrabold font-heading text-lg leading-none">GUSTAFTA</p>
-                <p className="text-[hsl(0,0%,55%)] text-xs font-body mt-0.5">Platform Perakit AI — No Code</p>
+                <p className="text-white font-extrabold font-heading text-lg leading-none">DOKUMENPROYEK</p>
+                <p className="text-[hsl(0,0%,55%)] text-xs font-body mt-0.5">Solusi dokumen proyek konstruksi · Dikelola oleh PT SKI</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              {["No-Code · Tanpa Coding", "30+ Sektor Industri", "Ribuan Template Siap Pakai"].map((tag) => (
+                {["Dokumen Konstruksi", "Panduan Terstruktur", "Dukungan Helpdesk"].map((tag) => (
                 <span key={tag} className="text-xs px-3 py-1 rounded-full bg-[hsl(0,0%,100%)/8%] text-[hsl(0,0%,70%)] font-body border border-[hsl(0,0%,100%)/10%]">{tag}</span>
               ))}
             </div>
@@ -191,27 +191,25 @@ const TheOneThingSection = () => {
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-pub-amber/20 border border-pub-amber/30 text-pub-amber text-xs font-semibold font-heading uppercase tracking-wider mb-4">
                   <MessageSquare className="w-3.5 h-3.5" />
-                  Khusus Anggota ASPEKINDO
+                  Akses melalui Helpdesk Aplikasi
                 </div>
                 <h3 className="text-2xl md:text-3xl font-bold font-heading text-white mb-3 leading-snug">
-                  Ubah Pengetahuan &amp; Pengalaman BUJK Anda Menjadi{" "}
-                  <span className="text-pub-amber">Teman Berpikir Digital</span>
+                  Kelola Dokumen Proyek Konstruksi{" "}
+                  <span className="text-pub-amber">Lebih Tertib &amp; Siap Pakai</span>
                 </h3>
                 <p className="text-[hsl(0,0%,72%)] font-body leading-relaxed mb-6">
-                  PUB ASPEKINDO berkolaborasi dengan <strong className="text-white">Gustafta</strong> — platform AI yang mengubah 
-                  kompetensi, SOP, regulasi, dan pengalaman nyata BUJK menjadi{" "}
-                  <em className="text-pub-amber">satu tim AI yang saling bekerja sama</em>. Bukan sekadar chatbot — 
-                  tapi mitra berpikir digital yang memahami konteks bisnis konstruksi Anda.
+                  PUB ASPEKINDO menghadirkan <strong className="text-white">DokumenProyek</strong>, layanan yang dikelola oleh PT SKI, 
+                  untuk membantu BUJK menemukan panduan, kebutuhan dokumen, dan dukungan penggunaan aplikasi secara lebih terarah.
                 </p>
 
                 <div className="mb-6 p-4 rounded-xl bg-[hsl(0,0%,100%)/5%] border border-[hsl(0,0%,100%)/10%]">
                   <p className="text-xs font-semibold text-pub-amber uppercase tracking-wider mb-3 font-heading">Apa yang bisa dilakukan untuk BUJK Anda:</p>
                   <ul className="space-y-2.5">
                     {[
-                      "Petakan problem BUJK secara mendalam & personal melalui dialog interaktif",
-                      "Hasilkan Blue Print Potensi Diri sebagai peta jalan pengembangan BUJK",
-                      "Konversi regulasi & SOP konstruksi menjadi asisten AI yang mudah dikonsultasikan",
-                      "Bangun kolaborasi & tingkatkan efisiensi, profesionalitas & produktivitas BUJK",
+                      "Akses panduan dokumen proyek konstruksi melalui Helpdesk Aplikasi",
+                      "Temukan kebutuhan dokumen dan langkah kerja yang lebih terstruktur",
+                      "Konsultasikan penggunaan fitur PUB ASPEKINDO dan DokumenProyek",
+                      "Siapkan administrasi proyek secara lebih tertib dan siap ditindaklanjuti",
                     ].map((item) => (
                       <li key={item} className="flex items-start gap-2.5 text-sm text-[hsl(0,0%,78%)] font-body">
                         <Map className="w-4 h-4 text-pub-amber shrink-0 mt-0.5" />
@@ -222,14 +220,12 @@ const TheOneThingSection = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-3">
-                  <a
-                    href="https://dialog.aspekindo-pub.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => document.getElementById('floating-helpdesk-btn')?.click()}
                     className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading shadow-amber hover:brightness-110 transition-all"
                   >
-                    Gustafta Socratic Dialog <ArrowRight className="w-4 h-4" />
-                  </a>
+                    Buka Helpdesk Aplikasi <ArrowRight className="w-4 h-4" />
+                  </button>
                   <a
                     href="#ai-pub-helpdesk"
                     onClick={e => { e.preventDefault(); document.getElementById('floating-helpdesk-btn')?.click(); }}
@@ -239,23 +235,23 @@ const TheOneThingSection = () => {
                   </a>
                 </div>
                 <p className="text-xs text-[hsl(0,0%,40%)] mt-3 font-body">
-                  🔗 dialog.aspekindo-pub.com
+                  DokumenProyek tersedia melalui Helpdesk Aplikasi PUB.
                 </p>
               </div>
 
               {/* Right: visual card */}
               <div className="space-y-3">
                 <div className="p-5 rounded-xl bg-[hsl(0,0%,100%)/5%] border border-[hsl(0,0%,100%)/10%]">
-                  <p className="text-xs font-semibold text-pub-amber uppercase tracking-wider mb-3 font-heading">Semua Orang Punya Pengetahuan.</p>
-                  <p className="text-white font-bold font-heading text-xl mb-1">Kini Saatnya Merakitnya Menjadi AI.</p>
-                  <p className="text-[hsl(0,0%,55%)] text-sm font-body">Belajar · Merakit · Menggunakan · Menghasilkan · Berkembang</p>
+                  <p className="text-xs font-semibold text-pub-amber uppercase tracking-wider mb-3 font-heading">Dokumen rapi, proyek lebih siap.</p>
+                  <p className="text-white font-bold font-heading text-xl mb-1">Mulai dari kebutuhan dokumen yang tepat.</p>
+                  <p className="text-[hsl(0,0%,55%)] text-sm font-body">Panduan · Dokumen · Kepatuhan · Tindak lanjut</p>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { label: "Pemetaan Problem BUJK", desc: "Identifikasi akar masalah secara spesifik" },
-                    { label: "Blue Print Potensi Diri", desc: "Peta jalan pengembangan yang personal" },
-                    { label: "Asisten Regulasi AI", desc: "Konsultasi aturan konstruksi kapan saja" },
-                    { label: "Kolaborasi & Jaringan", desc: "Tumbuh bersama anggota ASPEKINDO" },
+                    { label: "Panduan Dokumen", desc: "Arahkan dokumen yang perlu disiapkan" },
+                    { label: "Dokumen Proyek", desc: "Susun administrasi proyek lebih rapi" },
+                    { label: "Bantuan Aplikasi", desc: "Dukungan penggunaan fitur PUB" },
+                    { label: "Kesiapan Kepatuhan", desc: "Lengkapi kebutuhan BUJK bertahap" },
                   ].map((card) => (
                     <div key={card.label} className="p-3.5 rounded-xl bg-[hsl(0,0%,100%)/4%] border border-[hsl(0,0%,100%)/8%]">
                       <p className="text-white text-xs font-bold font-heading mb-1">{card.label}</p>
@@ -268,8 +264,8 @@ const TheOneThingSection = () => {
                     <MessageSquare className="w-4 h-4 text-pub-amber" />
                   </div>
                   <div>
-                    <p className="text-white text-xs font-bold font-heading">Rakit satu tim AI — bukan cuma satu chatbot</p>
-                    <p className="text-[hsl(0,0%,55%)] text-xs font-body">Gustafta Help Desk siap membantu 24/7</p>
+                    <p className="text-white text-xs font-bold font-heading">DokumenProyek untuk kebutuhan dokumen konstruksi</p>
+                    <p className="text-[hsl(0,0%,55%)] text-xs font-body">Helpdesk Aplikasi siap membantu penggunaan PUB</p>
                   </div>
                 </div>
               </div>

@@ -7,7 +7,7 @@ import TeamSection from "@/components/TeamSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import FloatingChatbot from "@/components/FloatingChatbot";
-import FloatingGustafta from "@/components/FloatingGustafta";
+import FloatingLkut from "@/components/FloatingLkut";
 
 const Index = () => {
   return (
@@ -34,10 +34,10 @@ const Index = () => {
       <CTASection />
 
       <Footer />
-      {/* Kiri: HelpDesk layanan & info */}
+      {/* Kiri: Helpdesk aplikasi */}
       <FloatingChatbot variant="landing" />
-      {/* Kanan: Gustafta Socratic Dialog */}
-      <FloatingGustafta />
+      {/* Kanan: produk asli ASPEKINDO */}
+      <FloatingLkut />
     </main>
   );
 };
