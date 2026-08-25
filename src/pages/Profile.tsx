@@ -114,11 +114,14 @@ const Profile = () => {
         {/* Profile form */}
         <form onSubmit={handleSave} className="bg-card border border-border rounded-xl p-6 shadow-card space-y-5">
           <div>
-            <label className="text-sm font-medium text-foreground font-heading mb-1.5 flex items-center gap-2">
+            <label htmlFor="profile-full-name" className="text-sm font-medium text-foreground font-heading mb-1.5 flex items-center gap-2">
               <User className="w-4 h-4 text-muted-foreground" /> Nama Lengkap
             </label>
             <input
+              id="profile-full-name"
+              name="fullName"
               type="text"
+              autoComplete="name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
@@ -126,11 +129,14 @@ const Profile = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground font-heading mb-1.5 flex items-center gap-2">
+            <label htmlFor="profile-company" className="text-sm font-medium text-foreground font-heading mb-1.5 flex items-center gap-2">
               <Building2 className="w-4 h-4 text-muted-foreground" /> Perusahaan
             </label>
             <input
+              id="profile-company"
+              name="company"
               type="text"
+              autoComplete="organization"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               placeholder="cth: PT Karya Konstruksi Nusantara"
@@ -139,11 +145,16 @@ const Profile = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground font-heading mb-1.5 flex items-center gap-2">
+            <label htmlFor="profile-bujk-qualification" className="text-sm font-medium text-foreground font-heading mb-1.5 flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-muted-foreground" /> Kualifikasi BUJK
             </label>
-            <Select value={bujkQualification} onValueChange={(v) => setBujkQualification(v as BUJKQualification)}>
-              <SelectTrigger className="w-full h-11 font-body text-sm">
+            <Select
+              name="bujkQualification"
+              autoComplete="off"
+              value={bujkQualification}
+              onValueChange={(v) => setBujkQualification(v as BUJKQualification)}
+            >
+              <SelectTrigger id="profile-bujk-qualification" className="w-full h-11 font-body text-sm">
                 <SelectValue placeholder="Pilih kualifikasi..." />
               </SelectTrigger>
               <SelectContent>
@@ -157,11 +168,16 @@ const Profile = () => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground font-heading mb-1.5 flex items-center gap-2">
+            <label htmlFor="profile-position" className="text-sm font-medium text-foreground font-heading mb-1.5 flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-muted-foreground" /> Jabatan Personil Manajerial
             </label>
-            <Select value={position} onValueChange={setPosition}>
-              <SelectTrigger className="w-full h-11 font-body text-sm">
+            <Select
+              name="position"
+              autoComplete="organization-title"
+              value={position}
+              onValueChange={setPosition}
+            >
+              <SelectTrigger id="profile-position" className="w-full h-11 font-body text-sm">
                 <SelectValue placeholder="Pilih jabatan Anda..." />
               </SelectTrigger>
               <SelectContent>

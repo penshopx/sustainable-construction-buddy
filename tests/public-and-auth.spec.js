@@ -314,6 +314,13 @@ test.describe("public and unauthenticated user flows", () => {
       });
     });
 
+    const accessibilityConsoleMessages = [];
+    page.on("console", (message) => {
+      if (/accessib|form field|label.*control|autocomplete|aria-/i.test(message.text())) {
+        accessibilityConsoleMessages.push(message.text());
+      }
+    });
+
     let savedProfile = null;
     let profileSaveRequest = null;
     await page.route("**/rest/v1/**", async (route) => {
@@ -380,14 +387,24 @@ test.describe("public and unauthenticated user flows", () => {
 
     await page.goto("/profile");
 
-    const textInputs = page.getByRole("textbox");
-    await textInputs.nth(0).fill("Siti Rahma");
-    await textInputs.nth(1).fill("PT Nusantara Konstruksi");
+    const fullNameInput = page.getByLabel("Nama Lengkap", { exact: true });
+    const companyInput = page.getByLabel("Perusahaan", { exact: true });
+    const qualificationSelect = page.getByRole("combobox", { name: "Kualifikasi BUJK", exact: true });
+    const positionSelect = page.getByRole("combobox", { name: "Jabatan Personil Manajerial", exact: true });
 
-    const selects = page.getByRole("combobox");
-    await selects.nth(0).click();
+    await expect(fullNameInput).toHaveAttribute("autocomplete", "name");
+    await expect(companyInput).toHaveAttribute("autocomplete", "organization");
+    await expect(qualificationSelect).toHaveAttribute("id", "profile-bujk-qualification");
+    await expect(positionSelect).toHaveAttribute("id", "profile-position");
+    await expect(page.locator('select[name="bujkQualification"]')).toHaveAttribute("autocomplete", "off");
+    await expect(page.locator('select[name="position"]')).toHaveAttribute("autocomplete", "organization-title");
+
+    await fullNameInput.fill("Siti Rahma");
+    await companyInput.fill("PT Nusantara Konstruksi");
+
+    await qualificationSelect.click();
     await page.getByRole("option", { name: "Besar" }).click();
-    await selects.nth(1).click();
+    await positionSelect.click();
     await page.getByRole("option", { name: "Penanggung Jawab Teknik (PJT)" }).click();
 
     await page.getByRole("button", { name: "Simpan Profil" }).click();
@@ -401,5 +418,6 @@ test.describe("public and unauthenticated user flows", () => {
       bujk_qualification: "besar",
     });
     expect(savedProfile).toMatchObject(profileSaveRequest);
+    expect(accessibilityConsoleMessages).toEqual([]);
   });
 });
