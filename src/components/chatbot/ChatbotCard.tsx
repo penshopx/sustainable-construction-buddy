@@ -1,9 +1,9 @@
-import { Bot, Trash2, Share2, Copy, ExternalLink, GraduationCap, Briefcase, FolderKanban } from "lucide-react";
+import { Bot, Trash2, Share2, Copy, ExternalLink, GraduationCap, Briefcase, FolderKanban, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomChatbot } from "@/hooks/useCustomChatbots";
 import { toast } from "@/hooks/use-toast";
 
-const MODE_ICONS: Record<string, any> = {
+const MODE_ICONS: Record<string, LucideIcon> = {
   pembelajaran: GraduationCap,
   profesi: Briefcase,
   proyek: FolderKanban,

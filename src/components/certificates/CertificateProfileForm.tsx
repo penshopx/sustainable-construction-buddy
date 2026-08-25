@@ -7,6 +7,7 @@ import { Upload, User, Building2, Briefcase, Image, PenTool, Save, Loader2 } fro
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Props {
   logoUrl: string;
@@ -50,8 +51,8 @@ export default function CertificateProfileForm({ logoUrl, signatureUrl, onUpdate
       if (type === "logo") onUpdate(uploaded, signatureUrl);
       else onUpdate(logoUrl, uploaded);
       toast({ title: "Upload berhasil" });
-    } catch (err: any) {
-      toast({ title: "Upload gagal", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Upload gagal", description: getErrorMessage(err), variant: "destructive" });
     }
   };
 
@@ -66,8 +67,8 @@ export default function CertificateProfileForm({ logoUrl, signatureUrl, onUpdate
       if (error) throw error;
       await refreshProfile();
       toast({ title: "Profil disimpan" });
-    } catch (err: any) {
-      toast({ title: "Gagal menyimpan", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Gagal menyimpan", description: getErrorMessage(err), variant: "destructive" });
     } finally {
       setSaving(false);
     }

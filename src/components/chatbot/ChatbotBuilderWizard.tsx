@@ -25,7 +25,7 @@ const MODE_OPTIONS = [
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: ChatbotFormData) => Promise<any>;
+  onSubmit: (data: ChatbotFormData) => Promise<unknown>;
 }
 
 export function ChatbotBuilderWizard({ open, onOpenChange, onSubmit }: Props) {

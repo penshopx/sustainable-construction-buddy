@@ -21,6 +21,9 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // The imported application still contains legacy Supabase response casts.
+      // Keep them visible while allowing the build gate to remain actionable as
+      // those call sites are migrated to generated database types.
       "@typescript-eslint/no-explicit-any": "warn",
     },
   },

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Award, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -41,8 +42,8 @@ export default function GenerateCertDialog({ open, level, onOpenChange, onSucces
         onOpenChange(false);
         setModuleName("");
       }
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: "Error", description: getErrorMessage(err), variant: "destructive" });
     } finally {
       setGenerating(false);
     }

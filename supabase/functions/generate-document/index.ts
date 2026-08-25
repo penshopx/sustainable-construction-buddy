@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,7 +10,40 @@ function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(amount);
 }
 
-function buildProjectContext(project: any): string {
+interface ProjectContext {
+  name: string;
+  description?: string | null;
+  bujk_name?: string | null;
+  location?: string | null;
+  value_amount?: number | null;
+  contract_type?: string | null;
+  duration_months?: number | null;
+  risk_class?: string | null;
+  multidiscipline?: boolean | null;
+  complexity_score?: number | null;
+  status?: string | null;
+}
+
+interface RiskContext {
+  risk_description?: string | null;
+  probability_score?: number | null;
+  impact_score?: number | null;
+  risk_level?: string | null;
+  mitigation_action?: string | null;
+  owner?: string | null;
+  status?: string | null;
+}
+
+interface BudgetContext {
+  category?: string | null;
+  period_month?: string | null;
+  planned_amount?: number | null;
+  actual_amount?: number | null;
+  deviation_percent?: number | null;
+  notes?: string | null;
+}
+
+function buildProjectContext(project: ProjectContext | null): string {
   if (!project) return "";
   const lines = [
     `## Data Proyek (Auto-filled)`,
@@ -29,7 +62,7 @@ function buildProjectContext(project: any): string {
   return lines.join("\n");
 }
 
-function buildRiskContext(risks: any[]): string {
+function buildRiskContext(risks: RiskContext[]): string {
   if (!risks || risks.length === 0) return "";
   const lines = [
     `\n## Data Risk Register (Auto-filled) — ${risks.length} risiko`,
@@ -44,7 +77,7 @@ function buildRiskContext(risks: any[]): string {
   return lines.join("\n");
 }
 
-function buildBudgetContext(budgets: any[]): string {
+function buildBudgetContext(budgets: BudgetContext[]): string {
   if (!budgets || budgets.length === 0) return "";
   const totalPlanned = budgets.reduce((s, b) => s + (b.planned_amount || 0), 0);
   const totalActual = budgets.reduce((s, b) => s + (b.actual_amount || 0), 0);
@@ -70,7 +103,7 @@ function buildBudgetContext(budgets: any[]): string {
 }
 
 async function checkRateLimit(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   action: string,
   limit: number,

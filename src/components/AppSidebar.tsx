@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   Package,
   ChevronDown,
+  type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -117,7 +118,9 @@ const adminItems = [
   { title: "Panel Admin", url: "/admin", icon: Shield },
 ];
 
-function NavItem({ item, collapsed }: { item: { title: string; url: string; icon: any }; collapsed: boolean }) {
+type SidebarItem = { title: string; url: string; icon: LucideIcon };
+
+function NavItem({ item, collapsed }: { item: SidebarItem; collapsed: boolean }) {
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild>
@@ -143,8 +146,8 @@ function CollapsibleGroup({
   currentPath,
 }: {
   label: string;
-  icon: any;
-  items: { title: string; url: string; icon: any }[];
+  icon: LucideIcon;
+  items: SidebarItem[];
   collapsed: boolean;
   currentPath: string;
 }) {

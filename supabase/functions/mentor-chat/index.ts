@@ -199,7 +199,9 @@ serve(async (req) => {
     }
 
     // Extract user's latest question for smart retrieval
-    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === "user")?.content || "";
+    const lastUserMsg = [...(messages as Array<{ role: string; content: string }>)]
+      .reverse()
+      .find((message) => message.role === "user")?.content || "";
     const queryWords = lastUserMsg.toLowerCase().replace(/[^\w\s]/g, "").split(/\s+/).filter((w: string) => w.length > 2);
 
     // Build context based on mentor type
