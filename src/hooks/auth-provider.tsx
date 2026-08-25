@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -9,14 +9,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const profileRequestId = useRef(0);
 
   const fetchProfile = async (userId: string) => {
+    const requestId = ++profileRequestId.current;
     const { data } = await supabase
       .from("profiles")
       .select("*")
       .eq("user_id", userId)
       .single();
-    if (data) setProfile(data);
+    if (requestId === profileRequestId.current) {
+      setProfile(data ?? null);
+    }
   };
 
   const refreshProfile = async () => {
@@ -26,21 +30,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
+        profileRequestId.current += 1;
         setSession(session);
         setUser(session?.user ?? null);
+        setProfile(null);
         if (session?.user) {
           setTimeout(() => fetchProfile(session.user.id), 0);
-        } else {
-          setProfile(null);
         }
         setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      profileRequestId.current += 1;
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
+      setProfile(null);
+      if (session?.user) void fetchProfile(session.user.id);
       setLoading(false);
     });
 

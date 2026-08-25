@@ -69,59 +69,63 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const fetchStats = async () => {
-      const [progressRes, modulesRes, testRes, domainsRes, projectsRes, risksRes, budgetRes, pancekRes, lkutRes, productsRes, ordersRes] = await Promise.all([
-        supabase.from("module_progress")
-          .select("*, e_course_modules(title, domain_id, level, competency_domains:domain_id(name))")
-          .eq("user_id", user.id),
-        supabase.from("e_course_modules").select("*", { count: "exact", head: true }),
-        supabase.from("pre_tests").select("*").eq("user_id", user.id).eq("status", "completed")
-          .order("completed_at", { ascending: false }).limit(1),
-        supabase.from("competency_domains").select("*").order("sort_order"),
-        supabase.from("projects").select("status").eq("user_id", user.id),
-        supabase.from("risk_registers").select("id").eq("user_id", user.id),
-        supabase.from("budget_entries").select("deviation_percent").eq("user_id", user.id),
-        supabase.from("pancek_assessments").select("status, period_year").eq("user_id", user.id).order("period_year", { ascending: false }).limit(1),
-        supabase.from("lkut_reports").select("status, report_year").eq("user_id", user.id).order("report_year", { ascending: false }).limit(1),
-        supabase.from("marketplace_products").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-        supabase.from("marketplace_orders").select("id", { count: "exact", head: true }).eq("buyer_id", user.id),
-      ]);
+      try {
+        const [progressRes, modulesRes, testRes, domainsRes, projectsRes, risksRes, budgetRes, pancekRes, lkutRes, productsRes, ordersRes] = await Promise.all([
+          supabase.from("module_progress")
+            .select("*, e_course_modules(title, domain_id, level, competency_domains:domain_id(name))")
+            .eq("user_id", user.id),
+          supabase.from("e_course_modules").select("*", { count: "exact", head: true }),
+          supabase.from("pre_tests").select("*").eq("user_id", user.id).eq("status", "completed")
+            .order("completed_at", { ascending: false }).limit(1),
+          supabase.from("competency_domains").select("*").order("sort_order"),
+          supabase.from("projects").select("status").eq("user_id", user.id),
+          supabase.from("risk_registers").select("id").eq("user_id", user.id),
+          supabase.from("budget_entries").select("deviation_percent").eq("user_id", user.id),
+          supabase.from("pancek_assessments").select("status, period_year").eq("user_id", user.id).order("period_year", { ascending: false }).limit(1),
+          supabase.from("lkut_reports").select("status, report_year").eq("user_id", user.id).order("report_year", { ascending: false }).limit(1),
+          supabase.from("marketplace_products").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+          supabase.from("marketplace_orders").select("id", { count: "exact", head: true }).eq("buyer_id", user.id),
+        ]);
 
-      const progress = progressRes.data || [];
-      const domains = domainsRes.data || [];
-      const budgetEntries = budgetRes.data || [];
+        const progress = progressRes.data || [];
+        const domains = domainsRes.data || [];
+        const budgetEntries = budgetRes.data || [];
 
-      const domainProgress = domains.map((d) => {
-        const domainModules = progress.filter((p) => p.e_course_modules?.domain_id === d.id);
-        const completed = domainModules.filter((p) => p.status === "completed").length;
-        return { ...d, completed, total: 4 };
-      });
+        const domainProgress = domains.map((d) => {
+          const domainModules = progress.filter((p) => p.e_course_modules?.domain_id === d.id);
+          const completed = domainModules.filter((p) => p.status === "completed").length;
+          return { ...d, completed, total: 4 };
+        });
 
-      const budgetWarnings = budgetEntries.filter((e) => {
-        const abs = Math.abs(e.deviation_percent || 0);
-        return abs >= 5;
-      }).length;
+        const budgetWarnings = budgetEntries.filter((e) => {
+          const abs = Math.abs(e.deviation_percent || 0);
+          return abs >= 5;
+        }).length;
 
-      const pancekData = pancekRes.data?.[0];
-      const lkutData = lkutRes.data?.[0];
+        const pancekData = pancekRes.data?.[0];
+        const lkutData = lkutRes.data?.[0];
 
-      setStats({
-        totalModules: modulesRes.count || 0,
-        completedModules: progress.filter((p) => p.status === "completed").length,
-        inProgressModules: progress.filter((p) => p.status === "in_progress").length,
-        lastAssessment: testRes.data?.[0] || null,
-        domainProgress,
-        activeProjects: (projectsRes.data || []).filter((p) => p.status === 'active').length,
-        riskCount: risksRes.data?.length || 0,
-        budgetWarnings,
-        pancekStatus: pancekData?.status || null,
-        pancekYear: pancekData?.period_year || null,
-        lkutStatus: lkutData?.status || null,
-        lkutYear: lkutData?.report_year || null,
-        marketplaceProducts: productsRes.count || 0,
-        marketplaceOrders: ordersRes.count || 0,
-      });
+        setStats({
+          totalModules: modulesRes.count || 0,
+          completedModules: progress.filter((p) => p.status === "completed").length,
+          inProgressModules: progress.filter((p) => p.status === "in_progress").length,
+          lastAssessment: testRes.data?.[0] || null,
+          domainProgress,
+          activeProjects: (projectsRes.data || []).filter((p) => p.status === 'active').length,
+          riskCount: risksRes.data?.length || 0,
+          budgetWarnings,
+          pancekStatus: pancekData?.status || null,
+          pancekYear: pancekData?.period_year || null,
+          lkutStatus: lkutData?.status || null,
+          lkutYear: lkutData?.report_year || null,
+          marketplaceProducts: productsRes.count || 0,
+          marketplaceOrders: ordersRes.count || 0,
+        });
+      } catch {
+        // Keep the zero-value initial state when a new user's data is unavailable.
+      }
     };
-    fetchStats();
+    void fetchStats();
   }, [user]);
 
   const level = profile?.current_level || "Pemula";
@@ -439,15 +443,25 @@ const Dashboard = () => {
           Progress per Domain
         </h2>
         <div className="space-y-4">
-          {stats.domainProgress.map((d) => (
-            <div key={d.id}>
-              <div className="flex justify-between text-sm mb-1.5">
-                <span className="font-medium font-heading text-foreground">{d.name}</span>
-                <span className="text-muted-foreground font-body">{d.completed}/{d.total}</span>
+          {stats.domainProgress.length > 0 ? (
+            stats.domainProgress.map((d) => (
+              <div key={d.id}>
+                <div className="flex justify-between text-sm mb-1.5">
+                  <span className="font-medium font-heading text-foreground">{d.name}</span>
+                  <span className="text-muted-foreground font-body">{d.completed}/{d.total}</span>
+                </div>
+                <Progress value={(d.completed / d.total) * 100} className="h-2" />
               </div>
-              <Progress value={(d.completed / d.total) * 100} className="h-2" />
+            ))
+          ) : (
+            <div className="rounded-lg border border-dashed border-border p-5 text-center">
+              <BarChart3 className="w-8 h-8 text-muted-foreground/60 mx-auto mb-2" />
+              <p className="text-sm font-heading font-semibold text-foreground">Belum ada progres domain</p>
+              <p className="text-xs text-muted-foreground font-body mt-1">
+                Mulai dari E-Course untuk membangun kompetensi Anda.
+              </p>
             </div>
-          ))}
+          )}
         </div>
       </motion.div>
 
