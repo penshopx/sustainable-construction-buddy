@@ -44,8 +44,9 @@ const CATEGORIES: Category[] = [
     icon: "📊",
     label: "LKUT, PANCEK & SMAP",
     articles: [
-      { q: "Apa itu LKUT?", a: "LKUT (Laporan Kegiatan Usaha Tahunan) adalah laporan tahunan BUJK dengan rujukan Permen PUPR Nomor 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan. Program PUB ASPEKINDO membantu anggota menyiapkan data dan dokumen pendukungnya." },
-      { q: "Apa rujukan PUB-LKUT dan LSBU?", a: "Rujukan PUB-LKUT terdiri dari Permen PUPR Nomor 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan dan Program PUB ASPEKINDO. Untuk informasi Lembaga Sertifikasi Badan Usaha (LSBU), kunjungi <a href='https://lsbukonstruksi.co.id' target='_blank' rel='noopener noreferrer' class='text-pub-sky underline'>lsbukonstruksi.co.id</a>." },
+      { q: "Apa itu LKUT?", a: "LKUT (Laporan Kegiatan Usaha Tahunan) adalah laporan tahunan BUJK dengan rujukan Permen PUPR Nomor 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan. Program PUB ASPEKINDO membantu anggota menyiapkan data dan dokumen pendukungnya melalui ekosistem digital." },
+      { q: "Apa rujukan PUB-LKUT dan LSBUKI?", a: "Rujukan utama PUB-LKUT terdiri dari Permen PUPR Nomor 7 Tahun 2024 dan Program PUB ASPEKINDO. PP Nomor 28 Tahun 2025 serta Permen PU Nomor 6 Tahun 2025 menjadi rujukan pendukung. Untuk informasi Lembaga Sertifikasi Badan Usaha Konstruksi Indonesia, kunjungi <a href='https://lsbukonstruksi.co.id' target='_blank' rel='noopener noreferrer' class='text-pub-sky underline'>lsbukonstruksi.co.id</a>." },
+      { q: "Apa isi Program PUB ASPEKINDO?", a: "Program PUB ASPEKINDO adalah platform digital Pengembangan Usaha Berkelanjutan dengan ekosistem kompetensi 5-lapis: e-course dan asesmen, regulasi dan ebook, workflow serta monitoring kinerja, AI chatbot kompetensi, dan AI document generator. Modernisasinya dilakukan bertahap melalui setup, pilot, dan peluncuran." },
       { q: "Apa itu PANCEK?", a: "PANCEK (Penilaian Akhir Capaian Kompetensi) adalah instrumen penilaian komprehensif kompetensi personil manajerial BUJK di akhir periode program." },
       { q: "Apa itu SMAP?", a: "SMAP (Sistem Manajemen Anti Penyuapan) adalah modul untuk memastikan BUJK Anda memenuhi standar tata kelola anti penyuapan sesuai ISO 37001." },
     ],
@@ -64,7 +65,7 @@ const CATEGORIES: Category[] = [
     label: "AI Mentor & Helpdesk Aplikasi",
     articles: [
       { q: "Apa itu AI Mentor?", a: "AI Mentor adalah asisten AI yang membantu Anda belajar modul, menjawab pertanyaan terkait materi pembelajaran, dan memberikan penjelasan mendalam." },
-      { q: "Apa fungsi Helpdesk Aplikasi?", a: "Helpdesk Aplikasi membantu Anda menggunakan fitur PUB ASPEKINDO, menemukan panduan LKUT-PUB-LSBU, dan mengakses layanan DokumenProyek sesuai kebutuhan dokumen proyek Anda." },
+      { q: "Apa fungsi Helpdesk Aplikasi?", a: "Helpdesk Aplikasi membantu Anda menggunakan fitur PUB ASPEKINDO, menemukan panduan LKUT-PUB-LSBUKI, dan mengakses layanan DokumenProyek sesuai kebutuhan dokumen proyek Anda." },
       { q: "Apa hubungan PUB, DokumenProyek, dan Gustafta?", a: "DokumenProyek adalah bagian dari program PUB ASPEKINDO untuk membantu anggota BUJK mengelola dokumen proyek. Implementasinya dilakukan melalui kerja sama dengan DokumenProyek dan berbagai mitra strategis. Gustafta dapat menjadi engine AI pendukung di dalam Helpdesk Aplikasi. Akses DokumenProyek tersedia di <a href='https://dokumenproyek.com' target='_blank' rel='noopener noreferrer' class='text-pub-sky underline'>dokumenproyek.com</a>." },
     ],
   },

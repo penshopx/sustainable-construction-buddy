@@ -6,16 +6,32 @@ import { useNavigate } from "react-router-dom";
 
 const FAQS = [
   {
-    question: "Apa dasar rujukan LKUT?",
-    answer: "Rujukan utama LKUT adalah Permen PUPR Nomor 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan. Lampirannya memuat format Laporan Kegiatan Usaha Tahunan, termasuk data kepatuhan dan kinerja BUJK.",
+    question: "Apa itu Program PUB ASPEKINDO?",
+    answer: "Program PUB ASPEKINDO adalah platform digital Pengembangan Usaha Berkelanjutan untuk membantu BUJK membangun kompetensi, kepatuhan, dan daya saing melalui ekosistem yang terintegrasi. Prinsipnya adalah Integrity, Innovation, dan Collaboration for Sustainable Construction.",
   },
   {
-    question: "Apa peran Program PUB ASPEKINDO?",
-    answer: "Program PUB ASPEKINDO membantu anggota BUJK menyiapkan data, dokumen pendukung, dan pembinaan untuk memenuhi kewajiban serta meningkatkan kemampuan profesional dan usaha secara berkelanjutan.",
+    question: "Apa dasar rujukan LKUT-PUB-LSBUKI?",
+    answer: "Rujukan utamanya adalah Permen PUPR Nomor 7 Tahun 2024 tentang Pengembangan Usaha Berkelanjutan dan Program PUB ASPEKINDO. PP Nomor 28 Tahun 2025 serta Permen PU Nomor 6 Tahun 2025 menjadi rujukan pendukung untuk perizinan berbasis risiko, standar kegiatan usaha, dan pengawasan sektor pekerjaan umum.",
   },
   {
-    question: "Di mana informasi LSBU?",
-    answer: "Informasi mengenai Lembaga Sertifikasi Badan Usaha (LSBU) dapat diakses melalui situs LSBU Konstruksi pada bagian Rujukan chatbot.",
+    question: "Apa yang perlu disiapkan dalam LKUT?",
+    answer: "LKUT dapat mencakup data kepatuhan perizinan berusaha, kinerja manajemen perusahaan, kinerja proyek, laporan keuangan, serta data keikutsertaan dalam Pengembangan Usaha Berkelanjutan. Kebutuhan isian mengikuti kualifikasi dan ketentuan BUJK.",
+  },
+  {
+    question: "Di mana informasi LSBUKI?",
+    answer: "Informasi mengenai Lembaga Sertifikasi Badan Usaha Konstruksi Indonesia (LSBUKI) tersedia melalui situs resmi lsbukonstruksi.co.id pada bagian Rujukan chatbot.",
+  },
+  {
+    question: "Apa saja lapisan ekosistem digital PUB?",
+    answer: "Ekosistem PUB dirancang dalam lima lapisan: e-course, modul, asesmen, dan sertifikasi; ebook regulasi dan update kebijakan; digital workflow dan monitoring kinerja; AI chatbot kompetensi dan helpdesk; serta AI document generator untuk membantu kebutuhan dokumen BUJK.",
+  },
+  {
+    question: "Apa fitur unggulan modernisasi PUB?",
+    answer: "Fitur unggulannya meliputi chatbot kompetensi untuk akses regulasi dan panduan, generator dokumen berbasis data, mini apps seperti kalkulator, RAB, cashflow, dan project tracker, serta e-course dan ebook digital.",
+  },
+  {
+    question: "Bagaimana tahapan modernisasi digital PUB?",
+    answer: "Roadmap implementasi dirancang bertahap: setup dan integrasi, pilot bersama anggota, kemudian peluncuran dan perluasan layanan. Pendekatan ini memungkinkan PUB menguji manfaat, keamanan data, dan kesiapan operasional sebelum diperluas.",
   },
 ];
 
@@ -26,10 +42,26 @@ const REFERENCES = [
   },
   {
     title: "Program PUB ASPEKINDO",
-    detail: "Pembinaan dan pendampingan anggota BUJK",
+    detail: "Platform digital Pengembangan Usaha Berkelanjutan",
   },
   {
-    title: "LSBU Konstruksi",
+    title: "PP No. 28 Tahun 2025",
+    detail: "Penyelenggaraan Perizinan Berusaha Berbasis Risiko",
+  },
+  {
+    title: "Permen PU No. 6 Tahun 2025",
+    detail: "Standar kegiatan usaha dan pengawasan sektor pekerjaan umum",
+  },
+  {
+    title: "Blueprint & Transformasi Digital PUB",
+    detail: "Integrity · Innovation · Collaboration for Sustainable Construction",
+  },
+  {
+    title: "Modernisasi Digital PUB ASPEKINDO",
+    detail: "Ekosistem kompetensi digital · White-label partnership",
+  },
+  {
+    title: "LSBUKI Konstruksi",
     detail: "lsbukonstruksi.co.id",
     href: "https://lsbukonstruksi.co.id",
   },
@@ -66,7 +98,7 @@ export default function FloatingLkut() {
               >
                 <div className="mb-1 flex items-center gap-2">
                   <FileCheck2 className="h-4 w-4 text-pub-amber" />
-                  <p className="text-xs font-bold font-heading text-white">LKUT-PUB-LSBU</p>
+                  <p className="text-xs font-bold font-heading text-white">LKUT-PUB-LSBUKI</p>
                   <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
                 <p className="text-xs font-body leading-relaxed text-[hsl(0,0%,65%)]">
@@ -81,7 +113,7 @@ export default function FloatingLkut() {
                 setIsOpen(true);
                 setHasInteracted(true);
               }}
-              title="LKUT-PUB-LSBU"
+              title="LKUT-PUB-LSBUKI"
               className="relative flex h-14 w-14 items-center justify-center rounded-full border-2 border-pub-amber/30 bg-gradient-to-br from-pub-amber to-orange-500 text-[hsl(220,60%,14%)] shadow-xl transition-all hover:brightness-110"
             >
               <FileCheck2 className="h-6 w-6" />
@@ -111,7 +143,7 @@ export default function FloatingLkut() {
                 <FileCheck2 className="h-4 w-4 text-pub-amber" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold font-heading leading-none text-white">LKUT-PUB-LSBU</p>
+                <p className="text-sm font-bold font-heading leading-none text-white">LKUT-PUB-LSBUKI</p>
                 <p className="mt-0.5 text-xs font-body text-[hsl(0,0%,60%)]">Produk asli ASPEKINDO</p>
               </div>
               <Button
@@ -129,13 +161,13 @@ export default function FloatingLkut() {
                 Kelola kesiapan LKUT BUJK Anda.
               </p>
               <p className="mt-1 text-xs font-body leading-relaxed text-muted-foreground">
-                Siapkan laporan, dokumen pendukung, dan pemantauan kelengkapan LKUT dalam ekosistem PUB ASPEKINDO.
+                Siapkan laporan, dokumen pendukung, dan pemantauan kelengkapan LKUT dalam ekosistem PUB ASPEKINDO bersama LSBUKI.
               </p>
 
               <div className="mt-4 rounded-xl border border-pub-amber/25 bg-pub-amber/10 p-3">
-                <p className="text-xs font-semibold font-heading text-pub-amber">Untuk anggota ASPEKINDO</p>
+                <p className="text-xs font-semibold font-heading text-pub-amber">Program PUB ASPEKINDO</p>
                 <p className="mt-1 text-xs font-body leading-relaxed text-muted-foreground">
-                  Terhubung dengan kebutuhan pembinaan BUJK dan ekosistem LSBU.
+                  Platform digital untuk kompetensi, kepatuhan, dan pengembangan usaha berkelanjutan BUJK.
                 </p>
               </div>
 
@@ -199,7 +231,7 @@ export default function FloatingLkut() {
                 onClick={openLkut}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-amber px-4 py-2.5 text-sm font-bold font-heading text-accent-foreground shadow-amber transition-all hover:brightness-110"
               >
-                Buka LKUT-PUB-LSBU <ArrowRight className="h-4 w-4" />
+                Buka LKUT-PUB-LSBUKI <ArrowRight className="h-4 w-4" />
               </button>
               <button
                 onClick={() => {
