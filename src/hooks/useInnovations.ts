@@ -37,7 +37,7 @@ export function useInnovationCategories() {
     queryKey: ["innovation-categories"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("innovation_categories" as any)
+        .from("innovation_categories")
         .select("*")
         .order("sort_order");
       if (error) throw error;
@@ -52,7 +52,7 @@ export function useInnovationProposals() {
     queryKey: ["innovation-proposals", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("innovation_proposals" as any)
+        .from("innovation_proposals")
         .select("*, innovation_categories(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -77,7 +77,7 @@ export function useCreateProposal() {
       attachment_name?: string;
     }) => {
       const { data, error } = await supabase
-        .from("innovation_proposals" as any)
+        .from("innovation_proposals")
         .insert({ ...proposal, user_id: user!.id })
         .select()
         .single();
@@ -95,7 +95,7 @@ export function useDeleteProposal() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("innovation_proposals" as any)
+        .from("innovation_proposals")
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -111,19 +111,19 @@ export function useAdminInnovationProposals() {
     queryKey: ["admin-innovation-proposals"],
     queryFn: async () => {
       const { data: proposals, error } = await supabase
-        .from("innovation_proposals" as any)
+        .from("innovation_proposals")
         .select("*, innovation_categories(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       
-      const userIds = [...new Set((proposals as any[]).map((p: any) => p.user_id))];
+      const userIds = [...new Set((proposals || []).map((p) => p.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name, company")
         .in("user_id", userIds);
       
       const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
-      return (proposals as any[]).map((p) => ({
+      return (proposals || []).map((p) => ({
         ...p,
         submitter_name: profileMap.get(p.user_id)?.full_name || "Unknown",
         submitter_company: profileMap.get(p.user_id)?.company || "",
@@ -137,7 +137,7 @@ export function useUpdateProposalStatus() {
   return useMutation({
     mutationFn: async ({ id, status, admin_notes }: { id: string; status: string; admin_notes: string }) => {
       const { error } = await supabase
-        .from("innovation_proposals" as any)
+        .from("innovation_proposals")
         .update({ status, admin_notes, updated_at: new Date().toISOString() })
         .eq("id", id);
       if (error) throw error;
@@ -164,7 +164,7 @@ export function useProposalDetail(id: string | undefined) {
     queryKey: ["innovation-proposal-detail", id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("innovation_proposals" as any)
+        .from("innovation_proposals")
         .select("*, innovation_categories(*)")
         .eq("id", id!)
         .single();
@@ -180,7 +180,7 @@ export function useProposalLogs(proposalId: string | undefined) {
     queryKey: ["innovation-proposal-logs", proposalId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("innovation_proposal_logs" as any)
+        .from("innovation_proposal_logs")
         .select("*")
         .eq("proposal_id", proposalId!)
         .order("created_at", { ascending: true });
@@ -206,20 +206,20 @@ export function useProposalComments(proposalId: string | undefined) {
     queryKey: ["innovation-comments", proposalId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("innovation_comments" as any)
+        .from("innovation_comments")
         .select("*")
         .eq("proposal_id", proposalId!)
         .order("created_at", { ascending: true });
       if (error) throw error;
 
-      const userIds = [...new Set((data as any[]).map((c: any) => c.user_id))];
+      const userIds = [...new Set((data || []).map((c) => c.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name")
         .in("user_id", userIds);
       const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
 
-      return (data as any[]).map((c) => ({
+      return (data || []).map((c) => ({
         ...c,
         author_name: profileMap.get(c.user_id) || "Unknown",
       })) as InnovationComment[];
@@ -235,7 +235,7 @@ export function useAddComment() {
   return useMutation({
     mutationFn: async ({ proposal_id, message, is_admin }: { proposal_id: string; message: string; is_admin: boolean }) => {
       const { error } = await supabase
-        .from("innovation_comments" as any)
+        .from("innovation_comments")
         .insert({ proposal_id, user_id: user!.id, message, is_admin });
       if (error) throw error;
     },

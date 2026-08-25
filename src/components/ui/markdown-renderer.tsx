@@ -124,7 +124,7 @@ export function MarkdownRenderer({ children, className = "" }: MarkdownRendererP
                   if (React.isValidElement(child)) {
                     const isEven = rowIdx % 2 === 0;
                     rowIdx++;
-                    return React.cloneElement(child as React.ReactElement<any>, {
+                    return React.cloneElement(child as React.ReactElement<{ className?: string }>, {
                       className: `${isEven ? "bg-transparent" : "bg-muted/25 dark:bg-muted/15"} hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors`,
                     });
                   }

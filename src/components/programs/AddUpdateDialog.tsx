@@ -32,7 +32,7 @@ export function AddUpdateDialog({ programId }: Props) {
           setForm({ title: "", content: "" });
           setOpen(false);
         },
-        onError: (err: any) => toast.error(err.message || "Gagal menambahkan update"),
+        onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Gagal menambahkan update"),
       }
     );
   };

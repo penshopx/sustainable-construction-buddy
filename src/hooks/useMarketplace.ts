@@ -46,7 +46,7 @@ export function useMarketplaceProducts(onlyMine = false) {
   const query = useQuery({
     queryKey: ["marketplace_products", onlyMine, user?.id],
     queryFn: async () => {
-      let q = supabase.from("marketplace_products" as any).select("*").order("created_at", { ascending: false });
+      let q = supabase.from("marketplace_products").select("*").order("created_at", { ascending: false });
       if (onlyMine && user) {
         q = q.eq("user_id", user.id);
       }
@@ -60,8 +60,8 @@ export function useMarketplaceProducts(onlyMine = false) {
   const createProduct = useMutation({
     mutationFn: async (input: ProductInsert) => {
       const { data, error } = await supabase
-        .from("marketplace_products" as any)
-        .insert({ ...input, user_id: user!.id } as any)
+        .from("marketplace_products")
+        .insert({ ...input, user_id: user!.id })
         .select()
         .single();
       if (error) throw error;
@@ -77,8 +77,8 @@ export function useMarketplaceProducts(onlyMine = false) {
   const updateProduct = useMutation({
     mutationFn: async ({ id, ...input }: Partial<MarketplaceProduct> & { id: string }) => {
       const { data, error } = await supabase
-        .from("marketplace_products" as any)
-        .update(input as any)
+        .from("marketplace_products")
+        .update(input)
         .eq("id", id)
         .select()
         .single();
@@ -94,7 +94,7 @@ export function useMarketplaceProducts(onlyMine = false) {
 
   const deleteProduct = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("marketplace_products" as any).delete().eq("id", id);
+      const { error } = await supabase.from("marketplace_products").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -115,7 +115,7 @@ export function useMarketplaceOrders(mode: "buyer" | "seller" | "admin" = "buyer
     queryKey: ["marketplace_orders", mode, user?.id],
     queryFn: async () => {
       let q = supabase
-        .from("marketplace_orders" as any)
+        .from("marketplace_orders")
         .select("*, product:marketplace_products(*)")
         .order("created_at", { ascending: false });
       if (mode === "buyer" && user) {
@@ -142,8 +142,8 @@ export function useMarketplaceOrders(mode: "buyer" | "seller" | "admin" = "buyer
       notes?: string;
     }) => {
       const { data, error } = await supabase
-        .from("marketplace_orders" as any)
-        .insert({ ...input, buyer_id: user!.id } as any)
+        .from("marketplace_orders")
+        .insert({ ...input, buyer_id: user!.id })
         .select()
         .single();
       if (error) throw error;
@@ -159,8 +159,8 @@ export function useMarketplaceOrders(mode: "buyer" | "seller" | "admin" = "buyer
   const updateOrderStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
-        .from("marketplace_orders" as any)
-        .update({ status } as any)
+        .from("marketplace_orders")
+        .update({ status })
         .eq("id", id);
       if (error) throw error;
     },

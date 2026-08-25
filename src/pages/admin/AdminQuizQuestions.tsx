@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Plus, Pencil, Trash2, HelpCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import type { Json, TablesInsert } from "@/integrations/supabase/types";
 
 interface QuizQuestion {
   id: string;
@@ -26,6 +27,25 @@ interface Module {
   title: string;
 }
 
+function parseStringArray(value: Json): string[] {
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.every((item) => typeof item === "string")) {
+        return parsed;
+      }
+    } catch {
+      // Keep malformed legacy values from breaking the admin list.
+    }
+  }
+
+  return [];
+}
+
 export default function AdminQuizQuestions() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
@@ -39,12 +59,12 @@ export default function AdminQuizQuestions() {
 
   const fetchData = async () => {
     const [qRes, mRes] = await Promise.all([
-      supabase.from("module_quiz_questions" as any).select("*").order("sort_order"),
+      supabase.from("module_quiz_questions").select("*").order("sort_order"),
       supabase.from("e_course_modules").select("id, title").order("sort_order"),
     ]);
-    if (qRes.data) setQuestions((qRes.data as any[]).map(q => ({
+    if (qRes.data) setQuestions(qRes.data.map(q => ({
       ...q,
-      options: Array.isArray(q.options) ? q.options : JSON.parse(q.options),
+      options: parseStringArray(q.options),
     })));
     if (mRes.data) setModules(mRes.data);
     setLoading(false);
@@ -68,14 +88,14 @@ export default function AdminQuizQuestions() {
 
   const handleSave = async () => {
     if (!form.question_text || !form.module_id) { toast.error("Lengkapi data soal dan modul"); return; }
-    const payload = { module_id: form.module_id, question_text: form.question_text, options: form.options, correct_answer: form.correct_answer, explanation: form.explanation, sort_order: form.sort_order };
+    const payload: TablesInsert<"module_quiz_questions"> = { module_id: form.module_id, question_text: form.question_text, options: form.options, correct_answer: form.correct_answer, explanation: form.explanation, sort_order: form.sort_order };
 
     if (editing) {
-      const { error } = await supabase.from("module_quiz_questions" as any).update(payload as any).eq("id", editing.id);
+      const { error } = await supabase.from("module_quiz_questions").update(payload).eq("id", editing.id);
       if (error) { toast.error(error.message); return; }
       toast.success("Soal kuis diperbarui");
     } else {
-      const { error } = await supabase.from("module_quiz_questions" as any).insert(payload as any);
+      const { error } = await supabase.from("module_quiz_questions").insert(payload);
       if (error) { toast.error(error.message); return; }
       toast.success("Soal kuis ditambahkan");
     }
@@ -84,7 +104,7 @@ export default function AdminQuizQuestions() {
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("module_quiz_questions" as any).delete().eq("id", id);
+    const { error } = await supabase.from("module_quiz_questions").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("Soal kuis dihapus");
     fetchData();

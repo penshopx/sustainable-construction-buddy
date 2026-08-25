@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 export interface PubParticipantEntry {
   id: string;
@@ -21,16 +22,20 @@ export interface PubParticipantEntry {
   program_start_date?: string | null;
 }
 
+type ParticipantWithProgram = Tables<"pub_program_participants"> & {
+  pub_programs: Pick<Tables<"pub_programs">, "title" | "category" | "location" | "start_date"> | null;
+};
+
 export function usePubParticipantsDirectory() {
   return useQuery({
     queryKey: ["pub-participants-directory"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("pub_program_participants")
-        .select("*, pub_programs!pub_program_participants_program_id_fkey(title, category, location, start_date)" as any)
+        .select("*, pub_programs!pub_program_participants_program_id_fkey(title, category, location, start_date)")
         .order("registered_at", { ascending: false });
       if (error) throw error;
-      return (data as any[]).map((d) => ({
+      return ((data || []) as unknown as ParticipantWithProgram[]).map((d) => ({
         id: d.id,
         full_name: d.full_name,
         company: d.company,

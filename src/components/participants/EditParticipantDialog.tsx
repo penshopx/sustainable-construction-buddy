@@ -55,7 +55,7 @@ export function EditParticipantDialog({ participant }: Props) {
           toast.success("Data peserta berhasil diperbarui");
           setOpen(false);
         },
-        onError: (err: any) => toast.error(err.message || "Gagal memperbarui data"),
+        onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Gagal memperbarui data"),
       }
     );
   };

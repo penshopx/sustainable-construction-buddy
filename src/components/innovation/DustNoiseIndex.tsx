@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Wind, Volume2, AlertTriangle, Shield } from "lucide-react";
 
+type RiskLevel = "Kritis" | "Sedang" | "Rendah";
+
 const WORK_CATEGORIES = [
   { id: "demolition", label: "Pembongkaran Bangunan", dustFactor: 9, noiseFactor: 9 },
   { id: "piling", label: "Pemancangan Tiang", dustFactor: 4, noiseFactor: 10 },
@@ -24,7 +26,7 @@ export default function DustNoiseIndex() {
   const [duration, setDuration] = useState([30]); // hari
   const [result, setResult] = useState<null | {
     dustScore: number; noiseScore: number; totalScore: number;
-    level: string; mitigations: string[];
+    level: RiskLevel; mitigations: string[];
   }>(null);
 
   const calculate = () => {
@@ -37,7 +39,7 @@ export default function DustNoiseIndex() {
     const noiseScore = Math.min(10, (wt.noiseFactor * density[0] * distFactor * hourFactor * durationFactor) / 30);
     const totalScore = (dustScore + noiseScore) / 2;
 
-    const level = totalScore >= 7 ? "Kritis" : totalScore >= 4 ? "Sedang" : "Rendah";
+    const level: RiskLevel = totalScore >= 7 ? "Kritis" : totalScore >= 4 ? "Sedang" : "Rendah";
 
     const mitigations: string[] = [];
     if (dustScore >= 4) mitigations.push("🚿 Penyiraman berkala setiap 2 jam");
@@ -110,7 +112,7 @@ export default function DustNoiseIndex() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Hasil Analisis Risiko</CardTitle>
-              <Badge variant={levelColor as any} className={result.level === "Sedang" ? "bg-amber-500 text-white" : ""}>
+              <Badge variant={levelColor} className={result.level === "Sedang" ? "bg-amber-500 text-white" : ""}>
                 {result.level}
               </Badge>
             </div>

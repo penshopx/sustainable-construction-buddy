@@ -28,8 +28,20 @@ export function migrateLegacyAnswers(answers: unknown): PancekAnswers {
         score: val ? 4 : 0,
         notes: "",
       };
-    } else if (val && typeof val === "object" && "status" in (val as any)) {
-      result[key] = val as IndicatorAnswer;
+    } else if (
+      val && typeof val === "object" && !Array.isArray(val) &&
+      typeof (val as Record<string, unknown>).status === "string" &&
+      typeof (val as Record<string, unknown>).score === "number" &&
+      typeof (val as Record<string, unknown>).notes === "string"
+    ) {
+      const candidate = val as Record<string, unknown>;
+      result[key] = {
+        status: ["ya", "tidak", "sebagian", ""].includes(candidate.status as string) ? candidate.status as IndicatorStatus : "",
+        score: candidate.score as number,
+        notes: candidate.notes as string,
+        ...(typeof candidate.evidence_url === "string" ? { evidence_url: candidate.evidence_url } : {}),
+        ...(typeof candidate.evidence_name === "string" ? { evidence_name: candidate.evidence_name } : {}),
+      };
     }
   }
   return result;

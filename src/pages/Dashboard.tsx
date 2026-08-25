@@ -19,15 +19,17 @@ import { RoleConflictAlert } from "@/components/RoleConflictAlert";
 import { useSbuReminder } from "@/hooks/useSbuReminder";
 import logoAspekindo from "@/assets/logo-aspekindo.jpg";
 import logoLsbuki from "@/assets/logo-lsbuki.webp";
+import type { LucideIcon } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
 
-const levelConfig: Record<string, { icon: any; color: string; bg: string; gradient: string }> = {
+const levelConfig: Record<string, { icon: LucideIcon; color: string; bg: string; gradient: string }> = {
   Pemula: { icon: Star, color: "text-pub-sky", bg: "bg-pub-sky/10", gradient: "from-pub-sky/20 to-pub-sky/5" },
   Muda: { icon: Award, color: "text-pub-emerald", bg: "bg-pub-emerald/10", gradient: "from-pub-emerald/20 to-pub-emerald/5" },
   Madya: { icon: Crown, color: "text-pub-amber", bg: "bg-pub-amber/10", gradient: "from-pub-amber/20 to-pub-amber/5" },
   Utama: { icon: Gem, color: "text-pub-violet", bg: "bg-pub-violet/10", gradient: "from-pub-violet/20 to-pub-violet/5" },
 };
 
-const reqTypeIcons: Record<string, any> = {
+const reqTypeIcons: Record<string, LucideIcon> = {
   score: Target,
   learning: GraduationCap,
   project: FolderKanban,
@@ -40,12 +42,19 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const levelReqs = useLevelRequirements();
   useSbuReminder();
-  const [stats, setStats] = useState({
+  type DomainProgress = Tables<"competency_domains"> & { completed: number; total: number };
+  const [stats, setStats] = useState<{
+    totalModules: number; completedModules: number; inProgressModules: number;
+    lastAssessment: Tables<"pre_tests"> | null; domainProgress: DomainProgress[];
+    activeProjects: number; riskCount: number; budgetWarnings: number;
+    pancekStatus: string | null; pancekYear: number | null; lkutStatus: string | null; lkutYear: number | null;
+    marketplaceProducts: number; marketplaceOrders: number;
+  }>({
     totalModules: 0,
     completedModules: 0,
     inProgressModules: 0,
-    lastAssessment: null as any,
-    domainProgress: [] as any[],
+    lastAssessment: null,
+    domainProgress: [],
     activeProjects: 0,
     riskCount: 0,
     budgetWarnings: 0,
@@ -81,13 +90,13 @@ const Dashboard = () => {
       const domains = domainsRes.data || [];
       const budgetEntries = budgetRes.data || [];
 
-      const domainProgress = domains.map((d: any) => {
-        const domainModules = progress.filter((p: any) => p.e_course_modules?.domain_id === d.id);
-        const completed = domainModules.filter((p: any) => p.status === "completed").length;
+      const domainProgress = domains.map((d) => {
+        const domainModules = progress.filter((p) => p.e_course_modules?.domain_id === d.id);
+        const completed = domainModules.filter((p) => p.status === "completed").length;
         return { ...d, completed, total: 4 };
       });
 
-      const budgetWarnings = budgetEntries.filter((e: any) => {
+      const budgetWarnings = budgetEntries.filter((e) => {
         const abs = Math.abs(e.deviation_percent || 0);
         return abs >= 5;
       }).length;
@@ -97,11 +106,11 @@ const Dashboard = () => {
 
       setStats({
         totalModules: modulesRes.count || 0,
-        completedModules: progress.filter((p: any) => p.status === "completed").length,
-        inProgressModules: progress.filter((p: any) => p.status === "in_progress").length,
+        completedModules: progress.filter((p) => p.status === "completed").length,
+        inProgressModules: progress.filter((p) => p.status === "in_progress").length,
         lastAssessment: testRes.data?.[0] || null,
         domainProgress,
-        activeProjects: (projectsRes.data || []).filter((p: any) => p.status === 'active').length,
+        activeProjects: (projectsRes.data || []).filter((p) => p.status === 'active').length,
         riskCount: risksRes.data?.length || 0,
         budgetWarnings,
         pancekStatus: pancekData?.status || null,

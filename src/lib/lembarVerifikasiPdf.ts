@@ -16,6 +16,25 @@ interface LembarVerifikasiData {
   notes?: string;
 }
 
+function getVerificationData(answers: PancekAnswers): LembarVerifikasiData | undefined {
+  const value: unknown = (answers as Record<string, unknown>).__lembar_verifikasi;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const record = value as Record<string, unknown>;
+  if (!Array.isArray(record.docs)) return undefined;
+  const docs = record.docs.flatMap((doc) => {
+    if (!doc || typeof doc !== "object" || Array.isArray(doc)) return [];
+    const entry = doc as Record<string, unknown>;
+    return typeof entry.url === "string" && typeof entry.name === "string" && typeof entry.uploaded_at === "string"
+      ? [{ url: entry.url, name: entry.name, uploaded_at: entry.uploaded_at }]
+      : [];
+  });
+  return {
+    docs,
+    ...(typeof record.verification_date === "string" ? { verification_date: record.verification_date } : {}),
+    ...(typeof record.notes === "string" ? { notes: record.notes } : {}),
+  };
+}
+
 function scoreColor(pct: number): string {
   if (pct >= 80) return "#10b981";
   if (pct >= 50) return "#f59e0b";
@@ -38,7 +57,7 @@ export function exportLembarVerifikasiPdf(assessment: PancekAssessment) {
   const heroColor = scoreColor(weightedScore);
   const readiness = readinessLabel(weightedScore);
 
-  const lv: LembarVerifikasiData | undefined = (answers as any).__lembar_verifikasi;
+  const lv = getVerificationData(answers);
 
   const date = new Date(assessment.updated_at).toLocaleDateString("id-ID", {
     day: "numeric", month: "long", year: "numeric",

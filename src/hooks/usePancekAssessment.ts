@@ -3,37 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import type { PancekAnswers } from "@/lib/pancekAnswerTypes";
+import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
-export interface PancekAssessment {
-  id: string;
-  user_id: string;
-  period_year: number;
-  company_name: string;
-  npwp: string;
-  nib: string;
-  komitmen_score: number;
-  komitmen_total: number;
-  perencanaan_score: number;
-  perencanaan_total: number;
-  pelaksanaan_score: number;
-  pelaksanaan_total: number;
-  evaluasi_score: number;
-  evaluasi_total: number;
-  perbaikan_score: number;
-  perbaikan_total: number;
-  respon_score: number;
-  respon_total: number;
-  total_answered: number;
-  total_indicators: number;
-  completion_percent: number;
-  status: string;
-  verified_at: string | null;
-  verified_by: string;
-  verification_notes: string;
+export type PancekAssessment = Omit<Tables<"pancek_assessments">, "answers"> & {
   answers: PancekAnswers | Record<string, boolean>;
-  created_at: string;
-  updated_at: string;
-}
+};
 
 export function usePancekAssessment() {
   const { user } = useAuth();
@@ -43,14 +17,17 @@ export function usePancekAssessment() {
   const fetchAssessments = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await (supabase.from("pancek_assessments") as any)
+    const { data, error } = await supabase.from("pancek_assessments")
       .select("*")
       .eq("user_id", user.id)
       .order("period_year", { ascending: false });
     if (error) {
       console.error("Error fetching pancek:", error);
     } else {
-      setAssessments(data || []);
+      setAssessments((data || []).map((assessment) => ({
+        ...assessment,
+        answers: assessment.answers as PancekAssessment["answers"],
+      })));
     }
     setLoading(false);
   }, [user]);
@@ -71,7 +48,7 @@ export function usePancekAssessment() {
     const totalIndicators = 70;
     const completionPercent = Math.round((totalAnswered / totalIndicators) * 100);
 
-    const payload = {
+    const payload: TablesInsert<"pancek_assessments"> = {
       user_id: user.id,
       period_year: periodYear,
       company_name: meta.company_name,
@@ -85,21 +62,22 @@ export function usePancekAssessment() {
       respon_score: Math.round(pillarScores.respon || 0),
       total_answered: totalAnswered,
       completion_percent: completionPercent,
-      answers,
+      answers: answers as Json,
     };
 
     const existing = assessments.find(a => a.period_year === periodYear);
 
     if (existing) {
-      const { error } = await (supabase.from("pancek_assessments") as any)
-        .update(payload)
+      const updates: TablesUpdate<"pancek_assessments"> = payload;
+      const { error } = await supabase.from("pancek_assessments")
+        .update(updates)
         .eq("id", existing.id);
       if (error) {
         toast.error("Gagal menyimpan: " + error.message);
         return;
       }
     } else {
-      const { error } = await (supabase.from("pancek_assessments") as any)
+      const { error } = await supabase.from("pancek_assessments")
         .insert(payload);
       if (error) {
         toast.error("Gagal membuat: " + error.message);
@@ -112,7 +90,7 @@ export function usePancekAssessment() {
   };
 
   const submitAssessment = async (id: string) => {
-    const { error } = await (supabase.from("pancek_assessments") as any)
+    const { error } = await supabase.from("pancek_assessments")
       .update({ status: "submitted" })
       .eq("id", id);
     if (error) {

@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { usePerformanceGrades, gradeColor, gradeBg, PerformanceGrade } from "@/hooks/usePerformanceGrades";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { exportGradingPdf } from "@/lib/gradingPdf";
 import GradeTrendChart from "@/components/grading/GradeTrendChart";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,12 @@ import {
 } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
+
+function getPillarBreakdown(breakdown: Json, pillar: string): Record<string, Json> {
+  if (!breakdown || typeof breakdown !== "object" || Array.isArray(breakdown)) return {};
+  const value = breakdown[pillar];
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
 
 const pillarConfig = [
   { key: "financial", label: "Keuangan", icon: Banknote, color: "text-pub-emerald", bg: "bg-pub-emerald/10" },
@@ -707,7 +714,7 @@ export function GradingPanel() {
               <div className="space-y-4">
                 {pillarConfig.map(p => {
                   const score = detailGrade[`${p.key}_score` as keyof PerformanceGrade] as number;
-                  const breakdown = (detailGrade.breakdown as any)?.[p.key] || {};
+                  const breakdown = getPillarBreakdown(detailGrade.breakdown, p.key);
                   return (
                     <Card key={p.key} className="overflow-hidden">
                       <CardHeader className={`py-3 px-4 ${p.bg}`}>

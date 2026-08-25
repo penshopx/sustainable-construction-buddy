@@ -28,14 +28,14 @@ export function useK3Checklists(projectId?: string) {
     enabled: !!user,
     queryFn: async () => {
       let query = supabase
-        .from("k3_checklists" as any)
+        .from("k3_checklists")
         .select("*")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false });
       if (projectId) query = query.eq("project_id", projectId);
       const { data, error } = await query;
       if (error) throw error;
-      return data as any[];
+      return data || [];
     },
   });
 
@@ -47,7 +47,7 @@ export function useK3Checklists(projectId?: string) {
 
       // Create checklist
       const { data: checklist, error } = await supabase
-        .from("k3_checklists" as any)
+        .from("k3_checklists")
         .insert({
           user_id: user!.id,
           project_id: input.project_id || null,
@@ -57,18 +57,18 @@ export function useK3Checklists(projectId?: string) {
           completed_items: completedCount,
           score_percent: scorePercent,
           status: completedCount === DEFAULT_K3_ITEMS.length ? "completed" : completedCount > 0 ? "in_progress" : "draft",
-        } as any)
+        })
         .select()
         .single();
       if (error) throw error;
 
       // Create items with initial compliance state
       const items = DEFAULT_K3_ITEMS.map((item) => ({
-        checklist_id: (checklist as any).id,
+        checklist_id: checklist.id,
         ...item,
         is_compliant: !!checkedItems[item.sort_order],
       }));
-      const { error: itemErr } = await supabase.from("k3_checklist_items" as any).insert(items as any);
+      const { error: itemErr } = await supabase.from("k3_checklist_items").insert(items);
       if (itemErr) throw itemErr;
 
       return checklist;
@@ -78,7 +78,7 @@ export function useK3Checklists(projectId?: string) {
 
   const deleteChecklist = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("k3_checklists" as any).delete().eq("id", id);
+      const { error } = await supabase.from("k3_checklists").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["k3-checklists"] }),
@@ -100,31 +100,31 @@ export function useK3ChecklistDetail(checklistId: string) {
     enabled: !!checklistId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("k3_checklist_items" as any)
+        .from("k3_checklist_items")
         .select("*")
         .eq("checklist_id", checklistId)
         .order("sort_order");
       if (error) throw error;
-      return data as any[];
+      return data || [];
     },
   });
 
   const toggleItem = useMutation({
     mutationFn: async ({ itemId, is_compliant }: { itemId: string; is_compliant: boolean }) => {
       const { error } = await supabase
-        .from("k3_checklist_items" as any)
-        .update({ is_compliant } as any)
+        .from("k3_checklist_items")
+        .update({ is_compliant })
         .eq("id", itemId);
       if (error) throw error;
 
       // Recount completed items
       const allItems = items.data || [];
-      const newCompleted = allItems.filter((i: any) =>
+      const newCompleted = allItems.filter((i) =>
         i.id === itemId ? is_compliant : i.is_compliant
       ).length;
       await supabase
-        .from("k3_checklists" as any)
-        .update({ completed_items: newCompleted, status: newCompleted === allItems.length ? "completed" : "in_progress" } as any)
+        .from("k3_checklists")
+        .update({ completed_items: newCompleted, status: newCompleted === allItems.length ? "completed" : "in_progress" })
         .eq("id", checklistId);
     },
     onSuccess: () => {
@@ -136,8 +136,8 @@ export function useK3ChecklistDetail(checklistId: string) {
   const updateItemFinding = useMutation({
     mutationFn: async ({ itemId, finding, corrective_action }: { itemId: string; finding: string; corrective_action: string }) => {
       const { error } = await supabase
-        .from("k3_checklist_items" as any)
-        .update({ finding, corrective_action } as any)
+        .from("k3_checklist_items")
+        .update({ finding, corrective_action })
         .eq("id", itemId);
       if (error) throw error;
     },

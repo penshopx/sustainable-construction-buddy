@@ -7,3 +7,4 @@
 - [Brand architecture](brand-architecture.md) — PUB adalah payung; DokumenProyek kemitraan/helpdesk, PT SKI pengelola, Gustafta engine, LKUT-PUB-LSBU produk asli.
 - [React compiler on Replit](react-compiler-on-replit.md) — gunakan plugin React berbasis Babel bila binding SWC native memicu Bus error saat Vite mulai.
 - [Startup smoke gate](startup-smoke-gate.md) — jalankan smoke sebelum preview, klaim port eksklusif, dan pastikan proses yang diuji tetap hidup.
+- [Lint warning budget](lint-warning-budget.md) — jadikan any sebagai error dan pertahankan budget warning hanya untuk warning Fast Refresh legacy yang terukur.

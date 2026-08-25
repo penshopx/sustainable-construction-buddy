@@ -7,15 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-const PILLAR_CONFIG = [
-  { key: "komitmen", label: "Komitmen", totalKey: "komitmen_total", weight: 25, color: "hsl(var(--pub-sky))" },
-  { key: "perencanaan", label: "Perencanaan", totalKey: "perencanaan_total", weight: 10, color: "hsl(var(--pub-emerald))" },
-  { key: "pelaksanaan", label: "Pelaksanaan", totalKey: "pelaksanaan_total", weight: 25, color: "hsl(var(--pub-amber))" },
-  { key: "evaluasi", label: "Evaluasi", totalKey: "evaluasi_total", weight: 15, color: "hsl(var(--pub-violet))" },
-  { key: "perbaikan", label: "Perbaikan", totalKey: "perbaikan_total", weight: 15, color: "hsl(var(--destructive))" },
-  { key: "respon", label: "Respon", totalKey: "respon_total", weight: 10, color: "hsl(var(--primary))" },
-];
-
 interface AssessmentData {
   period_year: number;
   komitmen_score: number; komitmen_total: number;
@@ -29,6 +20,18 @@ interface AssessmentData {
   company_name?: string;
 }
 
+type ScoreKey = keyof Pick<AssessmentData, "komitmen_score" | "perencanaan_score" | "pelaksanaan_score" | "evaluasi_score" | "perbaikan_score" | "respon_score">;
+type TotalKey = keyof Pick<AssessmentData, "komitmen_total" | "perencanaan_total" | "pelaksanaan_total" | "evaluasi_total" | "perbaikan_total" | "respon_total">;
+type PillarKey = "komitmen" | "perencanaan" | "pelaksanaan" | "evaluasi" | "perbaikan" | "respon";
+const PILLAR_CONFIG: { key: PillarKey; scoreKey: ScoreKey; label: string; totalKey: TotalKey; weight: number; color: string }[] = [
+  { key: "komitmen", scoreKey: "komitmen_score", label: "Komitmen", totalKey: "komitmen_total", weight: 25, color: "hsl(var(--pub-sky))" },
+  { key: "perencanaan", scoreKey: "perencanaan_score", label: "Perencanaan", totalKey: "perencanaan_total", weight: 10, color: "hsl(var(--pub-emerald))" },
+  { key: "pelaksanaan", scoreKey: "pelaksanaan_score", label: "Pelaksanaan", totalKey: "pelaksanaan_total", weight: 25, color: "hsl(var(--pub-amber))" },
+  { key: "evaluasi", scoreKey: "evaluasi_score", label: "Evaluasi", totalKey: "evaluasi_total", weight: 15, color: "hsl(var(--pub-violet))" },
+  { key: "perbaikan", scoreKey: "perbaikan_score", label: "Perbaikan", totalKey: "perbaikan_total", weight: 15, color: "hsl(var(--destructive))" },
+  { key: "respon", scoreKey: "respon_score", label: "Respon", totalKey: "respon_total", weight: 10, color: "hsl(var(--primary))" },
+];
+
 interface Props {
   /** Assessments data - can be single company (user view) or aggregated (admin view) */
   assessments: AssessmentData[];
@@ -40,8 +43,8 @@ interface Props {
 function calcWeighted(row: AssessmentData): number {
   let ws = 0;
   for (const p of PILLAR_CONFIG) {
-    const sc = (row as any)[`${p.key}_score`] || 0;
-    const tot = (row as any)[p.totalKey] || 1;
+    const sc = row[p.scoreKey] || 0;
+    const tot = row[p.totalKey] || 1;
     ws += (sc / tot) * p.weight;
   }
   return Math.round(ws * 100) / 100;
@@ -70,8 +73,8 @@ export default function PancekTrendChart({ assessments, aggregateMode = false, t
       const pillarPcts: Record<string, number> = {};
       for (const p of PILLAR_CONFIG) {
         const avg = rows.reduce((sum, r) => {
-          const sc = (r as any)[`${p.key}_score`] || 0;
-          const tot = (r as any)[p.totalKey] || 1;
+          const sc = r[p.scoreKey] || 0;
+          const tot = r[p.totalKey] || 1;
           return sum + (sc / tot) * 100;
         }, 0) / count;
         pillarPcts[p.key] = Math.round(avg * 10) / 10;
@@ -216,7 +219,7 @@ export default function PancekTrendChart({ assessments, aggregateMode = false, t
                 </thead>
                 <tbody>
                   {PILLAR_CONFIG.map(p => {
-                    const values = chartData.map(d => (d as any)[p.key] as number);
+                    const values = chartData.map(d => d[p.key]);
                     const delta = values.length >= 2 ? Math.round((values[values.length - 1] - values[values.length - 2]) * 10) / 10 : 0;
                     return (
                       <tr key={p.key} className="border-b border-border/50">

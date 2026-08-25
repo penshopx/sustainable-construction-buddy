@@ -2,23 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import type { Json, Tables, TablesInsert } from "@/integrations/supabase/types";
 
-export type CustomChatbot = {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string;
-  avatar_url: string;
-  mode: string;
-  persona: string;
-  welcome_message: string;
-  tools: any[];
-  is_public: boolean;
-  share_token: string | null;
-  project_id: string | null;
-  created_at: string;
-  updated_at: string;
-};
+export type CustomChatbot = Tables<"custom_chatbots">;
 
 export type ChatbotFormData = {
   name: string;
@@ -55,7 +41,7 @@ export function useCustomChatbots(filterMode?: string) {
     }
 
     const { data } = await query;
-    setChatbots((data as CustomChatbot[]) || []);
+    setChatbots(data || []);
 
     // Load public profesi marketplace
     const { data: pubData } = await supabase
@@ -65,7 +51,7 @@ export function useCustomChatbots(filterMode?: string) {
       .eq("mode", "profesi")
       .order("updated_at", { ascending: false });
 
-    setPublicBots((pubData as CustomChatbot[]) || []);
+    setPublicBots(pubData || []);
     setLoading(false);
   }, [user, filterMode]);
 
@@ -88,11 +74,11 @@ export function useCustomChatbots(filterMode?: string) {
         mode: formData.mode,
         persona: formData.persona,
         welcome_message: formData.welcome_message,
-        tools: formData.tools as any,
+        tools: formData.tools as Json,
         is_public: formData.is_public,
         share_token: shareToken,
         project_id: formData.project_id,
-      })
+      } satisfies TablesInsert<"custom_chatbots">)
       .select()
       .single();
 
@@ -113,7 +99,7 @@ export function useCustomChatbots(filterMode?: string) {
 
     await loadChatbots();
     toast({ title: "Berhasil", description: "Chatbot berhasil dibuat!" });
-    return data as CustomChatbot;
+    return data;
   }, [user, loadChatbots]);
 
   const deleteChatbot = useCallback(async (id: string) => {
@@ -128,7 +114,7 @@ export function useCustomChatbots(filterMode?: string) {
       .select("*")
       .eq("share_token", token)
       .single();
-    return data as CustomChatbot | null;
+    return data;
   }, []);
 
   return {

@@ -1,5 +1,6 @@
 import html2pdf from "html2pdf.js";
 import type { PerformanceGrade } from "@/hooks/usePerformanceGrades";
+import type { Json } from "@/integrations/supabase/types";
 
 const pillarMeta = [
   { key: "financial", label: "Keuangan", weight: "30%", emoji: "💰" },
@@ -27,6 +28,12 @@ function formatValue(v: unknown): string {
   return String(v);
 }
 
+function getPillarBreakdown(breakdown: Json, pillar: string): Record<string, Json> {
+  if (!breakdown || typeof breakdown !== "object" || Array.isArray(breakdown)) return {};
+  const value = breakdown[pillar];
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+}
+
 export function exportGradingPdf(grade: PerformanceGrade, profileName?: string) {
   const color = gradeColorHex(grade.grade);
   const date = new Date(grade.computed_at).toLocaleDateString("id-ID", {
@@ -38,7 +45,7 @@ export function exportGradingPdf(grade: PerformanceGrade, profileName?: string) 
   const pillarRows = pillarMeta
     .map((p) => {
       const score = grade[`${p.key}_score` as keyof PerformanceGrade] as number;
-      const breakdown = (grade.breakdown as any)?.[p.key] || {};
+      const breakdown = getPillarBreakdown(grade.breakdown, p.key);
       const detailRows = Object.entries(breakdown)
         .filter(([k]) => !["score", "weight", "reason"].includes(k))
         .map(

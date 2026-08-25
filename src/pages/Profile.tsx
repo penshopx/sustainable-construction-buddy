@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { User, Building2, Briefcase, Save, Loader2, Star, Award, Crown, Gem, ShieldCheck } from "lucide-react";
+import { User, Building2, Briefcase, Save, Loader2, Star, Award, Crown, Gem, ShieldCheck, type LucideIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RoleConflictAlert } from "@/components/RoleConflictAlert";
 import { getConflictingPositions, getShortPosition, QUALIFICATION_OPTIONS, type BUJKQualification } from "@/lib/roleConstraints";
@@ -19,7 +19,7 @@ const JABATAN_OPTIONS = [
   "Petugas K3",
 ] as const;
 
-const levelConfig: Record<string, { icon: any; color: string; bg: string }> = {
+const levelConfig: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
   Pemula: { icon: Star, color: "text-pub-sky", bg: "bg-pub-sky/10" },
   Muda: { icon: Award, color: "text-pub-emerald", bg: "bg-pub-emerald/10" },
   Madya: { icon: Crown, color: "text-pub-amber", bg: "bg-pub-amber/10" },
@@ -32,7 +32,9 @@ const Profile = () => {
   const [company, setCompany] = useState(profile?.company || "");
   const [position, setPosition] = useState(profile?.position || "");
   const [bujkQualification, setBujkQualification] = useState<BUJKQualification>(
-    (profile as any)?.bujk_qualification || "menengah"
+    QUALIFICATION_OPTIONS.some((option) => option.value === profile?.bujk_qualification)
+      ? profile?.bujk_qualification as BUJKQualification
+      : "menengah"
   );
   const [saving, setSaving] = useState(false);
 
@@ -45,7 +47,7 @@ const Profile = () => {
 
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName, company, position, bujk_qualification: bujkQualification } as any)
+      .update({ full_name: fullName, company, position, bujk_qualification: bujkQualification })
       .eq("user_id", user!.id);
 
     if (error) {

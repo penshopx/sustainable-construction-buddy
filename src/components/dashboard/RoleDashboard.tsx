@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -10,11 +11,24 @@ import {
   Package, ShoppingCart, FileCheck, ChevronRight, Briefcase, Loader2
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import type { Tables } from "@/integrations/supabase/types";
+
+type ProjectStats = Pick<Tables<"projects">, "status" | "value_amount" | "complexity_score">;
+type RiskStats = Pick<Tables<"risk_registers">, "risk_level" | "status">;
+type BudgetStats = Pick<Tables<"budget_entries">, "planned_amount" | "actual_amount" | "deviation_percent">;
+type K3Stats = Pick<Tables<"k3_checklists">, "status" | "score_percent">;
+
+interface RoleStats {
+  projects: ProjectStats[];
+  risks: RiskStats[];
+  budget: BudgetStats[];
+  k3: K3Stats[];
+}
 
 interface RoleMetric {
   label: string;
   value: string | number;
-  icon: any;
+  icon: LucideIcon;
   color: string;
   bg: string;
   link?: string;
@@ -23,14 +37,14 @@ interface RoleMetric {
 interface RoleConfig {
   title: string;
   subtitle: string;
-  icon: any;
+  icon: LucideIcon;
   gradient: string;
   metrics: RoleMetric[];
-  quickLinks: { label: string; link: string; icon: any }[];
+  quickLinks: { label: string; link: string; icon: LucideIcon }[];
 }
 
 const useRoleStats = (position: string, userId: string) => {
-  const [stats, setStats] = useState<any>({});
+  const [stats, setStats] = useState<RoleStats>({ projects: [], risks: [], budget: [], k3: [] });
 
   useEffect(() => {
     if (!userId || !position) return;
@@ -54,22 +68,19 @@ const useRoleStats = (position: string, userId: string) => {
   return stats;
 };
 
-function getRoleConfig(position: string, stats: any): RoleConfig | null {
-  const projects = stats.projects || [];
-  const risks = stats.risks || [];
-  const budget = stats.budget || [];
-  const k3 = stats.k3 || [];
+function getRoleConfig(position: string, stats: RoleStats): RoleConfig | null {
+  const { projects, risks, budget, k3 } = stats;
 
-  const activeProjects = projects.filter((p: any) => p.status === "active").length;
-  const totalValue = projects.reduce((s: number, p: any) => s + (p.value_amount || 0), 0);
-  const highRisks = risks.filter((r: any) => r.risk_level === "high" || r.risk_level === "extreme").length;
-  const openRisks = risks.filter((r: any) => r.status === "open").length;
-  const totalPlanned = budget.reduce((s: number, b: any) => s + (b.planned_amount || 0), 0);
-  const totalActual = budget.reduce((s: number, b: any) => s + (b.actual_amount || 0), 0);
+  const activeProjects = projects.filter((p) => p.status === "active").length;
+  const totalValue = projects.reduce((s, p) => s + (p.value_amount || 0), 0);
+  const highRisks = risks.filter((r) => r.risk_level === "high" || r.risk_level === "extreme").length;
+  const openRisks = risks.filter((r) => r.status === "open").length;
+  const totalPlanned = budget.reduce((s, b) => s + (b.planned_amount || 0), 0);
+  const totalActual = budget.reduce((s, b) => s + (b.actual_amount || 0), 0);
   const budgetDeviation = totalPlanned > 0 ? Math.round(((totalActual - totalPlanned) / totalPlanned) * 100) : 0;
-  const budgetWarnings = budget.filter((b: any) => Math.abs(b.deviation_percent || 0) >= 5).length;
-  const k3Completed = k3.filter((c: any) => c.status === "completed").length;
-  const avgK3Score = k3.length > 0 ? Math.round(k3.reduce((s: number, c: any) => s + (c.score_percent || 0), 0) / k3.length) : 0;
+  const budgetWarnings = budget.filter((b) => Math.abs(b.deviation_percent || 0) >= 5).length;
+  const k3Completed = k3.filter((c) => c.status === "completed").length;
+  const avgK3Score = k3.length > 0 ? Math.round(k3.reduce((s, c) => s + (c.score_percent || 0), 0) / k3.length) : 0;
 
   const fmt = (n: number) => {
     if (n >= 1e9) return `Rp ${(n / 1e9).toFixed(1)}M`;
@@ -272,7 +283,7 @@ export function RoleDashboard() {
     setSavingRole(value);
     const { error } = await supabase
       .from("profiles")
-      .update({ position: value } as any)
+      .update({ position: value })
       .eq("user_id", user.id);
     if (error) {
       toast.error("Gagal menyimpan jabatan");

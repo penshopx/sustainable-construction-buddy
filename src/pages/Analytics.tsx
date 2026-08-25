@@ -12,6 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell
 } from "recharts";
+import type { LucideIcon } from "lucide-react";
 
 const domainColors = [
   "hsl(200, 80%, 55%)", // sky
@@ -22,7 +23,7 @@ const domainColors = [
   "hsl(220, 60%, 50%)", // blue
 ];
 
-const levelConfig: Record<string, { icon: any; color: string; bg: string; min: number; max: number }> = {
+const levelConfig: Record<string, { icon: LucideIcon; color: string; bg: string; min: number; max: number }> = {
   Pemula: { icon: Star, color: "text-pub-sky", bg: "bg-pub-sky/10", min: 0, max: 59 },
   Muda: { icon: Award, color: "text-pub-emerald", bg: "bg-pub-emerald/10", min: 60, max: 74 },
   Madya: { icon: Crown, color: "text-pub-amber", bg: "bg-pub-amber/10", min: 75, max: 84 },
@@ -31,9 +32,9 @@ const levelConfig: Record<string, { icon: any; color: string; bg: string; min: n
 
 const Analytics = () => {
   const { user, profile } = useAuth();
-  const [radarData, setRadarData] = useState<any[]>([]);
-  const [barData, setBarData] = useState<any[]>([]);
-  const [assessmentHistory, setAssessmentHistory] = useState<any[]>([]);
+  const [radarData, setRadarData] = useState<{ domain: string; score: number; fullMark: number }[]>([]);
+  const [barData, setBarData] = useState<{ domain: string; completed: number; total: number; color: string }[]>([]);
+  const [assessmentHistory, setAssessmentHistory] = useState<{ test: string; score: number; level: string; date: string }[]>([]);
   const [moduleStats, setModuleStats] = useState({ total: 0, completed: 0, inProgress: 0 });
 
   useEffect(() => {
@@ -70,7 +71,7 @@ const Analytics = () => {
           .select("*, questions(domain_id)")
           .eq("pre_test_id", latestTest.id);
 
-        (answers || []).forEach((a: any) => {
+        (answers || []).forEach((a) => {
           const domainId = a.questions?.domain_id;
           if (!domainId) return;
           if (!domainScores[domainId]) domainScores[domainId] = { correct: 0, total: 0 };
@@ -80,23 +81,23 @@ const Analytics = () => {
       }
 
       // Build radar data
-      const radar = (domains || []).map((d: any, i: number) => {
+      const radar = (domains || []).map((d) => {
         const ds = domainScores[d.id];
         const score = ds ? Math.round((ds.correct / ds.total) * 100) : 0;
         return { domain: d.name.replace("&", "\n&"), score, fullMark: 100 };
       });
 
       // Build bar data
-      const bar = (domains || []).map((d: any, i: number) => {
+      const bar = (domains || []).map((d, i) => {
         const domainModules = (progress || []).filter(
-          (p: any) => p.e_course_modules?.domain_id === d.id
+          (p) => p.e_course_modules?.domain_id === d.id
         );
-        const completed = domainModules.filter((p: any) => p.status === "completed").length;
+        const completed = domainModules.filter((p) => p.status === "completed").length;
         return { domain: d.name.split(" ")[0], completed, total: 4, color: domainColors[i] };
       });
 
       // Assessment history for trend
-      const history = (tests || []).map((t: any, i: number) => ({
+      const history = (tests || []).map((t, i) => ({
         test: `#${i + 1}`,
         score: t.score,
         level: t.determined_level,
@@ -108,8 +109,8 @@ const Analytics = () => {
       setAssessmentHistory(history);
       setModuleStats({
         total: 24,
-        completed: (progress || []).filter((p: any) => p.status === "completed").length,
-        inProgress: (progress || []).filter((p: any) => p.status === "in_progress").length,
+        completed: (progress || []).filter((p) => p.status === "completed").length,
+        inProgress: (progress || []).filter((p) => p.status === "in_progress").length,
       });
     };
 
@@ -258,7 +259,7 @@ const Analytics = () => {
                   borderRadius: "8px",
                   fontSize: "12px",
                 }}
-                formatter={(value: any, name: string) => [`${value}`, "Skor"]}
+                formatter={(value: number | string) => [`${value}`, "Skor"]}
               />
               <Bar dataKey="score" name="Skor" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
             </BarChart>

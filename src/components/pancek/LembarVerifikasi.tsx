@@ -14,6 +14,7 @@ import {
 import { exportLembarVerifikasiPdf } from "@/lib/lembarVerifikasiPdf";
 import type { PancekAssessment } from "@/hooks/usePancekAssessment";
 import { toast } from "sonner";
+import type { Json } from "@/integrations/supabase/types";
 
 interface VerificationDoc {
   url: string;
@@ -26,6 +27,26 @@ interface LembarVerifikasiData {
   verification_date?: string;
   notes?: string;
 }
+
+const parseVerificationData = (value: Json): LembarVerifikasiData | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, Json | undefined>;
+  if (!Array.isArray(record.docs)) return null;
+  const docs = record.docs.flatMap((doc) => {
+    if (!doc || typeof doc !== "object" || Array.isArray(doc)) return [];
+    const item = doc as Record<string, Json | undefined>;
+    return typeof item.url === "string" && typeof item.name === "string" && typeof item.uploaded_at === "string"
+      ? [{ url: item.url, name: item.name, uploaded_at: item.uploaded_at }]
+      : [];
+  });
+  return {
+    docs,
+    ...(typeof record.verification_date === "string" ? { verification_date: record.verification_date } : {}),
+    ...(typeof record.notes === "string" ? { notes: record.notes } : {}),
+  };
+};
+
+const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Terjadi kesalahan.";
 
 interface Props {
   assessmentId?: string;
@@ -44,13 +65,12 @@ export default function LembarVerifikasi({ assessmentId, periodYear, assessment 
   const loadData = async () => {
     if (!assessmentId || loaded) return;
     try {
-      const { data: row } = await (supabase.from("pancek_assessments") as any)
+      const { data: row } = await supabase.from("pancek_assessments")
         .select("answers")
         .eq("id", assessmentId)
         .single();
-      if (row?.answers?.__lembar_verifikasi) {
-        setData(row.answers.__lembar_verifikasi);
-      }
+      const verification = row ? parseVerificationData(row.answers) : null;
+      if (verification) setData(verification);
       setLoaded(true);
     } catch {
       setLoaded(true);
@@ -67,22 +87,24 @@ export default function LembarVerifikasi({ assessmentId, periodYear, assessment 
     }
     try {
       // Fetch current answers
-      const { data: row } = await (supabase.from("pancek_assessments") as any)
+      const { data: row } = await supabase.from("pancek_assessments")
         .select("answers")
         .eq("id", assessmentId)
         .single();
 
-      const currentAnswers = row?.answers || {};
-      const updatedAnswers = { ...currentAnswers, __lembar_verifikasi: newData };
+      const currentAnswers = row?.answers && typeof row.answers === "object" && !Array.isArray(row.answers)
+        ? row.answers
+        : {};
+      const updatedAnswers: Json = { ...currentAnswers, __lembar_verifikasi: newData };
 
-      const { error } = await (supabase.from("pancek_assessments") as any)
+      const { error } = await supabase.from("pancek_assessments")
         .update({ answers: updatedAnswers })
         .eq("id", assessmentId);
 
       if (error) throw error;
       setData(newData);
-    } catch (err: any) {
-      toast.error("Gagal menyimpan: " + err.message);
+    } catch (error: unknown) {
+      toast.error("Gagal menyimpan: " + errorMessage(error));
     }
   };
 
@@ -114,8 +136,8 @@ export default function LembarVerifikasi({ assessmentId, periodYear, assessment 
       const newData = { ...data, docs: [...data.docs, newDoc] };
       await saveData(newData);
       toast.success(`"${file.name}" berhasil diupload`);
-    } catch (err: any) {
-      toast.error("Gagal upload: " + err.message);
+    } catch (error: unknown) {
+      toast.error("Gagal upload: " + errorMessage(error));
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

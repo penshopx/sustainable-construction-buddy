@@ -15,7 +15,7 @@ export default function CompanyDirectory() {
   const [qualFilter, setQualFilter] = useState("all");
   const [provinceFilter, setProvinceFilter] = useState("all");
 
-  const entries = directoryQuery.data || [];
+  const entries = useMemo(() => directoryQuery.data || [], [directoryQuery.data]);
 
   const provinces = useMemo(() => {
     const set = new Set(entries.map(e => e.province).filter(Boolean));

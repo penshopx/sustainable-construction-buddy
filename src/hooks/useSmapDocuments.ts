@@ -2,34 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
-export interface SmapDocument {
-  id: string;
-  user_id: string;
-  doc_type: string;
-  company_name: string;
-  document_number: string;
-  issued_date: string | null;
-  expiry_date: string | null;
-  status: string;
-  notes: string;
-  sbu_application_type: string;
-  signatory_name: string;
-  signatory_position: string;
-  issuing_body: string;
-  certificate_scope: string;
-  training_name: string;
-  training_provider: string;
-  training_hours: number;
-  participant_count: number;
-  file_url: string;
-  file_name: string;
-  verified_at: string | null;
-  verified_by: string;
-  verification_notes: string;
-  created_at: string;
-  updated_at: string;
-}
+export type SmapDocument = Tables<"smap_documents">;
 
 export type SmapDocType = "surat_pernyataan" | "sertifikat_iso" | "pendidikan_antikorupsi";
 
@@ -41,7 +16,7 @@ export function useSmapDocuments(docType?: SmapDocType) {
   const fetchDocuments = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    let query = (supabase.from("smap_documents") as any)
+    let query = supabase.from("smap_documents")
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
@@ -63,15 +38,17 @@ export function useSmapDocuments(docType?: SmapDocType) {
 
   const saveDocument = async (doc: Partial<SmapDocument> & { doc_type: string }) => {
     if (!user) return;
-    const payload = { ...doc, user_id: user.id };
+    const { id, ...document } = doc;
 
-    if (doc.id) {
-      const { error } = await (supabase.from("smap_documents") as any)
+    if (id) {
+      const payload: TablesUpdate<"smap_documents"> = { ...document, user_id: user.id };
+      const { error } = await supabase.from("smap_documents")
         .update(payload)
-        .eq("id", doc.id);
+        .eq("id", id);
       if (error) { toast.error("Gagal menyimpan: " + error.message); return null; }
     } else {
-      const { data, error } = await (supabase.from("smap_documents") as any)
+      const payload: TablesInsert<"smap_documents"> = { ...document, user_id: user.id };
+      const { data, error } = await supabase.from("smap_documents")
         .insert(payload)
         .select()
         .single();
@@ -86,7 +63,7 @@ export function useSmapDocuments(docType?: SmapDocType) {
   };
 
   const deleteDocument = async (id: string) => {
-    const { error } = await (supabase.from("smap_documents") as any)
+    const { error } = await supabase.from("smap_documents")
       .delete()
       .eq("id", id);
     if (error) { toast.error("Gagal menghapus: " + error.message); return; }

@@ -13,7 +13,13 @@ export default function VODefenseTracker() {
   const [items, setItems] = useState<VO[]>([{ description: "", costImpact: "", timeImpact: "", status: "pending", hasDoc: false }]);
   const add = () => setItems([...items, { description: "", costImpact: "", timeImpact: "", status: "pending", hasDoc: false }]);
   const remove = (i: number) => setItems(items.filter((_, idx) => idx !== i));
-  const update = (i: number, f: keyof VO, v: any) => { const c = [...items]; (c[i] as any)[f] = v; setItems(c); };
+  const update = <K extends keyof VO>(i: number, f: K, v: VO[K]) => {
+    const item = items[i];
+    if (!item) return;
+    const c = [...items];
+    c[i] = { ...item, [f]: v };
+    setItems(c);
+  };
 
   const totalCost = items.reduce((s, v) => s + (Number(v.costImpact) || 0), 0);
   const totalDays = items.reduce((s, v) => s + (Number(v.timeImpact) || 0), 0);

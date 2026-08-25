@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export default function PancekAssessment() {
   const [npwp, setNpwp] = useState(existing?.npwp || "");
   const [nib, setNib] = useState(existing?.nib || "");
 
-  useMemo(() => {
+  useEffect(() => {
     if (existing) {
       setAnswers(migrateLegacyAnswers(existing.answers));
       setCompanyName(existing.company_name || profile?.company || "");
@@ -56,7 +56,7 @@ export default function PancekAssessment() {
       setNpwp("");
       setNib("");
     }
-  }, [selectedYear, existing?.id]);
+  }, [selectedYear, existing, profile?.company]);
 
   const pillarScores = calculatePillarScoresFromAnswers(answers, PANCEK_PILLARS);
   const weightedScore = calculateWeightedScore(answers, PANCEK_PILLARS);

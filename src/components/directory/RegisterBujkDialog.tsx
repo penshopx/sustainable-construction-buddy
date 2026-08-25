@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil } from "lucide-react";
-import { BujkEntry, useBujkDirectory } from "@/hooks/useBujkDirectory";
+import { useBujkDirectory } from "@/hooks/useBujkDirectory";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 const QUALIFICATIONS = [
   { value: "kecil", label: "Kecil" },
@@ -70,12 +71,13 @@ export default function RegisterBujkDialog() {
   const handleSubmit = () => {
     if (!form.company_name.trim()) return;
     upsertMutation.mutate(
-      { ...form, sbu_expiry: form.sbu_expiry || null } as any,
+      { ...form, sbu_expiry: form.sbu_expiry || null } satisfies TablesUpdate<"bujk_directory">,
       { onSuccess: () => setOpen(false) }
     );
   };
 
-  const set = (key: string, val: any) => setForm(p => ({ ...p, [key]: val }));
+  const set = <K extends keyof typeof form>(key: K, val: typeof form[K]) =>
+    setForm(p => ({ ...p, [key]: val }));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

@@ -4,6 +4,39 @@ import type { PancekAnswers } from "@/lib/pancekAnswerTypes";
 import { calculatePillarScoresFromAnswers, calculateWeightedScore, countAnswered } from "@/lib/pancekAnswerTypes";
 import type { PancekAssessment } from "@/hooks/usePancekAssessment";
 
+interface VerificationDocument {
+  name: string;
+  uploaded_at: string;
+}
+
+interface VerificationSheet {
+  docs: VerificationDocument[];
+  verification_date?: string;
+  notes?: string;
+}
+
+function getVerificationSheet(answers: PancekAssessment["answers"]): VerificationSheet | null {
+  if (!answers || typeof answers !== "object" || Array.isArray(answers)) return null;
+  const value = (answers as Record<string, unknown>).__lembar_verifikasi;
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const candidate = value as Record<string, unknown>;
+  if (!Array.isArray(candidate.docs)) return null;
+
+  const docs = candidate.docs.flatMap((doc): VerificationDocument[] => {
+    if (!doc || typeof doc !== "object" || Array.isArray(doc)) return [];
+    const record = doc as Record<string, unknown>;
+    return typeof record.name === "string" && typeof record.uploaded_at === "string"
+      ? [{ name: record.name, uploaded_at: record.uploaded_at }]
+      : [];
+  });
+
+  return {
+    docs,
+    ...(typeof candidate.verification_date === "string" ? { verification_date: candidate.verification_date } : {}),
+    ...(typeof candidate.notes === "string" ? { notes: candidate.notes } : {}),
+  };
+}
+
 function scoreColor(pct: number): string {
   if (pct >= 80) return "#10b981";
   if (pct >= 50) return "#f59e0b";
@@ -102,10 +135,10 @@ export function exportPancekPdf(assessment: PancekAssessment) {
   }).join("");
 
   // Lembar verifikasi info
-  const lv = (answers as any).__lembar_verifikasi;
+  const lv = getVerificationSheet(assessment.answers);
   let lvHtml = "";
   if (lv?.docs?.length) {
-    const docsHtml = lv.docs.map((d: any, i: number) =>
+    const docsHtml = lv.docs.map((d, i) =>
       `<li style="font-size:11px;color:#1f2937;">📎 ${d.name} <span style="color:#9ca3af;font-size:10px;">(${new Date(d.uploaded_at).toLocaleDateString("id-ID")})</span></li>`
     ).join("");
     lvHtml = `

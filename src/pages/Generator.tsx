@@ -11,6 +11,7 @@ import {
   FolderKanban, Database, ChevronRight, Zap, FileDown
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Tables } from "@/integrations/supabase/types";
 
 const documentTypes = [
   { id: "risk_plan", name: "Risk Management Plan", shortName: "Risk Plan", icon: AlertTriangle, color: "text-pub-violet", bg: "bg-pub-violet/10", description: "Rencana manajemen risiko berbasis risk register", autoFill: ["project", "risks"] },
@@ -30,11 +31,11 @@ const Generator = () => {
   const pdfRef = useRef<HTMLDivElement>(null);
 
   // Auto-fill state
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Tables<"projects">[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
-  const [projectData, setProjectData] = useState<any>(null);
-  const [riskData, setRiskData] = useState<any[]>([]);
-  const [budgetData, setBudgetData] = useState<any[]>([]);
+  const [projectData, setProjectData] = useState<Tables<"projects"> | null>(null);
+  const [riskData, setRiskData] = useState<Tables<"risk_registers">[]>([]);
+  const [budgetData, setBudgetData] = useState<Tables<"budget_entries">[]>([]);
   const [loadingData, setLoadingData] = useState(false);
 
   // Fetch user projects
@@ -79,7 +80,13 @@ const Generator = () => {
     setResult(null);
 
     try {
-      const body: any = { documentType: selectedType, context: context.trim() };
+      const body: {
+        documentType: string;
+        context: string;
+        projectData?: Tables<"projects">;
+        riskData?: Tables<"risk_registers">[];
+        budgetData?: Tables<"budget_entries">[];
+      } = { documentType: selectedType, context: context.trim() };
       if (projectData) body.projectData = projectData;
       if (needsAutoFill.includes("risks") && riskData.length > 0) body.riskData = riskData;
       if (needsAutoFill.includes("budget") && budgetData.length > 0) body.budgetData = budgetData;
@@ -96,8 +103,8 @@ const Generator = () => {
       content = content.replace(/\n{4,}/g, "\n\n");
       setResult(content.trim());
       toast.success("Dokumen berhasil digenerate!");
-    } catch (err: any) {
-      toast.error("Gagal generate: " + (err.message || "Unknown error"));
+    } catch (err: unknown) {
+      toast.error("Gagal generate: " + (err instanceof Error ? err.message : "Unknown error"));
     }
     setGenerating(false);
   };

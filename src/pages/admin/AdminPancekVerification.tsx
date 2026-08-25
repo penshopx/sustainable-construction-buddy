@@ -14,6 +14,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from "recharts";
 import PancekTrendChart from "@/components/pancek/PancekTrendChart";
+import type { PancekExportRow } from "@/lib/pancekExportAdmin";
 
 const PIE_COLORS = [
   "hsl(var(--pub-sky))",
@@ -33,31 +34,38 @@ interface PancekSummary {
   companiesCount: number;
 }
 
+type PancekScoreField =
+  | "komitmen_score" | "perencanaan_score" | "pelaksanaan_score"
+  | "evaluasi_score" | "perbaikan_score" | "respon_score";
+type PancekTotalField =
+  | "komitmen_total" | "perencanaan_total" | "pelaksanaan_total"
+  | "evaluasi_total" | "perbaikan_total" | "respon_total";
+
 export default function AdminPancekVerification() {
   const [summary, setSummary] = useState<PancekSummary>({
     total: 0, draft: 0, submitted: 0, verified: 0, rejected: 0,
     avgCompletion: 0, avgScore: 0, companiesCount: 0,
   });
-  const [exportRows, setExportRows] = useState<any[]>([]);
+  const [exportRows, setExportRows] = useState<PancekExportRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSummary = async () => {
-      const { data } = await (supabase.from("pancek_assessments") as any)
+      const { data } = await supabase.from("pancek_assessments")
         .select("status, completion_percent, company_name, npwp, nib, period_year, komitmen_score, komitmen_total, perencanaan_score, perencanaan_total, pelaksanaan_score, pelaksanaan_total, evaluasi_score, evaluasi_total, perbaikan_score, perbaikan_total, respon_score, respon_total, verified_by, verified_at, verification_notes, user_id");
 
       if (!data) { setLoading(false); return; }
 
       const total = data.length;
-      const draft = data.filter((d: any) => d.status === "draft").length;
-      const submitted = data.filter((d: any) => d.status === "submitted").length;
-      const verified = data.filter((d: any) => d.status === "verified").length;
-      const rejected = data.filter((d: any) => d.status === "rejected").length;
-      const avgCompletion = total > 0 ? Math.round(data.reduce((s: number, d: any) => s + (d.completion_percent || 0), 0) / total) : 0;
-      const companies = new Set(data.map((d: any) => d.company_name).filter(Boolean));
+      const draft = data.filter((d) => d.status === "draft").length;
+      const submitted = data.filter((d) => d.status === "submitted").length;
+      const verified = data.filter((d) => d.status === "verified").length;
+      const rejected = data.filter((d) => d.status === "rejected").length;
+      const avgCompletion = total > 0 ? Math.round(data.reduce((s, d) => s + (d.completion_percent || 0), 0) / total) : 0;
+      const companies = new Set(data.map((d) => d.company_name).filter(Boolean));
 
       // Calculate average weighted score
-      const weights = [
+      const weights: { s: PancekScoreField; t: PancekTotalField; w: number }[] = [
         { s: "komitmen_score", t: "komitmen_total", w: 25 },
         { s: "perencanaan_score", t: "perencanaan_total", w: 10 },
         { s: "pelaksanaan_score", t: "pelaksanaan_total", w: 25 },
@@ -66,7 +74,7 @@ export default function AdminPancekVerification() {
         { s: "respon_score", t: "respon_total", w: 10 },
       ];
       let totalWScore = 0;
-      for (const d of data as any[]) {
+      for (const d of data) {
         let ws = 0;
         for (const p of weights) {
           const sc = d[p.s] || 0;
@@ -78,12 +86,12 @@ export default function AdminPancekVerification() {
       const avgScore = total > 0 ? Math.round((totalWScore / total) * 100) / 100 : 0;
 
       // Fetch profile names for export
-      const userIds = [...new Set(data.map((d: any) => d.user_id).filter(Boolean))];
+      const userIds = [...new Set(data.map((d) => d.user_id).filter(Boolean))];
       const { data: profiles } = await supabase.from("profiles").select("user_id, full_name");
       const nameMap = new Map<string, string>();
-      (profiles || []).forEach((p: any) => nameMap.set(p.user_id, p.full_name || "-"));
+      (profiles || []).forEach((p) => nameMap.set(p.user_id, p.full_name || "-"));
       
-      const enriched = data.map((d: any) => ({ ...d, full_name: nameMap.get(d.user_id) || "-" }));
+      const enriched: PancekExportRow[] = data.map((d) => ({ ...d, full_name: nameMap.get(d.user_id) || "-" }));
       setExportRows(enriched);
       setSummary({ total, draft, submitted, verified, rejected, avgCompletion, avgScore, companiesCount: companies.size });
       setLoading(false);

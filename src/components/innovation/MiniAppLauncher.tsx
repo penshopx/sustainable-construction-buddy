@@ -118,7 +118,7 @@ export const miniAppRegistry: MiniAppDef[] = [
   { id: "warranty-tracker", name: "Warranty Risk Tracker", description: "Monitoring risiko masa pemeliharaan", categorySlug: "post-project" },
 ];
 
-const componentMap: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
+const componentMap: Record<string, React.LazyExoticComponent<React.ComponentType<Record<string, never>>>> = {
   "bid-calculator": BidCalculator,
   "cashflow-stress": CashflowStressTest,
   "margin-leak": MarginLeakScanner,

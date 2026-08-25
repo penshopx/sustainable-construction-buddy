@@ -209,8 +209,8 @@ export default function PancekImport({ onImport, disabled }: PancekImportProps) 
         setLastResult({ matchedCount, total: ALL_INDICATOR_CODES.length });
         toast.success(`Berhasil mengimpor ${matchedCount} indikator dari ${ALL_INDICATOR_CODES.length} total indikator.`);
       }
-    } catch (err: any) {
-      toast.error(err.message || "Gagal mengimpor file");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengimpor file");
     } finally {
       setImporting(false);
       if (fileRef.current) fileRef.current.value = "";

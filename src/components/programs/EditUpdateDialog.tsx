@@ -36,7 +36,7 @@ export function EditUpdateDialog({ update }: Props) {
           toast.success("Update berhasil diperbarui");
           setOpen(false);
         },
-        onError: (err: any) => toast.error(err.message || "Gagal memperbarui update"),
+        onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Gagal memperbarui update"),
       }
     );
   };

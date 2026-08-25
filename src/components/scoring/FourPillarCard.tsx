@@ -16,14 +16,19 @@ const pillars = [
   { key: "contribution_points", label: "Kontribusi", weight: "15%", icon: Users, color: "text-pub-violet", bg: "bg-pub-violet/10", barColor: "bg-pub-violet" },
 ] as const;
 
-const normalizedKeys: Record<string, string> = {
+type PillarKey = (typeof pillars)[number]["key"];
+type ExplainableScoreKey =
+  | "learning_normalized" | "toolkit_normalized" | "project_normalized" | "contribution_normalized"
+  | "learning_weighted" | "toolkit_weighted" | "project_weighted" | "contribution_weighted";
+
+const normalizedKeys: Record<PillarKey, ExplainableScoreKey> = {
   learning_points: "learning_normalized",
   toolkit_points: "toolkit_normalized",
   project_points: "project_normalized",
   contribution_points: "contribution_normalized",
 };
 
-const weightedKeys: Record<string, string> = {
+const weightedKeys: Record<PillarKey, ExplainableScoreKey> = {
   learning_points: "learning_weighted",
   toolkit_points: "toolkit_weighted",
   project_points: "project_weighted",
@@ -36,7 +41,7 @@ export function FourPillarCard() {
 
   const radarData = pillars.map((p) => ({
     pillar: p.label,
-    value: explainableScore ? (explainableScore as any)[normalizedKeys[p.key]] || 0 : 0,
+    value: explainableScore ? explainableScore[normalizedKeys[p.key]] || 0 : 0,
   }));
 
   const totalScore = currentScore?.total_score || 0;
@@ -75,9 +80,9 @@ export function FourPillarCard() {
       {/* Pillar cards with normalized progress */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         {pillars.map((p) => {
-          const rawVal = (currentScore as any)?.[p.key] || 0;
-          const normalizedVal = explainableScore ? Math.round((explainableScore as any)[normalizedKeys[p.key]] || 0) : 0;
-          const weightedVal = explainableScore ? Math.round((explainableScore as any)[weightedKeys[p.key]] || 0) : 0;
+          const rawVal = currentScore?.[p.key] || 0;
+          const normalizedVal = explainableScore ? Math.round(explainableScore[normalizedKeys[p.key]] || 0) : 0;
+          const weightedVal = explainableScore ? Math.round(explainableScore[weightedKeys[p.key]] || 0) : 0;
           return (
             <div key={p.key} className="rounded-lg border border-border p-3">
               <div className="flex items-center gap-2 mb-2">

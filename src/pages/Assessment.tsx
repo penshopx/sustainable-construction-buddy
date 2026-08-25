@@ -11,6 +11,8 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import type { LucideIcon } from "lucide-react";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface Question {
   id: string;
@@ -27,7 +29,7 @@ interface AnswerResult {
   explanation: string;
 }
 
-const levelConfig: Record<string, { icon: any; color: string; minScore: number }> = {
+const levelConfig: Record<string, { icon: LucideIcon; color: string; minScore: number }> = {
   Pemula: { icon: Star, color: "text-pub-sky", minScore: 0 },
   Muda: { icon: Award, color: "text-pub-emerald", minScore: 60 },
   Madya: { icon: Crown, color: "text-pub-amber", minScore: 75 },
@@ -40,6 +42,37 @@ function determineLevel(score: number): string {
   if (score >= 60) return "Muda";
   return "Pemula";
 }
+
+interface AssessmentRpcQuestion extends Question {
+  domain_id: string;
+}
+
+interface AnswerCheckResponse {
+  is_correct: boolean;
+  correct_answer: number;
+  explanation: string;
+}
+
+interface AssessmentSubmitResponse {
+  error?: string;
+  score: number;
+  level: string;
+  correct: number;
+  total: number;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+const isAssessmentQuestion = (value: unknown): value is AssessmentRpcQuestion =>
+  isRecord(value) && typeof value.id === "string" && typeof value.question_text === "string" &&
+  Array.isArray(value.options) && value.options.every((option) => typeof option === "string") &&
+  typeof value.difficulty === "string" && typeof value.domain_id === "string";
+const isAnswerCheckResponse = (value: unknown): value is AnswerCheckResponse =>
+  isRecord(value) && typeof value.is_correct === "boolean" && typeof value.correct_answer === "number" && typeof value.explanation === "string";
+const isAssessmentSubmitResponse = (value: unknown): value is AssessmentSubmitResponse =>
+  isRecord(value) && typeof value.score === "number" && typeof value.level === "string" &&
+  typeof value.correct === "number" && typeof value.total === "number" &&
+  (value.error === undefined || typeof value.error === "string");
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -58,7 +91,7 @@ const Assessment = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ score: number; level: string; correct: number; total: number } | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [pastTests, setPastTests] = useState<any[]>([]);
+  const [pastTests, setPastTests] = useState<Tables<"pre_tests">[]>([]);
   const [checkingAnswer, setCheckingAnswer] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -90,14 +123,7 @@ const Assessment = () => {
       }, 1000);
       return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }
-  }, [phase, timeLeft > 0]);
-
-  // Auto-submit when timer runs out
-  useEffect(() => {
-    if (phase === "test" && timeLeft === 0 && questions.length > 0 && Object.keys(answers).length > 0) {
-      submitTest();
-    }
-  }, [timeLeft]);
+  }, [phase, timeLeft]);
 
   const startTest = async () => {
     setLoading(true);
@@ -113,10 +139,10 @@ const Assessment = () => {
     }
 
     const domainMap: Record<string, string> = {};
-    (domains || []).forEach((d: any) => { domainMap[d.id] = d.name; });
+    (domains || []).forEach((d) => { domainMap[d.id] = d.name; });
 
-    const byDomain: Record<string, any[]> = {};
-    (allQuestions as any[]).forEach((q: any) => {
+    const byDomain: Record<string, AssessmentRpcQuestion[]> = {};
+    (Array.isArray(allQuestions) ? allQuestions : []).filter(isAssessmentQuestion).forEach((q) => {
       const domainName = domainMap[q.domain_id] || "Unknown";
       if (!byDomain[domainName]) byDomain[domainName] = [];
       byDomain[domainName].push({ ...q, domain_name: domainName });
@@ -161,7 +187,12 @@ const Assessment = () => {
     });
     
     if (data) {
-      const result = data as any;
+      if (!isAnswerCheckResponse(data)) {
+        toast.error("Respons jawaban tidak valid.");
+        setCheckingAnswer(false);
+        return;
+      }
+      const result = data;
       setAnswerResults((prev) => ({
         ...prev,
         [questionId]: {
@@ -190,7 +221,7 @@ const Assessment = () => {
     if (currentQ > 0) setCurrentQ(currentQ - 1);
   };
 
-  const submitTest = async () => {
+  const submitTest = useCallback(async () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setLoading(true);
 
@@ -210,8 +241,13 @@ const Assessment = () => {
       return;
     }
 
-    const res = data as any;
-    if (res?.error) {
+    if (!isAssessmentSubmitResponse(data)) {
+      toast.error("Respons assessment tidak valid.");
+      setLoading(false);
+      return;
+    }
+    const res = data;
+    if (res.error) {
       toast.error(res.error);
       setLoading(false);
       return;
@@ -222,7 +258,14 @@ const Assessment = () => {
     setResult({ score: res.score, level: res.level, correct: res.correct, total: res.total });
     setPhase("result");
     setLoading(false);
-  };
+  }, [answers, preTestId, questions, refreshProfile]);
+
+  // Auto-submit when timer runs out
+  useEffect(() => {
+    if (phase === "test" && timeLeft === 0 && questions.length > 0 && Object.keys(answers).length > 0) {
+      submitTest();
+    }
+  }, [answers, phase, questions.length, submitTest, timeLeft]);
 
   // Domain breakdown for result
   const getDomainBreakdown = () => {
@@ -496,7 +539,7 @@ const Assessment = () => {
                           <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={10} stroke="hsl(var(--muted-foreground))" />
                           <YAxis type="category" dataKey="name" width={110} fontSize={11} stroke="hsl(var(--muted-foreground))" />
                           <Tooltip
-                            formatter={(value: number, _: string, props: any) => [`${value}% (${props.payload.correct}/${props.payload.total})`, "Skor"]}
+                            formatter={(value: number, _name: string, props: { payload: { correct: number; total: number } }) => [`${value}% (${props.payload.correct}/${props.payload.total})`, "Skor"]}
                             contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                           />
                           <Bar dataKey="score" radius={[0, 4, 4, 0]} maxBarSize={18}>

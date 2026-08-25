@@ -12,7 +12,13 @@ export default function DefectLiabilityTracker() {
   const [items, setItems] = useState<DefectItem[]>([{ area: "", description: "", dueDate: "", fixed: false }]);
   const add = () => setItems([...items, { area: "", description: "", dueDate: "", fixed: false }]);
   const remove = (i: number) => setItems(items.filter((_, idx) => idx !== i));
-  const update = (i: number, f: keyof DefectItem, v: any) => { const c = [...items]; (c[i] as any)[f] = v; setItems(c); };
+  const update = <K extends keyof DefectItem>(i: number, f: K, v: DefectItem[K]) => {
+    const item = items[i];
+    if (!item) return;
+    const c = [...items];
+    c[i] = { ...item, [f]: v };
+    setItems(c);
+  };
 
   const today = new Date();
   const stats = items.filter(it => it.description).map(it => {

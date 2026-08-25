@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Award, Loader2 } from "lucide-react";
@@ -26,11 +26,7 @@ export default function Certificates() {
   const [generating] = useState<string | null>(null);
   const [dialogLevel, setDialogLevel] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (user) fetchData();
-  }, [user]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return;
 
     const [modulesRes, progressRes, certsRes] = await Promise.all([
@@ -62,7 +58,11 @@ export default function Certificates() {
     setStatuses(result);
     setCertificates(certs);
     setLoading(false);
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) fetchData();
+  }, [user, fetchData]);
 
   if (loading) {
     return (

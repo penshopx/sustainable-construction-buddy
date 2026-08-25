@@ -56,7 +56,7 @@ function ProgramForm({ onClose }: { onClose: () => void }) {
         end_date: form.end_date || null,
         progress_percent: 0,
         image_url: "",
-      } as any);
+        });
       toast.success("Program berhasil ditambahkan");
       onClose();
     } catch { toast.error("Gagal menambahkan program"); }

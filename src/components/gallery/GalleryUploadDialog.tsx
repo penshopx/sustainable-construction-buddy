@@ -71,8 +71,8 @@ export function GalleryUploadDialog({ programId }: Props) {
       setCaption("");
       clearFile();
       setOpen(false);
-    } catch (err: any) {
-      toast.error(err.message || "Gagal mengunggah foto");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal mengunggah foto");
     } finally {
       setUploading(false);
     }

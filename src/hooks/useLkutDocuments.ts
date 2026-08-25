@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -36,25 +36,25 @@ export function useLkutDocuments(lkutId: string | undefined) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const fetchDocs = async () => {
+  const fetchDocs = useCallback(async () => {
     if (!user || !lkutId) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from("lkut_documents" as any)
+      .from("lkut_documents")
       .select("*")
       .eq("lkut_id", lkutId)
       .order("created_at", { ascending: false });
     if (error) {
       toast({ title: "Gagal memuat dokumen", description: error.message, variant: "destructive" });
     } else {
-      setDocuments((data || []) as any as LkutDocument[]);
+      setDocuments(data || []);
     }
     setLoading(false);
-  };
+  }, [user, lkutId, toast]);
 
   useEffect(() => {
     fetchDocs();
-  }, [user, lkutId]);
+  }, [fetchDocs]);
 
   const uploadDocument = async (file: File, component: string, notes: string = "") => {
     if (!user || !lkutId) return false;
@@ -82,7 +82,7 @@ export function useLkutDocuments(lkutId: string | undefined) {
 
     const { data: urlData } = supabase.storage.from("lkut-documents").getPublicUrl(path);
 
-    const { error: insertErr } = await supabase.from("lkut_documents" as any).insert({
+    const { error: insertErr } = await supabase.from("lkut_documents").insert({
       lkut_id: lkutId,
       user_id: user.id,
       component,
@@ -91,7 +91,7 @@ export function useLkutDocuments(lkutId: string | undefined) {
       file_size: file.size,
       file_type: file.type,
       notes,
-    } as any);
+    });
 
     if (insertErr) {
       toast({ title: "Gagal menyimpan data dokumen", description: insertErr.message, variant: "destructive" });
@@ -112,7 +112,7 @@ export function useLkutDocuments(lkutId: string | undefined) {
       await supabase.storage.from("lkut-documents").remove([decodeURIComponent(pathMatch)]);
     }
 
-    const { error } = await supabase.from("lkut_documents" as any).delete().eq("id", doc.id);
+    const { error } = await supabase.from("lkut_documents").delete().eq("id", doc.id);
     if (error) {
       toast({ title: "Gagal menghapus", description: error.message, variant: "destructive" });
       return;

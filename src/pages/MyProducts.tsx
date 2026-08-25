@@ -51,8 +51,8 @@ export default function MyProducts() {
       const { data: urlData } = supabase.storage.from("marketplace-images").getPublicUrl(path);
       setForm((f) => ({ ...f, image_url: urlData.publicUrl }));
       setPreviewUrl(urlData.publicUrl);
-    } catch (e: any) {
-      console.error("Upload error:", e.message);
+    } catch (e: unknown) {
+      console.error("Upload error:", e instanceof Error ? e.message : "Unknown error");
     } finally {
       setUploading(false);
     }

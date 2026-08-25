@@ -18,8 +18,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import type { LucideIcon } from "lucide-react";
+import type { Json, Tables } from "@/integrations/supabase/types";
 
-const levelIcons: Record<string, any> = { Pemula: Star, Muda: Award, Madya: Crown, Utama: Gem };
+const levelIcons: Record<string, LucideIcon> = { Pemula: Star, Muda: Award, Madya: Crown, Utama: Gem };
 const levelColors: Record<string, string> = {
   Pemula: "text-pub-sky",
   Muda: "text-pub-emerald",
@@ -33,7 +35,7 @@ const levelBadgeColors: Record<string, string> = {
   Utama: "bg-pub-violet/15 text-pub-violet border-pub-violet/30",
 };
 
-const domainIcons: Record<string, any> = {
+const domainIcons: Record<string, LucideIcon> = {
   "Manajemen Proyek": BookOpen,
   "K3": Lock,
   "Keuangan": Star,
@@ -48,7 +50,7 @@ const QUIZ_TYPE_LABELS: Record<QuizType, string> = {
   post_test: "Post-Test",
 };
 
-const QUIZ_TYPE_ICONS: Record<QuizType, any> = {
+const QUIZ_TYPE_ICONS: Record<QuizType, LucideIcon> = {
   pre_test: ClipboardCheck,
   chapter_test: HelpCircle,
   post_test: FileCheck,
@@ -108,6 +110,26 @@ interface QuizState {
   quizType: QuizType;
 }
 
+type CourseModuleRow = Tables<"e_course_modules"> & { competency_domains: Pick<Tables<"competency_domains">, "name"> | null };
+function parseStringArray(value: Json): string[] {
+  if (Array.isArray(value) && value.every((item) => typeof item === "string")) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed) && parsed.every((item) => typeof item === "string")) {
+        return parsed;
+      }
+    } catch {
+      // Keep malformed legacy values from breaking the quiz UI.
+    }
+  }
+
+  return [];
+}
+
 const ModuleCardSkeleton = () => (
   <div className="bg-card border border-border rounded-xl p-5 space-y-3">
     <div className="flex items-center justify-between">
@@ -139,14 +161,14 @@ const Courses = () => {
   const [quizLoading, setQuizLoading] = useState(false);
 
   const enrichModules = (
-    modulesData: any[],
-    progressData: any[],
-    quizResults: any[],
-    bookmarksData: any[]
+    modulesData: CourseModuleRow[],
+    progressData: Tables<"module_progress">[],
+    quizResults: Pick<Tables<"module_quiz_results">, "module_id" | "score" | "quiz_type">[],
+    bookmarksData: Pick<Tables<"module_bookmarks">, "module_id">[]
   ): Module[] => {
     // Build best scores per module per quiz_type
     const bestScores: Record<string, Partial<Record<QuizType, number>>> = {};
-    (quizResults || []).forEach((r: any) => {
+    quizResults.forEach((r) => {
       const key = r.module_id;
       const qt = (r.quiz_type || "chapter_test") as QuizType;
       if (!bestScores[key]) bestScores[key] = {};
@@ -155,10 +177,10 @@ const Courses = () => {
       }
     });
 
-    const bookmarkedIds = new Set((bookmarksData || []).map((b: any) => b.module_id));
+    const bookmarkedIds = new Set(bookmarksData.map((b) => b.module_id));
 
-    return (modulesData || []).map((m: any) => {
-      const prog = (progressData || []).find((p: any) => p.module_id === m.id);
+    return modulesData.map((m) => {
+      const prog = progressData.find((p) => p.module_id === m.id);
       const scores = bestScores[m.id] || {};
       const quizScores: Record<QuizType, number | null> = {
         pre_test: scores.pre_test ?? null,
@@ -192,12 +214,12 @@ const Courses = () => {
         supabase.from("competency_domains").select("*").order("sort_order"),
         supabase.from("e_course_modules").select("*, competency_domains!inner(name)").order("sort_order"),
         supabase.from("module_progress").select("*").eq("user_id", user.id),
-        supabase.from("module_quiz_results" as any).select("module_id, score, quiz_type").eq("user_id", user.id),
-        supabase.from("module_bookmarks" as any).select("module_id").eq("user_id", user.id),
+        supabase.from("module_quiz_results").select("module_id, score, quiz_type").eq("user_id", user.id),
+        supabase.from("module_bookmarks").select("module_id").eq("user_id", user.id),
       ]);
 
       setDomains(domainsData || []);
-      setModules(enrichModules(modulesData || [], progressData || [], quizResults || [], bookmarksData || []));
+      setModules(enrichModules((modulesData || []) as CourseModuleRow[], progressData || [], quizResults || [], bookmarksData || []));
       setLoading(false);
     };
     fetchData();
@@ -255,11 +277,11 @@ const Courses = () => {
     if (!user) return;
 
     if (mod.isBookmarked) {
-      await supabase.from("module_bookmarks" as any).delete().eq("user_id", user.id).eq("module_id", mod.id);
+      await supabase.from("module_bookmarks").delete().eq("user_id", user.id).eq("module_id", mod.id);
       setModules(prev => prev.map(m => m.id === mod.id ? { ...m, isBookmarked: false } : m));
       toast.success("Bookmark dihapus");
     } else {
-      await supabase.from("module_bookmarks" as any).insert({ user_id: user.id, module_id: mod.id } as any);
+      await supabase.from("module_bookmarks").insert({ user_id: user.id, module_id: mod.id });
       setModules(prev => prev.map(m => m.id === mod.id ? { ...m, isBookmarked: true } : m));
       toast.success("Modul ditandai bookmark");
     }
@@ -298,12 +320,12 @@ const Courses = () => {
 
   const startQuiz = async (mod: Module, quizType: QuizType) => {
     setQuizLoading(true);
-    const { data, error } = await (supabase
-      .from("module_quiz_questions" as any)
+    const { data, error } = await supabase
+      .from("module_quiz_questions")
       .select("*")
       .eq("module_id", mod.id)
       .eq("quiz_type", quizType)
-      .order("sort_order") as any);
+      .order("sort_order");
 
     if (error || !data || data.length === 0) {
       toast.info(`Belum ada soal ${QUIZ_TYPE_LABELS[quizType]} untuk modul ini.`);
@@ -311,10 +333,10 @@ const Courses = () => {
       return;
     }
 
-    const questions: QuizQuestion[] = (data as any[]).map((q) => ({
+    const questions: QuizQuestion[] = data.map((q) => ({
       id: q.id,
       question_text: q.question_text,
-      options: Array.isArray(q.options) ? q.options : JSON.parse(q.options),
+      options: parseStringArray(q.options),
       correct_answer: q.correct_answer,
       explanation: q.explanation,
       sort_order: q.sort_order,
@@ -366,7 +388,7 @@ const Courses = () => {
     const score = Math.round((correct / quiz.questions.length) * 100);
     const passed = score >= 70;
 
-    await supabase.from("module_quiz_results" as any).insert({
+    await supabase.from("module_quiz_results").insert({
       user_id: user!.id,
       module_id: activeModule.id,
       score,
@@ -374,7 +396,7 @@ const Courses = () => {
       correct_answers: correct,
       passed,
       quiz_type: quiz.quizType,
-    } as any);
+    });
 
     // Update local state
     const newScores = { ...activeModule.quizScores };
@@ -856,7 +878,7 @@ const Courses = () => {
                 <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} fontSize={10} stroke="hsl(var(--muted-foreground))" />
                 <YAxis type="category" dataKey="name" width={100} fontSize={11} stroke="hsl(var(--muted-foreground))" />
                 <Tooltip
-                  formatter={(value: number, _: string, props: any) => [`${value}% (${props.payload.completed}/${props.payload.total})`, "Progress"]}
+                  formatter={(value: number, _name: string, props: { payload: { completed: number; total: number } }) => [`${value}% (${props.payload.completed}/${props.payload.total})`, "Progress"]}
                   contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
                 />
                 <Bar dataKey="progress" radius={[0, 4, 4, 0]} maxBarSize={20}>

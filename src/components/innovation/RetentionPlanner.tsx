@@ -30,9 +30,11 @@ export default function RetentionPlanner() {
   const addItem = () => setItems([...items, { projectName: "", retentionAmount: "", maintenanceEnd: "", docComplete: false }]);
   const removeItem = (i: number) => setItems(items.filter((_, idx) => idx !== i));
 
-  const updateItem = (i: number, field: keyof RetentionItem, value: any) => {
+  const updateItem = <K extends keyof RetentionItem>(i: number, field: K, value: RetentionItem[K]) => {
+    const item = items[i];
+    if (!item) return;
     const copy = [...items];
-    (copy[i] as any)[field] = value;
+    copy[i] = { ...item, [field]: value };
     setItems(copy);
   };
 

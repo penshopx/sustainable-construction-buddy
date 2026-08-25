@@ -45,7 +45,7 @@ export function AddParticipantDialog({ programId }: Props) {
           setForm({ full_name: "", company: "", position: "", email: "", phone: "", notes: "" });
           setOpen(false);
         },
-        onError: (err: any) => toast.error(err.message || "Gagal menambahkan peserta"),
+        onError: (err: unknown) => toast.error(err instanceof Error ? err.message : "Gagal menambahkan peserta"),
       }
     );
   };

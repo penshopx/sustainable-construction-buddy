@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import type { PakarMode } from "@/pages/HelpdeskAI";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 export type Msg = { role: "user" | "assistant"; content: string };
 
@@ -14,6 +15,30 @@ export type Conversation = {
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/helpdesk-chat`;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+};
+
+const getStreamContent = (value: unknown): string | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+  const choices = (value as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || !choices[0] || typeof choices[0] !== "object") return undefined;
+  const delta = (choices[0] as { delta?: unknown }).delta;
+  if (!delta || typeof delta !== "object") return undefined;
+  const content = (delta as { content?: unknown }).content;
+  return typeof content === "string" ? content : undefined;
+};
+
+type ChatRequestBody = {
+  messages: Msg[];
+  mode: PakarMode;
+  custom_persona?: string;
+};
 
 export function useHelpdeskChat(
   mode: PakarMode = "pembelajaran",
@@ -35,7 +60,7 @@ export function useHelpdeskChat(
       .select("*")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
-    setConversations((data as Conversation[]) || []);
+    setConversations(data || []);
     setLoadingConversations(false);
   }, [user]);
 
@@ -49,7 +74,9 @@ export function useHelpdeskChat(
       .select("role, content")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
-    setMessages((data as Msg[]) || []);
+    setMessages((data || []).flatMap(({ role, content }) =>
+      (role === "user" || role === "assistant") ? [{ role, content }] : []
+    ));
   }, []);
 
   const selectConversation = useCallback(async (id: string) => {
@@ -84,7 +111,7 @@ export function useHelpdeskChat(
     try {
       if (!conversationId) {
         const title = text.trim().slice(0, 80);
-        const insertData: any = { user_id: user.id, title };
+        const insertData: TablesInsert<"helpdesk_conversations"> = { user_id: user.id, title };
         if (chatbotId) insertData.chatbot_id = chatbotId;
         const { data: conv, error: convError } = await supabase
           .from("helpdesk_conversations")
@@ -110,7 +137,7 @@ export function useHelpdeskChat(
 
       // Stream AI response with mode and optional custom persona
       let assistantSoFar = "";
-      const body: any = { messages: allMessages, mode };
+      const body: ChatRequestBody = { messages: allMessages, mode };
       if (customPersona) body.custom_persona = customPersona;
 
       const resp = await fetch(CHAT_URL, {
@@ -123,8 +150,9 @@ export function useHelpdeskChat(
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ error: "Gagal menghubungi AI" }));
-        throw new Error(err.error || `Error ${resp.status}`);
+        const response: unknown = await resp.json().catch(() => null);
+        const error = response && typeof response === "object" ? (response as { error?: unknown }).error : undefined;
+        throw new Error(typeof error === "string" ? error : "Gagal menghubungi AI");
       }
       if (!resp.body) throw new Error("No response body");
 
@@ -148,8 +176,8 @@ export function useHelpdeskChat(
           const jsonStr = line.slice(6).trim();
           if (jsonStr === "[DONE]") { streamDone = true; break; }
           try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            const parsed: unknown = JSON.parse(jsonStr);
+            const content = getStreamContent(parsed);
             if (content) {
               assistantSoFar += content;
               setMessages(prev => {
@@ -177,8 +205,8 @@ export function useHelpdeskChat(
           const jsonStr = raw.slice(6).trim();
           if (jsonStr === "[DONE]") continue;
           try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            const parsed: unknown = JSON.parse(jsonStr);
+            const content = getStreamContent(parsed);
             if (content) {
               assistantSoFar += content;
               setMessages(prev => {
@@ -203,8 +231,8 @@ export function useHelpdeskChat(
       }
 
       await loadConversations();
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Error", description: getErrorMessage(error, "Gagal mengirim pesan"), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

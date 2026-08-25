@@ -40,7 +40,7 @@ export function usePrograms() {
     queryKey: ["pub-programs"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("pub_programs" as any)
+        .from("pub_programs")
         .select("*")
         .order("start_date", { ascending: false });
       if (error) throw error;
@@ -54,7 +54,7 @@ export function useProgramUpdates() {
     queryKey: ["pub-program-updates"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("pub_program_updates" as any)
+        .from("pub_program_updates")
         .select("*, pub_programs(*)")
         .order("published_at", { ascending: false });
       if (error) throw error;
@@ -68,7 +68,7 @@ export function useProgramGallery() {
     queryKey: ["pub-program-gallery"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("pub_program_gallery" as any)
+        .from("pub_program_gallery")
         .select("*, pub_programs(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -82,7 +82,7 @@ export function useCreateProgram() {
   return useMutation({
     mutationFn: async (program: Omit<PubProgram, "id" | "created_at" | "updated_at">) => {
       const { data, error } = await supabase
-        .from("pub_programs" as any)
+        .from("pub_programs")
         .insert(program)
         .select()
         .single();
@@ -98,7 +98,7 @@ export function useUpdateProgram() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<PubProgram> & { id: string }) => {
       const { error } = await supabase
-        .from("pub_programs" as any)
+        .from("pub_programs")
         .update(updates)
         .eq("id", id);
       if (error) throw error;
@@ -112,7 +112,7 @@ export function useDeleteProgram() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("pub_programs" as any)
+        .from("pub_programs")
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -126,7 +126,7 @@ export function useCreateProgramUpdate() {
   return useMutation({
     mutationFn: async (update: { program_id: string; title: string; content: string }) => {
       const { error } = await supabase
-        .from("pub_program_updates" as any)
+        .from("pub_program_updates")
         .insert(update);
       if (error) throw error;
     },
@@ -139,7 +139,7 @@ export function useUpdateProgramUpdate() {
   return useMutation({
     mutationFn: async ({ id, ...updates }: { id: string; title?: string; content?: string }) => {
       const { error } = await supabase
-        .from("pub_program_updates" as any)
+        .from("pub_program_updates")
         .update(updates)
         .eq("id", id);
       if (error) throw error;
@@ -153,7 +153,7 @@ export function useDeleteProgramUpdate() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("pub_program_updates" as any)
+        .from("pub_program_updates")
         .delete()
         .eq("id", id);
       if (error) throw error;
@@ -167,7 +167,7 @@ export function useCreateGalleryItem() {
   return useMutation({
     mutationFn: async (item: { program_id: string; image_url: string; caption: string }) => {
       const { error } = await supabase
-        .from("pub_program_gallery" as any)
+        .from("pub_program_gallery")
         .insert(item);
       if (error) throw error;
     },
@@ -180,7 +180,7 @@ export function useDeleteGalleryItem() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("pub_program_gallery" as any)
+        .from("pub_program_gallery")
         .delete()
         .eq("id", id);
       if (error) throw error;

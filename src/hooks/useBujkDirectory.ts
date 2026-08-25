@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 export interface BujkEntry {
   id: string;
@@ -35,7 +36,7 @@ export function useBujkDirectory() {
     queryKey: ["bujk-directory"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("bujk_directory" as any)
+        .from("bujk_directory")
         .select("*")
         .order("company_name");
       if (error) throw error;
@@ -48,7 +49,7 @@ export function useBujkDirectory() {
     queryKey: ["bujk-directory-mine"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("bujk_directory" as any)
+        .from("bujk_directory")
         .select("*")
         .eq("user_id", user!.id)
         .maybeSingle();
@@ -59,17 +60,17 @@ export function useBujkDirectory() {
   });
 
   const upsertMutation = useMutation({
-    mutationFn: async (entry: Partial<BujkEntry>) => {
+    mutationFn: async (entry: TablesUpdate<"bujk_directory">) => {
       if (myEntryQuery.data?.id) {
         const { error } = await supabase
-          .from("bujk_directory" as any)
-          .update(entry as any)
+          .from("bujk_directory")
+          .update(entry)
           .eq("id", myEntryQuery.data.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
-          .from("bujk_directory" as any)
-          .insert({ ...entry, user_id: user!.id } as any);
+          .from("bujk_directory")
+          .insert({ ...entry, user_id: user!.id } satisfies TablesInsert<"bujk_directory">);
         if (error) throw error;
       }
     },
@@ -78,8 +79,9 @@ export function useBujkDirectory() {
       qc.invalidateQueries({ queryKey: ["bujk-directory-mine"] });
       toast({ title: "Berhasil", description: "Data perusahaan disimpan." });
     },
-    onError: (e: any) => {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    onError: (error: unknown) => {
+      const description = error instanceof Error ? error.message : "Gagal menyimpan data perusahaan.";
+      toast({ title: "Error", description, variant: "destructive" });
     },
   });
 

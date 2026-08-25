@@ -2,43 +2,34 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 
 export type MentorType = "learning" | "expert" | "project";
 export type Msg = { role: "user" | "assistant"; content: string };
 
-export interface KnowledgeBase {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  file_url: string;
-  file_name: string;
-  file_type: string;
-  file_size: number;
-  project_id: string | null;
-  status: string;
-  chunk_count: number;
-  created_at: string;
-}
+export type KnowledgeBase = Tables<"mentor_knowledge_bases">;
 
-export interface MentorConversation {
-  id: string;
-  mentor_type: string;
-  title: string;
-  knowledge_base_id: string | null;
-  project_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
+export type MentorConversation = Tables<"mentor_conversations">;
 
-export interface ExternalBot {
-  id: string;
-  name: string;
-  description: string;
-  url: string;
-  icon: string;
-  is_active: boolean;
-}
+export type ExternalBot = Tables<"mentor_external_bots">;
+
+const getErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+  return fallback;
+};
+
+const getStreamContent = (value: unknown): string | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+  const choices = (value as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || !choices[0] || typeof choices[0] !== "object") return undefined;
+  const delta = (choices[0] as { delta?: unknown }).delta;
+  if (!delta || typeof delta !== "object") return undefined;
+  const content = (delta as { content?: unknown }).content;
+  return typeof content === "string" ? content : undefined;
+};
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mentor-chat`;
 const EXTRACT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mentor-extract`;
@@ -64,7 +55,7 @@ export function useMentorChat(mentorType: MentorType) {
       .eq("user_id", user.id)
       .eq("type", kbType)
       .order("created_at", { ascending: false });
-    setKnowledgeBases((data as KnowledgeBase[]) || []);
+    setKnowledgeBases(data || []);
   }, [user, mentorType]);
 
   const loadConversations = useCallback(async () => {
@@ -75,7 +66,7 @@ export function useMentorChat(mentorType: MentorType) {
       .eq("user_id", user.id)
       .eq("mentor_type", mentorType)
       .order("updated_at", { ascending: false });
-    setConversations((data as MentorConversation[]) || []);
+    setConversations(data || []);
   }, [user, mentorType]);
 
   const loadExternalBots = useCallback(async () => {
@@ -84,7 +75,7 @@ export function useMentorChat(mentorType: MentorType) {
       .from("mentor_external_bots")
       .select("*")
       .order("created_at", { ascending: false });
-    setExternalBots((data as ExternalBot[]) || []);
+    setExternalBots(data || []);
   }, [mentorType]);
 
   useEffect(() => {
@@ -117,7 +108,7 @@ export function useMentorChat(mentorType: MentorType) {
         file_type: file.type,
         file_size: file.size,
         project_id: projectId || null,
-      })
+      } satisfies TablesInsert<"mentor_knowledge_bases">)
       .select()
       .single();
 
@@ -135,11 +126,13 @@ export function useMentorChat(mentorType: MentorType) {
         },
         body: JSON.stringify({ knowledgeBaseId: kb.id }),
       });
-      const result = await resp.json();
-      if (result.success) {
-        toast.success(`Dokumen diproses: ${result.chunkCount} chunk`);
+      const result: unknown = await resp.json();
+      if (result && typeof result === "object" && (result as { success?: unknown }).success === true) {
+        const chunkCount = (result as { chunkCount?: unknown }).chunkCount;
+        toast.success(`Dokumen diproses: ${typeof chunkCount === "number" ? chunkCount : 0} chunk`);
       } else {
-        toast.error(result.error || "Gagal memproses dokumen");
+        const error = result && typeof result === "object" ? (result as { error?: unknown }).error : undefined;
+        toast.error(typeof error === "string" ? error : "Gagal memproses dokumen");
       }
     } catch {
       toast.error("Gagal memproses dokumen");
@@ -161,7 +154,9 @@ export function useMentorChat(mentorType: MentorType) {
       .select("role, content")
       .eq("conversation_id", id)
       .order("created_at", { ascending: true });
-    setMessages((data as Msg[]) || []);
+    setMessages((data || []).flatMap(({ role, content }) =>
+      (role === "user" || role === "assistant") ? [{ role, content }] : []
+    ));
   }, []);
 
   const startNewConversation = useCallback(() => {
@@ -259,8 +254,8 @@ export function useMentorChat(mentorType: MentorType) {
           const jsonStr = line.slice(6).trim();
           if (jsonStr === "[DONE]") { streamDone = true; break; }
           try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            const parsed: unknown = JSON.parse(jsonStr);
+            const content = getStreamContent(parsed);
             if (content) {
               assistantSoFar += content;
               setMessages(prev => {
@@ -288,8 +283,8 @@ export function useMentorChat(mentorType: MentorType) {
           const jsonStr = raw.slice(6).trim();
           if (jsonStr === "[DONE]") continue;
           try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            const parsed: unknown = JSON.parse(jsonStr);
+            const content = getStreamContent(parsed);
             if (content) {
               assistantSoFar += content;
               setMessages(prev => {
@@ -314,17 +309,17 @@ export function useMentorChat(mentorType: MentorType) {
       }
 
       await loadConversations();
-    } catch (e: any) {
-      toast.error(e.message || "Gagal mengirim pesan");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Gagal mengirim pesan"));
     } finally {
       setIsLoading(false);
     }
   }, [messages, isLoading, user, activeConversationId, mentorType, selectedKbId, selectedProjectId, selectedExpertBotId, loadConversations]);
 
   // External bot CRUD
-  const addExternalBot = useCallback(async (bot: Omit<ExternalBot, "id" | "is_active">) => {
+  const addExternalBot = useCallback(async (bot: Omit<ExternalBot, "id" | "is_active" | "user_id" | "created_at" | "updated_at">) => {
     if (!user) return;
-    await supabase.from("mentor_external_bots").insert({ ...bot, user_id: user.id });
+    await supabase.from("mentor_external_bots").insert({ ...bot, user_id: user.id } satisfies TablesInsert<"mentor_external_bots">);
     await loadExternalBots();
   }, [user, loadExternalBots]);
 

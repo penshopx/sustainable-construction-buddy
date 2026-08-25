@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import type { Json, Tables } from "@/integrations/supabase/types";
 
 export interface PerformanceGrade {
   id: string;
@@ -17,7 +18,7 @@ export interface PerformanceGrade {
   risk_score: number;
   total_score: number;
   grade: string;
-  breakdown: Record<string, any>;
+  breakdown: Json;
   computed_at: string;
   created_at: string;
 }
@@ -56,19 +57,21 @@ export function gradeBg(grade: string): string {
 const WEIGHTS = { financial: 0.30, project: 0.30, compliance: 0.20, risk: 0.20 };
 
 interface RawData {
-  lkut: any | null;
-  projects: any[];
-  risks: any[];
-  k3Checklists: any[];
-  budgets: any[];
-  profile: any | null;
+  lkut: Tables<"lkut_reports"> | null;
+  projects: Tables<"projects">[];
+  risks: Tables<"risk_registers">[];
+  k3Checklists: Tables<"k3_checklists">[];
+  budgets: Tables<"budget_entries">[];
+  profile: Tables<"profiles"> | null;
 }
 
-function calcFinancialScore(lkut: any): { score: number; details: Record<string, any> } {
+type ScoreDetails = Record<string, Json>;
+
+function calcFinancialScore(lkut: Tables<"lkut_reports"> | null): { score: number; details: ScoreDetails } {
   if (!lkut) return { score: 0, details: { reason: "Belum ada data LKUT" } };
 
   let score = 0;
-  const details: Record<string, any> = {};
+  const details: ScoreDetails = {};
 
   // Current Ratio (ideal >= 1.5) — 25 pts
   const cr = lkut.short_term_liabilities > 0 ? lkut.current_assets / lkut.short_term_liabilities : 0;
@@ -107,10 +110,10 @@ function calcFinancialScore(lkut: any): { score: number; details: Record<string,
   return { score, details };
 }
 
-function calcProjectScore(projects: any[], budgets: any[]): { score: number; details: Record<string, any> } {
+function calcProjectScore(projects: Tables<"projects">[], budgets: Tables<"budget_entries">[]): { score: number; details: ScoreDetails } {
   if (projects.length === 0) return { score: 0, details: { reason: "Belum ada data proyek" } };
 
-  const details: Record<string, any> = { total_projects: projects.length };
+  const details: ScoreDetails = { total_projects: projects.length };
   let score = 0;
 
   // Volume — 25 pts (number of projects)
@@ -154,9 +157,9 @@ function calcProjectScore(projects: any[], budgets: any[]): { score: number; det
   return { score, details };
 }
 
-function calcComplianceScore(lkut: any, profile: any): { score: number; details: Record<string, any> } {
+function calcComplianceScore(lkut: Tables<"lkut_reports"> | null, _profile: Tables<"profiles"> | null): { score: number; details: ScoreDetails } {
   let score = 0;
-  const details: Record<string, any> = {};
+  const details: ScoreDetails = {};
 
   if (!lkut) return { score: 0, details: { reason: "Belum ada data LKUT" } };
 
@@ -189,8 +192,8 @@ function calcComplianceScore(lkut: any, profile: any): { score: number; details:
   return { score: Math.min(score, 100), details };
 }
 
-function calcRiskScore(risks: any[], k3: any[]): { score: number; details: Record<string, any> } {
-  const details: Record<string, any> = {};
+function calcRiskScore(risks: Tables<"risk_registers">[], k3: Tables<"k3_checklists">[]): { score: number; details: ScoreDetails } {
+  const details: ScoreDetails = {};
   let score = 50; // start neutral
 
   // Risk management — up to 50 pts
@@ -308,7 +311,7 @@ export function usePerformanceGrades() {
             grade,
             breakdown,
             computed_at: new Date().toISOString(),
-          } as any,
+          },
           { onConflict: "user_id,period" }
         )
         .select()
@@ -337,7 +340,7 @@ export function usePerformanceGrades() {
     } finally {
       setComputing(false);
     }
-  }, [user, fetchGrades]);
+  }, [user, fetchGrades, grades]);
 
   return { grades, loading, computing, computeGrade, fetchGrades };
 }

@@ -1,7 +1,7 @@
 import html2pdf from "html2pdf.js";
 import * as XLSX from "xlsx";
 
-interface PancekExportRow {
+export interface PancekExportRow {
   company_name: string;
   full_name?: string;
   npwp: string;
@@ -20,20 +20,20 @@ interface PancekExportRow {
   verification_notes: string;
 }
 
-const WEIGHTS = [
-  { key: "komitmen", label: "Komitmen", w: 25 },
-  { key: "perencanaan", label: "Perencanaan", w: 10 },
-  { key: "pelaksanaan", label: "Pelaksanaan", w: 25 },
-  { key: "evaluasi", label: "Evaluasi", w: 15 },
-  { key: "perbaikan", label: "Perbaikan", w: 15 },
-  { key: "respon", label: "Respon", w: 10 },
+const WEIGHTS: { score: keyof Pick<PancekExportRow, "komitmen_score" | "perencanaan_score" | "pelaksanaan_score" | "evaluasi_score" | "perbaikan_score" | "respon_score">; total: keyof Pick<PancekExportRow, "komitmen_total" | "perencanaan_total" | "pelaksanaan_total" | "evaluasi_total" | "perbaikan_total" | "respon_total">; label: string; w: number }[] = [
+  { score: "komitmen_score", total: "komitmen_total", label: "Komitmen", w: 25 },
+  { score: "perencanaan_score", total: "perencanaan_total", label: "Perencanaan", w: 10 },
+  { score: "pelaksanaan_score", total: "pelaksanaan_total", label: "Pelaksanaan", w: 25 },
+  { score: "evaluasi_score", total: "evaluasi_total", label: "Evaluasi", w: 15 },
+  { score: "perbaikan_score", total: "perbaikan_total", label: "Perbaikan", w: 15 },
+  { score: "respon_score", total: "respon_total", label: "Respon", w: 10 },
 ];
 
 function calcWeightedScore(r: PancekExportRow): number {
   let ws = 0;
   for (const p of WEIGHTS) {
-    const sc = (r as any)[`${p.key}_score`] || 0;
-    const tot = (r as any)[`${p.key}_total`] || 1;
+    const sc = r[p.score] || 0;
+    const tot = r[p.total] || 1;
     ws += (sc / tot) * p.w;
   }
   return Math.round(ws * 100) / 100;

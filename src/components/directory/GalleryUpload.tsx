@@ -41,14 +41,14 @@ export default function GalleryUpload({ directoryId }: Props) {
         .getPublicUrl(path);
 
       const { error: insertErr } = await supabase
-        .from("bujk_gallery" as any)
+        .from("bujk_gallery")
         .insert({
           directory_id: directoryId,
           user_id: user.id,
           image_url: urlData.publicUrl,
           caption,
           project_name: projectName,
-        } as any);
+        });
       if (insertErr) throw insertErr;
 
       qc.invalidateQueries({ queryKey: ["bujk-gallery", directoryId] });
@@ -56,8 +56,8 @@ export default function GalleryUpload({ directoryId }: Props) {
       setCaption("");
       setProjectName("");
       setOpen(false);
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Gagal mengunggah foto.", variant: "destructive" });
     } finally {
       setUploading(false);
     }

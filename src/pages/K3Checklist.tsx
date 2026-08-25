@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { HardHat, Plus, Trash2, ArrowLeft, CheckCircle2, AlertTriangle, ClipboardList } from "lucide-react";
 import { motion } from "framer-motion";
+import type { Tables } from "@/integrations/supabase/types";
 
 type View = { type: "list" } | { type: "create" } | { type: "detail"; id: string };
 
@@ -65,18 +66,18 @@ const K3Checklist = () => {
                 <p className="text-xs text-muted-foreground">Total Inspeksi</p>
               </CardContent></Card>
               <Card><CardContent className="p-4 text-center">
-                <p className="text-2xl font-bold font-heading text-primary">{checklists.filter((c: any) => c.status === "completed").length}</p>
+                <p className="text-2xl font-bold font-heading text-primary">{checklists.filter((c) => c.status === "completed").length}</p>
                 <p className="text-xs text-muted-foreground">Selesai</p>
               </CardContent></Card>
               <Card><CardContent className="p-4 text-center">
-                <p className={`text-2xl font-bold font-heading ${(() => { const avg = checklists.reduce((s: number, c: any) => s + (c.score_percent || 0), 0) / checklists.length; return avg >= 80 ? "text-pub-emerald" : avg >= 50 ? "text-pub-amber" : "text-destructive"; })()}`}>
-                  {Math.round(checklists.reduce((s: number, c: any) => s + (c.score_percent || 0), 0) / checklists.length)}%
+                <p className={`text-2xl font-bold font-heading ${(() => { const avg = checklists.reduce((s, c) => s + (c.score_percent || 0), 0) / checklists.length; return avg >= 80 ? "text-pub-emerald" : avg >= 50 ? "text-pub-amber" : "text-destructive"; })()}`}>
+                  {Math.round(checklists.reduce((s, c) => s + (c.score_percent || 0), 0) / checklists.length)}%
                 </p>
                 <p className="text-xs text-muted-foreground">Rata-rata Skor</p>
               </CardContent></Card>
               <Card><CardContent className="p-4 text-center">
                 <p className="text-2xl font-bold font-heading text-pub-amber">
-                  {checklists.reduce((s: number, c: any) => s + (c.total_items - c.completed_items), 0)}
+                  {checklists.reduce((s, c) => s + (c.total_items - c.completed_items), 0)}
                 </p>
                 <p className="text-xs text-muted-foreground">Item Belum Patuh</p>
               </CardContent></Card>
@@ -115,7 +116,7 @@ const K3Checklist = () => {
             </Card>
           ) : (
             <div className="space-y-3">
-              {checklists.map((c: any) => (
+              {checklists.map((c) => (
                 <motion.div key={c.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                   <Card className="cursor-pointer hover:shadow-card-hover transition-shadow" onClick={() => setView({ type: "detail", id: c.id })}>
                     <CardContent className="p-5">
@@ -189,7 +190,15 @@ const K3_PREVIEW_ITEMS: Record<string, string[]> = {
   ],
 };
 
-function CreateForm({ projectId, projects, onSubmit, isSubmitting, showExplanation }: any) {
+interface CreateFormProps {
+  projectId?: string;
+  projects: Tables<"projects">[];
+  onSubmit: (input: { project_id?: string; inspector_name: string; location: string; checkedItems: Record<number, boolean> }) => void;
+  isSubmitting: boolean;
+  showExplanation: boolean;
+}
+
+function CreateForm({ projectId, projects, onSubmit, isSubmitting, showExplanation }: CreateFormProps) {
   const [form, setForm] = useState({ project_id: projectId || "", inspector_name: "", location: "" });
   
   // Track compliance state for each item (keyed by sort_order)
@@ -229,7 +238,7 @@ function CreateForm({ projectId, projects, onSubmit, isSubmitting, showExplanati
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">— Tanpa Proyek —</SelectItem>
-                  {projects.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  {projects.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -316,14 +325,14 @@ function ChecklistDetail({ checklistId }: { checklistId: string }) {
 
   if (isLoading) return <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-16" />)}</div>;
 
-  const grouped = items.reduce((acc: Record<string, any[]>, item: any) => {
+  const grouped = items.reduce<Record<string, Tables<"k3_checklist_items">[]>>((acc, item) => {
     if (!acc[item.category]) acc[item.category] = [];
     acc[item.category].push(item);
     return acc;
   }, {});
 
   const total = items.length;
-  const completed = items.filter((i: any) => i.is_compliant).length;
+  const completed = items.filter((i) => i.is_compliant).length;
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
   return (
@@ -361,7 +370,7 @@ function ChecklistDetail({ checklistId }: { checklistId: string }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {(categoryItems as any[]).map((item: any) => (
+            {categoryItems.map((item) => (
               <div key={item.id} className={`p-3 rounded-lg border ${item.is_compliant ? "border-pub-emerald/30 bg-pub-emerald/5" : "border-border"} transition-colors`}>
                 <div className="flex items-start gap-3">
                   <Checkbox

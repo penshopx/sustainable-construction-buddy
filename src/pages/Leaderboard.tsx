@@ -51,8 +51,8 @@ export default function Leaderboard() {
         if (res.data?.error) throw new Error(res.data.error);
         setEntries(res.data.leaderboard);
         setCurrentUserId(res.data.current_user_id);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Gagal memuat leaderboard");
       } finally {
         setLoading(false);
       }

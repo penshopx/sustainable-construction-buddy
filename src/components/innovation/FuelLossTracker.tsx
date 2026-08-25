@@ -50,7 +50,7 @@ export default function FuelLossTracker() {
 
   const removeItem = (id: string) => setItems(prev => prev.filter(i => i.id !== id));
 
-  const updateItem = (id: string, field: keyof Equipment, val: any) => {
+  const updateItem = (id: string, field: keyof Equipment, val: Equipment[keyof Equipment]) => {
     setItems(prev => prev.map(item => {
       if (item.id !== id) return item;
       if (field === 'type') {

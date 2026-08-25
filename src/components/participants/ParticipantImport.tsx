@@ -81,7 +81,7 @@ export function ParticipantImport({ programs }: { programs: Program[] }) {
         const data = new Uint8Array(evt.target?.result as ArrayBuffer);
         const wb = XLSX.read(data, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json<Record<string, any>>(ws, { defval: "" });
+        const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, { defval: "" });
 
         if (json.length === 0) {
           toast.error("File kosong atau format tidak sesuai");
@@ -164,8 +164,8 @@ export function ParticipantImport({ programs }: { programs: Program[] }) {
       toast.success(`${inserted} peserta berhasil diimport`);
       reset();
       setOpen(false);
-    } catch (err: any) {
-      toast.error(`Gagal import: ${err.message || "Unknown error"}`);
+    } catch (err: unknown) {
+      toast.error(`Gagal import: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
     setImporting(false);
   };

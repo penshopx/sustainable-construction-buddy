@@ -46,8 +46,8 @@ export default function AdminInnovationReview() {
       const q = searchQuery.toLowerCase();
       const matchesSearch = !q || 
         p.title.toLowerCase().includes(q) || 
-        ((p as any).submitter_name || "").toLowerCase().includes(q) ||
-        ((p as any).submitter_company || "").toLowerCase().includes(q);
+        (p.submitter_name || "").toLowerCase().includes(q) ||
+        (p.submitter_company || "").toLowerCase().includes(q);
       return matchesStatus && matchesSearch;
     });
   }, [proposals, statusFilter, searchQuery]);
@@ -95,8 +95,8 @@ export default function AdminInnovationReview() {
   const handleExportExcel = () => {
     const rows = filtered.map((p) => ({
       "Judul": p.title,
-      "Pengaju": (p as any).submitter_name || "",
-      "Perusahaan": (p as any).submitter_company || "",
+      "Pengaju": p.submitter_name || "",
+      "Perusahaan": p.submitter_company || "",
       "Kategori": p.innovation_categories?.name || "",
       "Status": statusLabels[p.status] || p.status,
       "Lingkup": p.scope,
@@ -205,8 +205,8 @@ export default function AdminInnovationReview() {
                 <p className="text-sm text-muted-foreground line-clamp-2">{p.description}</p>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                   <User className="w-3 h-3" />
-                  <span className="font-medium">{(p as any).submitter_name}</span>
-                  {(p as any).submitter_company && <span>— {(p as any).submitter_company}</span>}
+                  <span className="font-medium">{p.submitter_name}</span>
+                  {p.submitter_company && <span>— {p.submitter_company}</span>}
                 </div>
                 {p.innovation_categories && (
                   <p className="text-xs text-muted-foreground mt-1">Kategori: {p.innovation_categories.name}</p>

@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePrograms } from "@/hooks/usePrograms";
 import type { PubParticipantEntry } from "@/hooks/usePubParticipantsDirectory";
+import type { TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 interface Props {
   mode: "add" | "edit";
@@ -66,7 +67,7 @@ export default function AdminPesertaDialog({ mode, participant }: Props) {
     if (!form.program_id) return toast.error("Program wajib dipilih");
 
     setSaving(true);
-    const payload: any = {
+    const payload: TablesInsert<"pub_program_participants"> = {
       full_name: form.full_name.trim(),
       company: form.company.trim(),
       position: form.position.trim(),
@@ -82,7 +83,7 @@ export default function AdminPesertaDialog({ mode, participant }: Props) {
 
     let error;
     if (mode === "edit" && participant) {
-      ({ error } = await supabase.from("pub_program_participants").update(payload).eq("id", participant.id));
+      ({ error } = await supabase.from("pub_program_participants").update(payload satisfies TablesUpdate<"pub_program_participants">).eq("id", participant.id));
     } else {
       ({ error } = await supabase.from("pub_program_participants").insert(payload));
     }

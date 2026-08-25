@@ -66,10 +66,10 @@ export default function AdminSummary() {
         supabase.from("marketplace_orders").select("status"),
       ]);
 
-      const groupBy = (arr: any[] | null, key: string) => {
+      const groupBy = (arr: { status: string }[] | null) => {
         const result: Record<string, number> = {};
         (arr || []).forEach((item) => {
-          const val = item[key] || "unknown";
+          const val = item.status || "unknown";
           result[val] = (result[val] || 0) + 1;
         });
         return result;
@@ -88,9 +88,9 @@ export default function AdminSummary() {
         totalK3: totalK3 || 0,
         totalBudget: totalBudget || 0,
         totalRisks: totalRisks || 0,
-        innovationByStatus: groupBy(innovations, "status"),
-        pancekByStatus: groupBy(panceks, "status"),
-        orderByStatus: groupBy(orders, "status"),
+        innovationByStatus: groupBy(innovations),
+        pancekByStatus: groupBy(panceks),
+        orderByStatus: groupBy(orders),
       });
       setLoading(false);
     }

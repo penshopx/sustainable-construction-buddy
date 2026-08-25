@@ -103,8 +103,8 @@ export default function IndicatorFormItem({ indicator, answer, onChange, disable
         evidence_files: updatedFiles,
       });
       toast.success(`Bukti "${file.name}" berhasil diupload`);
-    } catch (err: any) {
-      toast.error("Gagal upload: " + err.message);
+    } catch (err: unknown) {
+      toast.error(`Gagal upload: ${err instanceof Error ? err.message : "terjadi kesalahan"}`);
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";

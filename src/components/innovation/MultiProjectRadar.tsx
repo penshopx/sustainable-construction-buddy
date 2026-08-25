@@ -36,9 +36,11 @@ export default function MultiProjectRadar() {
   const addProject = () => setProjects([...projects, emptyProject()]);
   const removeProject = (i: number) => setProjects(projects.filter((_, idx) => idx !== i));
 
-  const update = (i: number, field: keyof ProjectEntry, value: any) => {
+  const update = <K extends keyof ProjectEntry>(i: number, field: K, value: ProjectEntry[K]) => {
+    const project = projects[i];
+    if (!project) return;
     const copy = [...projects];
-    (copy[i] as any)[field] = value;
+    copy[i] = { ...project, [field]: value };
     setProjects(copy);
   };
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShoppingBag, Loader2, Package, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { ShoppingBag, Loader2, Package, Clock, CheckCircle2, XCircle, type LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +9,7 @@ import { useMarketplaceOrders } from "@/hooks/useMarketplace";
 const formatRupiah = (n: number) =>
   new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 
-const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
+const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: LucideIcon }> = {
   pending: { label: "Menunggu", variant: "outline", icon: Clock },
   confirmed: { label: "Dikonfirmasi", variant: "secondary", icon: CheckCircle2 },
   shipped: { label: "Dikirim", variant: "default", icon: Package },

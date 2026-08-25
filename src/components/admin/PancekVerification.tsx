@@ -16,33 +16,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { PANCEK_PILLARS } from "@/lib/pancekIndicators";
+import type { Json, Tables } from "@/integrations/supabase/types";
 
-interface PancekRow {
-  id: string;
-  user_id: string;
-  period_year: number;
-  company_name: string;
-  npwp: string;
-  nib: string;
-  status: string;
-  completion_percent: number;
-  total_answered: number;
-  total_indicators: number;
-  komitmen_score: number; komitmen_total: number;
-  perencanaan_score: number; perencanaan_total: number;
-  pelaksanaan_score: number; pelaksanaan_total: number;
-  evaluasi_score: number; evaluasi_total: number;
-  perbaikan_score: number; perbaikan_total: number;
-  respon_score: number; respon_total: number;
-  answers: Record<string, any>;
-  verified_by: string;
-  verified_at: string | null;
-  verification_notes: string;
-  created_at: string;
-  updated_at: string;
-  // joined
+interface PancekRow extends Tables<"pancek_assessments"> {
   full_name?: string;
 }
+
+interface VerificationDocument {
+  name: string;
+  url: string;
+  uploaded_at: string;
+}
+
+interface VerificationSheet {
+  docs: VerificationDocument[];
+  verification_date?: string;
+  notes?: string;
+}
+
+const isVerificationSheet = (value: Json | undefined): value is Json & VerificationSheet => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, Json | undefined>;
+  return Array.isArray(candidate.docs) && candidate.docs.every((doc) => {
+    if (typeof doc !== "object" || doc === null || Array.isArray(doc)) return false;
+    const document = doc as Record<string, Json | undefined>;
+    return typeof document.name === "string" && typeof document.url === "string" && typeof document.uploaded_at === "string";
+  });
+};
 
 export function PancekVerification() {
   const { profile } = useAuth();
@@ -57,7 +57,7 @@ export function PancekVerification() {
   const fetchAll = async () => {
     setLoading(true);
     // Fetch all pancek assessments (admin can see all via RLS)
-    const { data: assessments, error } = await (supabase.from("pancek_assessments") as any)
+    const { data: assessments, error } = await supabase.from("pancek_assessments")
       .select("*")
       .order("updated_at", { ascending: false });
 
@@ -68,15 +68,15 @@ export function PancekVerification() {
     }
 
     // Fetch profiles for names
-    const userIds = [...new Set((assessments || []).map((a: any) => a.user_id))];
+    const userIds = [...new Set((assessments || []).map((a) => a.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
       .select("user_id, full_name, company");
 
     const nameMap = new Map<string, string>();
-    (profiles || []).forEach((p: any) => nameMap.set(p.user_id, p.full_name || "-"));
+    (profiles || []).forEach((p) => nameMap.set(p.user_id, p.full_name || "-"));
 
-    const mapped: PancekRow[] = (assessments || []).map((a: any) => ({
+    const mapped: PancekRow[] = (assessments || []).map((a) => ({
       ...a,
       full_name: nameMap.get(a.user_id) || "-",
     }));
@@ -93,7 +93,7 @@ export function PancekVerification() {
     if (!selectedRow || !profile) return;
     setProcessing(true);
 
-    const { error } = await (supabase.from("pancek_assessments") as any)
+    const { error } = await supabase.from("pancek_assessments")
       .update({
         status: action,
         verified_by: profile.full_name || "Admin",
@@ -411,8 +411,11 @@ export function PancekVerification() {
 
               {/* Lembar Verifikasi Jaga.id */}
               {(() => {
-                const lv = selectedRow.answers?.__lembar_verifikasi as any;
-                if (!lv?.docs?.length) return (
+                const answers = selectedRow.answers;
+                const lv = answers && typeof answers === "object" && !Array.isArray(answers)
+                  ? answers.__lembar_verifikasi
+                  : undefined;
+                if (!isVerificationSheet(lv) || !lv.docs.length) return (
                   <div className="p-3 rounded-lg border border-border bg-muted/20">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <ShieldCheck className="w-4 h-4" />
@@ -440,7 +443,7 @@ export function PancekVerification() {
                       <p className="text-xs text-muted-foreground italic">📝 {lv.notes}</p>
                     )}
                     <div className="space-y-1">
-                      {lv.docs.map((doc: any, idx: number) => (
+                      {lv.docs.map((doc, idx) => (
                         <div key={doc.url} className="flex items-center gap-2 p-2 rounded bg-background/50 border border-border">
                           <FileText className="w-3.5 h-3.5 text-pub-sky shrink-0" />
                           <span className="text-xs text-foreground truncate flex-1">{idx + 1}. {doc.name}</span>

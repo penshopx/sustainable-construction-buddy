@@ -1,29 +1,21 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import type { AuthError } from "@supabase/supabase-js";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   profile: Profile | null;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
-interface Profile {
-  id: string;
-  user_id: string;
-  full_name: string;
-  company: string;
-  position: string;
-  current_level: string;
-  total_score: number;
-  avatar_url: string | null;
-  bujk_qualification: string;
-}
+type Profile = Tables<"profiles">;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -39,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("*")
       .eq("user_id", userId)
       .single();
-    if (data) setProfile(data as Profile);
+    if (data) setProfile(data);
   };
 
   const refreshProfile = async () => {

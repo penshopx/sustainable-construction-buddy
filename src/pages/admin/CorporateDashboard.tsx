@@ -113,32 +113,32 @@ const CorporateDashboard = () => {
 
         // Level distribution
         const levelCounts: Record<string, number> = { Pemula: 0, Muda: 0, Madya: 0, Utama: 0 };
-        profiles.forEach((p: any) => {
+        profiles.forEach((p) => {
           const lvl = p.current_level || "Pemula";
           if (levelCounts[lvl] !== undefined) levelCounts[lvl]++;
         });
         const levelDistribution = Object.entries(levelCounts).map(([name, value]) => ({ name, value }));
 
         // Average score
-        const totalScore = profiles.reduce((sum: number, p: any) => sum + (p.total_score || 0), 0);
+        const totalScore = profiles.reduce((sum, p) => sum + (p.total_score || 0), 0);
         const avgScore = profiles.length > 0 ? Math.round(totalScore / profiles.length) : 0;
 
         // KCI (Knowledge Capacity Index) = weighted average based on level
         const levelWeights: Record<string, number> = { Pemula: 25, Muda: 50, Madya: 75, Utama: 100 };
-        const totalKCI = profiles.reduce((sum: number, p: any) => {
+        const totalKCI = profiles.reduce((sum, p) => {
           return sum + (levelWeights[p.current_level || "Pemula"] || 25);
         }, 0);
         const kci = profiles.length > 0 ? Math.round(totalKCI / profiles.length) : 0;
 
         // Domain scores from module progress
-        const domainScores = domains.map((d: any) => {
+        const domainScores = domains.map((d) => {
           const domainProgress = progress.filter(
-            (p: any) => p.e_course_modules?.domain_id === d.id
+            (p) => p.e_course_modules?.domain_id === d.id
           );
-          const completed = domainProgress.filter((p: any) => p.status === "completed").length;
+          const completed = domainProgress.filter((p) => p.status === "completed").length;
           const total = domainProgress.length || 1;
           const avgCompletion = Math.round((completed / total) * 100);
-          const weakCount = domainProgress.filter((p: any) => p.status !== "completed").length;
+          const weakCount = domainProgress.filter((p) => p.status !== "completed").length;
 
           return {
             domain: d.name,
@@ -153,10 +153,10 @@ const CorporateDashboard = () => {
         const topWeakDomains = sorted.slice(0, 3).map((d) => d.domain);
 
         // Active projects
-        const activeProjects = projects.filter((p: any) => p.status === "active").length;
+        const activeProjects = projects.filter((p) => p.status === "active").length;
 
         // Evaluation compliance (users with score > 0 / total)
-        const evaluated = profiles.filter((p: any) => (p.total_score || 0) > 0).length;
+        const evaluated = profiles.filter((p) => (p.total_score || 0) > 0).length;
         const evaluationCompliance = profiles.length > 0 ? Math.round((evaluated / profiles.length) * 100) : 0;
 
         setStats({
@@ -177,30 +177,27 @@ const CorporateDashboard = () => {
           .order("report_year", { ascending: false });
 
         // Group by user_id, take latest
-        const lkutByUser = new Map<string, any>();
-        (allLkut || []).forEach((r: any) => {
+        const lkutByUser = new Map<string, NonNullable<typeof allLkut>[number]>();
+        (allLkut || []).forEach((r) => {
           if (!lkutByUser.has(r.user_id)) lkutByUser.set(r.user_id, r);
         });
-
-        const profileMap = new Map<string, any>();
-        profiles.forEach((p: any) => profileMap.set(p.user_id, p));
 
         // Fetch full names
         const { data: allProfiles } = await supabase
           .from("profiles")
           .select("user_id, full_name, company");
         const nameMap = new Map<string, { name: string; company: string }>();
-        (allProfiles || []).forEach((p: any) => nameMap.set(p.user_id, { name: p.full_name || "-", company: p.company || "-" }));
+        (allProfiles || []).forEach((p) => nameMap.set(p.user_id, { name: p.full_name || "-", company: p.company || "-" }));
 
         const now = new Date();
 
         // Fetch PANCEK assessments for all users
-        const { data: allPancek } = await (supabase.from("pancek_assessments") as any)
+        const { data: allPancek } = await supabase.from("pancek_assessments")
           .select("user_id, status, period_year")
           .order("period_year", { ascending: false });
 
         const pancekByUser = new Map<string, string>();
-        (allPancek || []).forEach((p: any) => {
+        (allPancek || []).forEach((p) => {
           if (!pancekByUser.has(p.user_id)) pancekByUser.set(p.user_id, p.status);
         });
 
@@ -256,7 +253,7 @@ const CorporateDashboard = () => {
           .select("user_id, period, grade, total_score, financial_score, project_score, compliance_score, risk_score")
           .order("period", { ascending: true });
 
-        const gradeRows: GradeRecord[] = (allGrades || []).map((g: any) => {
+        const gradeRows: GradeRecord[] = (allGrades || []).map((g) => {
           const info = nameMap.get(g.user_id) || { name: "-", company: "-" };
           return {
             userId: g.user_id,

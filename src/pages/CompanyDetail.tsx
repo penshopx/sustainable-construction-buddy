@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { BujkEntry } from "@/hooks/useBujkDirectory";
+import type { Tables } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,15 +17,7 @@ import { id as idLocale } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import GalleryUpload from "@/components/directory/GalleryUpload";
 
-interface GalleryItem {
-  id: string;
-  directory_id: string;
-  user_id: string;
-  image_url: string;
-  caption: string;
-  project_name: string;
-  created_at: string;
-}
+type GalleryItem = Tables<"bujk_gallery">;
 
 const qualLabel: Record<string, string> = { kecil: "Kecil", menengah: "Menengah", besar: "Besar" };
 const qualColor: Record<string, string> = {
@@ -43,7 +36,7 @@ export default function CompanyDetail() {
     queryKey: ["bujk-detail", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("bujk_directory" as any)
+        .from("bujk_directory")
         .select("*")
         .eq("id", companyId!)
         .single();
@@ -57,7 +50,7 @@ export default function CompanyDetail() {
     queryKey: ["bujk-gallery", companyId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("bujk_gallery" as any)
+        .from("bujk_gallery")
         .select("*")
         .eq("directory_id", companyId!)
         .order("created_at", { ascending: false });
@@ -78,14 +71,14 @@ export default function CompanyDetail() {
         await supabase.storage.from("bujk-gallery").remove([pathParts[1]]);
       }
       const { error } = await supabase
-        .from("bujk_gallery" as any)
+        .from("bujk_gallery")
         .delete()
         .eq("id", item.id);
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["bujk-gallery", companyId] });
       toast({ title: "Foto dihapus" });
-    } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Gagal menghapus foto", variant: "destructive" });
     }
   };
 
