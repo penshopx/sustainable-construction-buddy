@@ -10,6 +10,7 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "start": "node server.cjs",
+    "test:smoke": "node scripts/smoke-test.cjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
