@@ -48,8 +48,3 @@ externalPort = 80
 [userenv]
 
 [userenv.shared]
-SUPABASE_URL = "https://vwbgdyykeiilhffwvnku.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YmdkeXlrZWlpbGhmZnd2bmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQwNTksImV4cCI6MjA4ODAyMDA1OX0.VzGsEYvlRVjchA-b8N9IE-jNJ4AiZr5Jd_uyjiuW1SU"
-VITE_SUPABASE_URL = "https://vwbgdyykeiilhffwvnku.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YmdkeXlrZWlpbGhmZnd2bmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQwNTksImV4cCI6MjA4ODAyMDA1OX0.VzGsEYvlRVjchA-b8N9IE-jNJ4AiZr5Jd_uyjiuW1SU"
-SUPABASE_ACCESS_TOKEN = "sbp_25e3d30ae5b11437aa2c4064117d542c88f64717"

@@ -13,3 +13,4 @@ Jangan coba replace Supabase dengan Replit Postgres untuk app ini tanpa diskusi 
 - Anon key ada di Replit env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`)
 - AI features (mentor chat, helpdesk) butuh `LOVABLE_API_KEY` di **Supabase Edge Function secrets** (bukan Replit)
 - vitest juga diblokir Replit — sudah dihapus dari package.json
+- Nilai environment runtime harus dikelola lewat Replit Env Vars/Secrets; jangan menaruh access token di `.replit`.

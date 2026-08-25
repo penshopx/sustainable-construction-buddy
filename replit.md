@@ -33,7 +33,13 @@ Platform ekosistem kompetensi digital untuk Personil Manajerial BUJK (Badan Usah
 npm run dev
 ```
 
-Berjalan di port 5000.
+Workflow Replit **Start application** menjalankan perintah ini untuk frontend Vite dan API Express secara bersamaan:
+
+- Frontend preview: port `5000`
+- API lokal: port `3001`
+- Health check API: `GET /api/health`
+
+Preview Replit memakai port 5000. API frontend Supabase tetap menggunakan project Supabase hosted yang dikonfigurasi di environment.
 
 ## Environment Variables (Replit Secrets & Env Vars)
 
@@ -44,8 +50,13 @@ Berjalan di port 5000.
 | `SUPABASE_URL` | Replit Env Var | Sama dengan VITE_SUPABASE_URL |
 | `SUPABASE_ANON_KEY` | Replit Secret | Supabase anon key |
 | `LOVABLE_API_KEY` | Supabase Edge Function Secrets | Untuk fitur AI chat |
+| `OPENROUTER_API_KEY` | Replit Secret (opsional) | Fallback AI untuk endpoint `/api/helpdesk` |
+| `OPENAI_API_KEY` | Replit Secret (opsional) | Fallback AI alternatif untuk endpoint `/api/helpdesk` |
+| `DEEPSEEK_API_KEY` | Replit Secret (opsional) | Fallback AI alternatif untuk endpoint `/api/helpdesk` |
 
 > AI features (mentor chat, helpdesk) memanggil Supabase Edge Functions yang memproxy ke AI gateway — API key tidak terekspos ke browser.
+>
+> Endpoint `/api/helpdesk` pada API lokal membutuhkan salah satu variable AI fallback di atas jika digunakan; tanpa variable tersebut preview dan fitur non-AI tetap dapat dijalankan.
 
 ## Supabase Project
 
