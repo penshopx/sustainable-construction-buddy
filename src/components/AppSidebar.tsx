@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   Package,
   ChevronDown,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -76,6 +77,7 @@ const analisaItems = [
 const learningSubItems = [
   { title: "Pre-test Assessment", url: "/assessment", icon: ClipboardCheck },
   { title: "E-Course", url: "/courses", icon: GraduationCap },
+  { title: "SIAP PUB", url: "https://ai.dokumenproyek.com/", icon: GraduationCap, external: true },
   { title: "Mentor Digital", url: "/mentor", icon: MessageCircle },
   { title: "Sertifikat", url: "/certificates", icon: Award },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
@@ -118,7 +120,7 @@ const adminItems = [
   { title: "Panel Admin", url: "/admin", icon: Shield },
 ];
 
-type SidebarItem = { title: string; url: string; icon: LucideIcon };
+type SidebarItem = { title: string; url: string; icon: LucideIcon; external?: boolean };
 
 function NavItem({ item, collapsed }: { item: SidebarItem; collapsed: boolean }) {
   return (
@@ -173,15 +175,28 @@ function CollapsibleGroup({
               {items.map((item) => (
                 <SidebarMenuSubItem key={item.title}>
                   <SidebarMenuSubButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className="hover:bg-sidebar-accent/50"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-3.5 w-3.5" />
-                      <span>{item.title}</span>
-                    </NavLink>
+                    {item.external ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:bg-sidebar-accent/50"
+                      >
+                        <item.icon className="mr-2 h-3.5 w-3.5" />
+                        <span className="flex-1">{item.title}</span>
+                        <ExternalLink className="ml-auto h-3 w-3 opacity-60" />
+                      </a>
+                    ) : (
+                      <NavLink
+                        to={item.url}
+                        end
+                        className="hover:bg-sidebar-accent/50"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="mr-2 h-3.5 w-3.5" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    )}
                   </SidebarMenuSubButton>
                 </SidebarMenuSubItem>
               ))}

@@ -9,6 +9,8 @@ Rujukan utama floating chatbot LKUT-PUB-LSBUKI terdiri dari Permen PUPR Nomor 7 
 
 Materi Modernisasi Digital menempatkan PUB sebagai ekosistem kompetensi digital 5-lapis: pembelajaran/asesmen, regulasi/ebook, workflow dan monitoring kinerja, AI chatbot/helpdesk, serta generator dokumen. Roadmap komunikasinya adalah setup, pilot, lalu launch/ekspansi.
 
+SIAP PUB diposisikan sebagai sesi pembelajaran dalam pelaksanaan PUB dan terhubung ke platform Konstruksi AI di ai.dokumenproyek.com. Tautan publik dibuka di tab baru; jangan mengklaim integrasi akun/SSO sebelum benar-benar tersedia.
+
 **Why:** Menampilkan semua nama sebagai produk publik membuat pengguna mengira layanan-layanan tersebut terpisah dan tidak terkait.
 
 **How to apply:** Halaman publik dan floating panel menonjolkan Helpdesk Aplikasi serta LKUT-PUB-LSBUKI; tampilkan DokumenProyek sebagai program kemitraan PUB; gunakan rujukan utama dan pendukung LKUT-PUB-LSBUKI secara konsisten; jangan mempromosikan Gustafta di landing page, dashboard, atau navigasi.

@@ -26,6 +26,7 @@ const pubPrograms = [
   "Pemenuhan persyaratan LKUT tahunan secara digital",
   "Penilaian PANCEK dan penerapan SMAP terintegrasi",
   "Workshop, webinar, dan belajar mandiri berbasis modul",
+  "Sesi SIAP PUB yang terhubung dengan platform pembelajaran Konstruksi AI",
   "Kegiatan kolaborasi antar anggota ASPEKINDO",
   "Dokumentasi bukti PUB untuk perpanjangan SBU",
 ];

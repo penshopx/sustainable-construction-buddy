@@ -1,6 +1,7 @@
 import HeroSection from "@/components/HeroSection";
 import IndustryProblemSection from "@/components/IndustryProblemSection";
 import TheOneThingSection from "@/components/TheOneThingSection";
+import SiapPubSection from "@/components/SiapPubSection";
 import SocialProofSection from "@/components/SocialProofSection";
 import EngineCards from "@/components/EngineCards";
 import TeamSection from "@/components/TeamSection";
@@ -20,6 +21,9 @@ const Index = () => {
 
       {/* D — DESIRE: The One Thing solution + before/after + features */}
       <TheOneThingSection />
+
+      {/* Learning session: implementation of PUB through structured learning */}
+      <SiapPubSection />
 
       {/* Social proof: logos, legal basis, reach */}
       <SocialProofSection />

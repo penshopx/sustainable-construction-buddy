@@ -33,6 +33,14 @@ const FAQS = [
     question: "Bagaimana tahapan modernisasi digital PUB?",
     answer: "Roadmap implementasi dirancang bertahap: setup dan integrasi, pilot bersama anggota, kemudian peluncuran dan perluasan layanan. Pendekatan ini memungkinkan PUB menguji manfaat, keamanan data, dan kesiapan operasional sebelum diperluas.",
   },
+  {
+    question: "Apa itu sesi SIAP PUB?",
+    answer: "SIAP PUB adalah sesi pembelajaran sebagai bagian dari pelaksanaan Pengembangan Usaha Berkelanjutan. Anggota BUJK dapat memahami materi PUB dan mengarahkan penerapannya melalui pembelajaran digital.",
+  },
+  {
+    question: "Di mana mengikuti sesi SIAP PUB?",
+    answer: "Sesi SIAP PUB terhubung dengan platform pembelajaran Konstruksi AI di ai.dokumenproyek.com. Gunakan tombol Mulai Sesi SIAP PUB untuk membuka platform tersebut di tab baru.",
+  },
 ];
 
 const REFERENCES = [
@@ -59,6 +67,11 @@ const REFERENCES = [
   {
     title: "Modernisasi Digital PUB ASPEKINDO",
     detail: "Ekosistem kompetensi digital · White-label partnership",
+  },
+  {
+    title: "Sesi SIAP PUB",
+    detail: "Pembelajaran PUB melalui platform Konstruksi AI",
+    href: "https://ai.dokumenproyek.com/",
   },
   {
     title: "LSBUKI Konstruksi",
