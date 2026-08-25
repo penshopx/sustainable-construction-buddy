@@ -407,7 +407,7 @@ const Dashboard = () => {
                   <span className="text-emerald-400 text-xs font-body">Online</span>
                 </div>
                 <p className="font-bold font-heading text-white text-sm">Helpdesk Aplikasi</p>
-                <p className="text-xs text-[hsl(0,0%,60%)] font-body mt-0.5">DokumenProyek · dikelola oleh PT SKI</p>
+                <p className="text-xs text-[hsl(0,0%,60%)] font-body mt-0.5">DokumenProyek · mitra implementasi PUB</p>
               </div>
               <MessageCircle className="w-4 h-4 text-pub-amber mt-1 group-hover:translate-x-0.5 transition-transform" />
             </div>

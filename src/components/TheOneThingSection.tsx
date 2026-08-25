@@ -174,7 +174,7 @@ const TheOneThingSection = () => {
               </div>
               <div>
                 <p className="text-white font-extrabold font-heading text-lg leading-none">DOKUMENPROYEK</p>
-                <p className="text-[hsl(0,0%,55%)] text-xs font-body mt-0.5">Solusi dokumen proyek konstruksi · Dikelola oleh PT SKI</p>
+                <p className="text-[hsl(0,0%,55%)] text-xs font-body mt-0.5">Solusi dokumen proyek konstruksi · Program PUB</p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -198,8 +198,9 @@ const TheOneThingSection = () => {
                   <span className="text-pub-amber">Lebih Tertib &amp; Siap Pakai</span>
                 </h3>
                 <p className="text-[hsl(0,0%,72%)] font-body leading-relaxed mb-6">
-                  PUB ASPEKINDO menghadirkan <strong className="text-white">DokumenProyek</strong>, layanan yang dikelola oleh PT SKI, 
-                  untuk membantu BUJK menemukan panduan, kebutuhan dokumen, dan dukungan penggunaan aplikasi secara lebih terarah.
+                  PUB ASPEKINDO menghadirkan <strong className="text-white">DokumenProyek</strong> sebagai program untuk membantu anggota BUJK 
+                  menemukan panduan, kebutuhan dokumen, dan dukungan penggunaan aplikasi secara lebih terarah. Implementasinya dilakukan 
+                  melalui kerja sama dengan DokumenProyek dan berbagai mitra strategis.
                 </p>
 
                 <div className="mb-6 p-4 rounded-xl bg-[hsl(0,0%,100%)/5%] border border-[hsl(0,0%,100%)/10%]">

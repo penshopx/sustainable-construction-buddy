@@ -32,7 +32,7 @@ export default function AiPubHelpdesk() {
             </div>
           </div>
           <p className="text-[hsl(0,0%,55%)] text-xs font-body truncate">
-            DokumenProyek · dikelola oleh PT SKI · panduan aplikasi PUB
+             Program PUB · implementasi bersama DokumenProyek · panduan aplikasi
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function AiPubHelpdesk() {
               </a>
             </div>
             <p className="text-xs text-muted-foreground font-body">
-              DokumenProyek.com · Dikelola oleh PT SKI · Engine AI{" "}
+              DokumenProyek.com · Mitra implementasi PUB · Engine AI{" "}
               <a href="https://gustafta.my.id" target="_blank" rel="noopener noreferrer" className="text-pub-amber hover:underline">
                 Gustafta
               </a>

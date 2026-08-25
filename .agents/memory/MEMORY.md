@@ -4,4 +4,4 @@
 - [Supabase kept on Replit](supabase-kept.md) — Supabase tidak diganti Replit Postgres; terlalu dalam untuk migrasi penuh.
 - [Imported Node dependency setup](imported-node-dependency-setup.md) — proyek impor dapat memiliki lockfile tanpa node_modules; instalasi dapat menyegarkan dependency transitive.
 - [Post-merge hook](post-merge-hook.md) — proyek impor membutuhkan path hook eksplisit di konfigurasi Replit agar setup pasca-merge berjalan.
-- [Brand architecture](brand-architecture.md) — PUB adalah payung; DokumenProyek layanan helpdesk, PT SKI pengelola, Gustafta engine, LKUT-PUB-LSBU produk asli.
+- [Brand architecture](brand-architecture.md) — PUB adalah payung; DokumenProyek program kemitraan, Gustafta engine, LKUT-PUB-LSBU produk asli.
