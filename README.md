@@ -64,6 +64,16 @@ This project is built with:
 
 Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
 
+## Quality checks
+
+Run the full TypeScript check before building a release:
+
+```sh
+npm run typecheck
+```
+
+`npm run build` runs this check automatically before Vite creates the production bundle.
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!

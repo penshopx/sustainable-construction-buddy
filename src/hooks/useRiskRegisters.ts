@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/components/ui/sonner-toast";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 export interface RiskRegister {
   id: string;
@@ -103,7 +104,7 @@ export function useRiskRegisters(projectId: string | undefined) {
 
   const updateRisk = useMutation({
     mutationFn: async ({ id, risk_level: _rl, ...input }: Partial<RiskRegister> & { id: string }) => {
-      const updates: Record<string, unknown> = { ...input };
+      const updates: TablesUpdate<'risk_registers'> = { ...input };
       // risk_level is a generated column — don't include it
       const { data, error } = await supabase
         .from('risk_registers')

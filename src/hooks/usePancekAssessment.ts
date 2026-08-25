@@ -5,8 +5,10 @@ import { toast } from "@/components/ui/sonner-toast";
 import type { PancekAnswers } from "@/lib/pancekAnswerTypes";
 import type { Json, Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
+type StoredPancekAnswers = Json & (PancekAnswers | Record<string, boolean>);
+
 export type PancekAssessment = Omit<Tables<"pancek_assessments">, "answers"> & {
-  answers: PancekAnswers | Record<string, boolean>;
+  answers: StoredPancekAnswers;
 };
 
 export function usePancekAssessment() {
@@ -26,7 +28,7 @@ export function usePancekAssessment() {
     } else {
       setAssessments((data || []).map((assessment) => ({
         ...assessment,
-        answers: assessment.answers as PancekAssessment["answers"],
+        answers: assessment.answers as StoredPancekAnswers,
       })));
     }
     setLoading(false);
@@ -62,7 +64,7 @@ export function usePancekAssessment() {
       respon_score: Math.round(pillarScores.respon || 0),
       total_answered: totalAnswered,
       completion_percent: completionPercent,
-      answers: answers as Json,
+      answers: answers as PancekAnswers & Json,
     };
 
     const existing = assessments.find(a => a.period_year === periodYear);

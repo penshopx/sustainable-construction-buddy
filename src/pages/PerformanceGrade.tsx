@@ -736,8 +736,8 @@ export function GradingPanel() {
                                 <span className="font-medium">{typeof v === "boolean" ? (v ? "✓" : "✗") : String(v ?? "-")}</span>
                               </div>
                             ))}
-                          {breakdown.reason && (
-                            <p className="col-span-2 text-muted-foreground italic">{breakdown.reason}</p>
+                           {typeof breakdown.reason === "string" && (
+                             <p className="col-span-2 text-muted-foreground italic">{breakdown.reason}</p>
                           )}
                         </div>
                       </CardContent>

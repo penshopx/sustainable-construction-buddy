@@ -46,6 +46,12 @@ const parseVerificationData = (value: Json): LembarVerifikasiData | null => {
   };
 };
 
+const verificationDataToJson = (data: LembarVerifikasiData): Json => ({
+  docs: data.docs.map(({ url, name, uploaded_at }) => ({ url, name, uploaded_at })),
+  ...(data.verification_date !== undefined ? { verification_date: data.verification_date } : {}),
+  ...(data.notes !== undefined ? { notes: data.notes } : {}),
+});
+
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : "Terjadi kesalahan.";
 
 interface Props {
@@ -95,7 +101,10 @@ export default function LembarVerifikasi({ assessmentId, periodYear, assessment 
       const currentAnswers = row?.answers && typeof row.answers === "object" && !Array.isArray(row.answers)
         ? row.answers
         : {};
-      const updatedAnswers: Json = { ...currentAnswers, __lembar_verifikasi: newData };
+      const updatedAnswers: Json = {
+        ...currentAnswers,
+        __lembar_verifikasi: verificationDataToJson(newData),
+      };
 
       const { error } = await supabase.from("pancek_assessments")
         .update({ answers: updatedAnswers })

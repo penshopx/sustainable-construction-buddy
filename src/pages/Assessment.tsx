@@ -44,6 +44,7 @@ function determineLevel(score: number): string {
 }
 
 interface AssessmentRpcQuestion extends Question {
+  created_at: string;
   domain_id: string;
 }
 

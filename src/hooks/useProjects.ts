@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { computeComplexityScore, type ProjectInput } from "@/lib/complexity";
 import { toast } from "@/components/ui/sonner-toast";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 export interface Project {
   id: string;
@@ -63,7 +64,7 @@ export function useProjects() {
 
   const updateProject = useMutation({
     mutationFn: async ({ id, ...input }: Partial<Project> & { id: string }) => {
-      const updates: Record<string, unknown> = { ...input };
+      const updates: TablesUpdate<'projects'> = { ...input };
       // Recalculate complexity if relevant fields changed
       if (input.value_amount !== undefined || input.duration_months !== undefined || input.contract_type !== undefined || input.risk_class !== undefined || input.multidiscipline !== undefined) {
         const existing = projectsQuery.data?.find(p => p.id === id);

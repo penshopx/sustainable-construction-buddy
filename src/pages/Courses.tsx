@@ -340,7 +340,7 @@ const Courses = () => {
       correct_answer: q.correct_answer,
       explanation: q.explanation,
       sort_order: q.sort_order,
-      quiz_type: q.quiz_type,
+      quiz_type: quizType,
     }));
 
     setQuiz({

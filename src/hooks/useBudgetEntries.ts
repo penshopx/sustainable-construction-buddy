@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/components/ui/sonner-toast";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 
 export interface BudgetEntry {
   id: string;
@@ -110,7 +111,7 @@ export function useBudgetEntries(projectId: string | undefined) {
 
   const updateEntry = useMutation({
     mutationFn: async ({ id, ...input }: Partial<BudgetEntry> & { id: string }) => {
-      const updates: Record<string, unknown> = { ...input };
+      const updates: TablesUpdate<'budget_entries'> = { ...input };
       delete updates.user_id;
       delete updates.created_at;
       delete updates.updated_at;

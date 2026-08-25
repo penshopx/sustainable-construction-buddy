@@ -11,7 +11,7 @@ export default defineConfig(() => ({
     host: "0.0.0.0",
     port: frontendPort,
     strictPort: true,
-    allowedHosts: true,
+    allowedHosts: true as const,
     hmr: {
       overlay: false,
     },

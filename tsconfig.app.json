@@ -19,14 +19,17 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "html2pdf.js": [
+        "./src/lib/stubs/html2pdf.ts"
+      ],
+      "xlsx": [
+        "./src/lib/stubs/xlsx.ts"
       ]
     },
     "skipLibCheck": true,
     "strict": false,
     "target": "ES2020",
-    "types": [
-      "vitest/globals"
-    ],
     "useDefineForClassFields": true
   },
   "include": [
