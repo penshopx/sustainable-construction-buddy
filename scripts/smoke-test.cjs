@@ -1,5 +1,5 @@
 const { createConnection } = require("node:net");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 
 const STARTUP_TIMEOUT_MS = 30_000;
 const POLL_INTERVAL_MS = 250;
@@ -247,6 +247,22 @@ async function checkEndpoints() {
   );
 }
 
+function runBrowserTests() {
+  const result = spawnSync(npmCommand, ["run", "test:e2e"], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit",
+  });
+
+  if (result.error) {
+    throw new Error(`browser tests could not start: ${result.error.message}`);
+  }
+
+  if (result.status !== 0) {
+    throw new Error(`browser tests failed with exit code ${result.status}`);
+  }
+}
+
 async function main() {
   try {
     await assertPortsAvailable();
@@ -255,6 +271,9 @@ async function main() {
     console.log(
       `Startup smoke test passed: frontend 200 on port ${frontendPort}; API health ok on port ${apiPort}.`,
     );
+    await stopDevProcess();
+    runBrowserTests();
+    console.log("Browser flow tests passed.");
   } catch (error) {
     console.error(`Startup smoke test failed: ${error.message}`);
     if (stdout.trim()) {

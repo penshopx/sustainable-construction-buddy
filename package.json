@@ -11,6 +11,7 @@
     "build:dev": "npm run typecheck && vite build --mode development",
     "start": "node server.cjs",
     "test:smoke": "node scripts/smoke-test.cjs",
+    "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium && PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
     "preview": "vite preview"
@@ -78,6 +79,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^22.19.21",
     "@types/react": "^18.3.31",
