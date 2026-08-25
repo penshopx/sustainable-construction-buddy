@@ -18,8 +18,12 @@ runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
-mode = "parallel"
+mode = "sequential"
 author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "startup-smoke"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
@@ -36,6 +40,17 @@ outputType = "webview"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "startup-smoke"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "SMOKE_FRONTEND_PORT=5002 SMOKE_API_PORT=3002 npm run test:smoke"
 
 [[ports]]
 localPort = 3001

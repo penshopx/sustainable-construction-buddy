@@ -1,19 +1,23 @@
 import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
+import react from "@vitejs/plugin-react";
 import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
+
+const frontendPort = Number(process.env.FRONTEND_PORT || 5000);
+const apiPort = Number(process.env.API_PORT || 3001);
 
 export default defineConfig(() => ({
   server: {
     host: "0.0.0.0",
-    port: 5000,
+    port: frontendPort,
+    strictPort: true,
     allowedHosts: true,
     hmr: {
       overlay: false,
     },
     proxy: {
       "/api": {
-        target: "http://localhost:3001",
+        target: `http://localhost:${apiPort}`,
         changeOrigin: true,
       },
     },
