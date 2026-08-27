@@ -11,6 +11,11 @@ import { getConflictingPositions, getShortPosition, QUALIFICATION_OPTIONS, type 
 
 type AdminRequestStatus = "none" | "pending" | "approved" | "rejected";
 
+// The admin_requests table + super_admin role only exist once their
+// migration has run in the database. Keep this off until then so users
+// don't see a request button that fails on click.
+const ADMIN_REQUEST_FEATURE_ENABLED = false;
+
 const JABATAN_OPTIONS = [
   "Penanggung Jawab Badan Usaha (PJBU) / Direktur",
   "Penanggung Jawab Teknik (PJT)",
@@ -46,7 +51,7 @@ const Profile = () => {
   const [checkingRequest, setCheckingRequest] = useState(true);
 
   useEffect(() => {
-    if (!user || isAdmin) {
+    if (!ADMIN_REQUEST_FEATURE_ENABLED || !user || isAdmin) {
       setCheckingRequest(false);
       return;
     }
@@ -151,7 +156,7 @@ const Profile = () => {
         </div>
 
         {/* Admin access request */}
-        {!isAdmin && !checkingRequest && (
+        {ADMIN_REQUEST_FEATURE_ENABLED && !isAdmin && !checkingRequest && (
           <div className="bg-card border border-border rounded-xl p-6 shadow-card mb-6">
             <div className="flex items-center gap-2 mb-2">
               <ShieldAlert className="w-5 h-5 text-pub-amber" />

@@ -15,12 +15,26 @@ export function useAdmin() {
     }
 
     const check = async () => {
-      const { data } = await supabase
+      // "super_admin" only exists as a DB enum value once its migration has run.
+      // Until then, this filter errors (invalid enum literal) instead of just
+      // returning no rows, so fall back to checking "admin" alone.
+      const { data, error } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .in("role", ["admin", "super_admin"]);
-      setIsAdmin(!!data && data.length > 0);
+
+      if (error) {
+        const fallback = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .maybeSingle();
+        setIsAdmin(!!fallback.data);
+      } else {
+        setIsAdmin(!!data && data.length > 0);
+      }
       setLoading(false);
     };
     check();
