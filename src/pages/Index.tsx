@@ -1,4 +1,5 @@
 import HeroSection from "@/components/HeroSection";
+import ProjectVideoSection from "@/components/ProjectVideoSection";
 import IndustryProblemSection from "@/components/IndustryProblemSection";
 import TheOneThingSection from "@/components/TheOneThingSection";
 import SiapPubSection from "@/components/SiapPubSection";
@@ -16,6 +17,9 @@ const Index = () => {
     <main className="min-h-screen">
       {/* A — ATTENTION: Hero with shocking industry data */}
       <HeroSection />
+
+      {/* Motion piece: 4 Siap menghadapi perubahan industri */}
+      <ProjectVideoSection />
 
       {/* I — INTEREST: Deep dive into real problems + public data */}
       <IndustryProblemSection />
