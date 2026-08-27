@@ -60,6 +60,8 @@ const CATEGORIES: Category[] = [
       { q: "Apa itu menu Proyek Saya?", a: "Menu Proyek memungkinkan Anda mengelola daftar proyek konstruksi BUJK, melacak progress, dan menyimpan evidence untuk keperluan dokumentasi kompetensi." },
       { q: "Bagaimana cara pakai Risk Register?", a: "Buka Proyek → Risk Register. Tambahkan risiko proyek, tentukan level (tinggi/sedang/rendah), dan catat mitigasi. Data ini digunakan sebagai evidence kompetensi manajemen risiko." },
       { q: "Apa fungsi K3 Checklist?", a: "K3 Checklist membantu memastikan seluruh aspek Keselamatan & Kesehatan Kerja di proyek terpenuhi dan terdokumentasi sesuai regulasi." },
+      { q: "Apa itu DokumenProyek?", a: "DokumenProyek adalah layanan pihak ketiga untuk kebutuhan Siap Proyek — membantu BUJK menyusun dan mengelola dokumen administrasi proyek konstruksi. Ini bukan bagian dari persyaratan LKUT, PANCEK, atau SMAP." },
+      { q: "Di mana mengakses DokumenProyek?", a: "DokumenProyek dapat diakses melalui menu Data Operasional di sidebar, atau langsung di <a href='https://dokumenproyek.com' target='_blank' rel='noopener noreferrer' class='text-pub-sky underline'>dokumenproyek.com</a>. Tautan akan terbuka di tab baru." },
     ],
   },
   {
@@ -67,8 +69,7 @@ const CATEGORIES: Category[] = [
     label: "AI Mentor & Helpdesk Aplikasi",
     articles: [
       { q: "Apa itu AI Mentor?", a: "AI Mentor adalah asisten AI yang membantu Anda belajar modul, menjawab pertanyaan terkait materi pembelajaran, dan memberikan penjelasan mendalam." },
-      { q: "Apa fungsi Helpdesk Aplikasi?", a: "Helpdesk Aplikasi membantu Anda menggunakan fitur PUB ASPEKINDO, menemukan panduan LKUT-PUB-LSBUKI, dan mengakses layanan DokumenProyek sesuai kebutuhan dokumen proyek Anda." },
-      { q: "Apa hubungan PUB, DokumenProyek, dan Gustafta?", a: "DokumenProyek adalah bagian dari program PUB ASPEKINDO untuk membantu anggota BUJK mengelola dokumen proyek. Implementasinya dilakukan melalui kerja sama dengan DokumenProyek dan berbagai mitra strategis. Gustafta dapat menjadi engine AI pendukung di dalam Helpdesk Aplikasi. Akses DokumenProyek tersedia di <a href='https://dokumenproyek.com' target='_blank' rel='noopener noreferrer' class='text-pub-sky underline'>dokumenproyek.com</a>." },
+      { q: "Apa fungsi Helpdesk Aplikasi?", a: "Helpdesk Aplikasi membantu Anda menggunakan fitur PUB ASPEKINDO dan menemukan panduan LKUT-PUB-LSBUKI." },
     ],
   },
   {

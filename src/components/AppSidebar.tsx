@@ -65,6 +65,7 @@ const dataOperasionalItems = [
   { title: "K3 Checklist", url: "/k3-checklist", icon: HardHat },
   { title: "SMAP", url: "/smap", icon: ShieldCheck },
   { title: "PANCEK", url: "/pancek", icon: ShieldAlert },
+  { title: "DokumenProyek", url: "https://dokumenproyek.com", icon: FileText, external: true },
 ];
 
 // Analisa & Penilaian (hasil olahan dari data)
@@ -90,7 +91,6 @@ const communitySubItems = [
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Direktori Perusahaan", url: "/direktori", icon: Building2 },
-  { title: "AI PUB HelpDesk", url: "/ai-helpdesk", icon: MessageCircle },
   { title: "Pakar Cerdas", url: "/helpdesk", icon: Bot },
   { title: "Pesanan Saya", url: "/pesanan", icon: ShoppingBag },
   { title: "Produk Saya", url: "/produk-saya", icon: Package },
