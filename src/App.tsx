@@ -58,6 +58,7 @@ import AdminRoleConflicts from "./pages/admin/AdminRoleConflicts";
 import AdminSummary from "./pages/admin/AdminSummary";
 import AdminMarketingBrief from "./pages/admin/AdminMarketingBrief";
 import PitchDeck from "./pages/PitchDeck";
+import PubAspekindoVideo from "./pages/PubAspekindoVideo";
 
 const queryClient = new QueryClient();
 
@@ -121,6 +122,7 @@ const App = () => (
             <Route path="/program-kegiatan/:id" element={<DashboardLayout><ProgramDetail /></DashboardLayout>} />
             <Route path="/install" element={<Install />} />
             <Route path="/pitch-deck" element={<PitchDeck />} />
+            <Route path="/video-pub-aspekindo" element={<PubAspekindoVideo />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
