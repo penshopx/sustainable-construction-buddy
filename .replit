@@ -12,7 +12,6 @@ packages = ["freetype", "gumbo", "harfbuzz", "jbig2dec", "lcms2", "libimagequant
 deploymentTarget = "autoscale"
 run = ["node", "server.cjs"]
 build = ["npm", "run", "build"]
-publicDir = "dist"
 
 [workflows]
 runButton = "Project"
