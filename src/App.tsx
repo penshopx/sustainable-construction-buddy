@@ -29,6 +29,8 @@ import ComplianceTracker from "./pages/ComplianceTracker";
 import SmapDashboard from "./pages/SmapDashboard";
 import Notifications from "./pages/Notifications";
 import AdminGuard from "./components/AdminGuard";
+import SuperAdminGuard from "./components/SuperAdminGuard";
+import AdminRequests from "./pages/admin/AdminRequests";
 import DashboardLayout from "./components/DashboardLayout";
 import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
@@ -115,6 +117,7 @@ const App = () => (
             <Route path="/admin/questions" element={<DashboardLayout><AdminGuard><AdminQuestions /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/role-conflicts" element={<DashboardLayout><AdminGuard><AdminRoleConflicts /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/rangkuman" element={<DashboardLayout><AdminGuard><AdminSummary /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/permintaan" element={<DashboardLayout><SuperAdminGuard><AdminRequests /></SuperAdminGuard></DashboardLayout>} />
             <Route path="/admin/marketing-brief" element={<DashboardLayout><AdminGuard><AdminMarketingBrief /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />

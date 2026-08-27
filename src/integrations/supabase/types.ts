@@ -2340,6 +2340,33 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_requests: {
+        Row: {
+          id: string
+          user_id: string
+          status: string
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          status?: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          status?: string
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Relationships: []
+      }
       user_subscriptions: {
         Row: {
           created_at: string
@@ -2397,13 +2424,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      approve_admin_request: {
+        Args: { _request_id: string; _approve: boolean }
+        Returns: undefined
+      }
       submit_assessment: {
         Args: { _answers: Json; _pre_test_id: string }
         Returns: Json
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2531,7 +2562,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "super_admin"],
     },
   },
 } as const

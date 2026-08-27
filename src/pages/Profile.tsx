@@ -1,12 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import { toast } from "@/components/ui/sonner-toast";
-import { User, Building2, Briefcase, Save, Loader2, Star, Award, Crown, Gem, ShieldCheck, type LucideIcon } from "lucide-react";
+import { User, Building2, Briefcase, Save, Loader2, Star, Award, Crown, Gem, ShieldCheck, ShieldAlert, Send, type LucideIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RoleConflictAlert } from "@/components/RoleConflictAlert";
+import { useAdmin } from "@/hooks/useAdmin";
 import { getConflictingPositions, getShortPosition, QUALIFICATION_OPTIONS, type BUJKQualification } from "@/lib/roleConstraints";
+
+type AdminRequestStatus = "none" | "pending" | "approved" | "rejected";
 
 const JABATAN_OPTIONS = [
   "Penanggung Jawab Badan Usaha (PJBU) / Direktur",
@@ -37,6 +40,42 @@ const Profile = () => {
       : "menengah"
   );
   const [saving, setSaving] = useState(false);
+  const { isAdmin } = useAdmin();
+  const [adminRequestStatus, setAdminRequestStatus] = useState<AdminRequestStatus>("none");
+  const [requestingAdmin, setRequestingAdmin] = useState(false);
+  const [checkingRequest, setCheckingRequest] = useState(true);
+
+  useEffect(() => {
+    if (!user || isAdmin) {
+      setCheckingRequest(false);
+      return;
+    }
+    const checkRequest = async () => {
+      const { data } = await supabase
+        .from("admin_requests")
+        .select("status")
+        .eq("user_id", user.id)
+        .order("requested_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setAdminRequestStatus((data?.status as AdminRequestStatus) || "none");
+      setCheckingRequest(false);
+    };
+    checkRequest();
+  }, [user, isAdmin]);
+
+  const handleRequestAdmin = async () => {
+    if (!user) return;
+    setRequestingAdmin(true);
+    const { error } = await supabase.from("admin_requests").insert({ user_id: user.id });
+    if (error) {
+      toast.error("Gagal mengajukan akses admin. Coba lagi.");
+    } else {
+      toast.success("Permintaan akses admin terkirim.");
+      setAdminRequestStatus("pending");
+    }
+    setRequestingAdmin(false);
+  };
 
   // Get conflicting positions for current selection
   const positionConflicts = position ? getConflictingPositions(position, bujkQualification) : [];
@@ -110,6 +149,49 @@ const Profile = () => {
         <div className="mb-6">
           <RoleConflictAlert qualification={bujkQualification} />
         </div>
+
+        {/* Admin access request */}
+        {!isAdmin && !checkingRequest && (
+          <div className="bg-card border border-border rounded-xl p-6 shadow-card mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldAlert className="w-5 h-5 text-pub-amber" />
+              <h3 className="text-sm font-heading font-semibold text-foreground">Akses Admin</h3>
+            </div>
+            {adminRequestStatus === "pending" ? (
+              <p className="text-sm text-muted-foreground font-body">
+                Permintaan Anda sedang menunggu persetujuan super admin.
+              </p>
+            ) : adminRequestStatus === "rejected" ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground font-body">Permintaan sebelumnya ditolak.</p>
+                <button
+                  type="button"
+                  onClick={handleRequestAdmin}
+                  disabled={requestingAdmin}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-pub-amber/40 text-pub-amber font-heading text-sm font-medium hover:bg-pub-amber/10 transition-colors disabled:opacity-50"
+                >
+                  {requestingAdmin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Ajukan Ulang
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground font-body">
+                  Butuh akses ke Panel Admin? Ajukan permintaan, dan super admin akan meninjaunya.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRequestAdmin}
+                  disabled={requestingAdmin}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-pub-amber/40 text-pub-amber font-heading text-sm font-medium hover:bg-pub-amber/10 transition-colors disabled:opacity-50"
+                >
+                  {requestingAdmin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  Ajukan jadi Admin
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Profile form */}
         <form onSubmit={handleSave} className="bg-card border border-border rounded-xl p-6 shadow-card space-y-5">

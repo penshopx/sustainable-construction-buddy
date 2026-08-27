@@ -32,6 +32,7 @@ import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import logoPub from "@/assets/logo-pub-new.png";
 import { motion } from "framer-motion";
 import {
@@ -215,6 +216,10 @@ export function AppSidebar() {
   const currentPath = location.pathname;
   const { profile, signOut } = useAuth();
   const { isAdmin } = useAdmin();
+  const { isSuperAdmin } = useSuperAdmin();
+  const visibleAdminItems = isSuperAdmin
+    ? [...adminItems, { title: "Permintaan Admin", url: "/admin/permintaan", icon: ShieldCheck }]
+    : adminItems;
 
   return (
     <Sidebar collapsible="icon">
@@ -299,7 +304,7 @@ export function AppSidebar() {
                 <CollapsibleGroup
                   label="Admin Panel"
                   icon={Shield}
-                  items={adminItems}
+                  items={visibleAdminItems}
                   collapsed={collapsed}
                   currentPath={currentPath}
                 />
