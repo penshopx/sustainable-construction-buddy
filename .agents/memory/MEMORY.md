@@ -11,3 +11,4 @@
 - [Test runner availability](test-runner-availability.md) — Vitest kompatibel dengan Vite 5 dapat diblokir firewall; jangan sisakan scaffold test tanpa dependency yang dapat dipasang.
 - [Supabase single responses](supabase-single-response.md) — mock endpoint Supabase untuk query `.single()` harus mengembalikan objek JSON, bukan array satu elemen.
 - [Supabase key rotation](supabase-partial-outages.md) — Auth timeout dapat berasal dari API key yang sudah dirotasi; validasi key lewat REST.
+- [Supabase Auth redirects](supabase-auth-redirect-probes.md) — perubahan allowlist belum selesai sebelum link nyata mempertahankan redirect lengkap yang diminta.

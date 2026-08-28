@@ -49,6 +49,8 @@ Preview Replit memakai port 5000. API frontend Supabase tetap menggunakan projec
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Replit Env Var | Supabase anon/public key |
 | `SUPABASE_URL` | Replit Env Var | Sama dengan VITE_SUPABASE_URL |
 | `SUPABASE_ANON_KEY` | Replit Secret | Supabase anon key |
+| `SUPABASE_ACCESS_TOKEN` | Replit Secret | Personal Access Token `sbp_...` untuk konfigurasi Auth |
+| `SUPABASE_SERVICE_ROLE_KEY` | Replit Secret | Service-role key untuk probe Auth Admin |
 | `LOVABLE_API_KEY` | Supabase Edge Function Secrets | Untuk fitur AI chat |
 | `OPENROUTER_API_KEY` | Replit Secret (opsional) | Fallback AI untuk endpoint `/api/helpdesk` |
 | `OPENAI_API_KEY` | Replit Secret (opsional) | Fallback AI alternatif untuk endpoint `/api/helpdesk` |
@@ -63,6 +65,8 @@ Preview Replit memakai port 5000. API frontend Supabase tetap menggunakan projec
 - Project ID: `yidlglstzvizsszrpobi`
 - Semua migrasi ada di `supabase/migrations/`
 - Edge Functions: `supabase/functions/` (deploy ke Supabase, bukan ke Replit)
+
+Setelah origin preview berubah, jalankan `npm run configure:auth-redirects`. Perintah ini sengaja dijalankan manual karena memakai kredensial istimewa: Site URL akan diarahkan ke origin Replit aktif, URL lama tetap dipertahankan di allowlist, lalu link konfirmasi dan recovery nyata dihasilkan untuk memastikan path tidak diganti ke localhost. Akun probe langsung dihapus dan bukti non-secret disimpan di `supabase/auth-redirect-verification.json`.
 
 ## Blocked Packages (Replit Security Policy)
 
