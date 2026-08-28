@@ -79,12 +79,12 @@ const HeroSection = () => {
             >
               Helpdesk Aplikasi
             </button>
-            <div className="order-2 grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="order-2 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
               <a
                 href="https://app.aspekindo.id/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-white bg-pub-sky px-4 py-4 text-center font-bold font-heading text-pub-navy shadow-[0_8px_24px_rgba(0,124,248,0.45)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+                className="inline-flex min-h-16 items-center justify-center gap-1 whitespace-nowrap rounded-xl border-2 border-white bg-pub-sky px-2 py-4 text-center text-[11px] font-bold font-heading tracking-tight text-pub-navy shadow-[0_8px_24px_rgba(0,124,248,0.45)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] xl:text-[10px]"
               >
                 Portal Keanggotaan (KTA) ASPEKINDO
                 <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -93,7 +93,7 @@ const HeroSection = () => {
                 href="https://lsbukonstruksi.co.id"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-pub-amber bg-pub-navy/95 px-4 py-4 text-center font-bold font-heading text-white shadow-[0_8px_24px_rgba(245,158,11,0.3)] transition-all duration-200 hover:bg-pub-amber hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-amber focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+                className="inline-flex min-h-16 items-center justify-center gap-1 whitespace-nowrap rounded-xl border-2 border-pub-amber bg-pub-navy/95 px-2 py-4 text-center text-[11px] font-bold font-heading tracking-tight text-white shadow-[0_8px_24px_rgba(245,158,11,0.3)] transition-all duration-200 hover:bg-pub-amber hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-amber focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] xl:text-[10px]"
               >
                 Sertifikasi Badan Usaha (SBU) LSBU KI
                 <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -102,7 +102,7 @@ const HeroSection = () => {
                 href="https://asdamkindo.id/anggota/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-white bg-[hsl(220,60%,8%)] px-4 py-4 text-center font-bold font-heading text-white shadow-[0_8px_24px_rgba(0,124,248,0.3)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+                className="inline-flex min-h-16 items-center justify-center gap-1 whitespace-nowrap rounded-xl border-2 border-white bg-[hsl(220,60%,8%)] px-2 py-4 text-center text-[11px] font-bold font-heading tracking-tight text-white shadow-[0_8px_24px_rgba(0,124,248,0.3)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] xl:text-[10px]"
               >
                 Portal Keanggotaan (KTA) ASDAMKINDO
                 <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
@@ -111,7 +111,7 @@ const HeroSection = () => {
                 href="https://lspsdmkonstruksi.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-pub-sky bg-white px-4 py-4 text-center font-bold font-heading text-pub-navy shadow-[0_8px_24px_rgba(255,255,255,0.25)] transition-all duration-200 hover:bg-pub-sky hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+                className="inline-flex min-h-16 items-center justify-center gap-1 whitespace-nowrap rounded-xl border-2 border-pub-sky bg-white px-2 py-4 text-center text-[11px] font-bold font-heading tracking-tight text-pub-navy shadow-[0_8px_24px_rgba(255,255,255,0.25)] transition-all duration-200 hover:bg-pub-sky hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] xl:text-[10px]"
               >
                 Sertifikasi Kompetensi Kerja (SKK) LSP SDMKI
                 <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
