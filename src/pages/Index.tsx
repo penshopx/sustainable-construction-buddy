@@ -3,6 +3,7 @@ import ProjectVideoSection from "@/components/ProjectVideoSection";
 import IndustryProblemSection from "@/components/IndustryProblemSection";
 import TheOneThingSection from "@/components/TheOneThingSection";
 import SiapPubSection from "@/components/SiapPubSection";
+import AspekindoLearningSection from "@/components/AspekindoLearningSection";
 import DokumenProyekSection from "@/components/DokumenProyekSection";
 import SocialProofSection from "@/components/SocialProofSection";
 import EngineCards from "@/components/EngineCards";
@@ -29,6 +30,9 @@ const Index = () => {
 
       {/* Learning session: implementation of PUB through structured learning */}
       <SiapPubSection />
+
+      {/* ASPEKINDO's own learning activities and public agenda */}
+      <AspekindoLearningSection />
 
       {/* Siap Proyek: third-party document administration service */}
       <DokumenProyekSection />
