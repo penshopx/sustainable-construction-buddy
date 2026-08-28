@@ -45,7 +45,7 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
-          className="max-w-4xl"
+          className="max-w-6xl"
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/15 border border-destructive/25 text-destructive text-sm font-semibold font-heading mb-5">
             <AlertTriangle className="w-3.5 h-3.5" />
@@ -65,17 +65,17 @@ const HeroSection = () => {
             sebagai mitra strategis BUJK untuk tumbuh, patuh, dan berdaya saing.
           </p>
 
-          <div className="flex flex-wrap gap-4 mb-16">
+          <div className="flex max-w-6xl flex-wrap gap-4 mb-16">
             <button
               onClick={() => navigate("/auth")}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-lg shadow-amber hover:brightness-110 transition-all duration-200"
+              className="inline-flex w-full items-center justify-center gap-2 px-6 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-base shadow-amber hover:brightness-110 transition-all duration-200 sm:w-auto sm:px-8 sm:text-lg"
             >
               Bergabung & Jadilah Kontraktor Berdaya Saing
               <ArrowRight className="w-5 h-5" />
             </button>
             <button
               onClick={() => document.getElementById("floating-helpdesk-btn")?.click()}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-[hsl(0,0%,100%)/20%] text-[hsl(0,0%,85%)] font-semibold font-heading hover:bg-[hsl(0,0%,100%)/8%] transition-all duration-200"
+              className="order-3 inline-flex w-full items-center justify-center gap-2 px-6 py-4 rounded-xl border border-[hsl(0,0%,100%)/35%] text-white font-semibold font-heading hover:bg-[hsl(0,0%,100%)/12%] transition-all duration-200 sm:order-2 sm:w-auto sm:px-8"
             >
               Helpdesk Aplikasi
             </button>
@@ -83,7 +83,7 @@ const HeroSection = () => {
               href="https://app.aspekindo.id/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-pub-sky/40 bg-pub-sky/10 text-pub-sky font-semibold font-heading hover:bg-pub-sky/20 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-sky focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+              className="order-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-white bg-pub-sky px-6 py-4 font-bold font-heading text-pub-navy shadow-[0_8px_24px_rgba(0,124,248,0.45)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] sm:order-3 sm:w-auto sm:px-8"
             >
               Portal Keanggotaan ASPEKINDO
               <ExternalLink className="w-4 h-4" aria-hidden="true" />

@@ -1,8 +1,9 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
+import type { AuthError } from "@supabase/supabase-js";
+import { AlertCircle, Building2, CheckCircle2, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "@/components/ui/sonner-toast";
 
@@ -14,45 +15,123 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [authError, setAuthError] = useState("");
+  const [registrationMessage, setRegistrationMessage] = useState("");
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authLoading, navigate, user]);
+
+  useEffect(() => {
+    if (searchParams.get("confirmed") === "1") {
+      setRegistrationMessage("Email berhasil dikonfirmasi. Silakan masuk untuk melanjutkan.");
+    }
+  }, [searchParams]);
+
+  const getAuthErrorMessage = (error: AuthError) => {
+    const message = error.message.toLowerCase();
+    if (error.name === "AuthRetryableFetchError" || message.includes("failed to fetch") || message.includes("aborted")) {
+      return "Layanan autentikasi sedang tidak dapat dihubungi. Silakan coba kembali beberapa saat lagi.";
+    }
+    if (message.includes("invalid login credentials")) {
+      return "Email atau password tidak sesuai.";
+    }
+    if (message.includes("email not confirmed")) {
+      return "Email belum dikonfirmasi. Periksa kotak masuk atau folder spam Anda.";
+    }
+    if (message.includes("user already registered")) {
+      return "Email ini sudah terdaftar. Silakan masuk atau gunakan fitur lupa password.";
+    }
+    if (message.includes("rate limit")) {
+      return "Terlalu banyak percobaan. Silakan tunggu beberapa menit sebelum mencoba lagi.";
+    }
+    return error.message;
+  };
+
+  const showAuthError = (error: AuthError) => {
+    const message = getAuthErrorMessage(error);
+    setAuthError(message);
+    toast.error(message);
+  };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError("");
+    setRegistrationMessage("");
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Link reset password telah dikirim ke email Anda.");
-      setIsForgot(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        showAuthError(error);
+      } else {
+        setRegistrationMessage("Link reset password telah dikirim. Periksa kotak masuk atau folder spam Anda.");
+        toast.success("Link reset password telah dikirim ke email Anda.");
+        setIsForgot(false);
+      }
+    } catch {
+      const message = "Layanan autentikasi sedang tidak dapat dihubungi. Silakan coba kembali beberapa saat lagi.";
+      setAuthError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError("");
+    setRegistrationMessage("");
     setLoading(true);
 
-    if (isLogin) {
-      const { error } = await signIn(email, password);
-      if (error) {
-        toast.error(error.message);
+    try {
+      if (isLogin) {
+        const { error, session } = await signIn(email.trim(), password);
+        if (error) {
+          showAuthError(error);
+        } else if (session) {
+          navigate("/dashboard");
+        } else {
+          const message = "Sesi login belum terbentuk. Silakan coba masuk kembali.";
+          setAuthError(message);
+          toast.error(message);
+        }
       } else {
-        navigate("/dashboard");
+        const { error, session } = await signUp(email.trim(), password, fullName.trim());
+        if (error) {
+          showAuthError(error);
+        } else if (session) {
+          toast.success("Registrasi berhasil!");
+          navigate("/dashboard");
+        } else {
+          const message = "Registrasi berhasil. Periksa email Anda untuk mengonfirmasi akun sebelum masuk.";
+          setRegistrationMessage(message);
+          toast.success(message);
+          setIsLogin(true);
+          setPassword("");
+        }
       }
-    } else {
-      const { error } = await signUp(email, password, fullName);
-      if (error) {
-        toast.error(error.message);
-      } else {
-        toast.success("Registrasi berhasil!");
-        navigate("/dashboard");
-      }
+    } catch {
+      const message = "Layanan autentikasi sedang tidak dapat dihubungi. Silakan coba kembali beberapa saat lagi.";
+      setAuthError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const changeMode = () => {
+    setIsLogin((current) => !current);
+    setIsForgot(false);
+    setAuthError("");
+    setRegistrationMessage("");
+    setPassword("");
   };
 
   return (
@@ -113,6 +192,20 @@ const Auth = () => {
               ? "Masuk untuk melanjutkan perjalanan kompetensi Anda."
               : "Buat akun untuk memulai assessment kompetensi."}
           </p>
+
+          {authError && (
+            <div role="alert" className="mb-5 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{authError}</span>
+            </div>
+          )}
+
+          {registrationMessage && (
+            <div role="status" className="mb-5 flex items-start gap-3 rounded-xl border border-pub-emerald/30 bg-pub-emerald/10 p-4 text-sm text-pub-emerald">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{registrationMessage}</span>
+            </div>
+          )}
 
           {isForgot ? (
             <form onSubmit={handleForgotPassword} className="space-y-4">
@@ -217,14 +310,14 @@ const Auth = () => {
 
           <p className="text-center text-sm text-muted-foreground font-body mt-6">
             {isForgot ? (
-              <button onClick={() => setIsForgot(false)} className="text-accent font-semibold hover:underline">
+              <button onClick={() => { setIsForgot(false); setAuthError(""); }} className="text-accent font-semibold hover:underline">
                 Kembali ke login
               </button>
             ) : (
               <>
                 {isLogin ? "Belum punya akun? " : "Sudah punya akun? "}
                 <button
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={changeMode}
                   className="text-accent font-semibold hover:underline"
                 >
                   {isLogin ? "Daftar sekarang" : "Masuk"}

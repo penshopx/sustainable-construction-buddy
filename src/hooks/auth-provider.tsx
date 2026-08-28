@@ -41,33 +41,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      profileRequestId.current += 1;
-      setSession(session);
-      setUser(session?.user ?? null);
-      setProfile(null);
-      if (session?.user) void fetchProfile(session.user.id);
-      setLoading(false);
-    });
+    void supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        profileRequestId.current += 1;
+        setSession(session);
+        setUser(session?.user ?? null);
+        setProfile(null);
+        if (session?.user) void fetchProfile(session.user.id);
+      })
+      .catch((error: unknown) => {
+        console.error("Gagal memulihkan sesi autentikasi:", error);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      })
+      .finally(() => setLoading(false));
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth?confirmed=1`,
       },
     });
-    return { error };
+    return { error, session: data.session };
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error, session: data.session };
   };
 
   const signOut = async () => {

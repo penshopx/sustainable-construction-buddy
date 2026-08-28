@@ -8,8 +8,8 @@ export interface AuthContextType {
   session: Session | null;
   loading: boolean;
   profile: Profile | null;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null; session: Session | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null; session: Session | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
