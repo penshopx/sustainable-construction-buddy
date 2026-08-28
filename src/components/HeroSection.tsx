@@ -68,7 +68,7 @@ const HeroSection = () => {
           <div className="flex max-w-6xl flex-wrap gap-4 mb-16">
             <button
               onClick={() => navigate("/auth")}
-              className="inline-flex w-full items-center justify-center gap-2 px-6 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-base shadow-amber hover:brightness-110 transition-all duration-200 sm:w-auto sm:px-8 sm:text-lg"
+              className="order-1 inline-flex w-full items-center justify-center gap-2 px-6 py-4 rounded-xl bg-gradient-amber text-accent-foreground font-bold font-heading text-base shadow-amber hover:brightness-110 transition-all duration-200 sm:w-auto sm:px-8 sm:text-lg"
             >
               Bergabung & Jadilah Kontraktor Berdaya Saing
               <ArrowRight className="w-5 h-5" />
@@ -79,34 +79,44 @@ const HeroSection = () => {
             >
               Helpdesk Aplikasi
             </button>
-            <a
-              href="https://app.aspekindo.id/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="order-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-white bg-pub-sky px-6 py-4 font-bold font-heading text-pub-navy shadow-[0_8px_24px_rgba(0,124,248,0.45)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] sm:order-4 sm:w-auto sm:px-8"
-            >
-              Portal Keanggotaan ASPEKINDO
-              <ExternalLink className="w-4 h-4" aria-hidden="true" />
-            </a>
-            <div className="hidden basis-full sm:order-3 sm:block" aria-hidden="true" />
-            <a
-              href="https://lsbukonstruksi.co.id"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="order-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-pub-amber bg-pub-navy/95 px-6 py-4 font-bold font-heading text-white shadow-[0_8px_24px_rgba(245,158,11,0.3)] transition-all duration-200 hover:bg-pub-amber hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-amber focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] sm:order-5 sm:w-auto sm:px-8"
-            >
-              Sertifikasi Badan Usaha LSBU KI
-              <ExternalLink className="w-4 h-4" aria-hidden="true" />
-            </a>
-            <a
-              href="https://lspsdmkonstruksi.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="order-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border-2 border-pub-sky bg-white px-6 py-4 font-bold font-heading text-pub-navy shadow-[0_8px_24px_rgba(255,255,255,0.25)] transition-all duration-200 hover:bg-pub-sky hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] sm:order-6 sm:w-auto sm:px-8"
-            >
-              Sertifikasi Kompetensi Kerja
-              <ExternalLink className="w-4 h-4" aria-hidden="true" />
-            </a>
+            <div className="order-2 grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <a
+                href="https://app.aspekindo.id/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-white bg-pub-sky px-4 py-4 text-center font-bold font-heading text-pub-navy shadow-[0_8px_24px_rgba(0,124,248,0.45)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+              >
+                Portal Keanggotaan ASPEKINDO
+                <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
+              </a>
+              <a
+                href="https://lsbukonstruksi.co.id"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-pub-amber bg-pub-navy/95 px-4 py-4 text-center font-bold font-heading text-white shadow-[0_8px_24px_rgba(245,158,11,0.3)] transition-all duration-200 hover:bg-pub-amber hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-amber focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+              >
+                Sertifikasi Badan Usaha LSBU KI
+                <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
+              </a>
+              <a
+                href="https://lspsdmkonstruksi.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-pub-sky bg-white px-4 py-4 text-center font-bold font-heading text-pub-navy shadow-[0_8px_24px_rgba(255,255,255,0.25)] transition-all duration-200 hover:bg-pub-sky hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+              >
+                Sertifikasi Kompetensi Kerja
+                <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
+              </a>
+              <a
+                href="https://asdamkindo.id/anggota/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-white bg-[hsl(220,60%,8%)] px-4 py-4 text-center font-bold font-heading text-white shadow-[0_8px_24px_rgba(0,124,248,0.3)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+              >
+                Portal Keanggotaan ASDAMKINDO
+                <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
+              </a>
+            </div>
           </div>
         </motion.div>
 
