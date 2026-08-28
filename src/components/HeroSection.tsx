@@ -113,7 +113,7 @@ const HeroSection = () => {
                 rel="noopener noreferrer"
                 className="inline-flex min-h-16 items-center justify-center gap-2 rounded-xl border-2 border-pub-sky bg-white px-4 py-4 text-center font-bold font-heading text-pub-navy shadow-[0_8px_24px_rgba(255,255,255,0.25)] transition-all duration-200 hover:bg-pub-sky hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
               >
-                Sertifikat Kompetensi Kerja (SKK)
+                Sertifikasi Kompetensi Kerja (SKK) LSP SDMKI
                 <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
               </a>
             </div>
