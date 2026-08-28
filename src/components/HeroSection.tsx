@@ -79,7 +79,7 @@ const HeroSection = () => {
             >
               Helpdesk Aplikasi
             </button>
-            <div className="order-2 flex w-full flex-wrap gap-2">
+            <div className="order-2 mx-auto grid w-full max-w-5xl grid-cols-1 justify-items-center gap-2 sm:grid-cols-2">
               <a
                 href="https://app.aspekindo.id/"
                 target="_blank"
