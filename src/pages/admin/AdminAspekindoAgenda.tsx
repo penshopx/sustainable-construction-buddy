@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { getScheduleValidationMessage } from "@/lib/aspekindoCalendar";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,6 +170,16 @@ export default function AdminAspekindoAgenda() {
       toast({
         title: "Tautan pendaftaran tidak valid",
         description: "Gunakan alamat lengkap yang diawali https://.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const scheduleValidationMessage = getScheduleValidationMessage(form.schedule);
+    if (scheduleValidationMessage) {
+      toast({
+        title: "Format jam belum dapat dipetakan",
+        description: scheduleValidationMessage,
         variant: "destructive",
       });
       return;
@@ -403,7 +414,19 @@ export default function AdminAspekindoAgenda() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="agenda-schedule">Jam / durasi</Label>
-                <Input id="agenda-schedule" value={form.schedule} onChange={(event) => updateForm("schedule", event.target.value)} placeholder="09.00–12.00 WIB" />
+                <Input
+                  id="agenda-schedule"
+                  aria-describedby="agenda-schedule-help"
+                  value={form.schedule}
+                  onChange={(event) => updateForm("schedule", event.target.value)}
+                  placeholder="09.00–12.00 WIB"
+                />
+                <p id="agenda-schedule-help" className="text-xs leading-relaxed text-muted-foreground">
+                  Format yang didukung: HH.MM atau HH:MM, misalnya 09.00–12.00 WIB.
+                  Zona waktu WIB, WITA, dan WIT tersedia. Acara lintas tengah malam
+                  boleh ditulis 22:00–01:30 WIB. Untuk agenda sehari penuh, kosongkan
+                  kolom atau tulis “Sehari penuh”.
+                </p>
               </div>
             </div>
             <div className="space-y-2">

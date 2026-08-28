@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { parseCalendarTimes } from "@/lib/aspekindoCalendar";
 import { Button } from "@/components/ui/button";
 
 const ASPEKINDO_URL = "https://aspekindo.id";
@@ -39,49 +40,6 @@ function formatDate(value: string) {
 function formatDateRange(agenda: Agenda) {
   if (!agenda.end_date || agenda.end_date === agenda.start_date) return formatDate(agenda.start_date);
   return `${formatDate(agenda.start_date)} – ${formatDate(agenda.end_date)}`;
-}
-
-type CalendarTime = {
-  minutes: number;
-  timezone: string;
-  offsetMinutes: number;
-};
-
-const TIMEZONE_OFFSETS: Record<string, Omit<CalendarTime, "minutes">> = {
-  WIB: { timezone: "Asia/Jakarta", offsetMinutes: 7 * 60 },
-  WITA: { timezone: "Asia/Makassar", offsetMinutes: 8 * 60 },
-  WIT: { timezone: "Asia/Jayapura", offsetMinutes: 9 * 60 },
-};
-
-function parseCalendarTimes(schedule: string): { start: CalendarTime; end: CalendarTime } | null {
-  if (!schedule.trim()) return null;
-
-  const timezoneKey = schedule.match(/\b(WIB|WITA|WIT)\b/i)?.[1]?.toUpperCase() ?? "WIB";
-  const timezone = TIMEZONE_OFFSETS[timezoneKey];
-  const matches = [...schedule.matchAll(/\b(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)?\b/gi)]
-    .filter((match) => match[2] || match[3] || !/\b(jam|hari)\b/i.test(schedule));
-
-  if (matches.length === 0) return null;
-
-  const toMinutes = (match: RegExpMatchArray) => {
-    let hours = Number(match[1]);
-    const minutes = Number(match[2] ?? 0);
-    const meridiem = match[3]?.toLowerCase();
-    if (minutes > 59 || hours > 23 || (meridiem && hours > 12) || (meridiem && hours === 0)) return null;
-    if (meridiem === "pm" && hours < 12) hours += 12;
-    if (meridiem === "am" && hours === 12) hours = 0;
-    return hours * 60 + minutes;
-  };
-
-  const startMinutes = toMinutes(matches[0]);
-  if (startMinutes === null) return null;
-  const endMinutes = matches[1] ? toMinutes(matches[1]) : startMinutes + 60;
-  if (endMinutes === null) return null;
-
-  return {
-    start: { minutes: startMinutes, ...timezone },
-    end: { minutes: endMinutes, ...timezone },
-  };
 }
 
 function addDays(dateValue: string, days: number) {
