@@ -15,7 +15,7 @@ import FloatingLkut from "@/components/FloatingLkut";
 
 const Index = () => {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen overflow-x-hidden">
       {/* A — ATTENTION: Hero with shocking industry data */}
       <HeroSection />
 

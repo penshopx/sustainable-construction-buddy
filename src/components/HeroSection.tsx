@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, AlertTriangle } from "lucide-react";
+import { ArrowRight, AlertTriangle, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import logoPub from "@/assets/logo-pub-new.png";
@@ -79,6 +79,15 @@ const HeroSection = () => {
             >
               Helpdesk Aplikasi
             </button>
+            <a
+              href="https://app.aspekindo.id/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl border border-pub-sky/40 bg-pub-sky/10 text-pub-sky font-semibold font-heading hover:bg-pub-sky/20 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-sky focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)]"
+            >
+              Portal Keanggotaan ASPEKINDO
+              <ExternalLink className="w-4 h-4" aria-hidden="true" />
+            </a>
           </div>
         </motion.div>
 
