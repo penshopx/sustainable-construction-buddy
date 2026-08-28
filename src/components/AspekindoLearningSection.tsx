@@ -3,8 +3,10 @@ import { motion } from "framer-motion";
 import {
   ArrowRight,
   CalendarDays,
+  CalendarPlus,
   BookOpenCheck,
   Clock3,
+  Download,
   ExternalLink,
   HeartHandshake,
   Loader2,
@@ -14,6 +16,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
 
 const ASPEKINDO_URL = "https://aspekindo.id";
 
@@ -36,6 +39,162 @@ function formatDate(value: string) {
 function formatDateRange(agenda: Agenda) {
   if (!agenda.end_date || agenda.end_date === agenda.start_date) return formatDate(agenda.start_date);
   return `${formatDate(agenda.start_date)} – ${formatDate(agenda.end_date)}`;
+}
+
+type CalendarTime = {
+  minutes: number;
+  timezone: string;
+  offsetMinutes: number;
+};
+
+const TIMEZONE_OFFSETS: Record<string, Omit<CalendarTime, "minutes">> = {
+  WIB: { timezone: "Asia/Jakarta", offsetMinutes: 7 * 60 },
+  WITA: { timezone: "Asia/Makassar", offsetMinutes: 8 * 60 },
+  WIT: { timezone: "Asia/Jayapura", offsetMinutes: 9 * 60 },
+};
+
+function parseCalendarTimes(schedule: string): { start: CalendarTime; end: CalendarTime } | null {
+  if (!schedule.trim()) return null;
+
+  const timezoneKey = schedule.match(/\b(WIB|WITA|WIT)\b/i)?.[1]?.toUpperCase() ?? "WIB";
+  const timezone = TIMEZONE_OFFSETS[timezoneKey];
+  const matches = [...schedule.matchAll(/\b(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)?\b/gi)]
+    .filter((match) => match[2] || match[3] || !/\b(jam|hari)\b/i.test(schedule));
+
+  if (matches.length === 0) return null;
+
+  const toMinutes = (match: RegExpMatchArray) => {
+    let hours = Number(match[1]);
+    const minutes = Number(match[2] ?? 0);
+    const meridiem = match[3]?.toLowerCase();
+    if (minutes > 59 || hours > 23 || (meridiem && hours > 12) || (meridiem && hours === 0)) return null;
+    if (meridiem === "pm" && hours < 12) hours += 12;
+    if (meridiem === "am" && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+  };
+
+  const startMinutes = toMinutes(matches[0]);
+  if (startMinutes === null) return null;
+  const endMinutes = matches[1] ? toMinutes(matches[1]) : startMinutes + 60;
+  if (endMinutes === null) return null;
+
+  return {
+    start: { minutes: startMinutes, ...timezone },
+    end: { minutes: endMinutes, ...timezone },
+  };
+}
+
+function addDays(dateValue: string, days: number) {
+  const date = new Date(`${dateValue}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function dateParts(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return { year, month, day };
+}
+
+function formatBasicDate(value: string) {
+  return value.replace(/-/g, "");
+}
+
+function formatUtcDateTime(dateValue: string, minutes: number, offsetMinutes: number) {
+  const { year, month, day } = dateParts(dateValue);
+  const utcValue = new Date(Date.UTC(year, month - 1, day, Math.floor(minutes / 60), minutes % 60) - offsetMinutes * 60 * 1000);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${utcValue.getUTCFullYear()}${pad(utcValue.getUTCMonth() + 1)}${pad(utcValue.getUTCDate())}T${pad(utcValue.getUTCHours())}${pad(utcValue.getUTCMinutes())}00Z`;
+}
+
+function getCalendarDates(agenda: Agenda) {
+  const endDate = agenda.end_date ?? agenda.start_date;
+  const times = parseCalendarTimes(agenda.schedule);
+
+  if (!times) {
+    return {
+      google: `${formatBasicDate(agenda.start_date)}/${formatBasicDate(addDays(endDate, 1))}`,
+      icsStart: `DTSTART;VALUE=DATE:${formatBasicDate(agenda.start_date)}`,
+      icsEnd: `DTEND;VALUE=DATE:${formatBasicDate(addDays(endDate, 1))}`,
+    };
+  }
+
+  const endMinutes = times.end.minutes;
+  let effectiveEndDate = endDate;
+  if (effectiveEndDate === agenda.start_date && endMinutes <= times.start.minutes) {
+    effectiveEndDate = addDays(effectiveEndDate, 1);
+  }
+
+  return {
+    google: `${formatUtcDateTime(agenda.start_date, times.start.minutes, times.start.offsetMinutes)}/${formatUtcDateTime(effectiveEndDate, endMinutes, times.end.offsetMinutes)}`,
+    icsStart: `DTSTART:${formatUtcDateTime(agenda.start_date, times.start.minutes, times.start.offsetMinutes)}`,
+    icsEnd: `DTEND:${formatUtcDateTime(effectiveEndDate, endMinutes, times.end.offsetMinutes)}`,
+  };
+}
+
+function registrationDetails(agenda: Agenda) {
+  return [
+    agenda.description,
+    agenda.schedule && `Jadwal: ${agenda.schedule}`,
+    agenda.registration_details && `Detail pendaftaran: ${agenda.registration_details}`,
+    agenda.registration_url && `Daftar kegiatan: ${agenda.registration_url}`,
+  ].filter(Boolean).join("\n\n");
+}
+
+function getGoogleCalendarUrl(agenda: Agenda) {
+  const dates = getCalendarDates(agenda);
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: agenda.title,
+    dates: dates.google,
+    details: registrationDetails(agenda),
+    location: agenda.location,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function escapeIcsText(value: string) {
+  return value.replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/([,;])/g, "\\$1");
+}
+
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "agenda-aspekindo";
+}
+
+function downloadCalendarFile(agenda: Agenda) {
+  const dates = getCalendarDates(agenda);
+  const timestamp = new Date().toISOString().replace(/[-:.]/g, "").replace(/\d{3}Z$/, "Z");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//PUB ASPEKINDO//Agenda Pembelajaran//ID",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "X-WR-TIMEZONE:Asia/Jakarta",
+    "BEGIN:VEVENT",
+    `UID:${escapeIcsText(agenda.id)}@aspekindo.id`,
+    `DTSTAMP:${timestamp}`,
+    dates.icsStart,
+    dates.icsEnd,
+    `SUMMARY:${escapeIcsText(agenda.title)}`,
+    `DESCRIPTION:${escapeIcsText(registrationDetails(agenda))}`,
+    agenda.location && `LOCATION:${escapeIcsText(agenda.location)}`,
+    agenda.registration_url && `URL:${agenda.registration_url}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].filter(Boolean);
+  const blob = new Blob([`${lines.join("\r\n")}\r\n`], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${slugify(agenda.title)}.ics`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export default function AspekindoLearningSection() {
@@ -222,6 +381,35 @@ export default function AspekindoLearningSection() {
                             Daftar kegiatan <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                           </a>
                         )}
+                        <div className="mt-4 flex flex-wrap gap-2 border-t border-border/70 pt-4" data-testid={`agenda-calendar-actions-${activity.id}`}>
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="h-9 gap-1.5 border-pub-sky/30 text-pub-sky hover:bg-pub-sky/10 hover:text-pub-sky"
+                          >
+                            <a
+                              href={getGoogleCalendarUrl(activity)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Simpan ${activity.title} ke Google Calendar`}
+                            >
+                              <CalendarPlus className="h-3.5 w-3.5" aria-hidden="true" />
+                              Google Calendar
+                            </a>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 gap-1.5 text-muted-foreground hover:text-foreground"
+                            onClick={() => downloadCalendarFile(activity)}
+                            aria-label={`Unduh file kalender ${activity.title}`}
+                          >
+                            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                            Unduh .ics
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </li>
