@@ -26,6 +26,15 @@ test.describe("public and unauthenticated user flows", () => {
     ).toBeVisible();
   });
 
+  test("shows confirmation success after the email redirect", async ({ page }) => {
+    await page.goto("/auth?confirmed=1");
+
+    await expect(page).toHaveURL(/\/auth\?confirmed=1$/);
+    await expect(
+      page.getByRole("status"),
+    ).toContainText("Email berhasil dikonfirmasi. Silakan masuk untuk melanjutkan.");
+  });
+
   test("redirects an empty dashboard session to a usable auth state", async ({ page }) => {
     await page.goto("/dashboard");
 
@@ -98,7 +107,7 @@ test.describe("public and unauthenticated user flows", () => {
 
     await page.addInitScript(({ session }) => {
       localStorage.setItem(
-        "sb-vwbgdyykeiilhffwvnku-auth-token",
+        "sb-yidlglstzvizsszrpobi-auth-token",
         JSON.stringify(session),
       );
       localStorage.setItem("pub_onboarding_done", "1");
@@ -189,7 +198,7 @@ test.describe("public and unauthenticated user flows", () => {
 
     await page.addInitScript(({ session }) => {
       localStorage.setItem(
-        "sb-vwbgdyykeiilhffwvnku-auth-token",
+        "sb-yidlglstzvizsszrpobi-auth-token",
         JSON.stringify(session),
       );
       localStorage.setItem("pub_onboarding_done", "1");
@@ -316,7 +325,7 @@ test.describe("public and unauthenticated user flows", () => {
 
     await page.addInitScript(({ session }) => {
       localStorage.setItem(
-        "sb-vwbgdyykeiilhffwvnku-auth-token",
+        "sb-yidlglstzvizsszrpobi-auth-token",
         JSON.stringify(session),
       );
       localStorage.setItem("pub_onboarding_done", "1");

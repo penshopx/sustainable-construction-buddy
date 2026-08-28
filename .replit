@@ -79,6 +79,9 @@ externalPort = 5173
 [userenv]
 
 [userenv.shared]
+SUPABASE_URL = "https://yidlglstzvizsszrpobi.supabase.co"
+VITE_SUPABASE_PROJECT_ID = "yidlglstzvizsszrpobi"
+VITE_SUPABASE_URL = "https://yidlglstzvizsszrpobi.supabase.co"
 
 [postMerge]
 path = "scripts/post-merge.sh"

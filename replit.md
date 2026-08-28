@@ -60,7 +60,7 @@ Preview Replit memakai port 5000. API frontend Supabase tetap menggunakan projec
 
 ## Supabase Project
 
-- Project ID: `vwbgdyykeiilhffwvnku`
+- Project ID: `yidlglstzvizsszrpobi`
 - Semua migrasi ada di `supabase/migrations/`
 - Edge Functions: `supabase/functions/` (deploy ke Supabase, bukan ke Replit)
 
