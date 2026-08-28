@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      aspekindo_learning_agendas: {
+        Row: {
+          audience: string
+          category: string
+          created_at: string
+          description: string
+          end_date: string | null
+          id: string
+          location: string
+          registration_details: string
+          registration_url: string
+          schedule: string
+          start_date: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          category?: string
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          location?: string
+          registration_details?: string
+          registration_url?: string
+          schedule?: string
+          start_date: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          category?: string
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          location?: string
+          registration_details?: string
+          registration_url?: string
+          schedule?: string
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       budget_entries: {
         Row: {
           actual_amount: number

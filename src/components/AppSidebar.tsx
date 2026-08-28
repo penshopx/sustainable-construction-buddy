@@ -105,6 +105,7 @@ const bottomItems = [
 
 const adminItems = [
   { title: "Corporate Dashboard", url: "/corporate", icon: Building2 },
+  { title: "Agenda ASPEKINDO", url: "/admin/aspekindo-agenda", icon: CalendarDays },
   { title: "Verifikasi PANCEK", url: "/admin/pancek", icon: ShieldAlert },
   { title: "Review Inovasi", url: "/admin/inovasi", icon: Lightbulb },
   { title: "Kelola Marketplace", url: "/admin/marketplace", icon: Store },

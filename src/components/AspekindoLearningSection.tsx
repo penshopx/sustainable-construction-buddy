@@ -1,43 +1,65 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  BookOpenCheck,
   CalendarDays,
+  BookOpenCheck,
+  Clock3,
+  ExternalLink,
   HeartHandshake,
+  Loader2,
+  MapPin,
   MessagesSquare,
   UsersRound,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 const ASPEKINDO_URL = "https://aspekindo.id";
 
-const activities = [
-  {
-    icon: BookOpenCheck,
-    type: "Sesi pembelajaran",
-    title: "Pembekalan PUB",
-    description: "Memahami langkah awal Pengembangan Usaha Berkelanjutan dan penerapannya di BUJK.",
-    audience: "Anggota dan pengelola BUJK",
-    status: "Program berkala",
-  },
-  {
-    icon: HeartHandshake,
-    type: "Klinik pendampingan",
-    title: "Klinik Kesiapan BUJK",
-    description: "Membahas kebutuhan usaha secara langsung bersama narasumber dan pendamping ASPEKINDO.",
-    audience: "BUJK yang sedang berbenah",
-    status: "Sesi terjadwal",
-  },
-  {
-    icon: MessagesSquare,
-    type: "Forum berbagi",
-    title: "Praktik Baik Konstruksi",
-    description: "Berbagi pengalaman, wawasan regulasi, dan cara kerja yang membantu usaha terus bertumbuh.",
-    audience: "Komunitas konstruksi",
-    status: "Segera diumumkan",
-  },
-];
+type Agenda = Database["public"]["Tables"]["aspekindo_learning_agendas"]["Row"];
+
+const CATEGORY_ICONS = {
+  "Sesi pembelajaran": BookOpenCheck,
+  "Klinik pendampingan": HeartHandshake,
+  "Forum berbagi": MessagesSquare,
+} as const;
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00`));
+}
+
+function formatDateRange(agenda: Agenda) {
+  if (!agenda.end_date || agenda.end_date === agenda.start_date) return formatDate(agenda.start_date);
+  return `${formatDate(agenda.start_date)} – ${formatDate(agenda.end_date)}`;
+}
 
 export default function AspekindoLearningSection() {
+  const [activities, setActivities] = useState<Agenda[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    const fetchPublishedAgendas = async () => {
+      const { data } = await supabase
+        .from("aspekindo_learning_agendas")
+        .select("*")
+        .eq("status", "published")
+        .order("start_date", { ascending: true })
+        .limit(6);
+      if (mounted) {
+        setActivities(data ?? []);
+        setLoading(false);
+      }
+    };
+    void fetchPublishedAgendas();
+    return () => { mounted = false; };
+  }, []);
+
   return (
     <section
       id="agenda-aspekindo"
@@ -123,11 +145,24 @@ export default function AspekindoLearningSection() {
               />
             </div>
 
-            <ol className="space-y-4" aria-label="Daftar kegiatan pembelajaran ASPEKINDO">
-              {activities.map((activity, index) => {
-                const Icon = activity.icon;
-                return (
-                  <li key={activity.title} className="relative">
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card p-10 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Memuat agenda terbaru...
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-pub-sky/25 bg-card p-8 text-center">
+                <CalendarDays className="mx-auto h-8 w-8 text-pub-sky/60" aria-hidden="true" />
+                <p className="mt-3 font-semibold text-foreground">Agenda berikutnya sedang disiapkan.</p>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  Pantau pengumuman resmi ASPEKINDO untuk informasi kegiatan terbaru.
+                </p>
+              </div>
+            ) : (
+              <ol className="space-y-4" aria-label="Daftar kegiatan pembelajaran ASPEKINDO">
+                {activities.map((activity, index) => {
+                  const Icon = CATEGORY_ICONS[activity.category as keyof typeof CATEGORY_ICONS] ?? CalendarDays;
+                  return (
+                    <li key={activity.id} className="relative">
                     {index < activities.length - 1 && (
                       <span
                         aria-hidden="true"
@@ -141,10 +176,7 @@ export default function AspekindoLearningSection() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-semibold uppercase tracking-[0.12em] text-pub-sky">
-                            {activity.type}
-                          </span>
-                          <span className="rounded-full bg-pub-amber/15 px-2.5 py-1 text-[11px] font-semibold text-[hsl(32,80%,30%)]">
-                            {activity.status}
+                            {activity.category}
                           </span>
                         </div>
                         <h4 className="mt-2 text-lg font-bold font-heading text-foreground">
@@ -153,16 +185,50 @@ export default function AspekindoLearningSection() {
                         <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground font-body">
                           {activity.description}
                         </p>
-                        <p className="mt-3 flex items-center gap-1.5 text-xs font-medium text-foreground/65 font-body">
-                          <UsersRound className="h-3.5 w-3.5 text-pub-emerald" aria-hidden="true" />
-                          {activity.audience}
-                        </p>
+                        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-foreground/65 font-body">
+                          <span className="flex items-center gap-1.5">
+                            <CalendarDays className="h-3.5 w-3.5 text-pub-emerald" aria-hidden="true" />
+                            {formatDateRange(activity)}
+                          </span>
+                          {activity.schedule && (
+                            <span className="flex items-center gap-1.5">
+                              <Clock3 className="h-3.5 w-3.5 text-pub-emerald" aria-hidden="true" />
+                              {activity.schedule}
+                            </span>
+                          )}
+                          {activity.location && (
+                            <span className="flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5 text-pub-emerald" aria-hidden="true" />
+                              {activity.location}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1.5">
+                            <UsersRound className="h-3.5 w-3.5 text-pub-emerald" aria-hidden="true" />
+                            {activity.audience}
+                          </span>
+                        </div>
+                        {activity.registration_details && (
+                          <p className="mt-3 rounded-lg bg-muted/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+                            {activity.registration_details}
+                          </p>
+                        )}
+                        {activity.registration_url && (
+                          <a
+                            href={activity.registration_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-pub-sky hover:underline"
+                          >
+                            Daftar kegiatan <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                          </a>
+                        )}
                       </div>
                     </div>
                   </li>
-                );
-              })}
-            </ol>
+                  );
+                })}
+              </ol>
+            )}
 
             <p className="mt-5 text-xs leading-relaxed text-muted-foreground font-body">
               Informasi kegiatan bersumber dari ASPEKINDO. Detail jadwal,

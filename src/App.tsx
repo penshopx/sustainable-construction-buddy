@@ -59,6 +59,7 @@ import AdminQuestions from "./pages/admin/AdminQuestions";
 import AdminRoleConflicts from "./pages/admin/AdminRoleConflicts";
 import AdminSummary from "./pages/admin/AdminSummary";
 import AdminMarketingBrief from "./pages/admin/AdminMarketingBrief";
+import AdminAspekindoAgenda from "./pages/admin/AdminAspekindoAgenda";
 import PitchDeck from "./pages/PitchDeck";
 import PubAspekindoVideo from "./pages/PubAspekindoVideo";
 
@@ -119,6 +120,7 @@ const App = () => (
             <Route path="/admin/rangkuman" element={<DashboardLayout><AdminGuard><AdminSummary /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/permintaan" element={<DashboardLayout><SuperAdminGuard><AdminRequests /></SuperAdminGuard></DashboardLayout>} />
             <Route path="/admin/marketing-brief" element={<DashboardLayout><AdminGuard><AdminMarketingBrief /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/aspekindo-agenda" element={<DashboardLayout><AdminGuard><AdminAspekindoAgenda /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />
