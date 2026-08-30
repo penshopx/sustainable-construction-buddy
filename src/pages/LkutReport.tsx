@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Plus, FileText, CheckCircle2, Clock, Send, Trash2, AlertTriangle, Download, Paperclip, BarChart3 } from "lucide-react";
+import { Plus, FileText, CheckCircle2, Clock, Send, Trash2, AlertTriangle, Download, Paperclip, BarChart3, ExternalLink } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
 
@@ -108,7 +108,7 @@ export default function LkutReportPage() {
 
         <TabsContent value="lkut">
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold font-heading text-foreground flex items-center gap-2">
             <FileText className="w-6 h-6 text-accent" />
@@ -118,9 +118,20 @@ export default function LkutReportPage() {
             Permen PUPR No. 7/2024 · Deadline: 30 April setiap tahun
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" /> Buat LKUT
-        </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button asChild variant="outline">
+            <a
+              href="https://asset-linker-esterkristian26.replit.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" /> LKUT Simulator
+            </a>
+          </Button>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Buat LKUT
+          </Button>
+        </div>
       </div>
 
       {/* Deadline reminder */}

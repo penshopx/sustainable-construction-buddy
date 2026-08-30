@@ -6,7 +6,7 @@ import { ProjectDetail } from "@/components/projects/ProjectDetail";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FolderKanban, TrendingUp, Clock, MapPin, BarChart3 } from "lucide-react";
+import { Plus, FolderKanban, TrendingUp, Clock, MapPin, BarChart3, ExternalLink } from "lucide-react";
 import { motion } from "framer-motion";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
 
@@ -74,9 +74,20 @@ const Projects = () => {
           </div>
         </div>
         {view.type === 'list' && (
-          <Button onClick={() => setView({ type: 'create' })} className="bg-gradient-amber text-accent-foreground font-heading shadow-amber hover:brightness-110">
-            <Plus className="w-4 h-4 mr-1" /> Tambah Proyek
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button asChild variant="outline">
+              <a
+                href="https://sistem-manajemen-proyek-konstruksi.replit.app"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="w-4 h-4 mr-1" /> Sistem Manajemen Proyek
+              </a>
+            </Button>
+            <Button onClick={() => setView({ type: 'create' })} className="bg-gradient-amber text-accent-foreground font-heading shadow-amber hover:brightness-110">
+              <Plus className="w-4 h-4 mr-1" /> Tambah Proyek
+            </Button>
+          </div>
         )}
         {view.type !== 'list' && (
           <Button variant="outline" onClick={() => setView({ type: 'list' })}>

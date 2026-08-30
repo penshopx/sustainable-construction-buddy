@@ -8,7 +8,7 @@ import {
   GraduationCap, Clock, CheckCircle2, PlayCircle, Lock,
   Star, Award, Crown, Gem, BookOpen, ArrowRight, HelpCircle, Trophy,
   BookMarked, Filter, Search, ArrowUpDown, Bookmark, AlertCircle,
-  ClipboardCheck, FileCheck, BarChart3
+  ClipboardCheck, FileCheck, BarChart3, ExternalLink
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -786,14 +786,26 @@ const Courses = () => {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header with stats */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold font-heading text-foreground flex items-center gap-3">
-          <GraduationCap className="w-7 h-7 text-pub-amber" />
-          E-Course
-        </h1>
-        <p className="text-muted-foreground font-body mt-1">
-          Modul pembelajaran terstruktur per level kompetensi dan domain keahlian.
-        </p>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold font-heading text-foreground flex items-center gap-3">
+            <GraduationCap className="w-7 h-7 text-pub-amber" />
+            E-Course
+          </h1>
+          <p className="text-muted-foreground font-body mt-1">
+            Modul pembelajaran terstruktur per level kompetensi dan domain keahlian.
+          </p>
+        </div>
+        <Button asChild variant="outline" className="shrink-0">
+          <a
+            href="https://lms.dokumenproyek.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ExternalLink className="w-4 h-4 mr-2" />
+            Buka LMS DokumenProyek
+          </a>
+        </Button>
       </div>
 
       {/* Search bar */}

@@ -60,7 +60,9 @@ const topItems = [
 // Data Operasional (sumber data input)
 const dataOperasionalItems = [
   { title: "Data LKUT", url: "/lkut", icon: FileText },
+  { title: "LKUT Simulator", url: "https://asset-linker-esterkristian26.replit.app/", icon: FileText, external: true },
   { title: "Project Workspace", url: "/projects", icon: FolderKanban },
+  { title: "Sistem Manajemen Proyek", url: "https://sistem-manajemen-proyek-konstruksi.replit.app", icon: FolderKanban, external: true },
   { title: "Budget Tracker", url: "/budget-tracker", icon: DollarSign },
   { title: "Risk Register", url: "/risk-register", icon: Shield },
   { title: "K3 Checklist", url: "/k3-checklist", icon: HardHat },
@@ -79,6 +81,7 @@ const analisaItems = [
 const learningSubItems = [
   { title: "Pre-test Assessment", url: "/assessment", icon: ClipboardCheck },
   { title: "E-Course", url: "/courses", icon: GraduationCap },
+  { title: "LMS DokumenProyek", url: "https://lms.dokumenproyek.com", icon: GraduationCap, external: true },
   { title: "SIAP PUB", url: "https://ai.dokumenproyek.com/", icon: GraduationCap, external: true },
   { title: "Mentor Digital", url: "/mentor", icon: MessageCircle },
   { title: "Sertifikat", url: "/certificates", icon: Award },
