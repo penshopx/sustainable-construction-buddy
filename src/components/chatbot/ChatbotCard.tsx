@@ -1,4 +1,4 @@
-import { Bot, Trash2, Share2, Copy, ExternalLink, GraduationCap, Briefcase, FolderKanban, type LucideIcon } from "lucide-react";
+import { Bot, Trash2, Share2, GraduationCap, Briefcase, FolderKanban, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomChatbot } from "@/hooks/useCustomChatbots";
 import { toast } from "@/hooks/use-toast";
@@ -28,7 +28,7 @@ export function ChatbotCard({ bot, onSelect, onDelete, showShare = true }: Props
 
   const copyShareLink = () => {
     if (!bot.share_token) return;
-    const url = `${window.location.origin}/helpdesk?bot=${bot.share_token}`;
+    const url = `${window.location.origin}/chatbot/${encodeURIComponent(bot.share_token)}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Link disalin!", description: "Bagikan link ini ke tim Anda." });
   };

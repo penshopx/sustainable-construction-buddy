@@ -7,6 +7,8 @@ import { KEPDIRJEN_281_FAQS } from "@/data/lkut-281-reference";
 
 interface FloatingChatbotProps {
   variant?: "landing" | "dashboard";
+  initialOpen?: boolean;
+  standalone?: boolean;
 }
 
 type Article = { q: string; a: string };
@@ -147,8 +149,8 @@ async function askAI(messages: { role: string; content: string }[]): Promise<str
   }
 }
 
-export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatbotProps) {
-  const [isOpen, setIsOpen] = useState(false);
+export default function FloatingChatbot({ variant = "dashboard", initialOpen = false, standalone = false }: FloatingChatbotProps) {
+  const [isOpen, setIsOpen] = useState(standalone || initialOpen);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [tab, setTab] = useState<"browse" | "chat">("browse");
   const [search, setSearch] = useState("");
@@ -214,7 +216,7 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
     <>
       {/* Floating button — LEFT */}
       <AnimatePresence mode="wait">
-        {!isOpen && (
+        {!isOpen && !standalone && (
           <motion.div
             key="helpdesk-btn"
             initial={{ scale: 0, opacity: 0 }}
@@ -259,8 +261,8 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-6 left-6 z-50 w-[340px] max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl overflow-hidden border border-border bg-card flex flex-col"
-            style={{ height: "540px" }}
+            className={`${standalone ? "relative w-full max-w-3xl mx-auto rounded-3xl shadow-2xl" : "fixed bottom-6 left-6 z-50 w-[340px] max-w-[calc(100vw-2rem)] rounded-2xl shadow-2xl"} overflow-hidden border border-border bg-card flex flex-col`}
+            style={{ height: standalone ? "min(680px, calc(100vh - 180px))" : "540px" }}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-pub-sky to-pub-navy px-4 py-3 flex items-center gap-3 shrink-0">
@@ -279,14 +281,16 @@ export default function FloatingChatbot({ variant = "dashboard" }: FloatingChatb
                 <p className="text-white font-bold text-sm font-heading leading-none">PUB HelpDesk</p>
                 <p className="text-white/60 text-xs font-body mt-0.5">Panduan fitur aspekindo-pub.com</p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 shrink-0"
-                onClick={handleClose}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              {!standalone && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-white/60 hover:text-white hover:bg-white/10 shrink-0"
+                  onClick={handleClose}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
 
             {/* Tab switcher */}

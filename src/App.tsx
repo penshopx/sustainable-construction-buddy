@@ -72,6 +72,8 @@ import InformationDetail from "./pages/InformationDetail";
 import AdminInformationCenter from "./pages/admin/AdminInformationCenter";
 import PublicAgendaPage from "./pages/PublicAgendaPage";
 import SiapCompetencyMap from "./pages/SiapCompetencyMap";
+import PublicChatbotPage from "./pages/PublicChatbotPage";
+import PublicHelpdeskPage from "./pages/PublicHelpdeskPage";
 
 const queryClient = new QueryClient();
 
@@ -150,6 +152,8 @@ const App = () => (
             <Route path="/install" element={<Install />} />
             <Route path="/pitch-deck" element={<PitchDeck />} />
             <Route path="/video-pub-aspekindo" element={<PubAspekindoVideo />} />
+            <Route path="/helpdesk-standalone" element={<PublicHelpdeskPage />} />
+            <Route path="/chatbot/:token" element={<PublicChatbotPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

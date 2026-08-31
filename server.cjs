@@ -8,6 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 const WEB_SOURCES = [
   "aspekindo.id",
   "lsbukonstruksi.co.id",
@@ -129,6 +132,158 @@ async function searchWebSources(query) {
 }
 
 // ── API Routes ──────────────────────────────────────────────
+const PUBLIC_CHATBOT_SELECT = "id,name,description,avatar_url,mode,welcome_message,is_public,persona";
+const publicChatRateLimits = new Map();
+
+function isValidShareToken(token) {
+  return typeof token === "string" && /^[A-Za-z0-9_-]{8,80}$/.test(token);
+}
+
+function exceedsPublicChatRateLimit(req) {
+  const now = Date.now();
+  const key = `${req.ip || "unknown"}:${req.params.token}`;
+  const current = publicChatRateLimits.get(key);
+  if (!current || current.resetAt <= now) {
+    publicChatRateLimits.set(key, { count: 1, resetAt: now + 5 * 60 * 1000 });
+    return false;
+  }
+  current.count += 1;
+  if (publicChatRateLimits.size > 1000) {
+    for (const [entryKey, value] of publicChatRateLimits) {
+      if (value.resetAt <= now) publicChatRateLimits.delete(entryKey);
+    }
+  }
+  return current.count > 20;
+}
+
+async function findSharedChatbot(token) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Konfigurasi server chatbot publik belum tersedia.");
+  }
+
+  const query = new URLSearchParams({
+    select: PUBLIC_CHATBOT_SELECT,
+    share_token: `eq.${token}`,
+    limit: "1",
+  });
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/custom_chatbots?${query}`, {
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    },
+  });
+  if (!response.ok) {
+    console.error("Public chatbot lookup error:", response.status, await response.text());
+    throw new Error("Gagal memuat chatbot.");
+  }
+  const rows = await response.json();
+  return Array.isArray(rows) ? rows[0] : null;
+}
+
+function toPublicChatbot(bot) {
+  if (!bot) return null;
+  return {
+    id: bot.id,
+    name: bot.name,
+    description: bot.description,
+    avatar_url: bot.avatar_url,
+    mode: bot.mode,
+    welcome_message: bot.welcome_message,
+  };
+}
+
+function extractAiReply(rawBody) {
+  let reply = "";
+  for (const line of rawBody.split(/\r?\n/)) {
+    if (!line.startsWith("data: ")) continue;
+    const json = line.slice(6).trim();
+    if (!json || json === "[DONE]") continue;
+    try {
+      const parsed = JSON.parse(json);
+      const content = parsed?.choices?.[0]?.delta?.content;
+      if (typeof content === "string") reply += content;
+    } catch {
+      // Ignore incomplete or non-JSON SSE lines.
+    }
+  }
+  if (reply) return reply;
+  try {
+    const parsed = JSON.parse(rawBody);
+    return parsed?.choices?.[0]?.message?.content || parsed?.reply || "";
+  } catch {
+    return "";
+  }
+}
+
+app.get("/api/public-chatbots/:token", async (req, res) => {
+  const { token } = req.params;
+  if (!isValidShareToken(token)) return res.status(404).json({ error: "Chatbot tidak ditemukan." });
+
+  try {
+    const bot = await findSharedChatbot(token);
+    if (!bot) return res.status(404).json({ error: "Chatbot tidak ditemukan atau link sudah tidak berlaku." });
+    res.json(toPublicChatbot(bot));
+  } catch (error) {
+    console.error("Public chatbot error:", error);
+    res.status(503).json({ error: "Layanan chatbot publik belum tersedia." });
+  }
+});
+
+app.post("/api/public-chatbots/:token/chat", async (req, res) => {
+  const { token } = req.params;
+  if (!isValidShareToken(token)) return res.status(404).json({ error: "Chatbot tidak ditemukan." });
+  if (exceedsPublicChatRateLimit(req)) {
+    return res.status(429).json({ error: "Terlalu banyak pesan. Silakan coba lagi beberapa menit lagi." });
+  }
+  const incomingMessages = req.body?.messages;
+  if (!Array.isArray(incomingMessages) || incomingMessages.length === 0) {
+    return res.status(400).json({ error: "Format pesan tidak valid." });
+  }
+  const messages = incomingMessages
+    .filter((message) =>
+      message &&
+      (message.role === "user" || message.role === "assistant") &&
+      typeof message.content === "string" &&
+      message.content.trim().length > 0
+    )
+    .slice(-10)
+    .map((message) => ({ role: message.role, content: message.content.trim().slice(0, 4000) }));
+  if (!messages.length) return res.status(400).json({ error: "Pesan tidak valid." });
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(503).json({ error: "Layanan chatbot publik belum tersedia." });
+  }
+
+  try {
+    const bot = await findSharedChatbot(token);
+    if (!bot) return res.status(404).json({ error: "Chatbot tidak ditemukan atau link sudah tidak berlaku." });
+
+    const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/helpdesk-chat`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages,
+        mode: bot.mode || "pembelajaran",
+        custom_persona: bot.persona || undefined,
+      }),
+    });
+    const rawBody = await aiResponse.text();
+    if (!aiResponse.ok) {
+      console.error("Public chatbot AI error:", aiResponse.status, rawBody);
+      return res.status(502).json({ error: "Layanan AI sedang tidak tersedia." });
+    }
+    const reply = extractAiReply(rawBody);
+    if (!reply) return res.status(502).json({ error: "AI tidak mengembalikan jawaban." });
+    res.json({ reply });
+  } catch (error) {
+    console.error("Public chatbot chat error:", error);
+    res.status(502).json({ error: "Gagal memproses pesan. Silakan coba lagi." });
+  }
+});
+
 app.post("/api/helpdesk", async (req, res) => {
   try {
     const apiKey = process.env.OPENROUTER_API_KEY ||
