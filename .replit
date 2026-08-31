@@ -1,4 +1,4 @@
-modules = ["nodejs-20", "web", "python-base-3.13"]
+modules = ["nodejs-20", "web"]
 [agent]
 expertMode = true
 integrations = ["javascript_database:1.0.0"]
@@ -6,12 +6,12 @@ stack = "BEST_EFFORT_FALLBACK"
 
 [nix]
 channel = "stable-25_05"
-packages = ["freetype", "gumbo", "harfbuzz", "jbig2dec", "lcms2", "libimagequant", "libjpeg", "libjpeg_turbo", "libtiff", "libwebp", "libxcrypt", "mupdf", "openjpeg", "swig", "tcl", "tk", "xcbuild", "zlib", "glib", "nss", "atk", "cups", "pango", "gtk3", "libdrm", "mesa", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb", "libxkbcommon", "libgbm", "alsa-lib"]
 
 [deployment]
 deploymentTarget = "autoscale"
 run = ["node", "server.cjs"]
 build = ["npm", "run", "build"]
+publicDir = "dist"
 
 [workflows]
 runButton = "Project"
@@ -23,15 +23,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "startup-smoke"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "Start application"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Information agents"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -45,67 +37,19 @@ task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
-[[workflows.workflow]]
-name = "startup-smoke"
-author = "agent"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "SMOKE_FRONTEND_PORT=5002 SMOKE_API_PORT=3002 npm run test:smoke"
-
-[[workflows.workflow]]
-name = "Information agents"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npm run agent:content:watch"
-
-[workflows.workflow.metadata]
-outputType = "console"
-
 [[ports]]
 localPort = 3001
 externalPort = 3001
 
 [[ports]]
-localPort = 3002
-externalPort = 3003
-
-[[ports]]
-localPort = 3003
-externalPort = 3000
-
-[[ports]]
-localPort = 3004
-externalPort = 5000
-
-[[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5002
-externalPort = 4200
-
-[[ports]]
-localPort = 5004
-externalPort = 6000
-
-[[ports]]
-localPort = 5173
-externalPort = 5173
 
 [userenv]
 
 [userenv.shared]
-SUPABASE_URL = "https://yidlglstzvizsszrpobi.supabase.co"
-VITE_SUPABASE_PROJECT_ID = "yidlglstzvizsszrpobi"
-VITE_SUPABASE_URL = "https://yidlglstzvizsszrpobi.supabase.co"
-
-[postMerge]
-path = "scripts/post-merge.sh"
-timeoutMs = 180000
+SUPABASE_URL = "https://vwbgdyykeiilhffwvnku.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YmdkeXlrZWlpbGhmZnd2bmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQwNTksImV4cCI6MjA4ODAyMDA1OX0.VzGsEYvlRVjchA-b8N9IE-jNJ4AiZr5Jd_uyjiuW1SU"
+VITE_SUPABASE_URL = "https://vwbgdyykeiilhffwvnku.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YmdkeXlrZWlpbGhmZnd2bmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQwNTksImV4cCI6MjA4ODAyMDA1OX0.VzGsEYvlRVjchA-b8N9IE-jNJ4AiZr5Jd_uyjiuW1SU"
+SUPABASE_ACCESS_TOKEN = "sbp_25e3d30ae5b11437aa2c4064117d542c88f64717"
