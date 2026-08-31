@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { parseCalendarTimes } from "@/lib/aspekindoCalendar";
+import { isHttpsUrl } from "@/lib/informationCenter";
 import { Button } from "@/components/ui/button";
 
 const ASPEKINDO_URL = "https://aspekindo.id";
@@ -36,6 +37,15 @@ function formatDate(value: string) {
     month: "long",
     year: "numeric",
   }).format(new Date(`${value}T00:00:00`));
+}
+
+function getTodayInJakarta() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 function formatDateRange(agenda: Agenda) {
@@ -95,7 +105,7 @@ function registrationDetails(agenda: Agenda) {
     agenda.description,
     agenda.schedule && `Jadwal: ${agenda.schedule}`,
     agenda.registration_details && `Detail pendaftaran: ${agenda.registration_details}`,
-    agenda.registration_url && `Daftar kegiatan: ${agenda.registration_url}`,
+    isHttpsUrl(agenda.registration_url) && `Daftar kegiatan: ${agenda.registration_url}`,
   ].filter(Boolean).join("\n\n");
 }
 
@@ -143,7 +153,7 @@ function downloadCalendarFile(agenda: Agenda) {
     `SUMMARY:${escapeIcsText(agenda.title)}`,
     `DESCRIPTION:${escapeIcsText(registrationDetails(agenda))}`,
     agenda.location && `LOCATION:${escapeIcsText(agenda.location)}`,
-    agenda.registration_url && `URL:${agenda.registration_url}`,
+    isHttpsUrl(agenda.registration_url) && `URL:${agenda.registration_url}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ].filter(Boolean);
@@ -167,20 +177,29 @@ export default function AspekindoLearningSection({ standalone = false }: Aspekin
   useEffect(() => {
     let mounted = true;
     const fetchPublishedAgendas = async () => {
-      const { data } = await supabase
+      let query = supabase
         .from("aspekindo_learning_agendas")
         .select("*")
         .eq("status", "published")
         .order("start_date", { ascending: true })
         .limit(6);
+      if (!standalone) {
+        query = query.gte("start_date", getTodayInJakarta());
+      }
+      const { data } = await query;
       if (mounted) {
-        setActivities(data ?? []);
+        const today = getTodayInJakarta();
+        setActivities(
+          (data ?? []).filter(
+            (agenda) => agenda.status === "published" && (standalone || agenda.start_date >= today),
+          ),
+        );
         setLoading(false);
       }
     };
     void fetchPublishedAgendas();
     return () => { mounted = false; };
-  }, []);
+  }, [standalone]);
 
   return (
     <section
@@ -346,7 +365,7 @@ export default function AspekindoLearningSection({ standalone = false }: Aspekin
                             {activity.registration_details}
                           </p>
                         )}
-                        {activity.registration_url && (
+                        {isHttpsUrl(activity.registration_url) ? (
                           <a
                             href={activity.registration_url}
                             target="_blank"
@@ -355,7 +374,14 @@ export default function AspekindoLearningSection({ standalone = false }: Aspekin
                           >
                             Daftar kegiatan <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                           </a>
-                        )}
+                        ) : !standalone ? (
+                          <Link
+                            to="/agenda-pub"
+                            className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-pub-sky hover:underline"
+                          >
+                            Lihat detail agenda <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                          </Link>
+                        ) : null}
                         <div className="mt-4 flex flex-wrap gap-2 border-t border-border/70 pt-4" data-testid={`agenda-calendar-actions-${activity.id}`}>
                           <Button
                             asChild

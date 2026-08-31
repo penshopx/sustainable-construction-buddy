@@ -112,7 +112,7 @@ const expectedCalendarDates = {
   },
 };
 
-async function mockPublicAgenda(page) {
+async function mockPublicAgenda(page, agendaRows = agendas) {
   await page.route("**/auth/v1/**", async (route) => {
     const requestUrl = new URL(route.request().url());
     if (requestUrl.pathname.endsWith("/user")) {
@@ -136,11 +136,31 @@ async function mockPublicAgenda(page) {
     const table = requestUrl.pathname.split("/").pop();
 
     if (table === "aspekindo_learning_agendas") {
+      let responseRows = [...agendaRows];
+      const statusFilter = requestUrl.searchParams.get("status");
+      const startDateFilter = requestUrl.searchParams.get("start_date");
+      const limit = Number(requestUrl.searchParams.get("limit"));
+
+      if (statusFilter?.startsWith("eq.")) {
+        const status = statusFilter.slice(3);
+        responseRows = responseRows.filter((agenda) => agenda.status === status);
+      }
+      if (startDateFilter?.startsWith("gte.")) {
+        const startDate = startDateFilter.slice(4);
+        responseRows = responseRows.filter((agenda) => agenda.start_date >= startDate);
+      }
+      responseRows.sort((left, right) => left.start_date.localeCompare(right.start_date));
+      if (Number.isFinite(limit) && limit > 0) responseRows = responseRows.slice(0, limit);
+
       await route.fulfill({
         status: 200,
-        headers: { "content-range": `0-${agendas.length - 1}/${agendas.length}` },
+        headers: {
+          "content-range": responseRows.length > 0
+            ? `0-${responseRows.length - 1}/${responseRows.length}`
+            : "*/0",
+        },
         contentType: "application/json",
-        body: JSON.stringify(agendas),
+        body: JSON.stringify(responseRows),
       });
       return;
     }
@@ -202,7 +222,75 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
 
     await expect(page.getByRole("heading", { name: "Berita regulasi BUJK" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Agenda WITA titik dua" }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: "Lihat agenda PUB" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Lihat semua agenda" }).first()).toBeVisible();
+  });
+
+  test("promotes the nearest upcoming PUB agenda with a clear registration path", async ({ page }) => {
+    const agendaRequests = [];
+    page.on("request", (request) => {
+      const requestUrl = new URL(request.url());
+      if (requestUrl.pathname.endsWith("/aspekindo_learning_agendas")) {
+        agendaRequests.push(requestUrl);
+      }
+    });
+    await mockPublicAgenda(page);
+    await page.goto("/");
+
+    await expect(page.getByRole("heading", { name: "Kegiatan berikutnya untuk BUJK yang terus bergerak." })).toBeVisible();
+    await expect(page.getByText("Agenda unggulan")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Agenda WIB titik" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Daftar Agenda WIB titik" }).first()).toHaveAttribute(
+      "href",
+      "https://aspekindo.id/daftar-wib",
+    );
+    await expect(page.getByRole("link", { name: "Lihat semua agenda" }).first()).toHaveAttribute("href", "/agenda-pub");
+
+    await expect.poll(() => {
+      const promotionRequest = agendaRequests.find((requestUrl) => requestUrl.searchParams.get("limit") === "3");
+      if (!promotionRequest) return false;
+      return promotionRequest.searchParams.get("status") === "eq.published"
+        && promotionRequest.searchParams.get("start_date")?.startsWith("gte.")
+        && promotionRequest.searchParams.get("order")?.includes("start_date.asc");
+    }).toBe(true);
+  });
+
+  test("hides draft and past agendas and keeps an unsafe registration link internal", async ({ page }) => {
+    await mockPublicAgenda(page, [
+      {
+        ...agendas[0],
+        id: "00000000-0000-4000-8000-000000000301",
+        title: "Agenda Lampau",
+        start_date: "2000-01-01",
+      },
+      {
+        ...agendas[0],
+        id: "00000000-0000-4000-8000-000000000302",
+        title: "Agenda Draft Rahasia",
+        status: "draft",
+        start_date: "2099-01-01",
+      },
+      {
+        ...agendas[0],
+        id: "00000000-0000-4000-8000-000000000303",
+        title: "Agenda Aman Tanpa Tautan Eksternal",
+        start_date: "2099-02-01",
+        registration_url: "http://example.com/tidak-aman",
+      },
+    ]);
+    await page.goto("/");
+
+    await expect(page.getByRole("heading", { name: "Agenda Aman Tanpa Tautan Eksternal" }).first()).toBeVisible();
+    await expect(page.getByText("Agenda Draft Rahasia")).toHaveCount(0);
+    await expect(page.getByText("Agenda Lampau")).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Lihat detail agenda" }).first()).toHaveAttribute("href", "/agenda-pub");
+  });
+
+  test("keeps a useful agenda destination visible when no upcoming agenda exists", async ({ page }) => {
+    await mockPublicAgenda(page, []);
+    await page.goto("/");
+
+    await expect(page.getByRole("heading", { name: "Agenda berikutnya sedang disiapkan." })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Buka halaman agenda" })).toHaveAttribute("href", "/agenda-pub");
   });
 
   test("opens the full PUB agenda without requiring login", async ({ page }) => {
