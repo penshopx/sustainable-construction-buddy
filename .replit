@@ -6,6 +6,7 @@ stack = "BEST_EFFORT_FALLBACK"
 
 [nix]
 channel = "stable-25_05"
+packages = ["freetype", "gumbo", "harfbuzz", "jbig2dec", "lcms2", "libimagequant", "libjpeg", "libjpeg_turbo", "libtiff", "libwebp", "libxcrypt", "mupdf", "openjpeg", "swig", "tcl", "tk", "xcbuild", "zlib", "glib", "nss", "atk", "cups", "pango", "gtk3", "libdrm", "mesa", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb", "libxkbcommon", "libgbm", "alsa-lib"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -52,4 +53,7 @@ SUPABASE_URL = "https://vwbgdyykeiilhffwvnku.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YmdkeXlrZWlpbGhmZnd2bmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQwNTksImV4cCI6MjA4ODAyMDA1OX0.VzGsEYvlRVjchA-b8N9IE-jNJ4AiZr5Jd_uyjiuW1SU"
 VITE_SUPABASE_URL = "https://vwbgdyykeiilhffwvnku.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YmdkeXlrZWlpbGhmZnd2bmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQwNTksImV4cCI6MjA4ODAyMDA1OX0.VzGsEYvlRVjchA-b8N9IE-jNJ4AiZr5Jd_uyjiuW1SU"
-SUPABASE_ACCESS_TOKEN = "sbp_25e3d30ae5b11437aa2c4064117d542c88f64717"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 180000

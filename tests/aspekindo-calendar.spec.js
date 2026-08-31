@@ -174,6 +174,126 @@ async function mockPublicAgenda(page, agendaRows = agendas) {
   });
 }
 
+async function mockAdminAgenda(page, initialAgendas = []) {
+  const userId = "00000000-0000-4000-8000-000000000201";
+  const fakeUser = {
+    id: userId,
+    aud: "authenticated",
+    role: "authenticated",
+    email: "agenda-admin@example.test",
+    app_metadata: { provider: "email", providers: ["email"] },
+    user_metadata: {},
+    created_at: "2026-08-28T00:00:00.000Z",
+  };
+  const fakeSession = {
+    access_token: "test-access-token",
+    refresh_token: "test-refresh-token",
+    token_type: "bearer",
+    expires_in: 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    user: fakeUser,
+  };
+  const agendaMutations = [];
+
+  await page.addInitScript(({ session }) => {
+    const serializedSession = JSON.stringify(session);
+    localStorage.setItem("sb-yidlglstzvizsszrpobi-auth-token", serializedSession);
+    localStorage.setItem("sb-vwbgdyykeiilhffwvnku-auth-token", serializedSession);
+    localStorage.setItem("pub_onboarding_done", "1");
+  }, { session: fakeSession });
+
+  await page.route("**/auth/v1/**", async (route) => {
+    const requestUrl = route.request().url();
+    if (requestUrl.endsWith("/user")) {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(fakeUser),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({}),
+    });
+  });
+
+  await page.route("**/rest/v1/**", async (route) => {
+    const request = route.request();
+    const requestUrl = new URL(request.url());
+    const table = requestUrl.pathname.split("/").pop();
+
+    if (table === "aspekindo_learning_agendas") {
+      if (request.method() === "POST" || request.method() === "PATCH") {
+        agendaMutations.push({
+          method: request.method(),
+          body: request.postDataJSON(),
+        });
+        await route.fulfill({
+          status: request.method() === "POST" ? 201 : 204,
+          contentType: "application/json",
+          body: request.method() === "POST" ? JSON.stringify([]) : "",
+        });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        headers: { "content-range": `0-${initialAgendas.length - 1}/${initialAgendas.length}` },
+        contentType: "application/json",
+        body: JSON.stringify(initialAgendas),
+      });
+      return;
+    }
+
+    if (table === "user_roles") {
+      if (requestUrl.searchParams.get("role") === "eq.super_admin") {
+        await route.fulfill({
+          status: 406,
+          contentType: "application/json",
+          body: JSON.stringify({
+            code: "PGRST116",
+            message: "JSON object requested, multiple (or no) rows returned",
+          }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([{ role: "admin" }]),
+      });
+      return;
+    }
+
+    if (table === "profiles" && request.headers().accept?.includes("vnd.pgrst.object")) {
+      await route.fulfill({
+        status: 406,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: "PGRST116",
+          message: "JSON object requested, multiple (or no) rows returned",
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      headers: { "content-range": "*/0" },
+      contentType: "application/json",
+      body: request.method() === "HEAD" ? "" : "[]",
+    });
+  });
+
+  await page.goto("/admin/aspekindo-agenda");
+  await expect(
+    page.getByRole("heading", { name: "Agenda ASPEKINDO" }),
+  ).toBeVisible();
+
+  return agendaMutations;
+}
 async function readDownload(download) {
   const path = await download.path();
   if (!path) throw new Error("Calendar download did not produce a file path");
@@ -306,7 +426,9 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
     for (const agenda of ambiguousAgendas) {
       const [download] = await Promise.all([
         page.waitForEvent("download"),
-        page.getByRole("button", { name: `Unduh file kalender ${agenda.title}` }).click(),
+        page.getByRole("button", {
+          name: `Unduh file kalender ${agenda.title}`,
+        }).click(),
       ]);
       const ics = await readDownload(download);
 
@@ -372,5 +494,60 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
         expect(ics).not.toContain("DTEND:");
       }
     }
+  });
+
+  test("shows supported time formats in the admin panel and rejects ambiguous schedules", async ({ page }) => {
+    const existingAgenda = {
+      ...agendas[0],
+      title: "Agenda untuk pengujian edit",
+      id: "00000000-0000-4000-8000-000000000202",
+    };
+    const agendaMutations = await mockAdminAgenda(page, [existingAgenda]);
+
+    await page.getByRole("button", { name: "Tambah kegiatan" }).click();
+    await expect(page.locator("#agenda-schedule-help")).toContainText("Isi rentang lengkap");
+    await page.locator("#agenda-title").fill("Agenda jam menyusul");
+    await page.locator("#agenda-description").fill("Deskripsi agenda pengujian.");
+    await page.locator("#agenda-audience").fill("Anggota ASPEKINDO");
+    await page.locator("#agenda-start-date").fill("2026-09-15");
+    await page.locator("#agenda-schedule").fill("menyusul");
+    await page.getByRole("button", { name: "Simpan kegiatan", exact: true }).click();
+
+    await expect(page.getByRole("status")).toContainText("Format jam belum dapat dipetakan");
+    await expect(page.locator("#agenda-schedule-help")).toContainText("beserta zona");
+    expect(agendaMutations).toHaveLength(0);
+
+    await page.getByRole("button", { name: "Batal", exact: true }).click();
+    await page.getByRole("button", { name: `Edit ${existingAgenda.title}` }).click();
+    await page.locator("#agenda-schedule").fill("menyusul");
+    await page.getByRole("button", { name: "Simpan perubahan", exact: true }).click();
+
+    await expect(page.getByRole("status")).toContainText("Format jam belum dapat dipetakan");
+    expect(agendaMutations).toHaveLength(0);
+  });
+
+  test("saves valid WIB, WITA, WIT, overnight, and all-day schedules through the mock API", async ({ page }) => {
+    const agendaMutations = await mockAdminAgenda(page);
+    const validSchedules = [
+      "09.00–12.00 WIB",
+      "13:15–16:45 WITA",
+      "08.30–10.00 WIT",
+      "22:00–01:30 WIB",
+      "Sehari penuh",
+    ];
+
+    for (const [index, schedule] of validSchedules.entries()) {
+      await page.getByRole("button", { name: "Tambah kegiatan" }).click();
+      await page.locator("#agenda-title").fill(`Agenda valid ${index + 1}`);
+      await page.locator("#agenda-description").fill("Deskripsi agenda valid.");
+      await page.locator("#agenda-audience").fill("Anggota ASPEKINDO");
+      await page.locator("#agenda-start-date").fill(`2026-09-${String(16 + index).padStart(2, "0")}`);
+      await page.locator("#agenda-schedule").fill(schedule);
+      await page.getByRole("button", { name: "Simpan kegiatan", exact: true }).click();
+      await expect(page.getByRole("dialog")).not.toBeVisible();
+    }
+
+    expect(agendaMutations).toHaveLength(validSchedules.length);
+    expect(agendaMutations.map(({ body }) => body.schedule)).toEqual(validSchedules);
   });
 });
