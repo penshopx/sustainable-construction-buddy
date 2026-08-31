@@ -85,7 +85,6 @@ const analisaItems = [
 const learningSubItems = [
   { title: "Pre-test Assessment", url: "/assessment", icon: ClipboardCheck },
   { title: "Pusat Pembelajaran PUB", url: "/courses", icon: GraduationCap },
-  { title: "Kegiatan & Bukti PUB", url: "/aspekindo-lms", icon: CalendarDays },
   { title: "DokumenProyek (eksternal)", url: "https://lms.dokumenproyek.com", icon: GraduationCap, external: true },
   { title: "SIAP PUB", url: "https://ai.dokumenproyek.com/", icon: GraduationCap, external: true },
   { title: "Mentor Digital", url: "/mentor", icon: MessageCircle },
@@ -99,6 +98,7 @@ const communitySubItems = [
   { title: "Pusat Informasi", url: "/informasi", icon: Newspaper },
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
+  { title: "Bukti Kegiatan PUB", url: "/aspekindo-lms", icon: CalendarDays },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Direktori Perusahaan", url: "/direktori", icon: Building2 },
   { title: "Pakar Cerdas", url: "/helpdesk", icon: Bot },
