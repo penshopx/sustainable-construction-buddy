@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   Package,
   Gauge,
+  Newspaper,
   ChevronDown,
   ExternalLink,
   type LucideIcon,
@@ -95,6 +96,7 @@ const learningSubItems = [
 
 // Komunitas & Bisnis group
 const communitySubItems = [
+  { title: "Pusat Informasi", url: "/informasi", icon: Newspaper },
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
   { title: "Marketplace", url: "/marketplace", icon: Store },
@@ -112,6 +114,7 @@ const bottomItems = [
 
 const adminItems = [
   { title: "Corporate Dashboard", url: "/corporate", icon: Building2 },
+  { title: "Pusat Informasi", url: "/admin/informasi", icon: Newspaper },
   { title: "Agenda ASPEKINDO", url: "/admin/aspekindo-agenda", icon: CalendarDays },
   { title: "Operasi LMS ASPEKINDO", url: "/admin/aspekindo-lms", icon: GraduationCap },
   { title: "Verifikasi PANCEK", url: "/admin/pancek", icon: ShieldAlert },

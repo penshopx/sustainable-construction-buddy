@@ -494,6 +494,291 @@ export type Database = {
         }
         Relationships: []
       }
+      information_agent_runs: {
+        Row: {
+          agent_name: string
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          items_created: number
+          items_found: number
+          metadata: Json
+          started_at: string
+          status: string
+        }
+        Insert: {
+          agent_name: string
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          items_created?: number
+          items_found?: number
+          metadata?: Json
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          agent_name?: string
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          items_created?: number
+          items_found?: number
+          metadata?: Json
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      information_article_revisions: {
+        Row: {
+          article_id: string
+          change_reason: string
+          changed_by: string | null
+          created_at: string
+          id: string
+          snapshot: Json
+        }
+        Insert: {
+          article_id: string
+          change_reason?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          snapshot: Json
+        }
+        Update: {
+          article_id?: string
+          change_reason?: string
+          changed_by?: string | null
+          created_at?: string
+          id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "information_article_revisions_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "information_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      information_articles: {
+        Row: {
+          agent_run_id: string | null
+          approved_at: string | null
+          approved_by: string | null
+          body: string
+          channel: string
+          content_hash: string | null
+          created_at: string
+          created_by: string | null
+          featured: boolean
+          id: string
+          published_at: string | null
+          scheduled_at: string | null
+          slug: string
+          source_id: string
+          source_published_at: string | null
+          source_title: string
+          source_updated_at: string | null
+          source_url: string
+          status: string
+          summary: string
+          title: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          agent_run_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          body?: string
+          channel?: string
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          featured?: boolean
+          id?: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          slug: string
+          source_id: string
+          source_published_at?: string | null
+          source_title?: string
+          source_updated_at?: string | null
+          source_url: string
+          status?: string
+          summary?: string
+          title: string
+          topic?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_run_id?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          body?: string
+          channel?: string
+          content_hash?: string | null
+          created_at?: string
+          created_by?: string | null
+          featured?: boolean
+          id?: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          slug?: string
+          source_id?: string
+          source_published_at?: string | null
+          source_title?: string
+          source_updated_at?: string | null
+          source_url?: string
+          status?: string
+          summary?: string
+          title?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "information_articles_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            isOneToOne: false
+            referencedRelation: "information_agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "information_articles_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "information_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      information_candidates: {
+        Row: {
+          agent_run_id: string | null
+          article_id: string | null
+          canonical_url: string
+          content_hash: string | null
+          created_at: string
+          excerpt: string
+          fetched_content: string
+          id: string
+          last_error: string | null
+          last_fetched_at: string
+          source_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agent_run_id?: string | null
+          article_id?: string | null
+          canonical_url: string
+          content_hash?: string | null
+          created_at?: string
+          excerpt?: string
+          fetched_content?: string
+          id?: string
+          last_error?: string | null
+          last_fetched_at?: string
+          source_id: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_run_id?: string | null
+          article_id?: string | null
+          canonical_url?: string
+          content_hash?: string | null
+          created_at?: string
+          excerpt?: string
+          fetched_content?: string
+          id?: string
+          last_error?: string | null
+          last_fetched_at?: string
+          source_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "information_candidates_agent_run_id_fkey"
+            columns: ["agent_run_id"]
+            isOneToOne: false
+            referencedRelation: "information_agent_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "information_candidates_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "information_articles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "information_candidates_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "information_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      information_sources: {
+        Row: {
+          base_url: string
+          check_interval_minutes: number
+          created_at: string
+          domain: string
+          id: string
+          is_active: boolean
+          last_checked_at: string | null
+          last_error: string | null
+          last_success_at: string | null
+          name: string
+          source_type: string
+          trust_level: string
+          updated_at: string
+        }
+        Insert: {
+          base_url: string
+          check_interval_minutes?: number
+          created_at?: string
+          domain: string
+          id?: string
+          is_active?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          name: string
+          source_type?: string
+          trust_level?: string
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string
+          check_interval_minutes?: number
+          created_at?: string
+          domain?: string
+          id?: string
+          is_active?: boolean
+          last_checked_at?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          name?: string
+          source_type?: string
+          trust_level?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       budget_entries: {
         Row: {
           actual_amount: number
@@ -2882,6 +3167,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_information_article: {
+        Args: { p_article_id: string }
+        Returns: string
+      }
       complete_aspekindo_activity: {
         Args: { _activity_id: string }
         Returns: Database["public"]["Tables"]["aspekindo_activity_enrollments"]["Row"]
@@ -2934,6 +3223,18 @@ export type Database = {
           is_admin: boolean
           is_super_admin: boolean
         }[]
+      }
+      publish_information_article: {
+        Args: { p_article_id: string }
+        Returns: string
+      }
+      publish_due_information_articles: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      schedule_information_article: {
+        Args: { p_article_id: string; p_scheduled_at: string }
+        Returns: string
       }
       submit_assessment: {
         Args: { _answers: Json; _pre_test_id: string }

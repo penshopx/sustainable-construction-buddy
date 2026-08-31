@@ -8,6 +8,8 @@
     "dev:vite": "vite",
     "dev:api": "node api-server.cjs",
     "configure:auth-redirects": "node scripts/configure-auth-redirects.cjs",
+    "agent:content": "node scripts/content-agent.cjs",
+    "agent:content:watch": "node scripts/content-agent-watch.cjs",
     "build": "npm run typecheck && vite build",
     "build:dev": "npm run typecheck && vite build --mode development",
     "start": "node server.cjs",

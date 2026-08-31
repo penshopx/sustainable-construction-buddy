@@ -66,6 +66,9 @@ import ReadinessSimulatorPage from "./pages/ReadinessSimulatorPage";
 import AspekindoLms from "./pages/AspekindoLms";
 import AdminAspekindoLms from "./pages/admin/AdminAspekindoLms";
 import AdminAccessManagement from "./pages/admin/AdminAccessManagement";
+import InformationCenter from "./pages/InformationCenter";
+import InformationDetail from "./pages/InformationDetail";
+import AdminInformationCenter from "./pages/admin/AdminInformationCenter";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +81,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/informasi" element={<InformationCenter />} />
+            <Route path="/informasi/:slug" element={<InformationDetail />} />
             <Route path="/simulator-sbu" element={<ReadinessSimulatorPage kind="sbu" />} />
             <Route path="/simulator-lkut" element={<ReadinessSimulatorPage kind="lkut" />} />
             <Route path="/auth" element={<Auth />} />
@@ -130,6 +135,7 @@ const App = () => (
             <Route path="/admin/marketing-brief" element={<DashboardLayout><AdminGuard><AdminMarketingBrief /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-agenda" element={<DashboardLayout><AdminGuard><AdminAspekindoAgenda /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-lms" element={<DashboardLayout><AdminGuard><AdminAspekindoLms /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/informasi" element={<DashboardLayout><AdminGuard><AdminInformationCenter /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />

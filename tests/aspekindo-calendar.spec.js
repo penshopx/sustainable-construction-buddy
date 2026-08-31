@@ -161,6 +161,18 @@ async function readDownload(download) {
 }
 
 test.describe("ASPEKINDO agenda calendar exports", () => {
+  test("projects the canonical agenda into the public information center", async ({ page }) => {
+    await mockPublicAgenda(page);
+    await page.goto("/informasi");
+
+    await expect(page.getByRole("heading", { name: "Agenda WITA titik dua" })).toBeVisible();
+    await expect(page.getByText("Ditampilkan langsung dari agenda resmi, tanpa salinan data.")).toBeVisible();
+
+    await page.getByRole("button", { name: "Kabar PUB" }).click();
+    await expect(page).toHaveURL(/channel=pub/);
+    await expect(page.getByRole("heading", { name: "Agenda WIB titik" })).toBeVisible();
+  });
+
   test("preserves Indonesian time zones and formats in Google Calendar and ICS", async ({ page }) => {
     await mockPublicAgenda(page);
     await page.goto("/");
