@@ -50,6 +50,7 @@ Preview Replit memakai port 5000. API frontend Supabase tetap menggunakan projec
 | `SUPABASE_URL` | Replit Env Var | Sama dengan VITE_SUPABASE_URL |
 | `SUPABASE_ANON_KEY` | Replit Secret | Supabase anon key |
 | `SUPABASE_ACCESS_TOKEN` | Replit Secret | Personal Access Token `sbp_...` untuk konfigurasi Auth |
+| `SUPABASE_DB_PASSWORD` | Replit Secret | Password database hosted untuk pemeliharaan melalui `psql` atau Supabase CLI |
 | `SUPABASE_SERVICE_ROLE_KEY` | Replit Secret | Service-role key untuk probe Auth Admin |
 | `LOVABLE_API_KEY` | Supabase Edge Function Secrets | Untuk fitur AI chat |
 | `OPENROUTER_API_KEY` | Replit Secret (opsional) | Fallback AI untuk endpoint `/api/helpdesk` |
@@ -67,6 +68,12 @@ Preview Replit memakai port 5000. API frontend Supabase tetap menggunakan projec
 - Edge Functions: `supabase/functions/` (deploy ke Supabase, bukan ke Replit)
 
 Setelah origin preview berubah, jalankan `npm run configure:auth-redirects`. Perintah ini sengaja dijalankan manual karena memakai kredensial istimewa: Site URL akan diarahkan ke origin Replit aktif, URL lama tetap dipertahankan di allowlist, lalu link konfirmasi dan recovery nyata dihasilkan untuk memastikan path tidak diganti ke localhost. Akun probe langsung dihapus dan bukti non-secret disimpan di `supabase/auth-redirect-verification.json`.
+
+### Pemeliharaan database langsung
+
+- Ambil `db_host`, `db_port`, `db_user`, dan `db_name` dari metadata resmi `GET /v1/projects/{ref}/config/database/pooler`; jangan menebak host pooler dari region.
+- Gunakan `SUPABASE_DB_PASSWORD` hanya dari Replit Secret, misalnya melalui `PGPASSWORD="$SUPABASE_DB_PASSWORD" psql ...`. Jangan menaruh password atau connection string lengkap di command, log, atau repository.
+- Riwayat migrasi hosted dapat diperiksa melalui pooler dengan query read-only ke `supabase_migrations.schema_migrations`.
 
 ## Blocked Packages (Replit Security Policy)
 
