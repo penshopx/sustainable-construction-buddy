@@ -2912,6 +2912,29 @@ export type Database = {
         Args: { _request_id: string; _approve: boolean }
         Returns: undefined
       }
+      current_user_is_super_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      grant_admin_role: {
+        Args: { _target_user: string }
+        Returns: undefined
+      }
+      revoke_admin_role: {
+        Args: { _target_user: string }
+        Returns: undefined
+      }
+      list_admin_directory: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          email: string
+          full_name: string
+          company: string
+          is_admin: boolean
+          is_super_admin: boolean
+        }[]
+      }
       submit_assessment: {
         Args: { _answers: Json; _pre_test_id: string }
         Returns: Json

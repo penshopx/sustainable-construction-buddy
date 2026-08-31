@@ -227,7 +227,11 @@ export function AppSidebar() {
   const { isAdmin } = useAdmin();
   const { isSuperAdmin } = useSuperAdmin();
   const visibleAdminItems = isSuperAdmin
-    ? [...adminItems, { title: "Permintaan Admin", url: "/admin/permintaan", icon: ShieldCheck }]
+    ? [
+        ...adminItems,
+        { title: "Kelola Akses Admin", url: "/admin/akses", icon: ShieldCheck },
+        { title: "Permintaan Admin", url: "/admin/permintaan", icon: ShieldCheck },
+      ]
     : adminItems;
 
   return (

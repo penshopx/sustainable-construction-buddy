@@ -15,13 +15,8 @@ export function useSuperAdmin() {
     }
 
     const check = async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "super_admin")
-        .maybeSingle();
-      setIsSuperAdmin(!!data);
+      const { data, error } = await supabase.rpc("current_user_is_super_admin");
+      setIsSuperAdmin(!error && data === true);
       setLoading(false);
     };
     check();

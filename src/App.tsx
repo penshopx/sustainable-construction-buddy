@@ -65,6 +65,7 @@ import PubAspekindoVideo from "./pages/PubAspekindoVideo";
 import ReadinessSimulatorPage from "./pages/ReadinessSimulatorPage";
 import AspekindoLms from "./pages/AspekindoLms";
 import AdminAspekindoLms from "./pages/admin/AdminAspekindoLms";
+import AdminAccessManagement from "./pages/admin/AdminAccessManagement";
 
 const queryClient = new QueryClient();
 
@@ -125,6 +126,7 @@ const App = () => (
             <Route path="/admin/role-conflicts" element={<DashboardLayout><AdminGuard><AdminRoleConflicts /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/rangkuman" element={<DashboardLayout><AdminGuard><AdminSummary /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/permintaan" element={<DashboardLayout><SuperAdminGuard><AdminRequests /></SuperAdminGuard></DashboardLayout>} />
+            <Route path="/admin/akses" element={<DashboardLayout><SuperAdminGuard><AdminAccessManagement /></SuperAdminGuard></DashboardLayout>} />
             <Route path="/admin/marketing-brief" element={<DashboardLayout><AdminGuard><AdminMarketingBrief /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-agenda" element={<DashboardLayout><AdminGuard><AdminAspekindoAgenda /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-lms" element={<DashboardLayout><AdminGuard><AdminAspekindoLms /></AdminGuard></DashboardLayout>} />
