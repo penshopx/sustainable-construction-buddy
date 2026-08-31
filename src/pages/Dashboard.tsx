@@ -390,7 +390,7 @@ const Dashboard = () => {
             className="w-full bg-card border border-border rounded-xl p-5 shadow-card hover:shadow-card-hover transition-all text-left group"
           >
             <GraduationCap className="w-8 h-8 mb-3 text-pub-emerald" />
-            <p className="font-bold font-heading text-foreground">E-Course</p>
+            <p className="font-bold font-heading text-foreground">Pusat Pembelajaran PUB</p>
             <p className="text-sm text-muted-foreground font-body mt-1">Lanjutkan pembelajaran</p>
             <ArrowRight className="w-4 h-4 mt-2 text-muted-foreground group-hover:translate-x-1 transition-transform" />
           </button>
@@ -460,7 +460,7 @@ const Dashboard = () => {
               <BarChart3 className="w-8 h-8 text-muted-foreground/60 mx-auto mb-2" />
               <p className="text-sm font-heading font-semibold text-foreground">Belum ada progres domain</p>
               <p className="text-xs text-muted-foreground font-body mt-1">
-                Mulai dari E-Course untuk membangun kompetensi Anda.
+                 Mulai dari Pusat Pembelajaran PUB untuk membangun kompetensi Anda.
               </p>
             </div>
           )}

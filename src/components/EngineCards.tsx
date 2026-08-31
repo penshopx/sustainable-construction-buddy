@@ -22,7 +22,7 @@ const engines = [
   },
   {
     title: "Learning Engine",
-    subtitle: "E-Course & Modul",
+    subtitle: "Pusat Pembelajaran PUB",
     icon: GraduationCap,
     description:
       "Kurikulum terstruktur per level dengan e-course, modul e-book, dan chatbot mentor digital.",

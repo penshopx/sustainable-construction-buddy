@@ -115,7 +115,7 @@ export default function AdminQuizQuestions() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold font-heading text-foreground flex items-center gap-2">
-            <HelpCircle className="w-6 h-6 text-primary" /> Kelola Soal Kuis E-Course
+            <HelpCircle className="w-6 h-6 text-primary" /> Kelola Soal Kuis Pembelajaran
           </h2>
           <p className="text-sm text-muted-foreground">{questions.length} soal kuis tersedia</p>
         </div>

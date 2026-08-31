@@ -122,7 +122,7 @@ const adminItems = [
   { title: "Kelola Marketplace", url: "/admin/marketplace", icon: Store },
   { title: "Kelola Pesanan", url: "/admin/pesanan", icon: ShoppingBag },
   { title: "Statistik Penjualan", url: "/admin/statistik", icon: BarChart3 },
-  { title: "Kelola Modul E-Course", url: "/admin/modules", icon: GraduationCap },
+  { title: "Kelola Modul Pembelajaran", url: "/admin/modules", icon: GraduationCap },
   { title: "Kelola Soal Kuis", url: "/admin/quiz", icon: ClipboardCheck },
   { title: "Kelola Pengguna", url: "/admin/users", icon: Briefcase },
   { title: "Kelola Sertifikat", url: "/admin/certificates", icon: Award },

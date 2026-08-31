@@ -144,7 +144,7 @@ function getRoleConfig(position: string, stats: RoleStats): RoleConfig | null {
       ],
       quickLinks: [
         { label: "Kelola Proyek", link: "/projects", icon: FolderKanban },
-        { label: "E-Course", link: "/courses", icon: FileText },
+        { label: "Pusat Pembelajaran PUB", link: "/courses", icon: FileText },
         { label: "Risk Register", link: "/risk-register", icon: Shield },
         { label: "Sertifikat", link: "/certificates", icon: FileCheck },
       ],

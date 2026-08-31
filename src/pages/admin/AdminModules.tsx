@@ -109,7 +109,7 @@ export default function AdminModules() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold font-heading text-foreground flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-accent" /> Kelola Modul E-Course Personel Manajerial BUJK
+            <GraduationCap className="w-6 h-6 text-accent" /> Kelola Modul Pembelajaran Personel Manajerial BUJK
           </h2>
           <p className="text-sm text-muted-foreground">{modules.length} modul tersedia</p>
         </div>

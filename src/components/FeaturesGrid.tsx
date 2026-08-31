@@ -8,7 +8,7 @@ import {
 
 const features = [
   { icon: ClipboardCheck, title: "Assessment & Pre-test", desc: "Tentukan level kompetensi personil manajerial secara digital" },
-  { icon: GraduationCap, title: "E-Course & Modul", desc: "Pembelajaran terstruktur per level dan domain keahlian" },
+  { icon: GraduationCap, title: "Pusat Pembelajaran PUB", desc: "Pembelajaran terstruktur per level dan domain keahlian" },
   { icon: Wrench, title: "Toolkit Proyek", desc: "Risk Register, Budget Tracker, K3 Checklist, Generator Dokumen" },
   { icon: BarChart3, title: "Kinerja & Grading", desc: "Scoring otomatis 4 pilar dengan grade A–E terverifikasi" },
   { icon: Shield, title: "SMAP & PANCEK", desc: "Sistem Manajemen Anti Penyuapan dan Panduan Cegah Korupsi BUJK" },
