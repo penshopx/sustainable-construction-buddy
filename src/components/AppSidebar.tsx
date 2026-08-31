@@ -117,6 +117,7 @@ const adminItems = [
   { title: "Pusat Informasi", url: "/admin/informasi", icon: Newspaper },
   { title: "Agenda ASPEKINDO", url: "/admin/aspekindo-agenda", icon: CalendarDays },
   { title: "Operasi Kegiatan PUB", url: "/admin/aspekindo-lms", icon: CalendarDays },
+  { title: "Operasi Program & Peserta", url: "/admin/program-kegiatan", icon: CalendarDays },
   { title: "Verifikasi PANCEK", url: "/admin/pancek", icon: ShieldAlert },
   { title: "Review Inovasi", url: "/admin/inovasi", icon: Lightbulb },
   { title: "Kelola Marketplace", url: "/admin/marketplace", icon: Store },

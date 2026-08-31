@@ -84,7 +84,7 @@ export default function ProgramDetail() {
   if (!program) return (
     <div className="flex flex-col items-center justify-center py-20 gap-4">
       <p className="text-muted-foreground">Program tidak ditemukan.</p>
-      <Button variant="outline" onClick={() => navigate("/program-kegiatan")}><ArrowLeft className="w-4 h-4 mr-2" /> Kembali</Button>
+      <Button variant="outline" onClick={() => navigate("/admin/program-kegiatan")}><ArrowLeft className="w-4 h-4 mr-2" /> Kembali</Button>
     </div>
   );
 
@@ -94,7 +94,7 @@ export default function ProgramDetail() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-start gap-3">
-        <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={() => navigate("/program-kegiatan")}>
+        <Button variant="ghost" size="icon" className="mt-1 shrink-0" onClick={() => navigate("/admin/program-kegiatan")}>
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div className="flex-1 min-w-0">

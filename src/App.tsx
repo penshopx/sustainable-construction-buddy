@@ -38,6 +38,8 @@ import AdminInnovationReview from "./pages/admin/AdminInnovationReview";
 import ProposalDetail from "./pages/ProposalDetail";
 import PubPrograms from "./pages/Programs";
 import ProgramDetail from "./pages/ProgramDetail";
+import PublicPrograms from "./pages/PublicPrograms";
+import PublicProgramDetail from "./pages/PublicProgramDetail";
 import Marketplace from "./pages/Marketplace";
 import CompanyDirectory from "./pages/CompanyDirectory";
 import CompanyDetail from "./pages/CompanyDetail";
@@ -139,8 +141,10 @@ const App = () => (
             <Route path="/admin/informasi" element={<DashboardLayout><AdminGuard><AdminInformationCenter /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
-            <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />
-            <Route path="/program-kegiatan/:id" element={<DashboardLayout><ProgramDetail /></DashboardLayout>} />
+            <Route path="/program-kegiatan" element={<PublicPrograms />} />
+            <Route path="/program-kegiatan/:id" element={<PublicProgramDetail />} />
+            <Route path="/admin/program-kegiatan" element={<DashboardLayout><AdminGuard><PubPrograms /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/program-kegiatan/:id" element={<DashboardLayout><AdminGuard><ProgramDetail /></AdminGuard></DashboardLayout>} />
             <Route path="/install" element={<Install />} />
             <Route path="/pitch-deck" element={<PitchDeck />} />
             <Route path="/video-pub-aspekindo" element={<PubAspekindoVideo />} />

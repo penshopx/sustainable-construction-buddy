@@ -111,7 +111,7 @@ function ProgramCard({ program, isAdmin }: { program: PubProgram; isAdmin: boole
   const Icon = config.icon;
 
   return (
-    <Card className="overflow-hidden cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/program-kegiatan/${program.id}`)}>
+    <Card className="overflow-hidden cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/admin/program-kegiatan/${program.id}`)}>
       <CardContent className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3">
