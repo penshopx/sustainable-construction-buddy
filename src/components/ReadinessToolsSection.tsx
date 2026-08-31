@@ -1,8 +1,20 @@
 import { motion } from "framer-motion";
-import { ArrowRight, FileCheck2, Gauge, ShieldCheck } from "lucide-react";
+import { ArrowRight, ExternalLink, FileCheck2, Gauge, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const tools = [
+type ReadinessTool = {
+  href: string;
+  icon: typeof ShieldCheck;
+  eyebrow: string;
+  title: string;
+  description: string;
+  className: string;
+  iconClassName: string;
+  externalHref?: string;
+  externalLabel?: string;
+};
+
+const tools: ReadinessTool[] = [
   {
     href: "/simulator-sbu",
     icon: ShieldCheck,
@@ -20,6 +32,8 @@ const tools = [
     description: "Periksa apakah data proyek, keuangan, kepatuhan, dan kegiatan PUB siap direkap sebelum batas pelaporan.",
     className: "border-pub-amber/25 bg-pub-amber/[0.06] hover:border-pub-amber/50",
     iconClassName: "bg-pub-amber/15 text-pub-amber",
+    externalHref: "https://konstruksi-laporan-tahunan.replit.app/landing-page/",
+    externalLabel: "Buka Laporan Kegiatan Usaha Tahunan",
   },
 ];
 
@@ -58,24 +72,38 @@ export default function ReadinessToolsSection() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Link
-                  to={tool.href}
-                  className={`group block h-full rounded-2xl border p-6 shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover ${tool.className}`}
+                <div
+                  className={`flex h-full flex-col rounded-2xl border shadow-card transition-all hover:-translate-y-1 hover:shadow-card-hover ${tool.className}`}
                 >
-                  <div className="flex items-start gap-4">
-                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tool.iconClassName}`}>
-                      <Icon className="h-6 w-6" />
+                  <Link to={tool.href} className="group flex-1 p-6">
+                    <div className="flex items-start gap-4">
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tool.iconClassName}`}>
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{tool.eyebrow}</p>
+                        <h3 className="mt-1 text-xl font-bold font-heading text-foreground">{tool.title}</h3>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{tool.eyebrow}</p>
-                      <h3 className="mt-1 text-xl font-bold font-heading text-foreground">{tool.title}</h3>
-                    </div>
-                  </div>
-                  <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
-                  <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-pub-navy transition-colors group-hover:text-pub-sky dark:text-white dark:group-hover:text-pub-amber">
-                    Mulai asesmen <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </span>
-                </Link>
+                    <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{tool.description}</p>
+                    <span className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-pub-navy transition-colors group-hover:text-pub-sky dark:text-white dark:group-hover:text-pub-amber">
+                      Mulai asesmen <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </span>
+                  </Link>
+                  {tool.externalHref && tool.externalLabel && (
+                    <a
+                      href={tool.externalHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mx-6 mb-6 inline-flex items-center gap-2 rounded-lg border border-pub-amber/25 bg-pub-amber/10 px-3 py-2.5 text-sm font-semibold text-pub-amber transition-colors hover:border-pub-amber/50 hover:bg-pub-amber/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-amber"
+                      data-testid="link-lkut-annual-report"
+                      aria-label={`${tool.externalLabel}, layanan eksternal, buka di tab baru`}
+                    >
+                      {tool.externalLabel}
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  )}
+                </div>
               </motion.div>
             );
           })}

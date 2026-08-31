@@ -16,6 +16,7 @@ import FloatingChatbot from "@/components/FloatingChatbot";
 import FloatingLkut from "@/components/FloatingLkut";
 import InformationLandingSection from "@/components/InformationLandingSection";
 import ProjectEcosystemSection from "@/components/ProjectEcosystemSection";
+import QualityGovernanceSection from "@/components/QualityGovernanceSection";
 
 const Index = () => {
   return (
@@ -37,6 +38,9 @@ const Index = () => {
 
       {/* Readiness tools for SBU and LKUT preparation */}
       <ReadinessToolsSection />
+
+      {/* Quality, anti-bribery governance, and legal support */}
+      <QualityGovernanceSection />
 
       {/* Supporting access for the SKK session */}
       <SkkSection />

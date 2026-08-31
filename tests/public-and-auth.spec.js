@@ -54,6 +54,32 @@ test.describe("public and unauthenticated user flows", () => {
     await expect(page).toHaveURL(/\/auth$/);
   });
 
+  test("connects quality, LKUT, anti-bribery, and legal services", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.getByTestId("section-quality-governance")).toBeVisible();
+    await expect(page.getByTestId("text-quality-governance-narrative")).toContainText("PUB ASPEKINDO berkomitmen");
+    await expect(page.getByTestId("text-quality-governance-narrative")).toContainText("Rujukan ISO");
+    await expect(page.getByTestId("text-quality-governance-narrative")).toContainText("ISO bukan klaim sertifikasi otomatis");
+
+    const externalLinks = [
+      ["link-lkut-annual-report", "https://konstruksi-laporan-tahunan.replit.app/landing-page/"],
+      ["link-iso-quality-standards", "https://iso.dokumenproyek.com"],
+      ["link-anti-bribery-compliance", "https://smap.dokumenproyek.com"],
+      ["link-legal-compliance-session", "https://lexcom.dokumenproyek.com/"],
+    ];
+    for (const [testId, href] of externalLinks) {
+      const link = page.getByTestId(testId);
+      await expect(link).toHaveAttribute("href", href);
+      await expect(link).toHaveAttribute("target", "_blank");
+      await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    }
+
+    await expect(page.getByTestId("link-anti-bribery-compliance")).toContainText("Kepatuhan Anti Penyuapan");
+    await expect(page.getByTestId("link-legal-compliance-session")).toContainText("Sesi Hukum");
+    await expect(page.getByTestId("link-lkut-annual-report")).toContainText("Laporan Kegiatan Usaha Tahunan");
+  });
+
   test("shows confirmation success after the email redirect", async ({ page }) => {
     await page.goto("/auth?confirmed=1");
 
