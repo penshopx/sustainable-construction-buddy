@@ -190,7 +190,7 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
     const agendaSection = page.locator("#agenda-aspekindo");
     await agendaSection.scrollIntoViewIfNeeded();
     await expect(
-      page.getByRole("heading", { name: "Agenda WITA titik dua" }),
+      agendaSection.getByRole("heading", { name: "Agenda WITA titik dua" }),
     ).toBeVisible();
 
     for (const agenda of agendas) {

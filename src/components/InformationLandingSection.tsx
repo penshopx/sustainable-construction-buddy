@@ -53,12 +53,17 @@ export default function InformationLandingSection() {
               <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">{article.summary}</p>
             </article>
           ))}
-          {articles.length === 0 && agendas.map((agenda) => (
+          {agendas.map((agenda) => (
             <article key={agenda.id} className="border-l-4 border-pub-amber bg-white p-6 shadow-card">
               <CalendarDays className="h-5 w-5 text-pub-amber" />
               <p className="mt-4 text-xs font-bold uppercase tracking-wider text-slate-500">{formatAgendaDate(agenda.start_date)} · {agenda.category}</p>
-              <p className="mt-3 font-heading text-xl font-bold leading-snug text-pub-navy">{agenda.title}</p>
+              <h3 className="mt-3 text-xl font-bold leading-snug text-pub-navy">
+                <Link to="/agenda-pub" className="hover:text-pub-sky">{agenda.title}</Link>
+              </h3>
               <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-slate-600">{agenda.description}</p>
+              <Link to="/agenda-pub" className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-pub-sky hover:underline">
+                Lihat agenda PUB <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
             </article>
           ))}
         </div>
