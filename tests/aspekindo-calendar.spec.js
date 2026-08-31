@@ -173,6 +173,38 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
     await expect(page.getByRole("heading", { name: "Agenda WIB titik" })).toBeVisible();
   });
 
+  test("keeps public agenda visible alongside published news", async ({ page }) => {
+    await mockPublicAgenda(page);
+    await page.route("**/rest/v1/information_articles**", async (route) => {
+      await route.fulfill({
+        status: 200,
+        headers: { "content-range": "0-0/1" },
+        contentType: "application/json",
+        body: JSON.stringify([{
+          id: "00000000-0000-4000-8000-000000000201",
+          slug: "berita-regulasi-bujk",
+          title: "Berita regulasi BUJK",
+          summary: "Pembaruan regulasi untuk pelaku jasa konstruksi.",
+          body: "Ringkasan regulasi.",
+          channel: "industry",
+          topic: "Regulasi",
+          status: "published",
+          source_url: "https://pu.go.id/regulasi",
+          source_title: "Kementerian Pekerjaan Umum",
+          source_published_at: "2026-08-29T00:00:00.000Z",
+          published_at: "2026-08-30T00:00:00.000Z",
+          updated_at: "2026-08-30T00:00:00.000Z",
+          information_sources: { name: "Kementerian Pekerjaan Umum", domain: "pu.go.id", trust_level: "primary" },
+        }]),
+      });
+    });
+    await page.goto("/");
+
+    await expect(page.getByRole("heading", { name: "Berita regulasi BUJK" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Agenda WITA titik dua" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Lihat agenda PUB" }).first()).toBeVisible();
+  });
+
   test("opens the full PUB agenda without requiring login", async ({ page }) => {
     await mockPublicAgenda(page);
     await page.goto("/agenda-pub");
