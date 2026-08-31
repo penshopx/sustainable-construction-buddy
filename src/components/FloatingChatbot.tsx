@@ -38,7 +38,7 @@ const CATEGORIES: Category[] = [
     articles: [
       { q: "Bagaimana cara mengikuti pembelajaran?", a: "Buka menu 'Pusat Pembelajaran PUB'. Pilih modul yang tersedia, klik 'Mulai Belajar'. Selesaikan semua materi dan kuis untuk mendapatkan sertifikat." },
       { q: "Apa itu sesi SIAP PUB?", a: "SIAP PUB adalah sesi pembelajaran sebagai bagian dari pelaksanaan Pengembangan Usaha Berkelanjutan. Materinya membantu anggota BUJK memahami PUB dan mengarahkan penerapannya secara lebih terstruktur." },
-      { q: "Di mana mengikuti sesi SIAP PUB?", a: "Sesi SIAP PUB terhubung dengan platform pembelajaran Konstruksi AI di <a href='https://ai.dokumenproyek.com/' target='_blank' rel='noopener noreferrer' class='text-pub-sky underline'>ai.dokumenproyek.com</a>. Tautan akan terbuka di tab baru." },
+      { q: "Di mana melihat kesiapan 4 SIAP?", a: "Setelah masuk, buka menu <a href='/siap-kompetensi' class='text-pub-sky underline'>Peta Kompetensi 4 SIAP</a>. Halaman tersebut merangkum kesiapan Legalitas, Sertifikasi, Tender, dan Proyek dari data internal yang sudah tersedia." },
       { q: "Apa yang terjadi setelah menyelesaikan kuis?", a: "Setelah lulus kuis (nilai ≥70), modul dianggap selesai dan Anda mendapatkan poin kompetensi. Sertifikat dapat diunduh dari menu Sertifikat." },
       { q: "Apakah sertifikat diakui secara resmi?", a: "Sertifikat PUB ASPEKINDO diakui sebagai bukti pengembangan kompetensi manajerial BUJK dalam kerangka program pembinaan ASPEKINDO." },
     ],

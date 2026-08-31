@@ -13,6 +13,7 @@ import {
   Cell
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const domainColors = [
   "hsl(200, 80%, 55%)", // sky
@@ -123,14 +124,23 @@ const Analytics = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="mb-2">
-        <h1 className="text-2xl font-bold font-heading text-foreground flex items-center gap-3">
-          <BarChart3 className="w-7 h-7 text-pub-amber" />
-          Analytics Kompetensi
-        </h1>
-        <p className="text-muted-foreground font-body mt-1">
-          Visualisasi dan analisis perkembangan kompetensi Anda.
-        </p>
+      <div className="mb-2 flex flex-col justify-between gap-3 md:flex-row md:items-center">
+        <div>
+          <h1 className="text-2xl font-bold font-heading text-foreground flex items-center gap-3">
+            <BarChart3 className="w-7 h-7 text-pub-amber" />
+            Analytics Kompetensi
+          </h1>
+          <p className="text-muted-foreground font-body mt-1">
+            Visualisasi dan analisis perkembangan kompetensi Anda.
+          </p>
+        </div>
+        <Link
+          to="/siap-kompetensi"
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-pub-navy px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        >
+          <Target className="h-4 w-4" />
+          Peta Kompetensi 4 SIAP
+        </Link>
       </div>
 
       {/* Summary cards */}

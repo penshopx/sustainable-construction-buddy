@@ -197,6 +197,27 @@ const Dashboard = () => {
       <RoleConflictAlert compact />
       <RoleDashboard />
 
+      <motion.button
+        type="button"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        onClick={() => navigate("/siap-kompetensi")}
+        className="group flex w-full items-center justify-between gap-4 rounded-2xl border border-pub-sky/20 bg-gradient-to-r from-pub-navy to-pub-sky/80 p-5 text-left text-primary-foreground shadow-card transition-transform hover:-translate-y-0.5"
+      >
+        <div className="flex items-center gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/10">
+            <Target className="h-5 w-5 text-pub-sky-light" />
+          </div>
+          <div>
+            <p className="font-heading text-lg font-bold">Peta Kompetensi 4 SIAP</p>
+            <p className="mt-1 text-sm text-primary-foreground/70">
+              Lihat kesiapan Legalitas, Sertifikasi, Tender, dan Proyek dari bukti yang sudah tersedia.
+            </p>
+          </div>
+        </div>
+        <ArrowRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-1" />
+      </motion.button>
+
       {/* Quick stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[

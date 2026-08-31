@@ -14,3 +14,4 @@
 - [Supabase Auth redirects](supabase-auth-redirect-probes.md) — perubahan allowlist belum selesai sebelum link nyata mempertahankan redirect lengkap yang diminta.
 - [Supabase SQL migration path](supabase-sql-migration-path.md) — pakai metadata resmi dan Management SQL saat MCP/pooler tidak dapat digunakan; hormati throttle dan batas transaksi enum.
 - [Pusat Informasi boundaries](information-center-boundaries.md) — agenda PUB hanya dari tabel agenda kanonik; agen eksternal tidak boleh menyalin kegiatan ASPEKINDO.
+- [4 SIAP scoring boundaries](four-siap-scoring-boundaries.md) — pisahkan skor bukti dari cakupan data; engine eksternal tetap internal dan hasilnya hanya panduan.

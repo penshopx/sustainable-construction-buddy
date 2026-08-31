@@ -39,8 +39,8 @@ const FAQS = [
     answer: "SIAP PUB adalah sesi pembelajaran sebagai bagian dari pelaksanaan Pengembangan Usaha Berkelanjutan. Anggota BUJK dapat memahami materi PUB dan mengarahkan penerapannya melalui pembelajaran digital.",
   },
   {
-    question: "Di mana mengikuti sesi SIAP PUB?",
-    answer: "Sesi SIAP PUB terhubung dengan platform pembelajaran Konstruksi AI di ai.dokumenproyek.com. Gunakan tombol Mulai Sesi SIAP PUB untuk membuka platform tersebut di tab baru.",
+    question: "Di mana melihat kesiapan 4 SIAP?",
+    answer: "Setelah masuk, buka menu Peta Kompetensi 4 SIAP. Peta tersebut merangkum kesiapan Legalitas, Sertifikasi, Tender, dan Proyek dari data internal yang tersedia.",
   },
   ...KEPDIRJEN_281_FAQS,
 ];
@@ -71,9 +71,9 @@ const REFERENCES = [
     detail: "Ekosistem kompetensi digital · White-label partnership",
   },
   {
-    title: "Sesi SIAP PUB",
-    detail: "Pembelajaran PUB melalui platform Konstruksi AI",
-    href: "https://ai.dokumenproyek.com/",
+    title: "Peta Kompetensi 4 SIAP",
+    detail: "Snapshot internal Legalitas, Sertifikasi, Tender, dan Proyek",
+    href: "/siap-kompetensi",
   },
   {
     title: "LSBUKI Konstruksi",
@@ -213,13 +213,16 @@ export default function FloatingLkut() {
                   <p className="text-xs font-semibold font-heading text-muted-foreground">Rujukan chatbot</p>
                 </div>
                 {REFERENCES.map((reference) => {
+                  const isExternal = Boolean(reference.href?.startsWith("http"));
                   const content = (
                     <>
                       <span className="flex-1">
                         <span className="block text-xs font-semibold font-heading text-foreground">{reference.title}</span>
                         <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">{reference.detail}</span>
                       </span>
-                      {reference.href && <ExternalLink className="h-3.5 w-3.5 shrink-0 text-pub-sky" />}
+                      {reference.href && (isExternal
+                        ? <ExternalLink className="h-3.5 w-3.5 shrink-0 text-pub-sky" />
+                        : <ArrowRight className="h-3.5 w-3.5 shrink-0 text-pub-sky" />)}
                     </>
                   );
 
@@ -227,8 +230,8 @@ export default function FloatingLkut() {
                     <a
                       key={reference.title}
                       href={reference.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      target={isExternal ? "_blank" : undefined}
+                      rel={isExternal ? "noopener noreferrer" : undefined}
                       className="flex items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-muted/50"
                     >
                       {content}

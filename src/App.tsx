@@ -71,6 +71,7 @@ import InformationCenter from "./pages/InformationCenter";
 import InformationDetail from "./pages/InformationDetail";
 import AdminInformationCenter from "./pages/admin/AdminInformationCenter";
 import PublicAgendaPage from "./pages/PublicAgendaPage";
+import SiapCompetencyMap from "./pages/SiapCompetencyMap";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const App = () => (
             <Route path="/aspekindo-lms" element={<DashboardLayout><LearningHub /></DashboardLayout>} />
             <Route path="/mentor" element={<DashboardLayout><Mentor /></DashboardLayout>} />
             <Route path="/analytics" element={<DashboardLayout><Analytics /></DashboardLayout>} />
+            <Route path="/siap-kompetensi" element={<DashboardLayout><SiapCompetencyMap /></DashboardLayout>} />
             <Route path="/generator" element={<DashboardLayout><Generator /></DashboardLayout>} />
             <Route path="/profile" element={<DashboardLayout><Profile /></DashboardLayout>} />
             <Route path="/certificates" element={<DashboardLayout><Certificates /></DashboardLayout>} />

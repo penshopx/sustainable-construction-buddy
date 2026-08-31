@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, BookOpenCheck, GraduationCap, Sparkles } from "lucide-react";
-
-const SIAP_PUB_URL = "https://ai.dokumenproyek.com/";
+import { ArrowRight, BookOpenCheck, GraduationCap, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const learningSteps = [
   {
@@ -45,17 +44,15 @@ export default function SiapPubSection() {
             <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 font-body md:text-lg">
               Pelaksanaan Pengembangan Usaha Berkelanjutan diwujudkan melalui kegiatan pembelajaran. Sesi SIAP PUB membantu anggota BUJK memahami materi, mengikuti pembelajaran, dan menyiapkan penerapannya secara lebih terarah.
             </p>
-            <a
-              href={SIAP_PUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/siap-kompetensi"
               className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-amber px-6 py-3.5 font-bold text-accent-foreground shadow-amber transition-all hover:brightness-110"
             >
-              Mulai Sesi SIAP PUB
-              <ArrowUpRight className="h-4 w-4" />
-            </a>
+              Lihat Peta Kompetensi 4 SIAP
+              <ArrowRight className="h-4 w-4" />
+            </Link>
             <p className="mt-3 text-xs text-white/45 font-body">
-              Anda akan melanjutkan ke platform Konstruksi AI · ai.dokumenproyek.com
+              Masuk diperlukan karena peta menggunakan data anggota dan bukti kegiatan Anda.
             </p>
           </motion.div>
 
@@ -107,7 +104,7 @@ export default function SiapPubSection() {
 
             <div className="mt-5 flex items-center gap-2 border-t border-white/10 pt-5 text-xs text-white/50 font-body">
               <span className="h-2 w-2 rounded-full bg-pub-emerald" />
-              Terhubung ke platform pembelajaran Konstruksi AI
+              Dirangkum dari pembelajaran, kegiatan PUB, LKUT, PANCEK, SMAP, dan data proyek
             </div>
           </motion.div>
         </div>
