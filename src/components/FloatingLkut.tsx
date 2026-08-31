@@ -3,6 +3,7 @@ import { ArrowRight, BookOpen, ChevronDown, ExternalLink, FileCheck2, MessageCir
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { KEPDIRJEN_281_FAQS, KEPDIRJEN_281_REFERENCES } from "@/data/lkut-281-reference";
 
 const FAQS = [
   {
@@ -41,6 +42,7 @@ const FAQS = [
     question: "Di mana mengikuti sesi SIAP PUB?",
     answer: "Sesi SIAP PUB terhubung dengan platform pembelajaran Konstruksi AI di ai.dokumenproyek.com. Gunakan tombol Mulai Sesi SIAP PUB untuk membuka platform tersebut di tab baru.",
   },
+  ...KEPDIRJEN_281_FAQS,
 ];
 
 const REFERENCES = [
@@ -78,6 +80,7 @@ const REFERENCES = [
     detail: "lsbukonstruksi.co.id",
     href: "https://lsbukonstruksi.co.id",
   },
+  ...KEPDIRJEN_281_REFERENCES,
 ];
 
 export default function FloatingLkut() {

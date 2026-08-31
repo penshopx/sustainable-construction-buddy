@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const { KEPDIRJEN_281_AI_CONTEXT } = require("./chatbot-knowledge.cjs");
 
 const app = express();
 app.use(cors());
@@ -62,6 +63,8 @@ Fitur-fitur utama platform:
 Sistem poin & level:
 - Poin dari: selesaikan modul (+10), lulus kuis (+5), isi LKUT (+20), dsb
 - Level: Pemula (0-40), Berkembang (41-60), Kompeten (61-80), Ahli (81-100)
+
+${KEPDIRJEN_281_AI_CONTEXT}
 
 Panduan menjawab:
 1. Jawab dalam Bahasa Indonesia yang ramah dan profesional

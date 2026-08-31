@@ -3,6 +3,7 @@ import { X, MessageCircle, Search, ChevronRight, ChevronDown, ArrowLeft, Send, L
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { KEPDIRJEN_281_FAQS } from "@/data/lkut-281-reference";
 
 interface FloatingChatbotProps {
   variant?: "landing" | "dashboard";
@@ -51,6 +52,7 @@ const CATEGORIES: Category[] = [
       { q: "Apa isi Program PUB ASPEKINDO?", a: "Program PUB ASPEKINDO adalah platform digital Pengembangan Usaha Berkelanjutan dengan ekosistem kompetensi 5-lapis: e-course dan asesmen, regulasi dan ebook, workflow serta monitoring kinerja, AI chatbot kompetensi, dan AI document generator. Modernisasinya dilakukan bertahap melalui setup, pilot, dan peluncuran." },
       { q: "Apa itu PANCEK?", a: "PANCEK (Penilaian Akhir Capaian Kompetensi) adalah instrumen penilaian komprehensif kompetensi personil manajerial BUJK di akhir periode program." },
       { q: "Apa itu SMAP?", a: "SMAP (Sistem Manajemen Anti Penyuapan) adalah modul untuk memastikan BUJK Anda memenuhi standar tata kelola anti penyuapan sesuai ISO 37001." },
+      ...KEPDIRJEN_281_FAQS.map(({ question: q, answer: a }) => ({ q, a })),
     ],
   },
   {
