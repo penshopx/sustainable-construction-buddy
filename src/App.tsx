@@ -63,6 +63,8 @@ import AdminAspekindoAgenda from "./pages/admin/AdminAspekindoAgenda";
 import PitchDeck from "./pages/PitchDeck";
 import PubAspekindoVideo from "./pages/PubAspekindoVideo";
 import ReadinessSimulatorPage from "./pages/ReadinessSimulatorPage";
+import AspekindoLms from "./pages/AspekindoLms";
+import AdminAspekindoLms from "./pages/admin/AdminAspekindoLms";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +85,7 @@ const App = () => (
             <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
             <Route path="/assessment" element={<DashboardLayout><Assessment /></DashboardLayout>} />
             <Route path="/courses" element={<DashboardLayout><Courses /></DashboardLayout>} />
+            <Route path="/aspekindo-lms" element={<DashboardLayout><AspekindoLms /></DashboardLayout>} />
             <Route path="/mentor" element={<DashboardLayout><Mentor /></DashboardLayout>} />
             <Route path="/analytics" element={<DashboardLayout><Analytics /></DashboardLayout>} />
             <Route path="/generator" element={<DashboardLayout><Generator /></DashboardLayout>} />
@@ -124,6 +127,7 @@ const App = () => (
             <Route path="/admin/permintaan" element={<DashboardLayout><SuperAdminGuard><AdminRequests /></SuperAdminGuard></DashboardLayout>} />
             <Route path="/admin/marketing-brief" element={<DashboardLayout><AdminGuard><AdminMarketingBrief /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-agenda" element={<DashboardLayout><AdminGuard><AdminAspekindoAgenda /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/aspekindo-lms" element={<DashboardLayout><AdminGuard><AdminAspekindoLms /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
             <Route path="/program-kegiatan" element={<DashboardLayout><PubPrograms /></DashboardLayout>} />

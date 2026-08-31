@@ -84,6 +84,7 @@ const analisaItems = [
 const learningSubItems = [
   { title: "Pre-test Assessment", url: "/assessment", icon: ClipboardCheck },
   { title: "E-Course", url: "/courses", icon: GraduationCap },
+  { title: "LMS ASPEKINDO", url: "/aspekindo-lms", icon: CalendarDays },
   { title: "LMS DokumenProyek", url: "https://lms.dokumenproyek.com", icon: GraduationCap, external: true },
   { title: "SIAP PUB", url: "https://ai.dokumenproyek.com/", icon: GraduationCap, external: true },
   { title: "Mentor Digital", url: "/mentor", icon: MessageCircle },
@@ -112,6 +113,7 @@ const bottomItems = [
 const adminItems = [
   { title: "Corporate Dashboard", url: "/corporate", icon: Building2 },
   { title: "Agenda ASPEKINDO", url: "/admin/aspekindo-agenda", icon: CalendarDays },
+  { title: "Operasi LMS ASPEKINDO", url: "/admin/aspekindo-lms", icon: GraduationCap },
   { title: "Verifikasi PANCEK", url: "/admin/pancek", icon: ShieldAlert },
   { title: "Review Inovasi", url: "/admin/inovasi", icon: Lightbulb },
   { title: "Kelola Marketplace", url: "/admin/marketplace", icon: Store },

@@ -14,6 +14,435 @@ export type Database = {
   }
   public: {
     Tables: {
+      aspekindo_activity_enrollments: {
+        Row: {
+          activity_id: string
+          completed_at: string | null
+          id: string
+          notes: string
+          registered_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          completed_at?: string | null
+          id?: string
+          notes?: string
+          registered_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          completed_at?: string | null
+          id?: string
+          notes?: string
+          registered_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_activity_enrollments_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_pub_activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_activity_evidence: {
+        Row: {
+          activity_id: string
+          created_by: string | null
+          description: string
+          enrollment_id: string
+          evidence_number: string
+          evidence_type: string
+          external_url: string
+          id: string
+          issued_at: string
+          storage_path: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_by?: string | null
+          description?: string
+          enrollment_id: string
+          evidence_number: string
+          evidence_type?: string
+          external_url?: string
+          id?: string
+          issued_at?: string
+          storage_path?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_by?: string | null
+          description?: string
+          enrollment_id?: string
+          evidence_number?: string
+          evidence_type?: string
+          external_url?: string
+          id?: string
+          issued_at?: string
+          storage_path?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_activity_evidence_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_pub_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aspekindo_activity_evidence_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_activity_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_activity_materials: {
+        Row: {
+          activity_id: string
+          created_at: string
+          created_by: string | null
+          external_url: string
+          file_name: string
+          file_size: number
+          id: string
+          is_published: boolean
+          material_type: string
+          mime_type: string
+          sort_order: number
+          storage_path: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          created_by?: string | null
+          external_url?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          is_published?: boolean
+          material_type?: string
+          mime_type?: string
+          sort_order?: number
+          storage_path?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          created_by?: string | null
+          external_url?: string
+          file_name?: string
+          file_size?: number
+          id?: string
+          is_published?: boolean
+          material_type?: string
+          mime_type?: string
+          sort_order?: number
+          storage_path?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_activity_materials_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_pub_activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_activity_progress: {
+        Row: {
+          activity_id: string
+          completed_at: string | null
+          enrollment_id: string
+          id: string
+          material_id: string
+          progress_percent: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          completed_at?: string | null
+          enrollment_id: string
+          id?: string
+          material_id: string
+          progress_percent?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          completed_at?: string | null
+          enrollment_id?: string
+          id?: string
+          material_id?: string
+          progress_percent?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_activity_progress_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_pub_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aspekindo_activity_progress_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_activity_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aspekindo_activity_progress_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_activity_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_activity_evaluations: {
+        Row: {
+          activity_id: string
+          enrollment_id: string
+          feedback: string
+          id: string
+          learning_reflection: string
+          rating: number
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          enrollment_id: string
+          feedback?: string
+          id?: string
+          learning_reflection?: string
+          rating: number
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          enrollment_id?: string
+          feedback?: string
+          id?: string
+          learning_reflection?: string
+          rating?: number
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_activity_evaluations_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_pub_activities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aspekindo_activity_evaluations_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: true
+            referencedRelation: "aspekindo_activity_enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_member_obligations: {
+        Row: {
+          created_at: string
+          description: string
+          due_date: string | null
+          fulfilled_at: string | null
+          id: string
+          member_id: string
+          notes: string
+          obligation_type: string
+          siap_focus: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          member_id: string
+          notes?: string
+          obligation_type?: string
+          siap_focus?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          due_date?: string | null
+          fulfilled_at?: string | null
+          id?: string
+          member_id?: string
+          notes?: string
+          obligation_type?: string
+          siap_focus?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_member_obligations_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_members: {
+        Row: {
+          bujk_directory_id: string | null
+          company_name: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          joined_at: string | null
+          membership_number: string
+          membership_status: string
+          notes: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bujk_directory_id?: string | null
+          company_name?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          joined_at?: string | null
+          membership_number?: string
+          membership_status?: string
+          notes?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bujk_directory_id?: string | null
+          company_name?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          joined_at?: string | null
+          membership_number?: string
+          membership_status?: string
+          notes?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_members_bujk_directory_id_fkey"
+            columns: ["bujk_directory_id"]
+            isOneToOne: false
+            referencedRelation: "bujk_directory"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_pub_activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          created_by: string | null
+          delivery_mode: string
+          description: string
+          end_at: string | null
+          id: string
+          learning_outcomes: string
+          location: string
+          max_participants: number | null
+          member_only: boolean
+          registration_url: string
+          siap_focus: string
+          start_at: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activity_type?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_mode?: string
+          description?: string
+          end_at?: string | null
+          id?: string
+          learning_outcomes?: string
+          location?: string
+          max_participants?: number | null
+          member_only?: boolean
+          registration_url?: string
+          siap_focus?: string
+          start_at: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_mode?: string
+          description?: string
+          end_at?: string | null
+          id?: string
+          learning_outcomes?: string
+          location?: string
+          max_participants?: number | null
+          member_only?: boolean
+          registration_url?: string
+          siap_focus?: string
+          start_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       aspekindo_learning_agendas: {
         Row: {
           audience: string
@@ -2453,6 +2882,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_aspekindo_activity: {
+        Args: { _activity_id: string }
+        Returns: Database["public"]["Tables"]["aspekindo_activity_enrollments"]["Row"]
+      }
       check_question_answer: {
         Args: { _question_id: string; _selected_answer: number }
         Returns: Json
