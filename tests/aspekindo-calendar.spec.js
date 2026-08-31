@@ -293,6 +293,29 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
     await expect(page.getByRole("link", { name: "Buka halaman agenda" })).toHaveAttribute("href", "/agenda-pub");
   });
 
+  test("does not turn ambiguous schedules into timed calendar events", async ({ page }) => {
+    const ambiguousAgendas = [
+      { ...agendas[0], id: "00000000-0000-4000-8000-000000000401", title: "Jam tanpa zona", schedule: "09:00–12:00" },
+      { ...agendas[0], id: "00000000-0000-4000-8000-000000000402", title: "Jam tanpa rentang", schedule: "09:00 WIB" },
+      { ...agendas[0], id: "00000000-0000-4000-8000-000000000403", title: "Jam tanpa menit", schedule: "09–12 WIB" },
+      { ...agendas[0], id: "00000000-0000-4000-8000-000000000404", title: "Rentang nol durasi", schedule: "09:00–09:00 WIB" },
+    ];
+    await mockPublicAgenda(page, ambiguousAgendas);
+    await page.goto("/agenda-pub");
+
+    for (const agenda of ambiguousAgendas) {
+      const [download] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByRole("button", { name: `Unduh file kalender ${agenda.title}` }).click(),
+      ]);
+      const ics = await readDownload(download);
+
+      expect(ics).toContain(`DTSTART;VALUE=DATE:${agenda.start_date.replace(/-/g, "")}`);
+      expect(ics).not.toContain("DTSTART:");
+      expect(ics).not.toContain("DTEND:");
+    }
+  });
+
   test("opens the full PUB agenda without requiring login", async ({ page }) => {
     await mockPublicAgenda(page);
     await page.goto("/agenda-pub");

@@ -422,10 +422,10 @@ export default function AdminAspekindoAgenda() {
                   placeholder="09.00–12.00 WIB"
                 />
                 <p id="agenda-schedule-help" className="text-xs leading-relaxed text-muted-foreground">
-                  Format yang didukung: HH.MM atau HH:MM, misalnya 09.00–12.00 WIB.
-                  Zona waktu WIB, WITA, dan WIT tersedia. Acara lintas tengah malam
-                  boleh ditulis 22:00–01:30 WIB. Untuk agenda sehari penuh, kosongkan
-                  kolom atau tulis “Sehari penuh”.
+                  Isi rentang lengkap HH.MM–HH.MM atau HH:MM–HH:MM beserta zona,
+                  misalnya 09.00–12.00 WIB. Zona WIB, WITA, dan WIT tersedia.
+                  Acara lintas tengah malam boleh ditulis 22:00–01:30 WIB.
+                  Untuk agenda sehari penuh, kosongkan kolom atau tulis “Sehari penuh”.
                 </p>
               </div>
             </div>

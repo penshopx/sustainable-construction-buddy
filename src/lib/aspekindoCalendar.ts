@@ -11,7 +11,7 @@ const TIMEZONE_OFFSETS: Record<string, Omit<CalendarTime, "minutes">> = {
 };
 
 const TIME_RANGE_PATTERN =
-  /^(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)?(?:\s*(?:-|–|—|s\.?\s*d\.?|sampai|hingga|to)\s*(\d{1,2})(?:[.:](\d{2}))?\s*(am|pm)?)?\s*(WIB|WITA|WIT)?$/i;
+  /^(\d{2})[.:](\d{2})\s*(am|pm)?\s*(?:-|–|—|s\.?\s*d\.?|sampai|hingga|to)\s*(\d{2})[.:](\d{2})\s*(am|pm)?\s*(WIB|WITA|WIT)$/i;
 
 const ALL_DAY_PATTERN =
   /^(?:(?:agenda|kegiatan)\s+)?(?:sehari penuh|seharian(?: penuh)?|sepanjang hari|full day|all day)$/i;
@@ -52,12 +52,11 @@ export function parseCalendarTimes(schedule: string): { start: CalendarTime; end
   const startMinutes = toMinutes(match[1], match[2], match[3]);
   if (startMinutes === null) return null;
 
-  const endMinutes = match[4]
-    ? toMinutes(match[4], match[5], match[6])
-    : startMinutes + 60;
+  const endMinutes = toMinutes(match[4], match[5], match[6]);
   if (endMinutes === null) return null;
+  if (endMinutes === startMinutes) return null;
 
-  const timezoneKey = match[7]?.toUpperCase() ?? "WIB";
+  const timezoneKey = match[7].toUpperCase();
   const timezone = TIMEZONE_OFFSETS[timezoneKey];
 
   return {
@@ -70,8 +69,8 @@ export function getScheduleValidationMessage(schedule: string) {
   if (isAllDaySchedule(schedule) || parseCalendarTimes(schedule)) return null;
 
   return [
-    "Gunakan format seperti “09.00–12.00 WIB” atau “13:15–16:45 WITA”.",
-    "Pemisah titik atau titik dua serta zona WIB, WITA, dan WIT didukung.",
+    "Gunakan rentang lengkap seperti “09.00–12.00 WIB” atau “13:15–16:45 WITA”.",
+    "Jam mulai dan selesai harus mencantumkan menit, serta zona WIB, WITA, atau WIT.",
     "Untuk acara lintas tengah malam, tulis jam selesai lebih kecil, misalnya “22:00–01:30 WIB”.",
     "Untuk agenda sehari penuh, kosongkan kolom atau tulis “Sehari penuh”.",
   ].join(" ");
