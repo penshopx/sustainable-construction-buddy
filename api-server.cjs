@@ -145,6 +145,7 @@ async function searchWebSources(query) {
 
 const PUBLIC_CHATBOT_SELECT = "id,name,description,avatar_url,mode,welcome_message,is_public,persona";
 const publicChatRateLimits = new Map();
+const PUBLIC_CHAT_RATE_LIMIT_MAX_IPS = 5000;
 
 function isValidShareToken(token) {
   return typeof token === "string" && /^[A-Za-z0-9_-]{8,80}$/.test(token);
@@ -152,18 +153,21 @@ function isValidShareToken(token) {
 
 function exceedsPublicChatRateLimit(req) {
   const now = Date.now();
-  const key = `${req.ip || "unknown"}:${req.params.token}`;
+  const key = req.ip || "unknown";
   const current = publicChatRateLimits.get(key);
   if (!current || current.resetAt <= now) {
+    if (publicChatRateLimits.size >= PUBLIC_CHAT_RATE_LIMIT_MAX_IPS) {
+      for (const [entryKey, value] of publicChatRateLimits) {
+        if (value.resetAt <= now) publicChatRateLimits.delete(entryKey);
+      }
+    }
+    if (publicChatRateLimits.size >= PUBLIC_CHAT_RATE_LIMIT_MAX_IPS && !publicChatRateLimits.has(key)) {
+      return true;
+    }
     publicChatRateLimits.set(key, { count: 1, resetAt: now + 5 * 60 * 1000 });
     return false;
   }
   current.count += 1;
-  if (publicChatRateLimits.size > 1000) {
-    for (const [entryKey, value] of publicChatRateLimits) {
-      if (value.resetAt <= now) publicChatRateLimits.delete(entryKey);
-    }
-  }
   return current.count > 20;
 }
 
@@ -243,9 +247,6 @@ app.get("/api/public-chatbots/:token", async (req, res) => {
 app.post("/api/public-chatbots/:token/chat", async (req, res) => {
   const { token } = req.params;
   if (!isValidShareToken(token)) return res.status(404).json({ error: "Chatbot tidak ditemukan." });
-  if (exceedsPublicChatRateLimit(req)) {
-    return res.status(429).json({ error: "Terlalu banyak pesan. Silakan coba lagi beberapa menit lagi." });
-  }
   const incomingMessages = req.body?.messages;
   if (!Array.isArray(incomingMessages) || incomingMessages.length === 0) {
     return res.status(400).json({ error: "Format pesan tidak valid." });
@@ -267,6 +268,9 @@ app.post("/api/public-chatbots/:token/chat", async (req, res) => {
   try {
     const bot = await findSharedChatbot(token);
     if (!bot) return res.status(404).json({ error: "Chatbot tidak ditemukan atau link sudah tidak berlaku." });
+    if (exceedsPublicChatRateLimit(req)) {
+      return res.status(429).json({ error: "Terlalu banyak pesan. Silakan coba lagi beberapa menit lagi." });
+    }
 
     const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/helpdesk-chat`, {
       method: "POST",
@@ -284,10 +288,18 @@ app.post("/api/public-chatbots/:token/chat", async (req, res) => {
     const rawBody = await aiResponse.text();
     if (!aiResponse.ok) {
       console.error("Public chatbot AI error:", aiResponse.status, rawBody);
-      return res.status(502).json({ error: "Layanan AI sedang tidak tersedia." });
+      return res.status(503).json({
+        error: "Layanan AI chatbot sedang tidak tersedia. Silakan coba lagi nanti.",
+        degraded: true,
+      });
     }
     const reply = extractAiReply(rawBody);
-    if (!reply) return res.status(502).json({ error: "AI tidak mengembalikan jawaban." });
+    if (!reply) {
+      return res.status(503).json({
+        error: "Layanan AI chatbot tidak mengembalikan jawaban. Silakan coba lagi nanti.",
+        degraded: true,
+      });
+    }
     res.json({ reply });
   } catch (error) {
     console.error("Public chatbot chat error:", error);
