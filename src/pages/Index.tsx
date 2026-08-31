@@ -15,6 +15,7 @@ import Footer from "@/components/Footer";
 import FloatingChatbot from "@/components/FloatingChatbot";
 import FloatingLkut from "@/components/FloatingLkut";
 import InformationLandingSection from "@/components/InformationLandingSection";
+import ProjectEcosystemSection from "@/components/ProjectEcosystemSection";
 
 const Index = () => {
   return (
@@ -42,6 +43,9 @@ const Index = () => {
 
       {/* Learning session: implementation of PUB through structured learning */}
       <SiapPubSection />
+
+      {/* From 4 SIAP readiness into project management and opportunities */}
+      <ProjectEcosystemSection />
 
       {/* ASPEKINDO's own learning activities and public agenda */}
       <AspekindoLearningSection />

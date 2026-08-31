@@ -26,6 +26,34 @@ test.describe("public and unauthenticated user flows", () => {
     ).toBeVisible();
   });
 
+  test("connects 4 SIAP readiness to project services with guarded tender access", async ({ page }) => {
+    await page.goto("/");
+
+    await expect(page.getByTestId("section-project-ecosystem")).toBeVisible();
+    await expect(page.getByTestId("text-project-ecosystem-heading")).toContainText("4 SIAP bukan garis akhir");
+    await expect(page.getByTestId("list-readiness-tracks")).toContainText("Siap Legalitas");
+    await expect(page.getByTestId("list-readiness-tracks")).toContainText("Siap Sertifikasi");
+    await expect(page.getByTestId("list-readiness-tracks")).toContainText("Siap Tender");
+    await expect(page.getByTestId("list-readiness-tracks")).toContainText("Siap Proyek");
+
+    const externalLinks = [
+      ["link-project-management-system", "https://sistem-manajemen-proyek-konstruksi.replit.app/"],
+      ["link-project-work", "https://tukanghub.dokumenproyek.com"],
+      ["link-design-build", "https://rancang.dokumenproyek.com"],
+    ];
+    for (const [testId, href] of externalLinks) {
+      const link = page.getByTestId(testId);
+      await expect(link).toHaveAttribute("href", href);
+      await expect(link).toHaveAttribute("target", "_blank");
+      await expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    }
+
+    await expect(page.getByTestId("link-tender-readiness-map")).toHaveAttribute("href", "/siap-kompetensi");
+    await expect(page.getByTestId("text-tender-login-required")).toContainText("masuk diperlukan");
+    await page.getByTestId("link-tender-readiness-map").click();
+    await expect(page).toHaveURL(/\/auth$/);
+  });
+
   test("shows confirmation success after the email redirect", async ({ page }) => {
     await page.goto("/auth?confirmed=1");
 
