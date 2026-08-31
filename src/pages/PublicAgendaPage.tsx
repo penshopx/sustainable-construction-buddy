@@ -20,7 +20,7 @@ export default function PublicAgendaPage() {
     <div className="min-h-screen bg-background">
       <PublicInformationHeader backToHome />
       <main>
-        <AspekindoLearningSection />
+        <AspekindoLearningSection standalone />
       </main>
       <Footer />
     </div>

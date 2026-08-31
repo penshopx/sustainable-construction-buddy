@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   ArrowRight,
   CalendarDays,
@@ -155,7 +156,11 @@ function downloadCalendarFile(agenda: Agenda) {
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
-export default function AspekindoLearningSection() {
+interface AspekindoLearningSectionProps {
+  standalone?: boolean;
+}
+
+export default function AspekindoLearningSection({ standalone = false }: AspekindoLearningSectionProps) {
   const [activities, setActivities] = useState<Agenda[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -227,17 +232,29 @@ export default function AspekindoLearningSection() {
               </div>
             </div>
 
-            <a
-              href={ASPEKINDO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-pub-emerald px-6 py-3.5 font-bold text-white shadow-card transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-emerald focus-visible:ring-offset-2"
-            >
-              Lihat info & pendaftaran
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </a>
+            {standalone ? (
+              <a
+                href={ASPEKINDO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-pub-emerald px-6 py-3.5 font-bold text-white shadow-card transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-emerald focus-visible:ring-offset-2"
+              >
+                Situs resmi & pendaftaran
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+              </a>
+            ) : (
+              <Link
+                to="/agenda-pub"
+                className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-pub-emerald px-6 py-3.5 font-bold text-white shadow-card transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-emerald focus-visible:ring-offset-2"
+              >
+                Lihat agenda lengkap
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            )}
             <p className="mt-3 text-xs text-muted-foreground font-body">
-              Anda akan melanjutkan ke situs resmi ASPEKINDO di tab baru.
+              {standalone
+                ? "Detail jadwal dan pendaftaran mengikuti pengumuman resmi ASPEKINDO."
+                : "Lihat jadwal publik terlebih dahulu, lalu buka sumber resmi untuk mendaftar."}
             </p>
           </motion.div>
 
