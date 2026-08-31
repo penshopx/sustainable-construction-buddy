@@ -12,7 +12,7 @@ const pillars = [
   { icon: Wrench, title: "Mini Apps & Generator", desc: "Risk Register, Budget Tracker, K3 Checklist, dan tools lainnya" },
   { icon: BarChart3, title: "Kinerja & Grading", desc: "Scoring otomatis empat pilar kinerja dengan grade terverifikasi" },
   { icon: Shield, title: "SMAP, PANCEK, & K3", desc: "Sistem Anti Penyuapan, Panduan Cegah Korupsi, dan manajemen K3" },
-  { icon: FileText, title: "LKUT Digital", desc: "Laporan Kegiatan Usaha Tahunan untuk perpanjangan SBU" },
+  { icon: FileText, title: "Persiapan LKUT", desc: "Siapkan dokumen dan data untuk aplikasi LKUT resmi" },
   { icon: Building2, title: "Direktori BUJK", desc: "Profil perusahaan & jaringan antar BUJK se-Indonesia" },
   { icon: Bot, title: "AI Mentor", desc: "Konsultan AI untuk manajemen konstruksi kapan saja" },
   { icon: Award, title: "Sertifikat Digital", desc: "Bukti kompetensi terverifikasi untuk portofolio profesional" },
@@ -23,7 +23,7 @@ const pillars = [
 
 const pubPrograms = [
   "Peningkatan kualitas manajemen BUJK secara terstruktur",
-  "Pemenuhan persyaratan LKUT tahunan secara digital",
+  "Penyiapan dokumen dan data LKUT sebelum batas pelaporan",
   "Penilaian PANCEK dan penerapan SMAP terintegrasi",
   "Workshop, webinar, dan belajar mandiri berbasis modul",
   "Sesi SIAP PUB yang terhubung dengan platform pembelajaran Konstruksi AI",

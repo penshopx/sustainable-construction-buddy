@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useLkutReports, LkutReport } from "@/hooks/useLkutReports";
 import { useLkutDocuments } from "@/hooks/useLkutDocuments";
 import { LkutDocumentUpload } from "@/components/lkut/LkutDocumentUpload";
@@ -17,7 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
-import { Plus, FileText, CheckCircle2, Clock, Send, Trash2, AlertTriangle, Download, Paperclip, BarChart3, ExternalLink } from "lucide-react";
+import { Plus, FileText, CheckCircle2, Clock, Send, Trash2, AlertTriangle, Download, Paperclip, BarChart3 } from "lucide-react";
 
 const currentYear = new Date().getFullYear();
 
@@ -120,13 +121,9 @@ export default function LkutReportPage() {
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           <Button asChild variant="outline">
-            <a
-              href="https://asset-linker-esterkristian26.replit.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" /> LKUT Simulator
-            </a>
+            <Link to="/simulator-lkut">
+              <FileText className="w-4 h-4 mr-2" /> Simulator Kesiapan LKUT
+            </Link>
           </Button>
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="w-4 h-4 mr-2" /> Buat LKUT

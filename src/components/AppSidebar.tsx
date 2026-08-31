@@ -24,6 +24,7 @@ import {
   Bot,
   ShoppingBag,
   Package,
+  Gauge,
   ChevronDown,
   ExternalLink,
   type LucideIcon,
@@ -75,6 +76,8 @@ const dataOperasionalItems = [
 const analisaItems = [
   { title: "Compliance Tracker", url: "/compliance", icon: ShieldCheck },
   { title: "Performance Grade", url: "/grading", icon: BarChart3 },
+  { title: "Simulator Kesiapan SBU", url: "/simulator-sbu", icon: Gauge },
+  { title: "Simulator Kesiapan LKUT", url: "/simulator-lkut", icon: FileText },
 ];
 
 // Kompetensi & Pembelajaran group

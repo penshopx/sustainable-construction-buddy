@@ -62,6 +62,7 @@ import AdminMarketingBrief from "./pages/admin/AdminMarketingBrief";
 import AdminAspekindoAgenda from "./pages/admin/AdminAspekindoAgenda";
 import PitchDeck from "./pages/PitchDeck";
 import PubAspekindoVideo from "./pages/PubAspekindoVideo";
+import ReadinessSimulatorPage from "./pages/ReadinessSimulatorPage";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/simulator-sbu" element={<ReadinessSimulatorPage kind="sbu" />} />
+            <Route path="/simulator-lkut" element={<ReadinessSimulatorPage kind="lkut" />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/onboarding" element={<Onboarding />} />

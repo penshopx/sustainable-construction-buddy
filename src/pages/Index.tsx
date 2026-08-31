@@ -2,6 +2,7 @@ import HeroSection from "@/components/HeroSection";
 import ProjectVideoSection from "@/components/ProjectVideoSection";
 import IndustryProblemSection from "@/components/IndustryProblemSection";
 import TheOneThingSection from "@/components/TheOneThingSection";
+import ReadinessToolsSection from "@/components/ReadinessToolsSection";
 import SiapPubSection from "@/components/SiapPubSection";
 import AspekindoLearningSection from "@/components/AspekindoLearningSection";
 import DokumenProyekSection from "@/components/DokumenProyekSection";
@@ -27,6 +28,9 @@ const Index = () => {
 
       {/* D — DESIRE: The One Thing solution + before/after + features */}
       <TheOneThingSection />
+
+      {/* Readiness tools for SBU and LKUT preparation */}
+      <ReadinessToolsSection />
 
       {/* Learning session: implementation of PUB through structured learning */}
       <SiapPubSection />
