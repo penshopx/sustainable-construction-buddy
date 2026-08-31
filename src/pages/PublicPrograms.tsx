@@ -35,8 +35,8 @@ function formatDate(value: string | null) {
 }
 
 export default function PublicPrograms() {
-  const { data: programs = [], isLoading: loadingPrograms } = usePrograms();
-  const { data: updates = [], isLoading: loadingUpdates } = useProgramUpdates();
+  const { data: programs = [], isLoading: loadingPrograms } = usePrograms({ publicOnly: true });
+  const { data: updates = [], isLoading: loadingUpdates } = useProgramUpdates({ publicOnly: true });
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
 

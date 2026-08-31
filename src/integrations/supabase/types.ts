@@ -2808,6 +2808,7 @@ export type Database = {
           id: string
           image_url: string
           location: string
+          publication_status: string
           progress_percent: number
           start_date: string | null
           status: string
@@ -2822,6 +2823,7 @@ export type Database = {
           id?: string
           image_url?: string
           location?: string
+          publication_status?: string
           progress_percent?: number
           start_date?: string | null
           status?: string
@@ -2836,6 +2838,7 @@ export type Database = {
           id?: string
           image_url?: string
           location?: string
+          publication_status?: string
           progress_percent?: number
           start_date?: string | null
           status?: string

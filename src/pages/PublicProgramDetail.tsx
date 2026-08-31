@@ -35,9 +35,9 @@ function formatDate(value: string | null) {
 
 export default function PublicProgramDetail() {
   const { id } = useParams<{ id: string }>();
-  const { data: programs = [], isLoading: loadingPrograms } = usePrograms();
-  const { data: allUpdates = [] } = useProgramUpdates();
-  const { data: allGallery = [] } = useProgramGallery();
+  const { data: programs = [], isLoading: loadingPrograms } = usePrograms({ publicOnly: true });
+  const { data: allUpdates = [] } = useProgramUpdates({ publicOnly: true });
+  const { data: allGallery = [] } = useProgramGallery({ publicOnly: true });
   const program = programs.find((item) => item.id === id);
   const updates = allUpdates.filter((item) => item.program_id === id);
   const gallery = allGallery.filter((item) => item.program_id === id);

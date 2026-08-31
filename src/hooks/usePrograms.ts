@@ -7,6 +7,7 @@ export interface PubProgram {
   description: string;
   category: string;
   status: string;
+  publication_status: ProgramPublicationStatus;
   start_date: string | null;
   end_date: string | null;
   location: string;
@@ -15,6 +16,8 @@ export interface PubProgram {
   created_at: string;
   updated_at: string;
 }
+
+export type ProgramPublicationStatus = "draft" | "published" | "archived";
 
 export interface PubProgramUpdate {
   id: string;
@@ -35,42 +38,48 @@ export interface PubProgramGallery {
   pub_programs?: PubProgram;
 }
 
-export function usePrograms() {
+export function usePrograms({ publicOnly = false }: { publicOnly?: boolean } = {}) {
   return useQuery({
-    queryKey: ["pub-programs"],
+    queryKey: ["pub-programs", { publicOnly }],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("pub_programs")
         .select("*")
         .order("start_date", { ascending: false });
+      if (publicOnly) query = query.eq("publication_status", "published");
+      const { data, error } = await query;
       if (error) throw error;
       return data as unknown as PubProgram[];
     },
   });
 }
 
-export function useProgramUpdates() {
+export function useProgramUpdates({ publicOnly = false }: { publicOnly?: boolean } = {}) {
   return useQuery({
-    queryKey: ["pub-program-updates"],
+    queryKey: ["pub-program-updates", { publicOnly }],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("pub_program_updates")
-        .select("*, pub_programs(*)")
+        .select(publicOnly ? "*, pub_programs!inner(*)" : "*, pub_programs(*)")
         .order("published_at", { ascending: false });
+      if (publicOnly) query = query.eq("pub_programs.publication_status", "published");
+      const { data, error } = await query;
       if (error) throw error;
       return data as unknown as PubProgramUpdate[];
     },
   });
 }
 
-export function useProgramGallery() {
+export function useProgramGallery({ publicOnly = false }: { publicOnly?: boolean } = {}) {
   return useQuery({
-    queryKey: ["pub-program-gallery"],
+    queryKey: ["pub-program-gallery", { publicOnly }],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("pub_program_gallery")
-        .select("*, pub_programs(*)")
+        .select(publicOnly ? "*, pub_programs!inner(*)" : "*, pub_programs(*)")
         .order("created_at", { ascending: false });
+      if (publicOnly) query = query.eq("pub_programs.publication_status", "published");
+      const { data, error } = await query;
       if (error) throw error;
       return data as unknown as PubProgramGallery[];
     },

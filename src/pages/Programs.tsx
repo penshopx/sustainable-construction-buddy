@@ -24,7 +24,7 @@ import {
   useCreateProgram, useUpdateProgram, useDeleteProgram,
   useCreateProgramUpdate, useDeleteProgramUpdate,
   useCreateGalleryItem, useDeleteGalleryItem,
-  type PubProgram,
+  type PubProgram, type ProgramPublicationStatus,
 } from "@/hooks/usePrograms";
 import {
   useParticipants, useCreateParticipant, useUpdateParticipant, useDeleteParticipant,
@@ -37,6 +37,12 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.E
   completed: { label: "Selesai", color: "bg-muted text-muted-foreground", icon: CheckCircle2 },
 };
 
+const publicationConfig: Record<ProgramPublicationStatus, { label: string; color: string }> = {
+  draft: { label: "Draft", color: "bg-pub-amber/15 text-pub-amber" },
+  published: { label: "Published", color: "bg-pub-emerald/15 text-pub-emerald" },
+  archived: { label: "Archived", color: "bg-muted text-muted-foreground" },
+};
+
 const attendanceLabels: Record<string, { label: string; color: string }> = {
   registered: { label: "Terdaftar", color: "bg-pub-sky/15 text-pub-sky" },
   attended: { label: "Hadir", color: "bg-pub-emerald/15 text-pub-emerald" },
@@ -45,7 +51,16 @@ const attendanceLabels: Record<string, { label: string; color: string }> = {
 
 function ProgramForm({ onClose }: { onClose: () => void }) {
   const create = useCreateProgram();
-  const [form, setForm] = useState({ title: "", description: "", category: "program", status: "upcoming", location: "", start_date: "", end_date: "" });
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    category: "program",
+    status: "upcoming",
+    publication_status: "draft" as ProgramPublicationStatus,
+    location: "",
+    start_date: "",
+    end_date: "",
+  });
 
   const handleSubmit = async () => {
     if (!form.title.trim()) return toast.error("Judul wajib diisi");
@@ -66,7 +81,7 @@ function ProgramForm({ onClose }: { onClose: () => void }) {
     <div className="space-y-4">
       <Input placeholder="cth: Workshop Manajemen Proyek Konstruksi 2025" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
       <Textarea placeholder="cth: Workshop 2 hari tentang teknik penjadwalan proyek menggunakan Critical Path Method (CPM) dan penerapan Earned Value Management (EVM) untuk BUJK." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} />
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -82,6 +97,14 @@ function ProgramForm({ onClose }: { onClose: () => void }) {
             <SelectItem value="upcoming">Akan Datang</SelectItem>
             <SelectItem value="ongoing">Sedang Berjalan</SelectItem>
             <SelectItem value="completed">Selesai</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={form.publication_status} onValueChange={(v) => setForm({ ...form, publication_status: v as ProgramPublicationStatus })}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="draft">Draft — belum tampil publik</SelectItem>
+            <SelectItem value="published">Published — tampil publik</SelectItem>
+            <SelectItem value="archived">Archived — diarsipkan</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -108,6 +131,7 @@ function ProgramCard({ program, isAdmin }: { program: PubProgram; isAdmin: boole
   const update = useUpdateProgram();
   const del = useDeleteProgram();
   const config = statusConfig[program.status] || statusConfig.upcoming;
+  const publication = publicationConfig[program.publication_status] || publicationConfig.draft;
   const Icon = config.icon;
 
   return (
@@ -120,7 +144,10 @@ function ProgramCard({ program, isAdmin }: { program: PubProgram; isAdmin: boole
             </div>
             <div>
               <h3 className="font-semibold text-sm leading-tight">{program.title}</h3>
-              <Badge variant="outline" className="text-[10px] mt-1 capitalize">{program.category}</Badge>
+              <div className="mt-1 flex flex-wrap gap-1">
+                <Badge variant="outline" className="text-[10px] capitalize">{program.category}</Badge>
+                <Badge className={`${publication.color} text-[10px]`}>{publication.label}</Badge>
+              </div>
             </div>
           </div>
           <Badge className={`${config.color} text-xs shrink-0`}>{config.label}</Badge>
@@ -170,6 +197,17 @@ function ProgramCard({ program, isAdmin }: { program: PubProgram; isAdmin: boole
                 <SelectItem value="upcoming">Akan Datang</SelectItem>
                 <SelectItem value="ongoing">Sedang Berjalan</SelectItem>
                 <SelectItem value="completed">Selesai</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              defaultValue={program.publication_status}
+              onValueChange={(v) => update.mutate({ id: program.id, publication_status: v as ProgramPublicationStatus })}
+            >
+              <SelectTrigger className="h-8 text-xs flex-1" aria-label="Status publikasi"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
             </Select>
             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => {
@@ -312,6 +350,7 @@ export default function Programs() {
   const [addParticipantOpen, setAddParticipantOpen] = useState(false);
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPublication, setFilterPublication] = useState("all");
   const [participantProgramFilter, setParticipantProgramFilter] = useState("all");
   const [participantSearch, setParticipantSearch] = useState("");
 
@@ -322,6 +361,7 @@ export default function Programs() {
   const filteredPrograms = programs.filter((p) => {
     if (filterCategory !== "all" && p.category !== filterCategory) return false;
     if (filterStatus !== "all" && p.status !== filterStatus) return false;
+    if (filterPublication !== "all" && p.publication_status !== filterPublication) return false;
     return true;
   });
 
@@ -421,6 +461,15 @@ export default function Programs() {
                   <SelectItem value="upcoming">Akan Datang</SelectItem>
                   <SelectItem value="ongoing">Sedang Berjalan</SelectItem>
                   <SelectItem value="completed">Selesai</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filterPublication} onValueChange={setFilterPublication}>
+                <SelectTrigger className="h-8 text-xs w-[130px]" aria-label="Filter publikasi"><SelectValue placeholder="Publikasi" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Publikasi</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
             </div>

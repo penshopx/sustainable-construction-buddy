@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { exportParticipantPdf } from "@/lib/participantPdf";
 import { usePrograms, useProgramUpdates, useProgramGallery, useDeleteProgramUpdate, useDeleteGalleryItem } from "@/hooks/usePrograms";
+import { useUpdateProgram, type ProgramPublicationStatus } from "@/hooks/usePrograms";
 import { useParticipants, useUpdateParticipant, useDeleteParticipant } from "@/hooks/useParticipants";
 import { useAdmin } from "@/hooks/useAdmin";
 import { AddParticipantDialog } from "@/components/participants/AddParticipantDialog";
@@ -23,11 +24,18 @@ import { EditParticipantDialog } from "@/components/participants/EditParticipant
 import { GalleryUploadDialog } from "@/components/gallery/GalleryUploadDialog";
 import { AddUpdateDialog } from "@/components/programs/AddUpdateDialog";
 import { EditUpdateDialog } from "@/components/programs/EditUpdateDialog";
+import { toast } from "@/components/ui/sonner-toast";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   upcoming: { label: "Akan Datang", color: "bg-pub-amber/15 text-pub-amber" },
   ongoing: { label: "Sedang Berjalan", color: "bg-pub-emerald/15 text-pub-emerald" },
   completed: { label: "Selesai", color: "bg-muted text-muted-foreground" },
+};
+
+const publicationConfig: Record<ProgramPublicationStatus, { label: string; color: string }> = {
+  draft: { label: "Draft", color: "bg-pub-amber/15 text-pub-amber" },
+  published: { label: "Published", color: "bg-pub-emerald/15 text-pub-emerald" },
+  archived: { label: "Archived", color: "bg-muted text-muted-foreground" },
 };
 
 const attendanceLabels: Record<string, { label: string; color: string }> = {
@@ -48,6 +56,7 @@ export default function ProgramDetail() {
   const delParticipant = useDeleteParticipant();
   const delUpdate = useDeleteProgramUpdate();
   const delGallery = useDeleteGalleryItem();
+  const updateProgram = useUpdateProgram();
   const [search, setSearch] = useState("");
 
   const program = programs.find((p) => p.id === id);
@@ -89,6 +98,7 @@ export default function ProgramDetail() {
   );
 
   const config = statusConfig[program.status] || statusConfig.upcoming;
+  const publication = publicationConfig[program.publication_status] || publicationConfig.draft;
 
   return (
     <div className="space-y-6">
@@ -102,7 +112,30 @@ export default function ProgramDetail() {
             <h1 className="text-xl font-bold font-heading">{program.title}</h1>
             <Badge className={`${config.color} text-xs`}>{config.label}</Badge>
             <Badge variant="outline" className="text-xs capitalize">{program.category}</Badge>
+            <Badge className={`${publication.color} text-xs`}>{publication.label}</Badge>
           </div>
+          {isAdmin && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Status publikasi:</span>
+              <Select
+                defaultValue={program.publication_status}
+                onValueChange={(value) => updateProgram.mutate(
+                  { id: program.id, publication_status: value as ProgramPublicationStatus },
+                  {
+                    onSuccess: () => toast.success(`Program ${publicationConfig[value as ProgramPublicationStatus].label.toLowerCase()}`),
+                    onError: () => toast.error("Gagal mengubah status publikasi"),
+                  },
+                )}
+              >
+                <SelectTrigger className="h-8 w-[150px] text-xs" aria-label="Status publikasi"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {program.description && <p className="text-sm text-muted-foreground mt-1">{program.description}</p>}
           <div className="flex flex-wrap gap-4 mt-2 text-xs text-muted-foreground">
             {program.start_date && (
