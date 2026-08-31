@@ -14,6 +14,598 @@ export type Database = {
   }
   public: {
     Tables: {
+      aspekindo_lms_completion_records: {
+        Row: {
+          course_id: string
+          created_at: string
+          created_by: string | null
+          enrollment_id: string
+          evidence_description: string
+          evidence_title: string
+          evidence_url: string
+          export_batch_id: string | null
+          export_schema_version: string
+          exported_at: string | null
+          id: string
+          issued_at: string
+          metadata: Json
+          record_number: string
+          record_type: string
+          session_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          created_by?: string | null
+          enrollment_id: string
+          evidence_description?: string
+          evidence_title: string
+          evidence_url?: string
+          export_batch_id?: string | null
+          export_schema_version?: string
+          exported_at?: string | null
+          id?: string
+          issued_at?: string
+          metadata?: Json
+          record_number?: string
+          record_type?: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          created_by?: string | null
+          enrollment_id?: string
+          evidence_description?: string
+          evidence_title?: string
+          evidence_url?: string
+          export_batch_id?: string | null
+          export_schema_version?: string
+          exported_at?: string | null
+          id?: string
+          issued_at?: string
+          metadata?: Json
+          record_number?: string
+          record_type?: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_completion_enrollment_fk"
+            columns: ["enrollment_id", "user_id", "course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_enrollments"
+            referencedColumns: ["id", "user_id", "course_id"]
+          },
+          {
+            foreignKeyName: "aspekindo_lms_completion_session_fk"
+            columns: ["session_id", "course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_sessions"
+            referencedColumns: ["id", "course_id"]
+          },
+        ]
+      }
+      aspekindo_lms_courses: {
+        Row: {
+          agenda_id: string | null
+          audience: string
+          course_code: string
+          created_at: string
+          created_by: string | null
+          description_markdown: string
+          id: string
+          member_only: boolean
+          published_at: string | null
+          slug: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          agenda_id?: string | null
+          audience?: string
+          course_code?: string
+          created_at?: string
+          created_by?: string | null
+          description_markdown?: string
+          id?: string
+          member_only?: boolean
+          published_at?: string | null
+          slug: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          agenda_id?: string | null
+          audience?: string
+          course_code?: string
+          created_at?: string
+          created_by?: string | null
+          description_markdown?: string
+          id?: string
+          member_only?: boolean
+          published_at?: string | null
+          slug?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_courses_agenda_id_fkey"
+            columns: ["agenda_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_learning_agendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_lms_enrollments: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          enrolled_at: string
+          id: string
+          last_activity_at: string | null
+          notes: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          enrolled_at?: string
+          id?: string
+          last_activity_at?: string | null
+          notes?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          enrolled_at?: string
+          id?: string
+          last_activity_at?: string | null
+          notes?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_lms_lesson_progress: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          enrollment_id: string
+          id: string
+          lesson_id: string
+          progress_percent: number
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          enrollment_id: string
+          id?: string
+          lesson_id: string
+          progress_percent?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          enrollment_id?: string
+          id?: string
+          lesson_id?: string
+          progress_percent?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_progress_enrollment_fk"
+            columns: ["enrollment_id", "user_id", "course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_enrollments"
+            referencedColumns: ["id", "user_id", "course_id"]
+          },
+          {
+            foreignKeyName: "aspekindo_lms_progress_lesson_fk"
+            columns: ["lesson_id", "course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_lessons"
+            referencedColumns: ["id", "course_id"]
+          },
+        ]
+      }
+      aspekindo_lms_lessons: {
+        Row: {
+          content_markdown: string
+          course_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_published: boolean
+          passing_score: number
+          session_id: string | null
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_markdown?: string
+          course_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_published?: boolean
+          passing_score?: number
+          session_id?: string | null
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_markdown?: string
+          course_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_published?: boolean
+          passing_score?: number
+          session_id?: string | null
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aspekindo_lms_lessons_session_same_course"
+            columns: ["session_id", "course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_sessions"
+            referencedColumns: ["id", "course_id"]
+          },
+        ]
+      }
+      aspekindo_lms_materials: {
+        Row: {
+          content_markdown: string
+          created_at: string
+          created_by: string | null
+          external_url: string
+          id: string
+          is_published: boolean
+          lesson_id: string
+          material_type: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          external_url?: string
+          id?: string
+          is_published?: boolean
+          lesson_id: string
+          material_type?: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_markdown?: string
+          created_at?: string
+          created_by?: string | null
+          external_url?: string
+          id?: string
+          is_published?: boolean
+          lesson_id?: string
+          material_type?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_materials_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_lms_quiz_answer_keys: {
+        Row: {
+          correct_option: number
+          explanation_markdown: string
+          question_id: string
+          updated_at: string
+        }
+        Insert: {
+          correct_option: number
+          explanation_markdown?: string
+          question_id: string
+          updated_at?: string
+        }
+        Update: {
+          correct_option?: number
+          explanation_markdown?: string
+          question_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_quiz_answer_keys_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: true
+            referencedRelation: "aspekindo_lms_quiz_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_lms_quiz_answers: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          id: string
+          is_correct: boolean
+          lesson_id: string
+          question_id: string
+          selected_option: number
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          id?: string
+          is_correct: boolean
+          lesson_id: string
+          question_id: string
+          selected_option: number
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          id?: string
+          is_correct?: boolean
+          lesson_id?: string
+          question_id?: string
+          selected_option?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_answers_attempt_fk"
+            columns: ["attempt_id", "lesson_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_quiz_attempts"
+            referencedColumns: ["id", "lesson_id"]
+          },
+          {
+            foreignKeyName: "aspekindo_lms_answers_question_fk"
+            columns: ["question_id", "lesson_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_quiz_questions"
+            referencedColumns: ["id", "lesson_id"]
+          },
+        ]
+      }
+      aspekindo_lms_quiz_attempts: {
+        Row: {
+          attempt_number: number
+          correct_answers: number
+          course_id: string
+          enrollment_id: string
+          id: string
+          lesson_id: string
+          passed: boolean
+          score: number
+          submitted_at: string
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          attempt_number: number
+          correct_answers?: number
+          course_id: string
+          enrollment_id: string
+          id?: string
+          lesson_id: string
+          passed?: boolean
+          score?: number
+          submitted_at?: string
+          total_questions?: number
+          user_id: string
+        }
+        Update: {
+          attempt_number?: number
+          correct_answers?: number
+          course_id?: string
+          enrollment_id?: string
+          id?: string
+          lesson_id?: string
+          passed?: boolean
+          score?: number
+          submitted_at?: string
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_attempts_enrollment_fk"
+            columns: ["enrollment_id", "user_id", "course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_enrollments"
+            referencedColumns: ["id", "user_id", "course_id"]
+          },
+          {
+            foreignKeyName: "aspekindo_lms_attempts_lesson_fk"
+            columns: ["lesson_id", "course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_lessons"
+            referencedColumns: ["id", "course_id"]
+          },
+        ]
+      }
+      aspekindo_lms_quiz_questions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          lesson_id: string
+          options: Json
+          points: number
+          question_text: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lesson_id: string
+          options?: Json
+          points?: number
+          question_text: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lesson_id?: string
+          options?: Json
+          points?: number
+          question_text?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_quiz_questions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aspekindo_lms_sessions: {
+        Row: {
+          course_id: string
+          created_at: string
+          created_by: string | null
+          delivery_mode: string
+          description_markdown: string
+          ends_at: string | null
+          evidence_requirement: Json
+          id: string
+          session_code: string
+          sort_order: number
+          source_activity_id: string | null
+          source_name: string
+          source_type: string
+          source_url: string
+          starts_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          created_by?: string | null
+          delivery_mode?: string
+          description_markdown?: string
+          ends_at?: string | null
+          evidence_requirement?: Json
+          id?: string
+          session_code?: string
+          sort_order?: number
+          source_activity_id?: string | null
+          source_name?: string
+          source_type?: string
+          source_url?: string
+          starts_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          created_by?: string | null
+          delivery_mode?: string
+          description_markdown?: string
+          ends_at?: string | null
+          evidence_requirement?: Json
+          id?: string
+          session_code?: string
+          sort_order?: number
+          source_activity_id?: string | null
+          source_name?: string
+          source_type?: string
+          source_url?: string
+          starts_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aspekindo_lms_sessions_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_lms_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aspekindo_lms_sessions_source_activity_id_fkey"
+            columns: ["source_activity_id"]
+            isOneToOne: false
+            referencedRelation: "aspekindo_pub_activities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       aspekindo_activity_enrollments: {
         Row: {
           activity_id: string
@@ -3178,6 +3770,14 @@ export type Database = {
         Args: { _activity_id: string }
         Returns: Database["public"]["Tables"]["aspekindo_activity_enrollments"]["Row"]
       }
+      complete_aspekindo_lms_lesson: {
+        Args: { _lesson_id: string }
+        Returns: Database["public"]["Tables"]["aspekindo_lms_lesson_progress"]["Row"]
+      }
+      complete_aspekindo_lms_course: {
+        Args: { _course_id: string }
+        Returns: Database["public"]["Tables"]["aspekindo_lms_enrollments"]["Row"]
+      }
       check_question_answer: {
         Args: { _question_id: string; _selected_answer: number }
         Returns: Json
@@ -3242,6 +3842,10 @@ export type Database = {
       submit_assessment: {
         Args: { _answers: Json; _pre_test_id: string }
         Returns: Json
+      }
+      submit_aspekindo_lms_quiz: {
+        Args: { _answers: Json; _lesson_id: string }
+        Returns: Database["public"]["Tables"]["aspekindo_lms_quiz_attempts"]["Row"]
       }
     }
     Enums: {
