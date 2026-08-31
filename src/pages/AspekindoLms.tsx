@@ -275,7 +275,7 @@ export default function AspekindoLms() {
   if (loading) {
     return (
       <div className="flex min-h-[360px] items-center justify-center gap-2 text-muted-foreground">
-        <Loader2 className="h-5 w-5 animate-spin" /> Memuat LMS ASPEKINDO...
+        <Loader2 className="h-5 w-5 animate-spin" /> Memuat kegiatan PUB...
       </div>
     );
   }
@@ -285,7 +285,7 @@ export default function AspekindoLms() {
       <div className="overflow-hidden rounded-2xl bg-hero p-6 text-primary-foreground md:p-8">
         <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
           <div>
-            <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">LMS native PUB ASPEKINDO</Badge>
+            <Badge className="border-white/20 bg-white/10 text-white hover:bg-white/10">Kegiatan & bukti PUB</Badge>
             <h1 className="mt-4 text-3xl font-extrabold font-heading md:text-4xl">Kegiatan & pembelajaran anggota</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-primary-foreground/75 md:text-base">
               Ikuti webinar, seminar, FGD, dan pembelajaran PUB. Setiap penyelesaian dicatat sebagai evidence untuk rekap anggota dan persiapan LKUT.
@@ -308,7 +308,7 @@ export default function AspekindoLms() {
         <div className="space-y-6">
           <div>
             <h2 className="text-xl font-bold font-heading">Katalog kegiatan PUB</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Materi dan hasil kegiatan ini tidak dicampur dengan E-Course lama.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Ikuti kegiatan PUB dan simpan bukti keikutsertaan Anda di satu tempat.</p>
           </div>
           {activities.length === 0 ? (
             <Card className="border-dashed">

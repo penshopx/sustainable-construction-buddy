@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, ClipboardCheck, GraduationCap, Award, ShieldAlert, Lightbulb, CalendarDays, BookOpenCheck } from "lucide-react";
+import { Shield, Users, ClipboardCheck, GraduationCap, Award, ShieldAlert, Lightbulb, CalendarDays } from "lucide-react";
 import AdminUsers from "./AdminUsers";
 import AdminQuestions from "./AdminQuestions";
 import AdminModules from "./AdminModules";
@@ -34,7 +34,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="conflicts" className="gap-2"><ShieldAlert className="w-4 h-4" /> Konflik Jabatan</TabsTrigger>
           <TabsTrigger value="innovation" className="gap-2"><Lightbulb className="w-4 h-4" /> Inovasi</TabsTrigger>
           <TabsTrigger value="agenda" className="gap-2"><CalendarDays className="w-4 h-4" /> Agenda ASPEKINDO</TabsTrigger>
-          <TabsTrigger value="aspekindo-lms" className="gap-2"><BookOpenCheck className="w-4 h-4" /> LMS ASPEKINDO</TabsTrigger>
+          <TabsTrigger value="aspekindo-lms" className="gap-2"><CalendarDays className="w-4 h-4" /> Kegiatan PUB</TabsTrigger>
         </TabsList>
         <TabsContent value="users"><AdminUsers /></TabsContent>
         <TabsContent value="questions"><AdminQuestions /></TabsContent>

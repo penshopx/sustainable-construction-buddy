@@ -790,7 +790,7 @@ const Courses = () => {
         <div>
           <h1 className="text-2xl font-bold font-heading text-foreground flex items-center gap-3">
             <GraduationCap className="w-7 h-7 text-pub-amber" />
-            E-Course
+            Pusat Pembelajaran PUB
           </h1>
           <p className="text-muted-foreground font-body mt-1">
             Modul pembelajaran terstruktur per level kompetensi dan domain keahlian.

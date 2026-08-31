@@ -472,14 +472,14 @@ export default function AdminAspekindoLms() {
   };
 
   if (loading) {
-    return <div className="flex justify-center py-20 text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Memuat operasi LMS...</div>;
+    return <div className="flex justify-center py-20 text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Memuat operasi kegiatan...</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
         <div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold font-heading"><CalendarDays className="h-6 w-6 text-pub-emerald" /> Operasi LMS ASPEKINDO</h1>
+          <h1 className="flex items-center gap-2 text-2xl font-bold font-heading"><CalendarDays className="h-6 w-6 text-pub-emerald" /> Operasi Kegiatan PUB</h1>
           <p className="mt-1 text-sm text-muted-foreground">Kelola kegiatan PUB, materi multimedia, anggota, kewajiban, dan evidence.</p>
         </div>
         <Button onClick={openCreateActivity}><Plus className="mr-2 h-4 w-4" /> Tambah kegiatan</Button>
