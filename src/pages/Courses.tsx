@@ -147,7 +147,11 @@ const ModuleCardSkeleton = () => (
   </div>
 );
 
-const Courses = () => {
+interface CoursesProps {
+  embedded?: boolean;
+}
+
+const Courses = ({ embedded = false }: CoursesProps) => {
   const { user, profile } = useAuth();
   const [domains, setDomains] = useState<Domain[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
@@ -787,7 +791,7 @@ const Courses = () => {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header with stats */}
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      {!embedded && <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-2xl font-bold font-heading text-foreground flex items-center gap-3">
             <GraduationCap className="w-7 h-7 text-pub-amber" />
@@ -815,7 +819,7 @@ const Courses = () => {
             </a>
           </Button>
         </div>
-      </div>
+      </div>}
 
       {/* Search bar */}
       <div className="relative mb-4">
