@@ -8,8 +8,9 @@ import {
   GraduationCap, Clock, CheckCircle2, PlayCircle, Lock,
   Star, Award, Crown, Gem, BookOpen, ArrowRight, HelpCircle, Trophy,
   BookMarked, Filter, Search, ArrowUpDown, Bookmark, AlertCircle,
-  ClipboardCheck, FileCheck, BarChart3, ExternalLink
+  ClipboardCheck, FileCheck, BarChart3, ExternalLink, CalendarDays
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -796,16 +797,24 @@ const Courses = () => {
             Modul pembelajaran terstruktur per level kompetensi dan domain keahlian.
           </p>
         </div>
-        <Button asChild variant="outline" className="shrink-0">
-          <a
-            href="https://lms.dokumenproyek.com"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <ExternalLink className="w-4 h-4 mr-2" />
-            Buka LMS DokumenProyek
-          </a>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link to="/aspekindo-lms">
+              <CalendarDays className="w-4 h-4 mr-2" />
+              Kegiatan & Bukti PUB
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <a
+              href="https://lms.dokumenproyek.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Buka DokumenProyek
+            </a>
+          </Button>
+        </div>
       </div>
 
       {/* Search bar */}

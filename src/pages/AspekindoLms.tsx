@@ -15,6 +15,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
@@ -290,6 +291,14 @@ export default function AspekindoLms() {
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-primary-foreground/75 md:text-base">
               Ikuti webinar, seminar, FGD, dan pembelajaran PUB. Setiap penyelesaian dicatat sebagai evidence untuk rekap anggota dan persiapan LKUT.
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/courses"><BookOpenCheck className="mr-2 h-4 w-4" /> Pusat Pembelajaran PUB</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white">
+                <Link to="/agenda-pub"><CalendarDays className="mr-2 h-4 w-4" /> Agenda publik</Link>
+              </Button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-white/15 bg-white/10 px-5 py-4">

@@ -86,7 +86,7 @@ const learningSubItems = [
   { title: "Pre-test Assessment", url: "/assessment", icon: ClipboardCheck },
   { title: "Pusat Pembelajaran PUB", url: "/courses", icon: GraduationCap },
   { title: "Kegiatan & Bukti PUB", url: "/aspekindo-lms", icon: CalendarDays },
-  { title: "LMS DokumenProyek", url: "https://lms.dokumenproyek.com", icon: GraduationCap, external: true },
+  { title: "DokumenProyek (eksternal)", url: "https://lms.dokumenproyek.com", icon: GraduationCap, external: true },
   { title: "SIAP PUB", url: "https://ai.dokumenproyek.com/", icon: GraduationCap, external: true },
   { title: "Mentor Digital", url: "/mentor", icon: MessageCircle },
   { title: "Sertifikat", url: "/certificates", icon: Award },
