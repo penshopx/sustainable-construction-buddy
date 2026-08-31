@@ -13,6 +13,15 @@ const WEB_SOURCES = [
   "lpjk.pu.go.id",
   "pu.go.id",
   "lkpp.go.id",
+  "spse.inaproc.id",
+  "konstruksimedia.com",
+  "indokontraktor.com",
+  "mediakonstruksi.id",
+  "konstruksinews.id",
+  "cnbcindonesia.com",
+  "topkonstruksi.com",
+  "infoinfrastruktur.com",
+  "tekniksipil.id",
 ];
 
 const SYSTEM_PROMPT = `Kamu adalah PUB HelpDesk — asisten virtual platform PUB ASPEKINDO (aspekindo-pub.com).
