@@ -98,24 +98,6 @@ const HeroSection = () => {
                 Sertifikasi Badan Usaha (SBU) LSBU KI
                 <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
               </a>
-              <a
-                href="https://asdamkindo.id/anggota/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border-2 border-white bg-[hsl(220,60%,8%)] px-5 py-3 text-center text-xs font-bold font-heading tracking-tight text-white shadow-[0_8px_24px_rgba(0,124,248,0.3)] transition-all duration-200 hover:bg-white hover:text-pub-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] sm:whitespace-nowrap sm:text-sm md:text-[15px]"
-              >
-                Portal Keanggotaan (KTA) ASDAMKINDO
-                <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
-              </a>
-              <a
-                href="https://lspsdmkonstruksi.com/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-xl border-2 border-pub-sky bg-white px-5 py-3 text-center text-xs font-bold font-heading tracking-tight text-pub-navy shadow-[0_8px_24px_rgba(255,255,255,0.25)] transition-all duration-200 hover:bg-pub-sky hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[hsl(220,60%,8%)] sm:whitespace-nowrap sm:text-sm md:text-[15px]"
-              >
-                Sertifikasi Kompetensi Kerja (SKK) LSP SDMKI
-                <ExternalLink className="w-4 h-4 shrink-0" aria-hidden="true" />
-              </a>
             </div>
           </div>
         </motion.div>

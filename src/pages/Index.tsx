@@ -3,6 +3,7 @@ import ProjectVideoSection from "@/components/ProjectVideoSection";
 import IndustryProblemSection from "@/components/IndustryProblemSection";
 import TheOneThingSection from "@/components/TheOneThingSection";
 import ReadinessToolsSection from "@/components/ReadinessToolsSection";
+import SkkSection from "@/components/SkkSection";
 import SiapPubSection from "@/components/SiapPubSection";
 import AspekindoLearningSection from "@/components/AspekindoLearningSection";
 import DokumenProyekSection from "@/components/DokumenProyekSection";
@@ -31,6 +32,9 @@ const Index = () => {
 
       {/* Readiness tools for SBU and LKUT preparation */}
       <ReadinessToolsSection />
+
+      {/* Supporting access for the SKK session */}
+      <SkkSection />
 
       {/* Learning session: implementation of PUB through structured learning */}
       <SiapPubSection />
