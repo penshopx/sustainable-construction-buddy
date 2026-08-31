@@ -69,6 +69,7 @@ import AdminAccessManagement from "./pages/admin/AdminAccessManagement";
 import InformationCenter from "./pages/InformationCenter";
 import InformationDetail from "./pages/InformationDetail";
 import AdminInformationCenter from "./pages/admin/AdminInformationCenter";
+import PublicAgendaPage from "./pages/PublicAgendaPage";
 
 const queryClient = new QueryClient();
 
@@ -83,6 +84,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/informasi" element={<InformationCenter />} />
             <Route path="/informasi/:slug" element={<InformationDetail />} />
+            <Route path="/agenda-pub" element={<PublicAgendaPage />} />
             <Route path="/simulator-sbu" element={<ReadinessSimulatorPage kind="sbu" />} />
             <Route path="/simulator-lkut" element={<ReadinessSimulatorPage kind="lkut" />} />
             <Route path="/auth" element={<Auth />} />

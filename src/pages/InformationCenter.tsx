@@ -245,9 +245,14 @@ export default function InformationCenter() {
                       <h2 id="agenda-pub" className="mt-2 text-2xl font-extrabold md:text-3xl">Agenda dan kegiatan berikutnya</h2>
                       <p className="mt-2 text-sm text-white/60">Ditampilkan langsung dari agenda resmi, tanpa salinan data.</p>
                     </div>
-                    <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white">
-                      <Link to="/auth">Lihat di platform</Link>
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button asChild variant="outline" className="border-white/25 bg-white/5 text-white hover:bg-white/10 hover:text-white">
+                        <Link to="/agenda-pub">Lihat agenda lengkap</Link>
+                      </Button>
+                      <Button asChild className="bg-pub-sky text-pub-navy hover:bg-pub-sky/90">
+                        <Link to="/auth">Bergabung dengan PUB</Link>
+                      </Button>
+                    </div>
                   </div>
                   <div className="mt-7 grid gap-4 lg:grid-cols-2">
                     {filteredAgendas.map((agenda) => (

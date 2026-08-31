@@ -19,11 +19,14 @@ export default function PublicInformationHeader({ backToHome = false }: { backTo
               <ArrowLeft className="h-4 w-4" /> Pusat Informasi
             </Link>
           )}
+          <Link to="/agenda-pub" className="hidden min-h-11 items-center px-3 text-sm text-white/75 hover:text-white sm:flex">
+            Kegiatan PUB
+          </Link>
           <Link to="/" className="hidden min-h-11 items-center px-3 text-sm text-white/75 hover:text-white md:flex">
             Beranda
           </Link>
           <Link to="/auth" className="flex min-h-11 items-center gap-2 rounded-lg bg-pub-sky px-4 text-sm font-semibold text-pub-navy hover:brightness-110">
-            <LogIn className="h-4 w-4" /> Masuk
+            <LogIn className="h-4 w-4" /> Masuk / Daftar
           </Link>
         </nav>
       </div>
