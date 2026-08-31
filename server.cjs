@@ -3,13 +3,17 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const { KEPDIRJEN_281_AI_CONTEXT } = require("./chatbot-knowledge.cjs");
+const { createPublicChatRateLimiter } = require("./public-chat-rate-limit.cjs");
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(cors());
 app.use(express.json());
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
 
 const WEB_SOURCES = [
   "aspekindo.id",
@@ -133,31 +137,14 @@ async function searchWebSources(query) {
 
 // ── API Routes ──────────────────────────────────────────────
 const PUBLIC_CHATBOT_SELECT = "id,name,description,avatar_url,mode,welcome_message,is_public,persona";
-const publicChatRateLimits = new Map();
-const PUBLIC_CHAT_RATE_LIMIT_MAX_IPS = 5000;
+const publicChatRateLimiter = createPublicChatRateLimiter();
 
 function isValidShareToken(token) {
   return typeof token === "string" && /^[A-Za-z0-9_-]{8,80}$/.test(token);
 }
 
 function exceedsPublicChatRateLimit(req) {
-  const now = Date.now();
-  const key = req.ip || "unknown";
-  const current = publicChatRateLimits.get(key);
-  if (!current || current.resetAt <= now) {
-    if (publicChatRateLimits.size >= PUBLIC_CHAT_RATE_LIMIT_MAX_IPS) {
-      for (const [entryKey, value] of publicChatRateLimits) {
-        if (value.resetAt <= now) publicChatRateLimits.delete(entryKey);
-      }
-    }
-    if (publicChatRateLimits.size >= PUBLIC_CHAT_RATE_LIMIT_MAX_IPS && !publicChatRateLimits.has(key)) {
-      return true;
-    }
-    publicChatRateLimits.set(key, { count: 1, resetAt: now + 5 * 60 * 1000 });
-    return false;
-  }
-  current.count += 1;
-  return current.count > 20;
+  return publicChatRateLimiter.exceedsLimit(req.ip);
 }
 
 async function findSharedChatbot(token) {
@@ -219,6 +206,43 @@ function extractAiReply(rawBody) {
   }
 }
 
+async function requestPublicChatbotAi(bot, messages) {
+  if (!OPENROUTER_API_KEY) {
+    return { reply: "", error: "OPENROUTER_API_KEY belum dikonfigurasi di server." };
+  }
+
+  const persona = typeof bot.persona === "string" ? bot.persona.trim().slice(0, 6000) : "";
+  const systemContent = [
+    SYSTEM_PROMPT,
+    `\nKamu sekarang berbicara sebagai chatbot publik bernama "${bot.name || "Chatbot"}".`,
+    bot.description ? `Deskripsi chatbot: ${String(bot.description).slice(0, 1000)}` : "",
+    `Mode chatbot: ${bot.mode || "pembelajaran"}.`,
+    persona ? `Persona dan instruksi pemilik chatbot:\n${persona}` : "",
+    "\nJangan mengaku memiliki akses ke data privat, riwayat dashboard, atau identitas pengunjung. Jawab hanya berdasarkan konteks yang tersedia.",
+  ].filter(Boolean).join("\n");
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://aspekindo-pub.com",
+      "X-Title": "PUB ASPEKINDO Public Chatbot",
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL,
+      messages: [{ role: "system", content: systemContent }, ...messages],
+      temperature: 0.3,
+      max_tokens: 500,
+    }),
+  });
+  const rawBody = await response.text();
+  if (!response.ok) {
+    return { reply: "", error: `OpenRouter ${response.status}: ${rawBody.slice(0, 500)}` };
+  }
+  return { reply: extractAiReply(rawBody), error: "" };
+}
+
 app.get("/api/public-chatbots/:token", async (req, res) => {
   const { token } = req.params;
   if (!isValidShareToken(token)) return res.status(404).json({ error: "Chatbot tidak ditemukan." });
@@ -261,28 +285,15 @@ app.post("/api/public-chatbots/:token/chat", async (req, res) => {
       return res.status(429).json({ error: "Terlalu banyak pesan. Silakan coba lagi beberapa menit lagi." });
     }
 
-    const aiResponse = await fetch(`${SUPABASE_URL}/functions/v1/helpdesk-chat`, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messages,
-        mode: bot.mode || "pembelajaran",
-        custom_persona: bot.persona || undefined,
-      }),
-    });
-    const rawBody = await aiResponse.text();
-    if (!aiResponse.ok) {
-      console.error("Public chatbot AI error:", aiResponse.status, rawBody);
+    const aiResult = await requestPublicChatbotAi(bot, messages);
+    if (aiResult.error) {
+      console.error("Public chatbot AI error:", aiResult.error);
       return res.status(503).json({
         error: "Layanan AI chatbot sedang tidak tersedia. Silakan coba lagi nanti.",
         degraded: true,
       });
     }
-    const reply = extractAiReply(rawBody);
+    const reply = aiResult.reply;
     if (!reply) {
       return res.status(503).json({
         error: "Layanan AI chatbot tidak mengembalikan jawaban. Silakan coba lagi nanti.",
