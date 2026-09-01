@@ -6,15 +6,7 @@ import { Bell, CheckCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-
-interface Notification {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-}
+import { isAppNotification, mergeNotifications, type AppNotification } from "@/lib/notificationState";
 
 const typeIcon: Record<string, string> = {
   level_up: "🎉",
@@ -25,35 +17,50 @@ const typeIcon: Record<string, string> = {
 
 const Notifications = () => {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   useEffect(() => {
-    if (!user) return;
+    let cancelled = false;
+    setNotifications([]);
+    setLoading(true);
+    if (!user) return () => { cancelled = true; };
 
-    const fetch = async () => {
+    const fetchNotifications = async () => {
       const { data } = await supabase
         .from("notifications")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
-      if (data) setNotifications(data as Notification[]);
+      if (cancelled) return;
+      if (data) setNotifications((prev) => mergeNotifications(prev, data as AppNotification[]));
       setLoading(false);
     };
-    fetch();
+    void fetchNotifications();
 
     const channel = supabase
       .channel("notifications-page")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        (payload) => setNotifications((prev) => [payload.new as Notification, ...prev])
+        (payload) => {
+          const notification = payload.new as unknown;
+          if (!isAppNotification(notification)) return;
+          setNotifications((prev) => mergeNotifications(prev, [notification]));
+        }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (!cancelled && ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+          void fetchNotifications();
+        }
+      });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const markAllRead = async () => {

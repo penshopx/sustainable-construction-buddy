@@ -11,26 +11,20 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { id } from "date-fns/locale";
-
-interface Notification {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  is_read: boolean;
-  created_at: string;
-}
+import { isAppNotification, mergeNotifications, type AppNotification } from "@/lib/notificationState";
 
 export function NotificationBell() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [open, setOpen] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   useEffect(() => {
-    if (!user) return;
+    let cancelled = false;
+    setNotifications([]);
+    if (!user) return () => { cancelled = true; };
 
     const fetchNotifications = async () => {
       const { data } = await supabase
@@ -39,7 +33,9 @@ export function NotificationBell() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(20);
-      if (data) setNotifications(data as Notification[]);
+      if (!cancelled && data) {
+        setNotifications((prev) => mergeNotifications(prev, data as AppNotification[], 20));
+      }
     };
 
     fetchNotifications();
@@ -56,12 +52,19 @@ export function NotificationBell() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          setNotifications((prev) => [payload.new as Notification, ...prev].slice(0, 20));
+          const notification = payload.new as unknown;
+          if (!isAppNotification(notification)) return;
+          setNotifications((prev) => mergeNotifications(prev, [notification], 20));
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (!cancelled && ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+          void fetchNotifications();
+        }
+      });
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [user]);
@@ -86,7 +89,7 @@ export function NotificationBell() {
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o && unreadCount > 0) markAllRead(); }}>
       <PopoverTrigger asChild>
-        <button className="relative p-2 rounded-lg hover:bg-accent transition-colors">
+        <button aria-label="Buka notifikasi" className="relative p-2 rounded-lg hover:bg-accent transition-colors">
           <Bell className="w-5 h-5 text-muted-foreground" />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
