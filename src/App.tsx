@@ -68,6 +68,7 @@ import LearningHub from "./pages/LearningHub";
 import { AspekindoLmsCourseDetail } from "./pages/AspekindoLmsNative";
 import AspekindoLms from "./pages/AspekindoLms";
 import AdminAspekindoLms from "./pages/admin/AdminAspekindoLms";
+import AdminAspekindoLmsNative from "./pages/admin/AdminAspekindoLmsNative";
 import AdminAccessManagement from "./pages/admin/AdminAccessManagement";
 import InformationCenter from "./pages/InformationCenter";
 import InformationDetail from "./pages/InformationDetail";
@@ -146,6 +147,7 @@ const App = () => (
             <Route path="/admin/marketing-brief" element={<DashboardLayout><AdminGuard><AdminMarketingBrief /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-agenda" element={<DashboardLayout><AdminGuard><AdminAspekindoAgenda /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-lms" element={<DashboardLayout><AdminGuard><AdminAspekindoLms /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/lms-aspekindo" element={<DashboardLayout><AdminGuard><AdminAspekindoLmsNative /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/informasi" element={<DashboardLayout><AdminGuard><AdminInformationCenter /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />
             <Route path="/inovasi/proposal/:id" element={<DashboardLayout><ProposalDetail /></DashboardLayout>} />
