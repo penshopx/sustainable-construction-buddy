@@ -1,10 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  CompetencyInsightError,
-  deterministicKeys,
-  requestRecommendationKeys,
+  healthRequestStatus,
+  resolveInsight,
   toRecommendation,
+  toInsightHealth,
 } from "./contract.js";
 
 const corsHeaders = {
@@ -114,7 +114,8 @@ serve(async (req) => {
     }
 
     if (requestBody.action === "health") {
-      if (!(await isAdmin(client, user.id))) return json({ error: "Forbidden" }, 403);
+      const accessStatus = healthRequestStatus(await isAdmin(client, user.id));
+      if (accessStatus === 403) return json({ error: "Forbidden" }, accessStatus);
       return json({ health: await readInsightHealth(client) });
     }
 
@@ -203,44 +204,19 @@ serve(async (req) => {
       !isPresent(risks.data) && !isPresent(budgets.data) && !isPresent(k3.data) && "proyek-controls",
     ].filter((key): key is string => Boolean(key));
 
-    const fallbackKeys = deterministicKeys(missingKeys);
     const engineUrl = Deno.env.get("GUSTAFTA_ENGINE_URL");
     const engineApiKey = Deno.env.get("GUSTAFTA_ENGINE_API_KEY");
-
-    if (missingKeys.length === 0) {
-      await recordInsightHealth(supabaseUrl, "deterministic", "none");
-    } else if (engineUrl && engineApiKey) {
-      try {
-        const requestedKeys = await requestRecommendationKeys(
-          engineUrl,
-          engineApiKey,
-          missingKeys,
-        );
-        if (requestedKeys.length > 0) {
-          await recordInsightHealth(supabaseUrl, "connected", "none");
-          return json({
-            source: "connected",
-            recommendations: requestedKeys.map(toRecommendation).filter(Boolean),
-            generatedAt: new Date().toISOString(),
-          });
-        }
-      } catch (error) {
-        const failureReason = error instanceof CompetencyInsightError
-          ? error.code
-          : "unavailable";
-        console.error(
-          "Competency engine request failed",
-          error instanceof Error ? error.message : "Unknown error",
-        );
-        await recordInsightHealth(supabaseUrl, "deterministic", failureReason);
-      }
-    } else {
-      await recordInsightHealth(supabaseUrl, "deterministic", "not_configured");
-    }
+    const insight = await resolveInsight({
+      missingKeys,
+      engineUrl,
+      engineApiKey,
+    });
+    const health = toInsightHealth(insight);
+    await recordInsightHealth(supabaseUrl, health.status, health.failureReason);
 
     return json({
-      source: "deterministic",
-      recommendations: fallbackKeys.map(toRecommendation).filter(Boolean),
+      source: insight.source,
+      recommendations: insight.recommendationKeys.map(toRecommendation).filter(Boolean),
       generatedAt: new Date().toISOString(),
     });
   } catch (error) {

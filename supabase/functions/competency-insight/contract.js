@@ -1,6 +1,15 @@
 export const ENGINE_SCHEMA_VERSION = "pub-siap-v1";
 export const ENGINE_TIMEOUT_MS = 8_000;
 export const MAX_RECOMMENDATIONS = 3;
+const HEALTH_FAILURE_REASONS = new Set([
+  "none",
+  "not_configured",
+  "authentication",
+  "timeout",
+  "invalid_contract",
+  "unavailable",
+  "source_unavailable",
+]);
 
 export class CompetencyInsightError extends Error {
   constructor(code, message) {
@@ -110,6 +119,53 @@ export function parseRecommendationKeys(payload, availableKeys) {
   return [...new Set(recommendationKeys)]
     .filter((key) => typeof key === "string" && allowed.has(key))
     .slice(0, MAX_RECOMMENDATIONS);
+}
+
+function failureReasonFromError(error) {
+  const code = error instanceof CompetencyInsightError ? error.code : "unavailable";
+  return HEALTH_FAILURE_REASONS.has(code) ? code : "unavailable";
+}
+
+export function toInsightHealth(outcome) {
+  return {
+    status: outcome.source,
+    failureReason: outcome.failureReason,
+  };
+}
+
+export function healthRequestStatus(admin) {
+  return admin === true ? 200 : 403;
+}
+
+export async function resolveInsight({
+  missingKeys,
+  engineUrl,
+  engineApiKey,
+  requestKeys = requestRecommendationKeys,
+}) {
+  const fallbackKeys = deterministicKeys(missingKeys);
+  const deterministicOutcome = (failureReason) => ({
+    source: "deterministic",
+    recommendationKeys: fallbackKeys,
+    failureReason,
+  });
+
+  if (missingKeys.length === 0) return deterministicOutcome("none");
+  if (!engineUrl || !engineApiKey) return deterministicOutcome("not_configured");
+
+  try {
+    const recommendationKeys = await requestKeys(engineUrl, engineApiKey, missingKeys);
+    if (recommendationKeys.length === 0) {
+      return deterministicOutcome("invalid_contract");
+    }
+    return {
+      source: "connected",
+      recommendationKeys,
+      failureReason: "none",
+    };
+  } catch (error) {
+    return deterministicOutcome(failureReasonFromError(error));
+  }
 }
 
 function parseRecommendationKeysStrict(payload, availableKeys) {
