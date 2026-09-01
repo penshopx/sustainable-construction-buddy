@@ -26,6 +26,10 @@ const ASPEKINDO_URL = "https://aspekindo.id";
 
 type Agenda = Database["public"]["Tables"]["aspekindo_learning_agendas"]["Row"];
 
+type PublishedCourse = Pick<
+  Database["public"]["Tables"]["aspekindo_lms_courses"]["Row"],
+  "id" | "agenda_id" | "title" | "course_code"
+>;
 const CATEGORY_ICONS = {
   "Sesi pembelajaran": BookOpenCheck,
   "Klinik pendampingan": HeartHandshake,
@@ -173,6 +177,7 @@ interface AspekindoLearningSectionProps {
 
 export default function AspekindoLearningSection({ standalone = false }: AspekindoLearningSectionProps) {
   const [activities, setActivities] = useState<Agenda[]>([]);
+  const [linkedCourses, setLinkedCourses] = useState<Record<string, PublishedCourse>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -190,11 +195,27 @@ export default function AspekindoLearningSection({ standalone = false }: Aspekin
       const { data } = await query;
       if (mounted) {
         const today = getTodayInJakarta();
-        setActivities(
-          (data ?? []).filter(
-            (agenda) => agenda.status === "published" && (standalone || agenda.start_date >= today),
-          ),
+        const visibleActivities = (data ?? []).filter(
+          (agenda) => agenda.status === "published" && (standalone || agenda.start_date >= today),
         );
+        setActivities(visibleActivities);
+        if (visibleActivities.length > 0) {
+          const { data: courseData } = await supabase.rpc(
+            "get_public_aspekindo_lms_agenda_links",
+            { _agenda_ids: visibleActivities.map((agenda) => agenda.id) },
+          );
+          if (mounted) {
+            setLinkedCourses(
+              Object.fromEntries(
+                (courseData ?? [])
+                  .filter((course) => course.agenda_id)
+                  .map((course) => [course.agenda_id as string, course]),
+              ),
+            );
+          }
+        } else {
+          setLinkedCourses({});
+        }
         setLoading(false);
       }
     };
@@ -375,16 +396,24 @@ export default function AspekindoLearningSection({ standalone = false }: Aspekin
                             {activity.registration_details}
                           </p>
                         )}
+                        {linkedCourses[activity.id] && (
+                          <Link
+                            to={`/aspekindo-lms/kursus/${linkedCourses[activity.id].id}`}
+                            className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-pub-emerald hover:underline"
+                          >
+                            Masuk LMS <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                          </Link>
+                        )}
                         {isHttpsUrl(activity.registration_url) ? (
                           <a
                             href={activity.registration_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-pub-sky hover:underline"
+                            className="ml-4 mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-pub-sky hover:underline"
                           >
                             Daftar kegiatan <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                           </a>
-                        ) : !standalone ? (
+                        ) : !standalone && !linkedCourses[activity.id] ? (
                           <Link
                             to="/agenda-pub"
                             className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-pub-sky hover:underline"

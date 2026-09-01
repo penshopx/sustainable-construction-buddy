@@ -26,6 +26,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 type Agenda = Database["public"]["Tables"]["aspekindo_learning_agendas"]["Row"];
 type AgendaStatus = Database["public"]["Tables"]["aspekindo_learning_agendas"]["Row"]["status"];
+type LmsCourse = Database["public"]["Tables"]["aspekindo_lms_courses"]["Row"];
 
 type AgendaForm = {
   title: string;
@@ -39,6 +40,7 @@ type AgendaForm = {
   location: string;
   registration_url: string;
   registration_details: string;
+  lms_course_id: string;
 };
 
 const EMPTY_FORM: AgendaForm = {
@@ -53,6 +55,7 @@ const EMPTY_FORM: AgendaForm = {
   location: "",
   registration_url: "",
   registration_details: "",
+  lms_course_id: "__none",
 };
 
 const STATUS_LABELS: Record<AgendaStatus, string> = {
@@ -92,6 +95,7 @@ function isSecureRegistrationUrl(value: string) {
 
 export default function AdminAspekindoAgenda() {
   const [agendas, setAgendas] = useState<Agenda[]>([]);
+  const [lmsCourses, setLmsCourses] = useState<LmsCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -104,17 +108,28 @@ export default function AdminAspekindoAgenda() {
 
   const fetchAgendas = async () => {
     setLoadError(null);
-    const { data, error } = await supabase
-      .from("aspekindo_learning_agendas")
-      .select("*")
-      .order("start_date", { ascending: true })
-      .order("created_at", { ascending: false });
+    const [agendaResult, courseResult] = await Promise.all([
+      supabase
+        .from("aspekindo_learning_agendas")
+        .select("*")
+        .order("start_date", { ascending: true })
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("aspekindo_lms_courses")
+        .select("*")
+        .order("title", { ascending: true }),
+    ]);
 
-    if (error) {
-      setLoadError(error.message);
+    if (agendaResult.error) {
+      setLoadError(agendaResult.error.message);
       setAgendas([]);
     } else {
-      setAgendas(data);
+      setAgendas(agendaResult.data);
+    }
+    if (courseResult.error) {
+      setLoadError((current) => current ?? courseResult.error.message);
+    } else {
+      setLmsCourses(courseResult.data);
     }
     setLoading(false);
   };
@@ -152,6 +167,7 @@ export default function AdminAspekindoAgenda() {
       location: agenda.location,
       registration_url: agenda.registration_url,
       registration_details: agenda.registration_details,
+      lms_course_id: lmsCourses.find((course) => course.agenda_id === agenda.id)?.id ?? "__none",
     });
     setDialogOpen(true);
   };
@@ -202,12 +218,42 @@ export default function AdminAspekindoAgenda() {
 
     const result = editing
       ? await supabase.from("aspekindo_learning_agendas").update(payload).eq("id", editing.id)
-      : await supabase.from("aspekindo_learning_agendas").insert(payload);
+      : await supabase.from("aspekindo_learning_agendas").insert(payload).select("id").single();
 
     setSaving(false);
     if (result.error) {
       toast({ title: "Gagal menyimpan kegiatan", description: result.error.message, variant: "destructive" });
       return;
+    }
+
+    const agendaId = editing?.id ?? result.data?.id;
+    if (agendaId) {
+      const previouslyLinked = lmsCourses.find((course) => course.agenda_id === agendaId);
+      if (previouslyLinked && previouslyLinked.id !== form.lms_course_id) {
+        const { error: unlinkError } = await supabase
+          .from("aspekindo_lms_courses")
+          .update({ agenda_id: null })
+          .eq("id", previouslyLinked.id);
+        if (unlinkError) {
+          if (!editing) await supabase.from("aspekindo_learning_agendas").delete().eq("id", agendaId);
+          toast({ title: "Relasi LMS lama belum dilepas", description: unlinkError.message, variant: "destructive" });
+          return;
+        }
+      }
+      if (form.lms_course_id !== "__none") {
+        const { error: linkError } = await supabase
+          .from("aspekindo_lms_courses")
+          .update({ agenda_id: agendaId })
+          .eq("id", form.lms_course_id);
+        if (linkError) {
+          if (previouslyLinked) {
+            await supabase.from("aspekindo_lms_courses").update({ agenda_id: agendaId }).eq("id", previouslyLinked.id);
+          }
+          if (!editing) await supabase.from("aspekindo_learning_agendas").delete().eq("id", agendaId);
+          toast({ title: "Relasi LMS gagal disimpan", description: linkError.message, variant: "destructive" });
+          return;
+        }
+      }
     }
 
     toast({ title: editing ? "Kegiatan diperbarui" : "Kegiatan ditambahkan" });
@@ -449,6 +495,24 @@ export default function AdminAspekindoAgenda() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="agenda-lms-course">Pembelajaran internal (opsional)</Label>
+              <Select value={form.lms_course_id} onValueChange={(value) => updateForm("lms_course_id", value)}>
+                <SelectTrigger id="agenda-lms-course"><SelectValue placeholder="Belum dihubungkan" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">Belum dihubungkan</SelectItem>
+                  {lmsCourses.map((course) => (
+                    <SelectItem key={course.id} value={course.id}>
+                      {course.title} · {STATUS_LABELS[course.status] ?? course.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Tombol “Masuk LMS” hanya tampil publik bila kursus yang dihubungkan sudah berstatus Terbit.
+                Agenda tanpa relasi ini tetap menggunakan detail dan pendaftaran eksternal.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="agenda-registration-details">Detail pendaftaran</Label>

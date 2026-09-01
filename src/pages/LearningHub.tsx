@@ -16,7 +16,8 @@ export default function LearningHub() {
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-pub-sky">Kompetensi & kegiatan PUB</p>
           <h1 className="mt-2 text-2xl font-bold font-heading text-foreground md:text-3xl">Pusat Pembelajaran PUB</h1>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-muted-foreground">
-            Satu ruang untuk membangun kompetensi melalui kursus mandiri dan mengikuti kegiatan PUB yang terdokumentasi.
+            Bedakan E-Course umum untuk kompetensi mandiri, LMS native ASPEKINDO untuk kursus
+            dan bukti kegiatan internal, serta tautan eksternal yang tetap memakai akun platform asal.
           </p>
         </div>
         <button
@@ -36,10 +37,10 @@ export default function LearningHub() {
       >
         <TabsList className="grid h-auto w-full grid-cols-2">
           <TabsTrigger value="courses" className="gap-2 py-2.5">
-            <GraduationCap className="h-4 w-4" /> Kursus Kompetensi
+            <GraduationCap className="h-4 w-4" /> E-Course umum
           </TabsTrigger>
           <TabsTrigger value="activities" className="gap-2 py-2.5">
-            <CalendarDays className="h-4 w-4" /> Kegiatan & Bukti PUB
+            <CalendarDays className="h-4 w-4" /> LMS ASPEKINDO
           </TabsTrigger>
         </TabsList>
         <TabsContent value="courses" className="mt-6">

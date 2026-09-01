@@ -77,6 +77,7 @@ import PublicAgendaPage from "./pages/PublicAgendaPage";
 import SiapCompetencyMap from "./pages/SiapCompetencyMap";
 import PublicChatbotPage from "./pages/PublicChatbotPage";
 import PublicHelpdeskPage from "./pages/PublicHelpdeskPage";
+import AdminAspekindoLmsCourses from "./pages/admin/AdminAspekindoLmsCourses";
 
 const queryClient = new QueryClient();
 
@@ -147,6 +148,7 @@ const App = () => (
             <Route path="/admin/marketing-brief" element={<DashboardLayout><AdminGuard><AdminMarketingBrief /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-agenda" element={<DashboardLayout><AdminGuard><AdminAspekindoAgenda /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/aspekindo-lms" element={<DashboardLayout><AdminGuard><AdminAspekindoLms /></AdminGuard></DashboardLayout>} />
+            <Route path="/admin/aspekindo-lms/kursus" element={<DashboardLayout><AdminGuard><AdminAspekindoLmsCourses /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/lms-aspekindo" element={<DashboardLayout><AdminGuard><AdminAspekindoLmsNative /></AdminGuard></DashboardLayout>} />
             <Route path="/admin/informasi" element={<DashboardLayout><AdminGuard><AdminInformationCenter /></AdminGuard></DashboardLayout>} />
             <Route path="/inovasi" element={<DashboardLayout><Innovation /></DashboardLayout>} />

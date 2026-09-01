@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="min-w-0 flex-1 flex flex-col">
           <header className="h-auto py-2 md:py-3 flex items-center justify-between border-b border-border bg-card px-3 md:px-4">
             <div className="flex items-center min-w-0">
               <SidebarTrigger className="mr-2 md:mr-4 shrink-0" />
@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <ThemeToggle />
             </div>
           </header>
-          <main className="flex-1 p-3 md:p-6 bg-background overflow-auto">
+          <main className="min-w-0 flex-1 p-3 md:p-6 bg-background overflow-auto">
             {children}
           </main>
         </div>

@@ -53,14 +53,14 @@ test("authenticated users can move between the unified learning hub tabs", async
 
   await expect(page).toHaveURL(/\/courses$/);
   await expect(page.getByRole("heading", { name: "Pusat Pembelajaran PUB" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Kursus Kompetensi" })).toBeVisible();
-  await expect(page.getByRole("tab", { name: "Kegiatan & Bukti PUB" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "E-Course umum" })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "LMS ASPEKINDO" })).toBeVisible();
 
-  await page.getByRole("tab", { name: "Kegiatan & Bukti PUB" }).click();
+  await page.getByRole("tab", { name: "LMS ASPEKINDO" }).click();
   await expect(page).toHaveURL(/\/aspekindo-lms$/);
   await expect(page.getByRole("heading", { name: "Kegiatan & pembelajaran anggota" })).toBeVisible();
 
-  await page.getByRole("tab", { name: "Kursus Kompetensi" }).click();
+  await page.getByRole("tab", { name: "E-Course umum" }).click();
   await expect(page).toHaveURL(/\/courses$/);
   await expect(page.getByRole("heading", { name: "Pusat Pembelajaran PUB" })).toBeVisible();
 });

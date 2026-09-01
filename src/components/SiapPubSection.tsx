@@ -20,6 +20,13 @@ const learningSteps = [
   },
 ];
 
+const siapFocuses = [
+  { title: "Siap Legalitas", description: "Fondasi usaha dan dokumen legal." },
+  { title: "Siap Sertifikasi", description: "Kegiatan PUB dan dokumen LKUT disiapkan untuk aplikasi resmi." },
+  { title: "Siap Tender", description: "Kesiapan membaca dan mengikuti peluang." },
+  { title: "Siap Proyek", description: "Kesiapan menjalankan pekerjaan secara tertib." },
+];
+
 export default function SiapPubSection() {
   return (
     <section id="siap-pub" className="relative overflow-hidden bg-[hsl(220,65%,11%)] py-20 text-white">
@@ -42,8 +49,18 @@ export default function SiapPubSection() {
               <span className="text-pub-amber">belajar dan bertumbuh</span>
             </h2>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 font-body md:text-lg">
-              Pelaksanaan Pengembangan Usaha Berkelanjutan diwujudkan melalui kegiatan pembelajaran. Sesi SIAP PUB membantu anggota BUJK memahami materi, mengikuti pembelajaran, dan menyiapkan penerapannya secara lebih terarah.
+              SIAP adalah payung Program PUB ASPEKINDO untuk membantu BUJK bertumbuh melalui
+              empat fokus yang saling terhubung. LMS native mencatat pembelajaran dan bukti
+              kegiatan; jalur eksternal tetap dibuka pada platform asal tanpa klaim SSO.
             </p>
+            <div className="mt-6 grid max-w-2xl gap-2 sm:grid-cols-2">
+              {siapFocuses.map((focus) => (
+                <div key={focus.title} className="rounded-xl border border-white/10 bg-white/[0.04] p-3.5">
+                  <p className="text-sm font-bold text-white">{focus.title}</p>
+                  <p className="mt-1 text-xs leading-relaxed text-white/55">{focus.description}</p>
+                </div>
+              ))}
+            </div>
             <Link
               to="/siap-kompetensi"
               className="mt-7 inline-flex items-center gap-2 rounded-xl bg-gradient-amber px-6 py-3.5 font-bold text-accent-foreground shadow-amber transition-all hover:brightness-110"
@@ -53,6 +70,8 @@ export default function SiapPubSection() {
             </Link>
             <p className="mt-3 text-xs text-white/45 font-body">
               Masuk diperlukan karena peta menggunakan data anggota dan bukti kegiatan Anda.
+              Data Siap Sertifikasi hanya membantu persiapan dan tidak menduplikasi formulir
+              atau menggantikan proses LKUT resmi Kementerian PU/LPJK.
             </p>
           </motion.div>
 

@@ -3782,6 +3782,15 @@ export type Database = {
         Args: { _course_id: string }
         Returns: Database["public"]["Tables"]["aspekindo_lms_enrollments"]["Row"]
       }
+      get_public_aspekindo_lms_agenda_links: {
+        Args: { _agenda_ids: string[] }
+        Returns: {
+          id: string
+          agenda_id: string
+          title: string
+          course_code: string
+        }[]
+      }
       check_question_answer: {
         Args: { _question_id: string; _selected_answer: number }
         Returns: Json
@@ -3842,6 +3851,19 @@ export type Database = {
       schedule_information_article: {
         Args: { p_article_id: string; p_scheduled_at: string }
         Returns: string
+      }
+      save_aspekindo_lms_quiz_question: {
+        Args: {
+          _question_id: string | null
+          _lesson_id: string
+          _question_text: string
+          _options: Json
+          _correct_option: number
+          _explanation_markdown: string
+          _points: number
+          _sort_order: number
+        }
+        Returns: Database["public"]["Tables"]["aspekindo_lms_quiz_questions"]["Row"]
       }
       submit_assessment: {
         Args: { _answers: Json; _pre_test_id: string }
