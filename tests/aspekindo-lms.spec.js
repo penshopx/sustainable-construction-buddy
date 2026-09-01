@@ -435,9 +435,18 @@ test.describe("pengalaman peserta LMS ASPEKINDO", () => {
       file_size_bytes: 2048,
     };
     let signedUrlRequests = 0;
+    let releaseVideoResponse;
+    const videoResponseGate = new Promise((resolve) => {
+      releaseVideoResponse = resolve;
+    });
 
     await installLmsMock(page, { materials: [videoMaterial] });
     await page.route("**/storage/v1/object/sign/**", async (route) => {
+      if (route.request().method() === "GET") {
+        await videoResponseGate;
+        await route.fulfill({ status: 200, contentType: "video/mp4", body: "" });
+        return;
+      }
       signedUrlRequests += 1;
       if (signedUrlRequests === 1) {
         await route.fulfill({
@@ -467,5 +476,6 @@ test.describe("pengalaman peserta LMS ASPEKINDO", () => {
     await page.getByRole("button", { name: "Muat ulang video" }).click();
     await expect.poll(() => signedUrlRequests).toBe(2);
     await expect(page.locator("video source")).toHaveAttribute("src", /test-signed-token/);
+    releaseVideoResponse();
   });
 });

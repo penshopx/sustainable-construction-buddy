@@ -152,6 +152,15 @@ test("admin can enable a public course landing and upload an MP4 lesson video", 
   }];
   const materials = [];
   let savedMaterial = null;
+  let uploadAttempts = 0;
+  let releaseFirstUpload;
+  const firstUploadGate = new Promise((resolve) => {
+    releaseFirstUpload = resolve;
+  });
+  let releaseMaterialInsert;
+  const materialInsertGate = new Promise((resolve) => {
+    releaseMaterialInsert = resolve;
+  });
 
   await page.route("**/auth/v1/**", async (route) => {
     if (route.request().url().endsWith("/user")) {
@@ -171,6 +180,16 @@ test("admin can enable a public course landing and upload an MP4 lesson video", 
 
   await page.route("**/storage/v1/object/**", async (route) => {
     if (route.request().method() === "POST") {
+      uploadAttempts += 1;
+      if (uploadAttempts === 1) {
+        await firstUploadGate;
+        await route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "Simulasi koneksi upload terputus" }),
+        });
+        return;
+      }
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ Key: "native/video.mp4" }) });
       return;
     }
@@ -209,6 +228,7 @@ test("admin can enable a public course landing and upload an MP4 lesson video", 
     if (endpoint === "aspekindo_lms_materials") {
       if (request.method() === "POST") {
         savedMaterial = request.postDataJSON();
+        await materialInsertGate;
         materials.push({ ...savedMaterial, id: "00000000-0000-4000-8000-000000000905" });
         await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify([]) });
         return;
@@ -242,6 +262,22 @@ test("admin can enable a public course landing and upload an MP4 lesson video", 
   });
   await expect(page.getByText("pengantar.mp4")).toBeVisible();
   await page.getByRole("button", { name: "Simpan materi" }).click();
+  await expect(page.getByTestId("video-upload-progress")).toBeVisible();
+  await expect(page.getByTestId("video-upload-progress")).toContainText("0%");
+  await expect(page.getByTestId("video-upload-progress")).toContainText("0 B dari 16 B terkirim");
+  await expect(page.getByRole("button", { name: "Mengunggah 0%" })).toBeDisabled();
+
+  releaseFirstUpload();
+  await expect(page.getByText("Video gagal diunggah", { exact: true })).toBeVisible();
+  await expect(page.getByText("Simulasi koneksi upload terputus", { exact: true })).toBeVisible();
+  expect(savedMaterial).toBeNull();
+  await expect(page.getByTestId("video-upload-progress")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Simpan materi" }).click();
+  await expect(page.getByTestId("video-upload-progress")).toContainText("100%");
+  await expect(page.getByTestId("video-upload-progress")).toContainText("16 B dari 16 B terkirim");
+  await expect(page.getByRole("button", { name: "Mengunggah 100%" })).toBeDisabled();
+  releaseMaterialInsert();
 
   await expect.poll(() => savedMaterial).toMatchObject({
     material_type: "video",

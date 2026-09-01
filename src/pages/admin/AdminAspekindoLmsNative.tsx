@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { uploadSupabaseObjectWithProgress, type UploadProgress } from "@/integrations/supabase/uploadWithProgress";
 import type { Json, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -231,6 +233,12 @@ function formatFileSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
 }
 
+function formatUploadBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 function jsonRecord(value: Json) {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
 }
@@ -274,6 +282,7 @@ export default function AdminAspekindoLmsNative() {
   const [rosterSearch, setRosterSearch] = useState("");
   const [rosterStatus, setRosterStatus] = useState("all");
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async (background = false) => {
@@ -461,6 +470,7 @@ export default function AdminAspekindoLmsNative() {
     const lessonMaterials = materials.filter((material) => material.lesson_id === lesson.id);
     setMaterialForm({ ...EMPTY_MATERIAL, sort_order: String(lessonMaterials.length) });
     setVideoFile(null);
+    setUploadProgress(null);
     setDialog("material");
   };
 
@@ -480,6 +490,7 @@ export default function AdminAspekindoLmsNative() {
       sort_order: String(material.sort_order),
     });
     setVideoFile(null);
+    setUploadProgress(null);
     setDialog("material");
   };
 
@@ -652,11 +663,16 @@ export default function AdminAspekindoLmsNative() {
     if (materialForm.material_type === "video" && videoFile) {
       const safeName = videoFile.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").slice(-120);
       uploadedPath = `native/${selectedLesson.course_id}/${selectedLesson.id}/${crypto.randomUUID()}-${safeName}`;
-      const uploadResult = await supabase.storage
-        .from("aspekindo-learning")
-        .upload(uploadedPath, videoFile, { contentType: videoFile.type, upsert: false });
+      setUploadProgress({ loaded: 0, total: videoFile.size, percent: 0 });
+      const uploadResult = await uploadSupabaseObjectWithProgress({
+        bucket: "aspekindo-learning",
+        path: uploadedPath,
+        file: videoFile,
+        onProgress: setUploadProgress,
+      });
       if (uploadResult.error) {
         setSaving(false);
+        setUploadProgress(null);
         toast({ title: "Video gagal diunggah", description: uploadResult.error.message, variant: "destructive" });
         return;
       }
@@ -685,6 +701,7 @@ export default function AdminAspekindoLmsNative() {
       if (uploadedPath) {
         await supabase.storage.from("aspekindo-learning").remove([uploadedPath]);
       }
+      setUploadProgress(null);
       toast({ title: "Materi gagal disimpan", description: result.error.message, variant: "destructive" });
       return;
     }
@@ -704,12 +721,14 @@ export default function AdminAspekindoLmsNative() {
       }
     }
     setDialog(null);
+    setUploadProgress(null);
     toast({ title: editingMaterial ? "Materi diperbarui" : "Materi dibuat" });
     await loadData(true);
   };
 
   const selectVideoFile = (file: File | null) => {
     if (!file) return;
+    setUploadProgress(null);
     const allowedTypes = new Set(["video/mp4", "video/webm"]);
     const lowerName = file.name.toLowerCase();
     const validExtension = lowerName.endsWith(".mp4") || lowerName.endsWith(".webm");
@@ -1290,7 +1309,7 @@ export default function AdminAspekindoLmsNative() {
           <DialogHeader><DialogTitle>{editingMaterial ? "Edit materi" : "Tambah materi"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label htmlFor="native-material-title">Judul materi *</Label><Input id="native-material-title" value={materialForm.title} onChange={(event) => setMaterialForm((current) => ({ ...current, title: event.target.value }))} /></div>
-            <div className="grid gap-4 sm:grid-cols-2"><div><Label>Jenis</Label><Select value={materialForm.material_type} onValueChange={(value) => { setMaterialForm((current) => ({ ...current, material_type: value })); setVideoFile(null); }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="markdown">Markdown</SelectItem><SelectItem value="link">Tautan HTTPS</SelectItem><SelectItem value="video">Video privat</SelectItem></SelectContent></Select></div><div><Label htmlFor="native-material-order">Urutan</Label><Input id="native-material-order" type="number" min="0" value={materialForm.sort_order} onChange={(event) => setMaterialForm((current) => ({ ...current, sort_order: event.target.value }))} /></div></div>
+            <div className="grid gap-4 sm:grid-cols-2"><div><Label>Jenis</Label><Select value={materialForm.material_type} onValueChange={(value) => { setMaterialForm((current) => ({ ...current, material_type: value })); setVideoFile(null); setUploadProgress(null); }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="markdown">Markdown</SelectItem><SelectItem value="link">Tautan HTTPS</SelectItem><SelectItem value="video">Video privat</SelectItem></SelectContent></Select></div><div><Label htmlFor="native-material-order">Urutan</Label><Input id="native-material-order" type="number" min="0" value={materialForm.sort_order} onChange={(event) => setMaterialForm((current) => ({ ...current, sort_order: event.target.value }))} /></div></div>
             {materialForm.material_type === "markdown" && <div><Label htmlFor="native-material-content">Isi markdown *</Label><Textarea id="native-material-content" value={materialForm.content_markdown} onChange={(event) => setMaterialForm((current) => ({ ...current, content_markdown: event.target.value }))} rows={9} /></div>}
             {materialForm.material_type === "link" && <div><Label htmlFor="native-material-url">URL eksternal *</Label><Input id="native-material-url" value={materialForm.external_url} onChange={(event) => setMaterialForm((current) => ({ ...current, external_url: event.target.value }))} placeholder="https://..." /></div>}
             {materialForm.material_type === "video" && (
@@ -1310,12 +1329,30 @@ export default function AdminAspekindoLmsNative() {
                     </div>
                   </div>
                 )}
+                {uploadProgress && (
+                  <div
+                    role="status"
+                    aria-live="polite"
+                    aria-label={`Progres upload video ${uploadProgress.percent}%`}
+                    data-testid="video-upload-progress"
+                    className="space-y-2 rounded-lg border border-pub-sky/25 bg-pub-sky/5 p-3"
+                  >
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                      <span className="font-semibold text-foreground">Mengunggah video</span>
+                      <span className="font-mono font-semibold text-pub-sky">{uploadProgress.percent}%</span>
+                    </div>
+                    <Progress value={uploadProgress.percent} className="h-2" />
+                    <p className="text-xs text-muted-foreground">
+                      {formatUploadBytes(uploadProgress.loaded)} dari {formatUploadBytes(uploadProgress.total)} terkirim
+                    </p>
+                  </div>
+                )}
                 <p className="text-xs leading-relaxed text-muted-foreground">File disimpan privat. Peserta memperoleh tautan sementara hanya setelah masuk dan terdaftar pada kursus.</p>
               </div>
             )}
             <div className="flex items-center justify-between rounded-lg border p-3"><div><Label htmlFor="native-material-published">Terbitkan materi</Label><p className="text-xs text-muted-foreground">Materi draft tetap hanya dapat dikelola admin.</p></div><Switch id="native-material-published" checked={materialForm.is_published} onCheckedChange={(checked) => setMaterialForm((current) => ({ ...current, is_published: checked }))} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setDialog(null)} disabled={saving}>Batal</Button><Button onClick={() => void saveMaterial()} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {saving && materialForm.material_type === "video" && videoFile ? "Mengunggah video..." : "Simpan materi"}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setDialog(null)} disabled={saving}>Batal</Button><Button onClick={() => void saveMaterial()} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {saving && materialForm.material_type === "video" && videoFile ? `Mengunggah ${uploadProgress?.percent ?? 0}%` : "Simpan materi"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
