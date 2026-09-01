@@ -116,7 +116,7 @@ test("admin keeps access to the incoming native LMS course manager", async ({ pa
   await expect(page.getByRole("dialog")).toContainText("SIAP Tender");
 });
 
-test("admin can enable a public course landing and upload an MP4 lesson video", async ({ page }) => {
+test("admin sees reliable upload progress for MP4 and WebM lesson videos", async ({ page }) => {
   await installAdminSession(page);
 
   const courses = [{
@@ -157,6 +157,10 @@ test("admin can enable a public course landing and upload an MP4 lesson video", 
   const firstUploadGate = new Promise((resolve) => {
     releaseFirstUpload = resolve;
   });
+  let releaseWebmUpload;
+  const webmUploadGate = new Promise((resolve) => {
+    releaseWebmUpload = resolve;
+  });
   let releaseMaterialInsert;
   const materialInsertGate = new Promise((resolve) => {
     releaseMaterialInsert = resolve;
@@ -189,6 +193,9 @@ test("admin can enable a public course landing and upload an MP4 lesson video", 
           body: JSON.stringify({ message: "Simulasi koneksi upload terputus" }),
         });
         return;
+      }
+      if (uploadAttempts === 3) {
+        await webmUploadGate;
       }
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ Key: "native/video.mp4" }) });
       return;
@@ -286,4 +293,26 @@ test("admin can enable a public course landing and upload an MP4 lesson video", 
     file_size_bytes: 16,
   });
   expect(savedMaterial.storage_path).toMatch(/^native\//);
+
+  await page.getByRole("button", { name: "Materi", exact: true }).click();
+  await page.getByLabel("Judul materi *").fill("Video lanjutan");
+  await page.getByRole("combobox").last().click();
+  await page.getByRole("option", { name: "Video privat" }).click();
+  await page.locator("#native-material-video").setInputFiles({
+    name: "lanjutan.webm",
+    mimeType: "video/webm",
+    buffer: Buffer.from("fake-webm-content"),
+  });
+  await page.getByRole("button", { name: "Simpan materi" }).click();
+  await expect(page.getByTestId("video-upload-progress")).toContainText("0%");
+  await expect(page.getByTestId("video-upload-progress")).toContainText("0 B dari 17 B terkirim");
+  await expect(page.getByRole("button", { name: "Mengunggah 0%" })).toBeDisabled();
+  releaseWebmUpload();
+
+  await expect.poll(() => savedMaterial).toMatchObject({
+    material_type: "video",
+    file_name: "lanjutan.webm",
+    mime_type: "video/webm",
+    file_size_bytes: 17,
+  });
 });
