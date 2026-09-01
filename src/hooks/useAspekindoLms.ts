@@ -30,6 +30,19 @@ export type AspekindoLmsCatalogCourse = Course & {
 };
 
 export type AspekindoLmsCourseDetail = AspekindoLmsCatalogCourse;
+export type AspekindoLmsPublicCourse = Pick<
+  Course,
+  | "id"
+  | "course_code"
+  | "slug"
+  | "title"
+  | "description_markdown"
+  | "audience"
+  | "member_only"
+  | "siap_focus"
+  | "published_at"
+  | "public_landing_enabled"
+>;
 
 async function fetchCourseContent(
   course: Course,
@@ -120,6 +133,40 @@ export function useAspekindoLmsCourse(courseId: string | undefined) {
          agenda = agendaResult.data ?? null;
        }
        return fetchCourseContent(data, agenda);
+    },
+  });
+}
+
+export function usePublicAspekindoLmsCourse(slug: string | undefined) {
+  return useQuery({
+    queryKey: ["aspekindo-lms", "public-course", slug],
+    enabled: Boolean(slug),
+    retry: false,
+    queryFn: async () => {
+      if (!slug) throw new Error("Kursus belum dipilih.");
+      const { data, error } = await supabase
+        .rpc("get_public_aspekindo_lms_course", { _slug: slug })
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as AspekindoLmsPublicCourse | null;
+    },
+  });
+}
+
+export function useAspekindoLmsVideoUrl(storagePath: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["aspekindo-lms", "video-url", storagePath],
+    enabled: Boolean(enabled && storagePath),
+    retry: false,
+    staleTime: 24 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    queryFn: async () => {
+      if (!storagePath) throw new Error("Video belum tersedia.");
+      const { data, error } = await supabase.storage
+        .from("aspekindo-learning")
+        .createSignedUrl(storagePath, 30 * 60);
+      if (error) throw error;
+      return data.signedUrl;
     },
   });
 }

@@ -20,12 +20,16 @@ const Auth = () => {
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const requestedNext = searchParams.get("next");
+  const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+    ? requestedNext
+    : "/dashboard";
 
   useEffect(() => {
     if (!authLoading && user) {
-      navigate("/dashboard", { replace: true });
+      navigate(nextPath, { replace: true });
     }
-  }, [authLoading, navigate, user]);
+  }, [authLoading, navigate, nextPath, user]);
 
   useEffect(() => {
     if (searchParams.get("confirmed") === "1") {
@@ -96,7 +100,7 @@ const Auth = () => {
         if (error) {
           showAuthError(error);
         } else if (session) {
-          navigate("/dashboard");
+          navigate(nextPath);
         } else {
           const message = "Sesi login belum terbentuk. Silakan coba masuk kembali.";
           setAuthError(message);
@@ -108,7 +112,7 @@ const Auth = () => {
           showAuthError(error);
         } else if (session) {
           toast.success("Registrasi berhasil!");
-          navigate("/dashboard");
+          navigate(nextPath);
         } else {
           const message = "Registrasi berhasil. Periksa email Anda untuk mengonfirmasi akun sebelum masuk.";
           setRegistrationMessage(message);

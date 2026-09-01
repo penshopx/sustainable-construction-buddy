@@ -11,11 +11,13 @@ import {
   Clock3,
   ExternalLink,
   FileCheck2,
+  FileVideo,
   GraduationCap,
   LayoutList,
   Loader2,
   LockKeyhole,
   PlayCircle,
+  RefreshCw,
   Search,
   ShieldCheck,
   Target,
@@ -39,7 +41,9 @@ import {
   type AspekindoLmsCatalogCourse,
   type Enrollment,
   type Lesson,
+  type Material,
   type QuizAttempt,
+  useAspekindoLmsVideoUrl,
 } from "@/hooks/useAspekindoLms";
 import type { Json } from "@/integrations/supabase/types";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
@@ -101,6 +105,72 @@ function statusStyle(status: string | undefined) {
   if (status === "completed") return "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300";
   if (status === "in_progress") return "border-pub-sky/30 bg-pub-sky/10 text-pub-sky";
   return "border-border bg-muted/50 text-muted-foreground";
+}
+
+function formatFileSize(bytes: number) {
+  if (!bytes) return "";
+  return `${(bytes / 1024 / 1024).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
+function VideoMaterialPlayer({ material }: { material: Material }) {
+  const [playbackError, setPlaybackError] = useState(false);
+  const videoQuery = useAspekindoLmsVideoUrl(material.storage_path, true);
+
+  useEffect(() => {
+    setPlaybackError(false);
+  }, [videoQuery.data]);
+
+  if (videoQuery.isLoading) {
+    return (
+      <div className="flex aspect-video items-center justify-center rounded-xl bg-[hsl(220,60%,8%)] text-sm font-semibold text-white/75">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin text-pub-sky" /> Menyiapkan video privat...
+      </div>
+    );
+  }
+
+  if (videoQuery.isError || !videoQuery.data || playbackError) {
+    return (
+      <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-[hsl(220,60%,8%)] px-6 text-center text-white">
+        <CircleAlert className="h-8 w-8 text-pub-amber" />
+        <p className="mt-3 font-semibold">Video belum dapat diputar</p>
+        <p className="mt-1 max-w-md text-xs leading-relaxed text-white/60">
+          Tautan video mungkin kedaluwarsa atau file belum tersedia. Muat ulang untuk membuat tautan sementara baru.
+        </p>
+        <Button
+          size="sm"
+          variant="secondary"
+          className="mt-4"
+          onClick={() => {
+            setPlaybackError(false);
+            void videoQuery.refetch();
+          }}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" /> Muat ulang video
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl bg-[hsl(220,60%,8%)]">
+      <video
+        key={videoQuery.data}
+        className="aspect-video w-full bg-black object-contain"
+        controls
+        controlsList="nodownload"
+        playsInline
+        preload="metadata"
+        onError={() => setPlaybackError(true)}
+      >
+        <source src={videoQuery.data} type={material.mime_type} />
+        Browser Anda belum mendukung pemutaran video ini.
+      </video>
+      <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-white/65">
+        <span className="flex items-center gap-2 font-semibold text-white"><FileVideo className="h-4 w-4 text-pub-sky" /> Video pembelajaran</span>
+        <span>{material.mime_type.replace("video/", "").toUpperCase()} · {formatFileSize(material.file_size_bytes)}</span>
+      </div>
+    </div>
+  );
 }
 
 function CatalogCard({
@@ -461,7 +531,7 @@ export function AspekindoLmsCourseDetail() {
               <CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge variant="outline">Pelajaran {selectedIndex + 1} dari {lessons.length}</Badge><CardTitle className="mt-2 text-2xl">{selectedLesson.title}</CardTitle></div>{selectedCompleted && <Badge className="bg-pub-emerald text-white">Selesai</Badge>}</div></CardHeader>
               <CardContent className="space-y-5">
                 <MarkdownRenderer>{selectedLesson.content_markdown || "Materi belum memiliki isi Markdown."}</MarkdownRenderer>
-                {selectedLesson.materials.length > 0 && <div className="space-y-2"><h3 className="font-semibold">Materi pendukung</h3>{selectedLesson.materials.map((material) => <div key={material.id} className="rounded-lg border p-3"><p className="text-sm font-semibold">{material.title}</p>{material.content_markdown && <MarkdownRenderer>{material.content_markdown}</MarkdownRenderer>}{safeHttps(material.external_url) && <a className="mt-2 inline-flex items-center text-sm text-pub-sky hover:underline" href={material.external_url} target="_blank" rel="noopener noreferrer">Buka tautan aman <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div>)}</div>}
+                {selectedLesson.materials.length > 0 && <div className="space-y-3"><h3 className="font-semibold">Materi pendukung</h3>{selectedLesson.materials.map((material) => <div key={material.id} className={material.material_type === "video" ? "space-y-3" : "rounded-lg border p-3"}><p className="text-sm font-semibold">{material.title}</p>{material.material_type === "video" && <VideoMaterialPlayer material={material} />}{material.content_markdown && <MarkdownRenderer>{material.content_markdown}</MarkdownRenderer>}{safeHttps(material.external_url) && <a className="mt-2 inline-flex items-center text-sm text-pub-sky hover:underline" href={material.external_url} target="_blank" rel="noopener noreferrer">Buka tautan aman <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div>)}</div>}
                 {questionsQuery.isLoading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan kuis...</div> : questionsQuery.data && questionsQuery.data.length > 0 ? <div className="rounded-xl border bg-muted/20 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="flex items-center gap-2 font-semibold"><Trophy className="h-4 w-4 text-pub-amber" /> Kuis pelajaran</h3><p className="mt-1 text-xs text-muted-foreground">Nilai lulus minimal {selectedLesson.passing_score}% dan jawaban dinilai di server.</p></div>{!quizStarted && !quizResult && <Button onClick={() => setQuizStarted(true)} variant="outline"><PlayCircle className="mr-2 h-4 w-4" /> Mulai kuis</Button>}</div>{latestAttempt && !quizStarted && <div className={`mt-4 rounded-lg border p-3 text-sm ${latestAttempt.passed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300" : "border-pub-amber/30 bg-pub-amber/10"}`}><p className="font-semibold">{latestAttempt.passed ? "Kuis lulus" : "Kuis belum lulus"} · Skor {latestAttempt.score}%</p><p className="mt-1 text-xs">Percobaan ke-{latestAttempt.attempt_number} · {formatDate(latestAttempt.submitted_at)}</p>{!latestAttempt.passed && <Button size="sm" className="mt-3" onClick={() => { setQuizResult(undefined); setQuizStarted(true); }}>Coba lagi</Button>}</div>}{quizStarted && <div className="mt-4 space-y-4">{questionsQuery.data.map((question, index) => <div key={question.id} className="rounded-lg border bg-background p-4"><p className="text-sm font-semibold">{index + 1}. {question.question_text}</p><div className="mt-3 space-y-2">{jsonStrings(question.options).map((option, optionIndex) => <label key={`${question.id}-${optionIndex}`} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm ${answers[question.id] === optionIndex ? "border-pub-sky bg-pub-sky/10" : "hover:bg-muted/50"}`}><input type="radio" name={question.id} checked={answers[question.id] === optionIndex} onChange={() => setAnswers((current) => ({ ...current, [question.id]: optionIndex }))} className="mt-0.5" />{option}</label>)}</div></div>)}<Button onClick={submitQuiz} disabled={submitQuizMutation.isPending}>{submitQuizMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Kirim jawaban</Button></div>}</div> : null}
                 <div className="flex flex-col justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">{selectedCompleted ? <p className="flex items-center gap-2 text-sm font-semibold text-pub-emerald"><CheckCircle2 className="h-4 w-4" /> Pelajaran ini sudah selesai</p> : <Button onClick={() => completeLessonMutation.mutate(selectedLesson.id, { onError: (error) => toast({ title: "Pelajaran belum dapat diselesaikan", description: error.message, variant: "destructive" }), onSuccess: () => toast({ title: "Pelajaran selesai", description: "Pelajaran berikutnya sekarang terbuka." }) })} disabled={completeLessonMutation.isPending || (questionsQuery.data?.length ?? 0) > 0 && !latestAttempt?.passed}>{completeLessonMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Tandai pelajaran selesai</Button>}<p className="text-xs text-muted-foreground">Progres tersimpan otomatis saat pelajaran dibuka.</p></div>
               </CardContent>

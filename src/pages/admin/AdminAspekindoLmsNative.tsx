@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Archive,
   BookOpen,
   CheckCircle2,
   ClipboardList,
+  Copy,
   Download,
   Eye,
   ExternalLink,
   FileText,
+  FileVideo,
   GraduationCap,
   LayoutList,
   Loader2,
@@ -15,6 +17,8 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Share2,
+  Upload,
   UsersRound,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,6 +65,7 @@ type CourseForm = {
   member_only: boolean;
   agenda_id: string;
   siap_focus: string;
+  public_landing_enabled: boolean;
 };
 
 type SessionForm = {
@@ -92,6 +97,10 @@ type MaterialForm = {
   material_type: string;
   content_markdown: string;
   external_url: string;
+  storage_path: string;
+  file_name: string;
+  mime_type: string;
+  file_size_bytes: number;
   is_published: boolean;
   sort_order: string;
 };
@@ -111,6 +120,7 @@ const EMPTY_COURSE: CourseForm = {
   member_only: true,
   agenda_id: "",
   siap_focus: "sertifikasi",
+  public_landing_enabled: false,
 };
 
 const SIAP_LABELS: Record<string, string> = {
@@ -149,6 +159,10 @@ const EMPTY_MATERIAL: MaterialForm = {
   material_type: "markdown",
   content_markdown: "",
   external_url: "",
+  storage_path: "",
+  file_name: "",
+  mime_type: "",
+  file_size_bytes: 0,
   is_published: false,
   sort_order: "0",
 };
@@ -212,6 +226,11 @@ function formatStatus(value: string) {
   return STATUS_LABELS[value] ?? value;
 }
 
+function formatFileSize(bytes: number) {
+  if (!bytes) return "0 MB";
+  return `${(bytes / 1024 / 1024).toFixed(bytes >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+}
+
 function jsonRecord(value: Json) {
   return typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
 }
@@ -254,6 +273,8 @@ export default function AdminAspekindoLmsNative() {
   const [enrollmentForm, setEnrollmentForm] = useState<EnrollmentForm>(EMPTY_ENROLLMENT);
   const [rosterSearch, setRosterSearch] = useState("");
   const [rosterStatus, setRosterStatus] = useState("all");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async (background = false) => {
     if (background) setRefreshing(true);
@@ -378,6 +399,7 @@ export default function AdminAspekindoLmsNative() {
       member_only: course.member_only,
       agenda_id: course.agenda_id ?? "",
       siap_focus: course.siap_focus,
+      public_landing_enabled: course.public_landing_enabled,
     });
     setDialog("course");
   };
@@ -438,6 +460,7 @@ export default function AdminAspekindoLmsNative() {
     setSelectedLessonId(lesson.id);
     const lessonMaterials = materials.filter((material) => material.lesson_id === lesson.id);
     setMaterialForm({ ...EMPTY_MATERIAL, sort_order: String(lessonMaterials.length) });
+    setVideoFile(null);
     setDialog("material");
   };
 
@@ -449,9 +472,14 @@ export default function AdminAspekindoLmsNative() {
       material_type: material.material_type,
       content_markdown: material.content_markdown,
       external_url: material.external_url,
+      storage_path: material.storage_path,
+      file_name: material.file_name,
+      mime_type: material.mime_type,
+      file_size_bytes: material.file_size_bytes,
       is_published: material.is_published,
       sort_order: String(material.sort_order),
     });
+    setVideoFile(null);
     setDialog("material");
   };
 
@@ -491,6 +519,7 @@ export default function AdminAspekindoLmsNative() {
       member_only: courseForm.member_only,
       agenda_id: courseForm.agenda_id || null,
       siap_focus: courseForm.siap_focus,
+      public_landing_enabled: courseForm.public_landing_enabled,
       published_at: courseForm.status === "published" ? editingCourse?.published_at ?? new Date().toISOString() : null,
     };
     let saveError: { message: string } | null = null;
@@ -614,13 +643,37 @@ export default function AdminAspekindoLmsNative() {
       toast({ title: "Tautan tidak aman", description: "Materi link harus menggunakan URL https://.", variant: "destructive" });
       return;
     }
+    if (materialForm.material_type === "video" && !videoFile && !materialForm.storage_path) {
+      toast({ title: "Pilih file video", description: "Video MP4 atau WebM wajib diunggah sebelum materi disimpan.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
+    let uploadedPath = "";
+    if (materialForm.material_type === "video" && videoFile) {
+      const safeName = videoFile.name.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").slice(-120);
+      uploadedPath = `native/${selectedLesson.course_id}/${selectedLesson.id}/${crypto.randomUUID()}-${safeName}`;
+      const uploadResult = await supabase.storage
+        .from("aspekindo-learning")
+        .upload(uploadedPath, videoFile, { contentType: videoFile.type, upsert: false });
+      if (uploadResult.error) {
+        setSaving(false);
+        toast({ title: "Video gagal diunggah", description: uploadResult.error.message, variant: "destructive" });
+        return;
+      }
+    }
+    const activeVideoPath = materialForm.material_type === "video"
+      ? uploadedPath || materialForm.storage_path
+      : "";
     const payload = {
       lesson_id: selectedLesson.id,
       title: materialForm.title.trim(),
       material_type: materialForm.material_type,
       content_markdown: materialForm.material_type === "markdown" ? materialForm.content_markdown.trim() : "",
       external_url: materialForm.material_type === "link" ? materialForm.external_url.trim() : "",
+      storage_path: activeVideoPath,
+      file_name: materialForm.material_type === "video" ? videoFile?.name ?? materialForm.file_name : "",
+      mime_type: materialForm.material_type === "video" ? videoFile?.type ?? materialForm.mime_type : "",
+      file_size_bytes: materialForm.material_type === "video" ? videoFile?.size ?? materialForm.file_size_bytes : 0,
       is_published: materialForm.is_published,
       sort_order: Number(materialForm.sort_order) || 0,
     };
@@ -629,12 +682,68 @@ export default function AdminAspekindoLmsNative() {
       : await supabase.from("aspekindo_lms_materials").insert({ ...payload, created_by: user?.id ?? null } satisfies TablesInsert<"aspekindo_lms_materials">);
     setSaving(false);
     if (result.error) {
+      if (uploadedPath) {
+        await supabase.storage.from("aspekindo-learning").remove([uploadedPath]);
+      }
       toast({ title: "Materi gagal disimpan", description: result.error.message, variant: "destructive" });
       return;
+    }
+    if (
+      editingMaterial?.storage_path
+      && editingMaterial.storage_path !== activeVideoPath
+    ) {
+      const cleanupResult = await supabase.storage
+        .from("aspekindo-learning")
+        .remove([editingMaterial.storage_path]);
+      if (cleanupResult.error) {
+        toast({
+          title: "Materi tersimpan, file lama belum terhapus",
+          description: "Segarkan halaman dan coba bersihkan file lama dari Storage.",
+          variant: "destructive",
+        });
+      }
     }
     setDialog(null);
     toast({ title: editingMaterial ? "Materi diperbarui" : "Materi dibuat" });
     await loadData(true);
+  };
+
+  const selectVideoFile = (file: File | null) => {
+    if (!file) return;
+    const allowedTypes = new Set(["video/mp4", "video/webm"]);
+    const lowerName = file.name.toLowerCase();
+    const validExtension = lowerName.endsWith(".mp4") || lowerName.endsWith(".webm");
+    if ((!allowedTypes.has(file.type) && !validExtension) || file.size <= 0) {
+      toast({ title: "Format video tidak didukung", description: "Gunakan file MP4 atau WebM yang valid.", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    if (file.size > 500 * 1024 * 1024) {
+      toast({ title: "Video terlalu besar", description: "Ukuran maksimum video adalah 500 MB.", variant: "destructive" });
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+    const mimeType = allowedTypes.has(file.type)
+      ? file.type
+      : lowerName.endsWith(".webm") ? "video/webm" : "video/mp4";
+    const normalizedFile = file.type ? file : new File([file], file.name, { type: mimeType });
+    setVideoFile(normalizedFile);
+    setMaterialForm((current) => ({
+      ...current,
+      file_name: normalizedFile.name,
+      mime_type: mimeType,
+      file_size_bytes: normalizedFile.size,
+    }));
+  };
+
+  const copyPublicCourseUrl = async (course: Course) => {
+    const url = `${window.location.origin}/kursus/${course.slug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Tautan landing disalin", description: url });
+    } catch {
+      toast({ title: "Tautan belum dapat disalin", description: url, variant: "destructive" });
+    }
   };
 
   const saveEnrollment = async () => {
@@ -853,11 +962,24 @@ export default function AdminAspekindoLmsNative() {
                         <Badge variant="outline">{selectedCourse.course_code}</Badge>
                         <Badge variant="outline">{formatStatus(selectedCourse.status)}</Badge>
                         {selectedCourse.member_only && <Badge variant="secondary">Anggota</Badge>}
+                        {selectedCourse.public_landing_enabled && <Badge className="bg-pub-emerald/10 text-pub-emerald hover:bg-pub-emerald/10">Landing publik aktif</Badge>}
                       </div>
                       <CardTitle className="mt-3 text-2xl">{selectedCourse.title}</CardTitle>
                       <CardDescription className="mt-1 max-w-2xl">{selectedCourse.audience || "Belum ada sasaran peserta"}</CardDescription>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      {selectedCourse.public_landing_enabled && selectedCourse.status === "published" && (
+                        <>
+                          <Button variant="outline" size="sm" asChild>
+                            <a href={`/kursus/${selectedCourse.slug}`} target="_blank" rel="noopener noreferrer">
+                              <Share2 className="mr-2 h-4 w-4" /> Buka landing
+                            </a>
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => void copyPublicCourseUrl(selectedCourse)}>
+                            <Copy className="mr-2 h-4 w-4" /> Salin tautan
+                          </Button>
+                        </>
+                      )}
                       <Button variant="outline" size="sm" onClick={() => setPreviewTarget({ kind: "course", course: selectedCourse })}><Eye className="mr-2 h-4 w-4" /> Pratinjau</Button>
                       <Button variant="outline" size="sm" onClick={() => openEditCourse(selectedCourse)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
                       {selectedCourse.status === "published"
@@ -906,7 +1028,7 @@ export default function AdminAspekindoLmsNative() {
 
               <Card>
                 <CardHeader className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                  <div><CardTitle className="text-base">Pelajaran & materi</CardTitle><CardDescription>Atur urutan, isi markdown, materi link, dan kesiapan publikasi.</CardDescription></div>
+                  <div><CardTitle className="text-base">Pelajaran & materi</CardTitle><CardDescription>Atur urutan, isi markdown, tautan, video privat, dan kesiapan publikasi.</CardDescription></div>
                   <Button size="sm" onClick={openCreateLesson}><Plus className="mr-2 h-4 w-4" /> Tambah pelajaran</Button>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -938,7 +1060,7 @@ export default function AdminAspekindoLmsNative() {
                           <div className="mt-3 space-y-2 border-t pt-3">
                             {lessonMaterials.map((material) => (
                               <div key={material.id} className="flex flex-col justify-between gap-2 rounded-md bg-muted/40 px-3 py-2 text-sm sm:flex-row sm:items-center">
-                                <div className="flex min-w-0 items-center gap-2"><FileText className="h-4 w-4 shrink-0 text-pub-sky" /><span className="truncate">{material.title}</span><Badge variant="outline" className="text-[10px]">{material.material_type}</Badge></div>
+                                <div className="flex min-w-0 items-center gap-2">{material.material_type === "video" ? <FileVideo className="h-4 w-4 shrink-0 text-pub-amber" /> : <FileText className="h-4 w-4 shrink-0 text-pub-sky" />}<span className="truncate">{material.title}</span><Badge variant="outline" className="text-[10px]">{material.material_type}</Badge>{material.material_type === "video" && <span className="text-xs text-muted-foreground">{formatFileSize(material.file_size_bytes)}</span>}</div>
                                 <Button size="sm" variant="ghost" onClick={() => openEditMaterial(material)}><Pencil className="mr-1 h-3.5 w-3.5" /> Edit</Button>
                               </div>
                             ))}
@@ -1104,7 +1226,7 @@ export default function AdminAspekindoLmsNative() {
           <DialogHeader><DialogTitle>{editingCourse ? "Edit kursus LMS native" : "Tambah kursus LMS native"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label htmlFor="native-course-title">Judul kursus *</Label><Input id="native-course-title" value={courseForm.title} onChange={(event) => setCourseForm((current) => ({ ...current, title: event.target.value, slug: current.slug || slugify(event.target.value) }))} /></div>
-            <div><Label htmlFor="native-course-slug">Slug *</Label><Input id="native-course-slug" value={courseForm.slug} onChange={(event) => setCourseForm((current) => ({ ...current, slug: slugify(event.target.value) }))} /><p className="mt-1 text-xs text-muted-foreground">Dipakai pada identitas teknis kursus, bukan sebagai URL publik.</p></div>
+            <div><Label htmlFor="native-course-slug">Slug *</Label><Input id="native-course-slug" value={courseForm.slug} onChange={(event) => setCourseForm((current) => ({ ...current, slug: slugify(event.target.value) }))} /><p className="mt-1 text-xs text-muted-foreground">Menjadi bagian URL landing publik saat fitur tersebut diaktifkan. Mengubah slug akan mengubah tautannya.</p></div>
             <div><Label htmlFor="native-course-description">Deskripsi markdown</Label><Textarea id="native-course-description" value={courseForm.description_markdown} onChange={(event) => setCourseForm((current) => ({ ...current, description_markdown: event.target.value }))} rows={5} /></div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div><Label htmlFor="native-course-audience">Sasaran peserta</Label><Input id="native-course-audience" value={courseForm.audience} onChange={(event) => setCourseForm((current) => ({ ...current, audience: event.target.value }))} /></div>
@@ -1113,6 +1235,8 @@ export default function AdminAspekindoLmsNative() {
             <div><Label>Fokus 4 SIAP *</Label><Select value={courseForm.siap_focus} onValueChange={(value) => setCourseForm((current) => ({ ...current, siap_focus: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="legalitas">SIAP Legalitas</SelectItem><SelectItem value="sertifikasi">SIAP Sertifikasi</SelectItem><SelectItem value="tender">SIAP Tender</SelectItem><SelectItem value="proyek">SIAP Proyek</SelectItem></SelectContent></Select><p className="mt-1 text-xs text-muted-foreground">Progres dan bukti kursus diproyeksikan ke dimensi ini pada peta kompetensi anggota.</p></div>
             <div><Label>Agenda ASPEKINDO (opsional)</Label><Select value={courseForm.agenda_id || "none"} onValueChange={(value) => setCourseForm((current) => ({ ...current, agenda_id: value === "none" ? "" : value }))}><SelectTrigger><SelectValue placeholder="Pilih agenda" /></SelectTrigger><SelectContent><SelectItem value="none">Tidak dikaitkan</SelectItem>{agendas.map((agenda) => <SelectItem key={agenda.id} value={agenda.id}>{agenda.title} · {agenda.status}</SelectItem>)}</SelectContent></Select></div>
             <div className="flex items-center justify-between rounded-lg border p-3"><div><Label htmlFor="native-course-member-only">Khusus anggota</Label><p className="text-xs text-muted-foreground">Kursus hanya terlihat oleh anggota aktif saat terbit.</p></div><Switch id="native-course-member-only" checked={courseForm.member_only} onCheckedChange={(checked) => setCourseForm((current) => ({ ...current, member_only: checked }))} /></div>
+            <div className="flex items-center justify-between rounded-lg border border-pub-sky/25 bg-pub-sky/5 p-3"><div><Label htmlFor="native-course-public-landing">Landing publik</Label><p className="text-xs text-muted-foreground">Bagikan judul, deskripsi, sasaran peserta, dan CTA login tanpa membuka materi kursus.</p></div><Switch id="native-course-public-landing" checked={courseForm.public_landing_enabled} onCheckedChange={(checked) => setCourseForm((current) => ({ ...current, public_landing_enabled: checked }))} /></div>
+            {courseForm.public_landing_enabled && courseForm.status !== "published" && <p className="rounded-lg bg-pub-amber/10 p-3 text-xs text-muted-foreground">Landing baru dapat dibuka publik setelah status kursus menjadi Terbit.</p>}
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setDialog(null)}>Batal</Button><Button onClick={() => void saveCourse()} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan kursus</Button></DialogFooter>
         </DialogContent>
@@ -1166,11 +1290,32 @@ export default function AdminAspekindoLmsNative() {
           <DialogHeader><DialogTitle>{editingMaterial ? "Edit materi" : "Tambah materi"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div><Label htmlFor="native-material-title">Judul materi *</Label><Input id="native-material-title" value={materialForm.title} onChange={(event) => setMaterialForm((current) => ({ ...current, title: event.target.value }))} /></div>
-            <div className="grid gap-4 sm:grid-cols-2"><div><Label>Jenis</Label><Select value={materialForm.material_type} onValueChange={(value) => setMaterialForm((current) => ({ ...current, material_type: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="markdown">Markdown</SelectItem><SelectItem value="link">Tautan HTTPS</SelectItem></SelectContent></Select></div><div><Label htmlFor="native-material-order">Urutan</Label><Input id="native-material-order" type="number" min="0" value={materialForm.sort_order} onChange={(event) => setMaterialForm((current) => ({ ...current, sort_order: event.target.value }))} /></div></div>
-            {materialForm.material_type === "markdown" ? <div><Label htmlFor="native-material-content">Isi markdown *</Label><Textarea id="native-material-content" value={materialForm.content_markdown} onChange={(event) => setMaterialForm((current) => ({ ...current, content_markdown: event.target.value }))} rows={9} /></div> : <div><Label htmlFor="native-material-url">URL eksternal *</Label><Input id="native-material-url" value={materialForm.external_url} onChange={(event) => setMaterialForm((current) => ({ ...current, external_url: event.target.value }))} placeholder="https://..." /></div>}
+            <div className="grid gap-4 sm:grid-cols-2"><div><Label>Jenis</Label><Select value={materialForm.material_type} onValueChange={(value) => { setMaterialForm((current) => ({ ...current, material_type: value })); setVideoFile(null); }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="markdown">Markdown</SelectItem><SelectItem value="link">Tautan HTTPS</SelectItem><SelectItem value="video">Video privat</SelectItem></SelectContent></Select></div><div><Label htmlFor="native-material-order">Urutan</Label><Input id="native-material-order" type="number" min="0" value={materialForm.sort_order} onChange={(event) => setMaterialForm((current) => ({ ...current, sort_order: event.target.value }))} /></div></div>
+            {materialForm.material_type === "markdown" && <div><Label htmlFor="native-material-content">Isi markdown *</Label><Textarea id="native-material-content" value={materialForm.content_markdown} onChange={(event) => setMaterialForm((current) => ({ ...current, content_markdown: event.target.value }))} rows={9} /></div>}
+            {materialForm.material_type === "link" && <div><Label htmlFor="native-material-url">URL eksternal *</Label><Input id="native-material-url" value={materialForm.external_url} onChange={(event) => setMaterialForm((current) => ({ ...current, external_url: event.target.value }))} placeholder="https://..." /></div>}
+            {materialForm.material_type === "video" && (
+              <div className="space-y-3">
+                <input ref={fileInputRef} id="native-material-video" type="file" accept="video/mp4,video/webm,.mp4,.webm" className="sr-only" onChange={(event) => selectVideoFile(event.target.files?.[0] ?? null)} />
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="flex min-h-36 w-full flex-col items-center justify-center rounded-xl border border-dashed border-pub-sky/40 bg-pub-sky/5 p-5 text-center transition hover:bg-pub-sky/10">
+                  <Upload className="h-7 w-7 text-pub-sky" />
+                  <span className="mt-3 text-sm font-semibold">{videoFile || materialForm.storage_path ? "Ganti file video" : "Pilih video untuk diunggah"}</span>
+                  <span className="mt-1 text-xs text-muted-foreground">MP4 atau WebM · maksimum 500 MB</span>
+                </button>
+                {(videoFile || materialForm.storage_path) && (
+                  <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+                    <FileVideo className="h-5 w-5 shrink-0 text-pub-amber" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{videoFile?.name ?? materialForm.file_name}</p>
+                      <p className="text-xs text-muted-foreground">{videoFile?.type ?? materialForm.mime_type} · {formatFileSize(videoFile?.size ?? materialForm.file_size_bytes)}</p>
+                    </div>
+                  </div>
+                )}
+                <p className="text-xs leading-relaxed text-muted-foreground">File disimpan privat. Peserta memperoleh tautan sementara hanya setelah masuk dan terdaftar pada kursus.</p>
+              </div>
+            )}
             <div className="flex items-center justify-between rounded-lg border p-3"><div><Label htmlFor="native-material-published">Terbitkan materi</Label><p className="text-xs text-muted-foreground">Materi draft tetap hanya dapat dikelola admin.</p></div><Switch id="native-material-published" checked={materialForm.is_published} onCheckedChange={(checked) => setMaterialForm((current) => ({ ...current, is_published: checked }))} /></div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setDialog(null)}>Batal</Button><Button onClick={() => void saveMaterial()} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan materi</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setDialog(null)} disabled={saving}>Batal</Button><Button onClick={() => void saveMaterial()} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {saving && materialForm.material_type === "video" && videoFile ? "Mengunggah video..." : "Simpan materi"}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

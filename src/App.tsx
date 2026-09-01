@@ -80,6 +80,7 @@ const AdminInformationCenter = lazy(() => import("./pages/admin/AdminInformation
 const PublicAgendaPage = lazy(() => import("./pages/PublicAgendaPage"));
 const SiapCompetencyMap = lazy(() => import("./pages/SiapCompetencyMap"));
 const AdminAspekindoLmsCourses = lazy(() => import("./pages/admin/AdminAspekindoLmsCourses"));
+const PublicCourseLanding = lazy(() => import("./pages/PublicCourseLanding"));
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ const App = () => (
             <Route path="/informasi" element={<InformationCenter />} />
             <Route path="/informasi/:slug" element={<InformationDetail />} />
             <Route path="/agenda-pub" element={<PublicAgendaPage />} />
+            <Route path="/kursus/:slug" element={<PublicCourseLanding />} />
             <Route path="/simulator-sbu" element={<ReadinessSimulatorPage kind="sbu" />} />
             <Route path="/simulator-lkut" element={<ReadinessSimulatorPage kind="lkut" />} />
             <Route path="/auth" element={<Auth />} />

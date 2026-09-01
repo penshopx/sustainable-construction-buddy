@@ -106,6 +106,7 @@ export type Database = {
           id: string
           member_only: boolean
           published_at: string | null
+          public_landing_enabled: boolean
           siap_focus: string
           slug: string
           status: string
@@ -122,6 +123,7 @@ export type Database = {
           id?: string
           member_only?: boolean
           published_at?: string | null
+          public_landing_enabled?: boolean
           siap_focus?: string
           slug: string
           status?: string
@@ -138,6 +140,7 @@ export type Database = {
           id?: string
           member_only?: boolean
           published_at?: string | null
+          public_landing_enabled?: boolean
           siap_focus?: string
           slug?: string
           status?: string
@@ -315,11 +318,15 @@ export type Database = {
           created_at: string
           created_by: string | null
           external_url: string
+          file_name: string
+          file_size_bytes: number
           id: string
           is_published: boolean
           lesson_id: string
           material_type: string
+          mime_type: string
           sort_order: number
+          storage_path: string
           title: string
           updated_at: string
         }
@@ -328,11 +335,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           external_url?: string
+          file_name?: string
+          file_size_bytes?: number
           id?: string
           is_published?: boolean
           lesson_id: string
           material_type?: string
+          mime_type?: string
           sort_order?: number
+          storage_path?: string
           title: string
           updated_at?: string
         }
@@ -341,11 +352,15 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           external_url?: string
+          file_name?: string
+          file_size_bytes?: number
           id?: string
           is_published?: boolean
           lesson_id?: string
           material_type?: string
+          mime_type?: string
           sort_order?: number
+          storage_path?: string
           title?: string
           updated_at?: string
         }
@@ -3828,6 +3843,21 @@ export type Database = {
           agenda_id: string
           title: string
           course_code: string
+        }[]
+      }
+      get_public_aspekindo_lms_course: {
+        Args: { _slug: string }
+        Returns: {
+          audience: string
+          course_code: string
+          description_markdown: string
+          id: string
+          member_only: boolean
+          public_landing_enabled: boolean
+          published_at: string | null
+          siap_focus: string
+          slug: string
+          title: string
         }[]
       }
       check_question_answer: {
