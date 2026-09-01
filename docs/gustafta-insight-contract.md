@@ -61,3 +61,21 @@ npm run publish:insight
 Tes kontrak lokal mencakup success, timeout, output invalid, deduplikasi, dan allowlist. Probe live memverifikasi bahwa request tanpa sesi ditolak, health hanya dapat dibaca admin, dan request dengan sesi anggota sementara menghasilkan respons aman dengan `source: connected` atau `source: deterministic` serta maksimal tiga rekomendasi. Probe tidak mencetak payload, token, identitas, atau URL provider, dan akun sementara selalu dihapus agar dapat dijalankan ulang.
 
 Gunakan `npm run publish:insight` untuk mempublikasikan `competency-insight` melalui Supabase CLI, menunggu deployment selesai, lalu menjalankan probe live secara otomatis. Perintah ini gagal jika deployment atau salah satu pemeriksaan kontrak dan cleanup akun probe gagal. Outputnya hanya memuat status langkah dan ringkasan non-sensitif.
+
+## Gate release
+
+Deployment aplikasi memakai `npm run release`, bukan `npm run build` langsung.
+Perintah tersebut menjalankan build aplikasi lalu memanggil
+`npm run publish:insight`, sehingga deployment tidak dapat dianggap berhasil
+sebelum Edge Function aktif dan kontrak live lulus. Exit code publisher
+diteruskan ke proses release; ringkasan kegagalan JSON yang tersanitasi tetap
+ditulis ke stderr agar tersedia di log release.
+
+Untuk release manual, gunakan urutan berikut:
+
+```bash
+npm run release
+```
+
+Jangan menjalankan `supabase functions deploy competency-insight` secara
+langsung karena jalur tersebut melewati gate probe live.

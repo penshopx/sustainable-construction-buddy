@@ -62,7 +62,19 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+Use the guarded release command so the production application and the
+`competency-insight` Edge Function are released together:
+
+```sh
+npm run release
+```
+
+The release runs the TypeScript check and frontend build, then invokes
+`npm run publish:insight`. That publisher deploys the Edge Function and runs
+the live contract probe. A deployment or probe failure returns a non-zero
+status and blocks the release; its failure summary is sanitized JSON retained
+in the release log. Do not deploy `competency-insight` directly with the
+Supabase CLI.
 
 ## Quality checks
 

@@ -12,6 +12,7 @@
     "agent:content:watch": "node scripts/content-agent-watch.cjs",
     "build": "npm run typecheck && vite build",
     "build:dev": "npm run typecheck && vite build --mode development",
+    "release": "npm run build && npm run publish:insight",
     "start": "node server.cjs",
     "test:routing": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium && PLAYWRIGHT_BROWSERS_PATH=0 playwright test tests/routing-smoke.spec.js",
     "test:smoke": "npm run test:rate-limit && node scripts/smoke-test.cjs",
