@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 import { installSupabaseSession } from "./helpers/supabase-session.js";
+import { revealLandingSection } from "./helpers/landing-readiness.js";
 
 const agendas = [
   {
@@ -450,14 +451,17 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
     await page.goto("/");
 
     const agendaSection = page.locator("#agenda-aspekindo");
-    await agendaSection.scrollIntoViewIfNeeded();
+    await revealLandingSection(page, agendaSection);
     await expect(
       agendaSection.getByRole("heading", { name: "Agenda WITA titik dua" }),
     ).toBeVisible();
+    await expect(
+      agendaSection.locator('[data-testid^="agenda-calendar-actions-"]'),
+    ).toHaveCount(agendas.length);
 
     for (const agenda of agendas) {
       const expected = expectedCalendarDates[agenda.title];
-      const googleLink = page.getByRole("link", {
+      const googleLink = agendaSection.getByRole("link", {
         name: `Simpan ${agenda.title} ke Google Calendar`,
       });
       const googleUrl = new URL(await googleLink.getAttribute("href"));
@@ -474,7 +478,7 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
 
       const [download] = await Promise.all([
         page.waitForEvent("download"),
-        page.getByRole("button", {
+        agendaSection.getByRole("button", {
           name: `Unduh file kalender ${agenda.title}`,
         }).click(),
       ]);

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { installSupabaseSession } from "./helpers/supabase-session.js";
+import { revealLandingSection } from "./helpers/landing-readiness.js";
 
 test.describe("public and unauthenticated user flows", () => {
   test("loads the public landing page and opens authentication", async ({ page }) => {
@@ -30,6 +31,7 @@ test.describe("public and unauthenticated user flows", () => {
   test("connects 4 SIAP readiness to project services with guarded tender access", async ({ page }) => {
     await page.goto("/");
 
+    await revealLandingSection(page, page.getByTestId("section-project-ecosystem"));
     await expect(page.getByTestId("section-project-ecosystem")).toBeVisible();
     await expect(page.getByTestId("text-project-ecosystem-heading")).toContainText("4 SIAP bukan garis akhir");
     await expect(page.getByTestId("list-readiness-tracks")).toContainText("Siap Legalitas");
@@ -58,6 +60,7 @@ test.describe("public and unauthenticated user flows", () => {
   test("connects quality, LKUT, anti-bribery, and legal services", async ({ page }) => {
     await page.goto("/");
 
+    await revealLandingSection(page, page.getByTestId("section-quality-governance"));
     await expect(page.getByTestId("section-quality-governance")).toBeVisible();
     await expect(page.getByTestId("text-quality-governance-narrative")).toContainText("PUB ASPEKINDO berkomitmen");
     await expect(page.getByTestId("text-quality-governance-narrative")).toContainText("Rujukan ISO");
