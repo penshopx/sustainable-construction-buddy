@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ArrowRight, BookOpen, ChevronDown, ExternalLink, FileCheck2, MessageCircle, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ChevronDown, ClipboardCheck, ExternalLink, FileCheck2, LayoutDashboard, LogIn, MessageCircle, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { KEPDIRJEN_281_FAQS, KEPDIRJEN_281_REFERENCES } from "@/data/lkut-281-reference";
 
 const FAQS = [
@@ -83,15 +84,80 @@ const REFERENCES = [
   ...KEPDIRJEN_281_REFERENCES,
 ];
 
+type LkutMode = "navigator" | "guided" | "result" | "info" | "workspace";
+type GuidedAnswers = {
+  focus?: "legalitas" | "proyek" | "pub";
+  status?: "baru" | "data" | "cek";
+};
+
+const GUIDED_STEPS = [
+  {
+    key: "focus" as const,
+    eyebrow: "Langkah 1 dari 2",
+    title: "Bagian mana yang ingin Anda siapkan?",
+    options: [
+      { value: "legalitas" as const, label: "Data LKUT & legalitas", detail: "Data usaha, kepatuhan, sertifikasi, dan laporan tahunan." },
+      { value: "proyek" as const, label: "Data proyek & kinerja", detail: "Pengalaman, progres, risiko, dan bukti kegiatan proyek." },
+      { value: "pub" as const, label: "Pembelajaran PUB", detail: "Materi, aktivitas, dan bukti pengembangan usaha berkelanjutan." },
+    ],
+  },
+  {
+    key: "status" as const,
+    eyebrow: "Langkah 2 dari 2",
+    title: "Posisi Anda saat ini bagaimana?",
+    options: [
+      { value: "baru" as const, label: "Baru mulai", detail: "Saya ingin diarahkan dari langkah pertama." },
+      { value: "data" as const, label: "Sudah punya data", detail: "Saya ingin memasukkan dan mengelola data di aplikasi." },
+      { value: "cek" as const, label: "Ingin cek kelengkapan", detail: "Saya ingin melihat bagian yang masih perlu dilengkapi." },
+    ],
+  },
+];
+
+const WORKSPACE_LINKS = [
+  { label: "Data & laporan LKUT", detail: "Kelola draft dan dokumen pendukung", path: "/lkut", icon: FileCheck2 },
+  { label: "Peta Kompetensi 4 SIAP", detail: "Lihat ringkasan kesiapan internal", path: "/siap-kompetensi", icon: ClipboardCheck },
+  { label: "Pembelajaran PUB", detail: "Lanjutkan modul dan aktivitas", path: "/aspekindo-lms", icon: BookOpen },
+  { label: "Pusat bantuan aplikasi", detail: "Tanya dan pahami fitur platform", path: "/helpdesk", icon: MessageCircle },
+];
+
 export default function FloatingLkut() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [mode, setMode] = useState<LkutMode>("navigator");
+  const [guidedStep, setGuidedStep] = useState(0);
+  const [guidedAnswers, setGuidedAnswers] = useState<GuidedAnswers>({});
 
-  const openLkut = () => {
+  const openWorkspace = (path = "/lkut") => {
     setIsOpen(false);
-    navigate("/lkut");
+    navigate(user ? path : "/auth");
+  };
+
+  const startGuidedIntake = () => {
+    setMode("guided");
+    setGuidedStep(0);
+    setGuidedAnswers({});
+  };
+
+  const chooseGuidedAnswer = (value: string) => {
+    const step = GUIDED_STEPS[guidedStep];
+    const nextAnswers = { ...guidedAnswers, [step.key]: value } as GuidedAnswers;
+    setGuidedAnswers(nextAnswers);
+    if (guidedStep < GUIDED_STEPS.length - 1) {
+      setGuidedStep((current) => current + 1);
+    } else {
+      setMode("result");
+    }
+  };
+
+  const resetPanel = () => {
+    setIsOpen(false);
+    setMode("navigator");
+    setGuidedStep(0);
+    setGuidedAnswers({});
+    setOpenFaq(null);
   };
 
   return (
@@ -166,101 +232,231 @@ export default function FloatingLkut() {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 rounded-lg text-white/60 hover:bg-white/10 hover:text-white"
-                onClick={() => setIsOpen(false)}
+                onClick={resetPanel}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4">
-              <p className="text-sm font-semibold font-heading text-foreground">
-                Kelola kesiapan LKUT BUJK Anda.
-              </p>
-              <p className="mt-1 text-xs font-body leading-relaxed text-muted-foreground">
-                Siapkan laporan, dokumen pendukung, dan pemantauan kelengkapan LKUT dalam ekosistem PUB ASPEKINDO bersama LSBUKI.
-              </p>
+              {mode !== "navigator" && (
+                <button
+                  onClick={() => setMode("navigator")}
+                  className="mb-3 flex items-center gap-1 text-xs font-semibold font-heading text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke pilihan
+                </button>
+              )}
 
-              <div className="mt-4 rounded-xl border border-pub-amber/25 bg-pub-amber/10 p-3">
-                <p className="text-xs font-semibold font-heading text-pub-amber">Program PUB ASPEKINDO</p>
-                <p className="mt-1 text-xs font-body leading-relaxed text-muted-foreground">
-                  Platform digital untuk kompetensi, kepatuhan, dan pengembangan usaha berkelanjutan BUJK.
-                </p>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <p className="px-1 text-xs font-semibold font-heading text-muted-foreground">Pertanyaan cepat</p>
-                {FAQS.map((faq, index) => (
-                  <div key={faq.question} className="overflow-hidden rounded-xl border border-border">
-                    <button
-                      onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                      className="flex w-full items-center gap-2 p-3 text-left transition-colors hover:bg-muted/50"
-                    >
-                      <ChevronDown className={`h-4 w-4 shrink-0 text-pub-amber transition-transform ${openFaq === index ? "rotate-180" : ""}`} />
-                      <span className="flex-1 text-xs font-semibold font-heading text-foreground">{faq.question}</span>
-                    </button>
-                    {openFaq === index && (
-                      <p className="border-t border-border px-3 pb-3 pt-2 text-xs font-body leading-relaxed text-muted-foreground">
-                        {faq.answer}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center gap-2 px-1">
-                  <BookOpen className="h-3.5 w-3.5 text-pub-amber" />
-                  <p className="text-xs font-semibold font-heading text-muted-foreground">Rujukan chatbot</p>
-                </div>
-                {REFERENCES.map((reference) => {
-                  const isExternal = Boolean(reference.href?.startsWith("http"));
-                  const content = (
-                    <>
-                      <span className="flex-1">
-                        <span className="block text-xs font-semibold font-heading text-foreground">{reference.title}</span>
-                        <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">{reference.detail}</span>
-                      </span>
-                      {reference.href && (isExternal
-                        ? <ExternalLink className="h-3.5 w-3.5 shrink-0 text-pub-sky" />
-                        : <ArrowRight className="h-3.5 w-3.5 shrink-0 text-pub-sky" />)}
-                    </>
-                  );
-
-                  return reference.href ? (
-                    <a
-                      key={reference.title}
-                      href={reference.href}
-                      target={isExternal ? "_blank" : undefined}
-                      rel={isExternal ? "noopener noreferrer" : undefined}
-                      className="flex items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-muted/50"
-                    >
-                      {content}
-                    </a>
-                  ) : (
-                    <div key={reference.title} className="flex items-center gap-2 rounded-xl border border-border p-3">
-                      {content}
+              {mode === "navigator" && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-pub-amber/15">
+                      <Sparkles className="h-5 w-5 text-pub-amber" />
                     </div>
-                  );
-                })}
-              </div>
+                    <div>
+                      <p className="text-sm font-semibold font-heading text-foreground">Mulai dari kebutuhan Anda</p>
+                      <p className="mt-1 text-xs font-body leading-relaxed text-muted-foreground">
+                        Saya bantu menentukan langkah awal. Proses, data, dan penyimpanan tetap dilakukan di aplikasi PUB.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    <button onClick={startGuidedIntake} className="flex w-full items-center gap-3 rounded-xl border border-pub-amber/35 bg-pub-amber/10 p-3 text-left transition-colors hover:bg-pub-amber/15">
+                      <ClipboardCheck className="h-5 w-5 shrink-0 text-pub-amber" />
+                      <span className="flex-1">
+                        <span className="block text-xs font-bold font-heading text-foreground">Cek kesiapan saya</span>
+                        <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">Jawab 2 pertanyaan untuk mendapat jalur awal.</span>
+                      </span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-pub-amber" />
+                    </button>
+                    <button onClick={() => openWorkspace("/lkut")} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted/50">
+                      {user ? <LayoutDashboard className="h-5 w-5 shrink-0 text-pub-sky" /> : <LogIn className="h-5 w-5 shrink-0 text-pub-sky" />}
+                      <span className="flex-1">
+                        <span className="block text-xs font-bold font-heading text-foreground">{user ? "Buka workspace saya" : "Masuk ke aplikasi"}</span>
+                        <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">{user ? "Lanjutkan data dan dokumen LKUT." : "Simpan progres dan kelola data Anda."}</span>
+                      </span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-pub-sky" />
+                    </button>
+                    <button onClick={() => setMode("workspace")} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted/50">
+                      <LayoutDashboard className="h-5 w-5 shrink-0 text-pub-emerald" />
+                      <span className="flex-1">
+                        <span className="block text-xs font-bold font-heading text-foreground">Lihat jalur di aplikasi</span>
+                        <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">Pilih fitur PUB, LKUT, atau kompetensi.</span>
+                      </span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-pub-emerald" />
+                    </button>
+                    <button onClick={() => setMode("info")} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted/50">
+                      <BookOpen className="h-5 w-5 shrink-0 text-pub-sky" />
+                      <span className="flex-1">
+                        <span className="block text-xs font-bold font-heading text-foreground">Pahami rujukan</span>
+                        <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">Baca FAQ dan sumber rujukan sebelum memulai.</span>
+                      </span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-pub-sky" />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-pub-emerald" />
+                    <p className="text-[11px] font-body leading-relaxed text-muted-foreground">
+                      Chat ini hanya memberi panduan awal. Untuk data pribadi, checklist, dokumen, dan progres, lanjutkan di web aplikasi.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {mode === "guided" && (
+                <>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-pub-amber">{GUIDED_STEPS[guidedStep].eyebrow}</p>
+                  <h3 className="mt-2 text-base font-bold font-heading text-foreground">{GUIDED_STEPS[guidedStep].title}</h3>
+                  <div className="mt-4 space-y-2">
+                    {GUIDED_STEPS[guidedStep].options.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => chooseGuidedAnswer(option.value)}
+                        className="flex w-full items-start gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:border-pub-amber/40 hover:bg-pub-amber/5"
+                      >
+                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-pub-amber/50 text-[10px] font-bold text-pub-amber">
+                          {GUIDED_STEPS[guidedStep].options.indexOf(option) + 1}
+                        </span>
+                        <span>
+                          <span className="block text-xs font-bold font-heading text-foreground">{option.label}</span>
+                          <span className="mt-0.5 block text-[11px] font-body leading-relaxed text-muted-foreground">{option.detail}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {mode === "result" && (
+                <>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-pub-emerald/15">
+                    <CheckCircle2 className="h-6 w-6 text-pub-emerald" />
+                  </div>
+                  <p className="mt-3 text-xs font-bold uppercase tracking-[0.14em] text-pub-emerald">Jalur awal Anda</p>
+                  <h3 className="mt-2 text-base font-bold font-heading text-foreground">
+                    {guidedAnswers.focus === "proyek" ? "Mulai dari data proyek dan kinerja" : guidedAnswers.focus === "pub" ? "Mulai dari pembelajaran PUB" : "Mulai dari data LKUT dan legalitas"}
+                  </h3>
+                  <p className="mt-2 text-xs font-body leading-relaxed text-muted-foreground">
+                    {guidedAnswers.status === "baru"
+                      ? "Gunakan aplikasi untuk membuat dasar data dan mengikuti checklist secara bertahap."
+                      : guidedAnswers.status === "cek"
+                      ? "Gunakan aplikasi untuk melihat data yang sudah tersedia dan bagian yang masih perlu dilengkapi."
+                      : "Masuk ke workspace untuk mengelola data, bukti, dan progres Anda secara tersimpan."}
+                  </p>
+                  <div className="mt-4 rounded-xl border border-pub-amber/25 bg-pub-amber/10 p-3">
+                    <p className="text-xs font-semibold font-heading text-pub-amber">Ringkasan aman</p>
+                    <p className="mt-1 text-[11px] font-body leading-relaxed text-muted-foreground">
+                      Ini adalah panduan awal, bukan penilaian resmi atau pengajuan ke lembaga berwenang.
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {mode === "workspace" && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-pub-emerald/15">
+                      <LayoutDashboard className="h-5 w-5 text-pub-emerald" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold font-heading text-foreground">Workspace Assistant</p>
+                      <p className="mt-1 text-xs font-body leading-relaxed text-muted-foreground">
+                        {user ? "Pilih ruang kerja untuk melanjutkan proses Anda." : "Masuk terlebih dahulu agar data dan progres dapat tersimpan."}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {WORKSPACE_LINKS.map((link) => {
+                      const Icon = link.icon;
+                      return (
+                        <button key={link.path} onClick={() => openWorkspace(link.path)} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted/50">
+                          <Icon className="h-4 w-4 shrink-0 text-pub-sky" />
+                          <span className="flex-1">
+                            <span className="block text-xs font-bold font-heading text-foreground">{link.label}</span>
+                            <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">{link.detail}</span>
+                          </span>
+                          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {mode === "info" && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-pub-amber" />
+                    <div>
+                      <p className="text-sm font-semibold font-heading text-foreground">Rujukan & pertanyaan cepat</p>
+                      <p className="mt-1 text-xs font-body leading-relaxed text-muted-foreground">Informasi ini bersifat edukatif. Periksa ketentuan terbaru pada sumber resmi.</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {FAQS.map((faq, index) => (
+                      <div key={faq.question} className="overflow-hidden rounded-xl border border-border">
+                        <button onClick={() => setOpenFaq(openFaq === index ? null : index)} className="flex w-full items-center gap-2 p-3 text-left transition-colors hover:bg-muted/50">
+                          <ChevronDown className={`h-4 w-4 shrink-0 text-pub-amber transition-transform ${openFaq === index ? "rotate-180" : ""}`} />
+                          <span className="flex-1 text-xs font-semibold font-heading text-foreground">{faq.question}</span>
+                        </button>
+                        {openFaq === index && <p className="border-t border-border px-3 pb-3 pt-2 text-xs font-body leading-relaxed text-muted-foreground">{faq.answer}</p>}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-2 px-1">
+                      <BookOpen className="h-3.5 w-3.5 text-pub-amber" />
+                      <p className="text-xs font-semibold font-heading text-muted-foreground">Rujukan chatbot</p>
+                    </div>
+                    {REFERENCES.map((reference) => {
+                      const isExternal = Boolean(reference.href?.startsWith("http"));
+                      const content = (
+                        <>
+                          <span className="flex-1">
+                            <span className="block text-xs font-semibold font-heading text-foreground">{reference.title}</span>
+                            <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">{reference.detail}</span>
+                          </span>
+                          {reference.href && (isExternal ? <ExternalLink className="h-3.5 w-3.5 shrink-0 text-pub-sky" /> : <ArrowRight className="h-3.5 w-3.5 shrink-0 text-pub-sky" />)}
+                        </>
+                      );
+                      return reference.href ? (
+                        <a key={reference.title} href={reference.href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noopener noreferrer" : undefined} className="flex items-center gap-2 rounded-xl border border-border p-3 transition-colors hover:bg-muted/50">
+                          {content}
+                        </a>
+                      ) : (
+                        <div key={reference.title} className="flex items-center gap-2 rounded-xl border border-border p-3">{content}</div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-2 border-t border-border p-3">
-              <button
-                onClick={openLkut}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-amber px-4 py-2.5 text-sm font-bold font-heading text-accent-foreground shadow-amber transition-all hover:brightness-110"
-              >
-                Buka LKUT-PUB-LSBUKI <ArrowRight className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => {
-                  setIsOpen(false);
-                  document.getElementById("floating-helpdesk-btn")?.click();
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-xs font-semibold font-heading text-foreground transition-colors hover:bg-muted"
-              >
-                <MessageCircle className="h-3.5 w-3.5 text-pub-sky" /> Tanya Helpdesk Aplikasi
-              </button>
+              {mode === "result" && (
+                <button
+                  onClick={() => openWorkspace(guidedAnswers.focus === "proyek" ? "/projects" : guidedAnswers.focus === "pub" ? "/aspekindo-lms" : "/lkut")}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-amber px-4 py-2.5 text-sm font-bold font-heading text-accent-foreground shadow-amber transition-all hover:brightness-110"
+                >
+                  {user ? "Buka jalur di aplikasi" : "Masuk dan mulai di aplikasi"} <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
+              {(mode === "navigator" || mode === "workspace" || mode === "info") && (
+                <button
+                  onClick={() => openWorkspace("/lkut")}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-amber px-4 py-2.5 text-sm font-bold font-heading text-accent-foreground shadow-amber transition-all hover:brightness-110"
+                >
+                  {user ? "Buka workspace LKUT" : "Masuk dan mulai di aplikasi"} <ArrowRight className="h-4 w-4" />
+                </button>
+              )}
+              {mode !== "navigator" && (
+                <button onClick={() => setMode("navigator")} className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-xs font-semibold font-heading text-foreground transition-colors hover:bg-muted">
+                  <ArrowLeft className="h-3.5 w-3.5" /> Pilih kebutuhan lain
+                </button>
+              )}
             </div>
           </motion.div>
         )}
