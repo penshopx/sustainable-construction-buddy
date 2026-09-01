@@ -14,13 +14,11 @@ const healthFailureReasons = new Set([
   "source_unavailable",
 ]);
 
-assert.ok(supabaseUrl, "SUPABASE_URL is required");
-assert.ok(serviceRoleKey, "SUPABASE_SERVICE_ROLE_KEY is required");
-assert.ok(publishableKey, "VITE_SUPABASE_PUBLISHABLE_KEY is required");
-
 const email = `competency-insight-probe-${crypto.randomUUID()}@example.test`;
 const password = `Probe-${crypto.randomUUID()}-A1!`;
 let userId;
+let verificationFailed = false;
+let verificationSummary;
 
 function assertBodyDoesNotContain(body, forbiddenValues, label) {
   const serialized = JSON.stringify(body);
@@ -84,7 +82,12 @@ async function request(path, init) {
 
 const probeSecrets = [email, password, supabaseUrl, serviceRoleKey, publishableKey];
 
-try {
+async function verifyLiveContract() {
+  assert.ok(supabaseUrl, "SUPABASE_URL is required");
+  assert.ok(serviceRoleKey, "SUPABASE_SERVICE_ROLE_KEY is required");
+  assert.ok(publishableKey, "VITE_SUPABASE_PUBLISHABLE_KEY is required");
+
+  try {
   const unauthenticated = await request("/functions/v1/competency-insight", {
     method: "POST",
     headers: {
@@ -191,7 +194,7 @@ try {
   assert.equal(adminHealth.response.status, 200);
   assertPublicHealth(adminHealth.body, probeSecrets.concat(userId));
 
-  console.log(JSON.stringify({
+  verificationSummary = {
     unauthenticatedStatus: unauthenticated.response.status,
     unauthenticatedHealthStatus: unauthenticatedHealth.response.status,
     authenticatedStatus: insight.response.status,
@@ -201,19 +204,46 @@ try {
     recommendationCount: insight.body.recommendations.length,
     healthStatus: adminHealth.body.health.status,
     healthFailureReason: adminHealth.body.health.failureReason,
-  }));
+  };
+} catch {
+  verificationFailed = true;
 } finally {
   if (userId) {
-    const deleted = await request(`/auth/v1/admin/users/${userId}`, {
-      method: "DELETE",
-      headers: {
-        apikey: serviceRoleKey,
-        Authorization: `Bearer ${serviceRoleKey}`,
-      },
-    });
-    assert.ok(
-      [200, 204].includes(deleted.response.status),
-      "Probe user cleanup failed",
-    );
+    try {
+      const deleted = await request(`/auth/v1/admin/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+      });
+      assert.ok(
+        [200, 204].includes(deleted.response.status),
+        "Probe user cleanup failed",
+      );
+    } catch {
+      verificationFailed = true;
+    }
   }
+}
+
+  if (verificationFailed) {
+    console.error(JSON.stringify({
+      status: "failed",
+      reason: "competency_insight_contract_not_verified",
+    }));
+    process.exitCode = 1;
+  } else {
+    console.log(JSON.stringify(verificationSummary));
+  }
+}
+
+try {
+  await verifyLiveContract();
+} catch {
+  console.error(JSON.stringify({
+    status: "failed",
+    reason: "competency_insight_probe_configuration",
+  }));
+  process.exitCode = 1;
 }

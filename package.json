@@ -17,6 +17,7 @@
     "test:smoke": "npm run test:rate-limit && node scripts/smoke-test.cjs",
     "test:insight": "node --test tests/competency-insight-contract.test.mjs",
     "test:insight:live": "node scripts/verify-competency-insight.mjs",
+    "publish:insight": "node scripts/publish-competency-insight.mjs",
     "test:rate-limit": "node --test tests/public-chat-rate-limit.test.cjs",
     "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium && PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
     "typecheck": "tsc -b --pretty false",
