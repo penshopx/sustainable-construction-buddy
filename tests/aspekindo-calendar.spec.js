@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { expect, test } from "@playwright/test";
+import { installSupabaseSession } from "./helpers/supabase-session.js";
 
 const agendas = [
   {
@@ -195,12 +196,7 @@ async function mockAdminAgenda(page, initialAgendas = []) {
   };
   const agendaMutations = [];
 
-  await page.addInitScript(({ session }) => {
-    const serializedSession = JSON.stringify(session);
-    localStorage.setItem("sb-yidlglstzvizsszrpobi-auth-token", serializedSession);
-    localStorage.setItem("sb-vwbgdyykeiilhffwvnku-auth-token", serializedSession);
-    localStorage.setItem("pub_onboarding_done", "1");
-  }, { session: fakeSession });
+  await installSupabaseSession(page, fakeSession);
 
   await page.route("**/auth/v1/**", async (route) => {
     const requestUrl = route.request().url();

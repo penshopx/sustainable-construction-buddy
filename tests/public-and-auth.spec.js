@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { installSupabaseSession } from "./helpers/supabase-session.js";
 
 test.describe("public and unauthenticated user flows", () => {
   test("loads the public landing page and opens authentication", async ({ page }) => {
@@ -159,13 +160,7 @@ test.describe("public and unauthenticated user flows", () => {
       user: fakeUser,
     };
 
-    await page.addInitScript(({ session }) => {
-      localStorage.setItem(
-        "sb-yidlglstzvizsszrpobi-auth-token",
-        JSON.stringify(session),
-      );
-      localStorage.setItem("pub_onboarding_done", "1");
-    }, { session: fakeSession });
+    await installSupabaseSession(page, fakeSession);
 
     await page.route("**/auth/v1/**", async (route) => {
       const requestUrl = route.request().url();
@@ -250,13 +245,7 @@ test.describe("public and unauthenticated user flows", () => {
       user: fakeUser,
     };
 
-    await page.addInitScript(({ session }) => {
-      localStorage.setItem(
-        "sb-yidlglstzvizsszrpobi-auth-token",
-        JSON.stringify(session),
-      );
-      localStorage.setItem("pub_onboarding_done", "1");
-    }, { session: fakeSession });
+    await installSupabaseSession(page, fakeSession);
 
     await page.route("**/auth/v1/**", async (route) => {
       const requestUrl = route.request().url();
@@ -377,13 +366,7 @@ test.describe("public and unauthenticated user flows", () => {
       user: fakeUser,
     };
 
-    await page.addInitScript(({ session }) => {
-      localStorage.setItem(
-        "sb-yidlglstzvizsszrpobi-auth-token",
-        JSON.stringify(session),
-      );
-      localStorage.setItem("pub_onboarding_done", "1");
-    }, { session: fakeSession });
+    await installSupabaseSession(page, fakeSession);
 
     await page.route("**/auth/v1/**", async (route) => {
       const requestUrl = route.request().url();

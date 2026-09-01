@@ -1,6 +1,5 @@
 import { test, expect } from "@playwright/test";
-
-const PROJECT_REFS = ["yidlglstzvizsszrpobi", "vwbgdyykeiilhffwvnku"];
+import { installSupabaseSession } from "./helpers/supabase-session.js";
 const ADMIN_ID = "00000000-0000-4000-8000-000000000901";
 const COURSE_ID = "00000000-0000-4000-8000-000000000902";
 
@@ -41,12 +40,7 @@ async function installAdminSession(page) {
     }],
   };
 
-  await page.addInitScript(({ authSession, projectRefs }) => {
-    for (const projectRef of projectRefs) {
-      localStorage.setItem(`sb-${projectRef}-auth-token`, JSON.stringify(authSession));
-    }
-    localStorage.setItem("pub_onboarding_done", "1");
-  }, { authSession: session, projectRefs: PROJECT_REFS });
+  await installSupabaseSession(page, session);
 
   await page.route("**/auth/v1/**", async (route) => {
     if (route.request().url().endsWith("/user")) {
