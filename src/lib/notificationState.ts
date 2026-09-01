@@ -22,14 +22,26 @@ export function mergeNotifications(
   current: AppNotification[],
   incoming: AppNotification[],
   limit = Number.POSITIVE_INFINITY,
-) {
+): AppNotification[] {
   const byId = new Map<string, AppNotification>();
 
   for (const notification of current) {
-    if (isAppNotification(notification)) byId.set(notification.id, notification);
+    if (isAppNotification(notification)) {
+      byId.set(notification.id, notification);
+    }
   }
   for (const notification of incoming) {
-    if (isAppNotification(notification)) byId.set(notification.id, notification);
+    if (!isAppNotification(notification)) continue;
+
+    const previous = byId.get(notification.id);
+    byId.set(notification.id, previous
+      ? {
+          ...previous,
+          ...notification,
+          // A stale realtime payload must not make a notification unread again.
+          is_read: previous.is_read || notification.is_read,
+        }
+      : notification);
   }
 
   return [...byId.values()]

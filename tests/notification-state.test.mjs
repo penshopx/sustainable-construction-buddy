@@ -40,6 +40,16 @@ test("merges fetch and realtime snapshots without duplicate notification ids", (
   assert.equal(merged.find(({ id }) => id === "incident-1").is_read, true);
 });
 
+test("keeps a notification read when a reconnect replays an older unread payload", () => {
+  const readNotification = notification("incident-1", "2026-09-02T02:00:00.000Z", { is_read: true });
+  const replayedNotification = notification("incident-1", "2026-09-02T02:00:00.000Z", { is_read: false });
+
+  const merged = notificationState.mergeNotifications([readNotification], [replayedNotification]);
+
+  assert.deepEqual(merged.map(({ id }) => id), ["incident-1"]);
+  assert.equal(merged[0].is_read, true);
+});
+
 test("ignores malformed realtime payloads and applies the bell limit", () => {
   const current = Array.from({ length: 20 }, (_, index) =>
     notification(`incident-${index}`, `2026-09-02T00:${String(index).padStart(2, "0")}:00.000Z`));

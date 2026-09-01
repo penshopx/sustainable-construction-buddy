@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { installSupabaseSession } from "./helpers/supabase-session.js";
 
-test("fetch yang berisi id sama hanya merender satu notifikasi per permukaan", async ({ page }) => {
+test("refresh dan fetch realtime yang berisi id sama hanya merender satu notifikasi per permukaan", async ({ page }) => {
   const userId = "00000000-0000-4000-8000-000000000071";
   const user = {
     id: userId,
@@ -106,4 +106,9 @@ test("fetch yang berisi id sama hanya merender satu notifikasi per permukaan", a
   const popover = page.locator("[data-radix-popper-content-wrapper]");
   await expect(popover.getByText("Insight kompetensi perlu diperiksa", { exact: true })).toHaveCount(1);
   await expect(popover.getByText("Informasi akun", { exact: true })).toHaveCount(1);
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Notifikasi" })).toBeVisible();
+  await expect(page.getByText("Insight kompetensi perlu diperiksa", { exact: true })).toHaveCount(1);
+  await expect(page.getByText("Informasi akun", { exact: true })).toHaveCount(1);
 });

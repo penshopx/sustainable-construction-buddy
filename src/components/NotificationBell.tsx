@@ -38,9 +38,10 @@ export function NotificationBell() {
       }
     };
 
-    fetchNotifications();
+    void fetchNotifications();
 
     // Realtime subscription
+    let hasSubscribed = false;
     const channel = supabase
       .channel("user-notifications")
       .on(
@@ -58,7 +59,14 @@ export function NotificationBell() {
         }
       )
       .subscribe((status) => {
-        if (!cancelled && ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+        if (cancelled) return;
+
+        if (status === "SUBSCRIBED") {
+          // The first subscription is covered by the initial fetch. A later
+          // SUBSCRIBED means the socket recovered and may have missed events.
+          if (hasSubscribed) void fetchNotifications();
+          hasSubscribed = true;
+        } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
           void fetchNotifications();
         }
       });

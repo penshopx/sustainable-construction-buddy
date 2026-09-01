@@ -40,6 +40,7 @@ const Notifications = () => {
     };
     void fetchNotifications();
 
+    let hasSubscribed = false;
     const channel = supabase
       .channel("notifications-page")
       .on(
@@ -52,7 +53,12 @@ const Notifications = () => {
         }
       )
       .subscribe((status) => {
-        if (!cancelled && ["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+        if (cancelled) return;
+
+        if (status === "SUBSCRIBED") {
+          if (hasSubscribed) void fetchNotifications();
+          hasSubscribed = true;
+        } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
           void fetchNotifications();
         }
       });
