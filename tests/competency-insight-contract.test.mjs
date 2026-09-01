@@ -234,7 +234,43 @@ function createFakeSupabase({
       getUser: async () => ({ data: { user }, error: null }),
     },
     from: queryFor,
-    rpc: async () => ({ data: admin, error: null }),
+    rpc: async (functionName, args) => {
+      if (functionName === "has_role") return { data: admin, error: null };
+      if (functionName === "record_competency_insight_health") {
+        if (healthWriteError) return { data: null, error: { message: healthWriteError } };
+        const transition = nextInsightHealthState(
+          persistedHealth.current,
+          args.p_status,
+          args.p_failure_reason,
+          args.p_probe_at,
+        );
+        persistedHealth.current = {
+          status: transition.row.status,
+          failure_reason: transition.row.failure_reason,
+          last_probe_at: transition.row.last_probe_at,
+          consecutive_failure_count: transition.row.consecutive_failure_count,
+          fallback_started_at: transition.row.fallback_started_at,
+          alert_active: transition.row.alert_active,
+        };
+        healthWrites.push(persistedHealth.current);
+        if (transition.shouldNotifyAdmins) {
+          notifications.push(...adminIds.map((userId) => ({
+            user_id: userId,
+            type: "competency_insight_fallback",
+            is_read: false,
+          })));
+        }
+        if (transition.shouldResolveAdminAlert) {
+          notifications
+            .filter((notification) => notification.type === "competency_insight_fallback")
+            .forEach((notification) => {
+              notification.is_read = true;
+            });
+        }
+        return { data: transition.row, error: null };
+      }
+      return { data: null, error: null };
+    },
   };
   const createClient = (_url, key) => {
     assert.ok(key === INSIGHT_ENV.SUPABASE_ANON_KEY || key === INSIGHT_ENV.SUPABASE_SERVICE_ROLE_KEY);
@@ -437,6 +473,17 @@ test("fallback alert waits for repeated failures or duration threshold and resol
   assert.equal(recovered.row.fallback_started_at, null);
   assert.equal(recovered.row.alert_active, false);
   assert.equal(recovered.shouldResolveAdminAlert, true);
+
+  const neutral = nextInsightHealthState(
+    third.row,
+    "deterministic",
+    "none",
+    "2026-09-01T00:03:00.000Z",
+  );
+  assert.equal(neutral.row.alert_active, true);
+  assert.equal(neutral.row.consecutive_failure_count, third.row.consecutive_failure_count);
+  assert.equal(neutral.shouldNotifyAdmins, false);
+  assert.equal(neutral.shouldResolveAdminAlert, false);
 });
 
 test("handler notifies admins only once after threshold and resolves the alert on recovery", async () => {
