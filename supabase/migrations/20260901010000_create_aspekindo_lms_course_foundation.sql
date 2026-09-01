@@ -651,6 +651,7 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION public.submit_aspekindo_lms_quiz(UUID, JSONB) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.submit_aspekindo_lms_quiz(UUID, JSONB) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.complete_aspekindo_lms_lesson(_lesson_id UUID)
@@ -715,6 +716,7 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION public.complete_aspekindo_lms_lesson(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.complete_aspekindo_lms_lesson(UUID) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.complete_aspekindo_lms_course(_course_id UUID)
@@ -779,6 +781,7 @@ BEGIN
 END;
 $$;
 
+REVOKE EXECUTE ON FUNCTION public.complete_aspekindo_lms_course(UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.complete_aspekindo_lms_course(UUID) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
