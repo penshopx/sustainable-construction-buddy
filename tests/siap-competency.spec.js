@@ -45,7 +45,7 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
-        source: "deterministic",
+        source: "connected",
         recommendations: [{
           text: "Tinjau kesiapan tim menggunakan assessment dan scoring 4 Pilar.",
           href: "/analytics",
@@ -235,6 +235,8 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
   await expect(page.getByText("KTA, SBU, dan LKUT")).toBeVisible();
   await expect(page.getByText("Rekam kontrak proyek")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Rekomendasi prioritas" })).toBeVisible();
+  await expect(page.getByText("Dirangkum dari konteks minimum yang tersedia.")).toBeVisible();
+  await expect(page.getByText(/Gustafta/i)).toHaveCount(0);
 
   expect(userOwnedRequests.length).toBeGreaterThan(0);
   expect(userOwnedRequests.every((url) => url.searchParams.get("user_id") === `eq.${USER_ID}`)).toBe(true);
@@ -248,9 +250,9 @@ test("recorded zero assessment remains evidence instead of becoming no data", as
 
   await page.route("**/functions/v1/competency-insight", async (route) => {
     await route.fulfill({
-      status: 200,
+      status: 504,
       contentType: "application/json",
-      body: JSON.stringify({ source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" }),
+      body: JSON.stringify({ error: "Insight timeout" }),
     });
   });
   await page.route("**/rest/v1/**", async (route) => {
@@ -271,4 +273,6 @@ test("recorded zero assessment remains evidence instead of becoming no data", as
   await page.goto("/siap-kompetensi");
   await expect(page.getByText("Assessment terakhir 0% pada level Pemula.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "SIAP Sertifikasi" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Rekomendasi prioritas" })).toBeVisible();
+  await expect(page.getByText("Dirangkum dengan aturan deterministik dari gap yang tersedia.")).toBeVisible();
 });

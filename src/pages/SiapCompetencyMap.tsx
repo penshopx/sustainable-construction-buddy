@@ -242,7 +242,7 @@ const SiapCompetencyMap = () => {
                   <h2 className="font-heading text-base font-bold text-foreground">Rekomendasi prioritas</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {data.insight.source === "connected"
-                      ? "Dirangkum oleh engine internal dari konteks minimum yang tersedia."
+                      ? "Dirangkum dari konteks minimum yang tersedia."
                       : "Dirangkum dengan aturan deterministik dari gap yang tersedia."}
                   </p>
                 </div>

@@ -1,0 +1,20 @@
+{
+  "projectRef": "yidlglstzvizsszrpobi",
+  "functionName": "competency-insight",
+  "functionStatus": "ACTIVE",
+  "functionVersion": 9,
+  "verifyJwt": true,
+  "contractSchemaVersion": "pub-siap-v1",
+  "authenticatedProbe": {
+    "httpStatus": 200,
+    "source": "connected",
+    "recommendationCount": 3,
+    "checkedAt": "2026-09-01T06:37:55Z"
+  },
+  "securityAssertions": {
+    "unauthenticatedStatus": 401,
+    "memberIdentitySentToEngine": false,
+    "outputRestrictedToInternalCatalog": true,
+    "engineNameShownToMembers": false
+  }
+}

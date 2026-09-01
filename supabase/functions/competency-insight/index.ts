@@ -1,96 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  deterministicKeys,
+  requestRecommendationKeys,
+  toRecommendation,
+} from "./contract.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-type Focus = "legalitas" | "sertifikasi" | "tender" | "proyek";
-
-interface Recommendation {
-  text: string;
-  href: string;
-  label: string;
-}
-
-interface RecommendationDefinition extends Recommendation {
-  focus: Focus;
-}
-
-const recommendationCatalog: Record<string, RecommendationDefinition> = {
-  "legalitas-member": {
-    focus: "legalitas",
-    text: "Lengkapi status dan identitas keanggotaan BUJK.",
-    href: "/pancek",
-    label: "Lengkapi profil",
-  },
-  "legalitas-pancek": {
-    focus: "legalitas",
-    text: "Lengkapi identitas badan usaha, NIB, dan NPWP melalui PANCEK.",
-    href: "/pancek",
-    label: "Buka PANCEK",
-  },
-  "legalitas-lkut": {
-    focus: "legalitas",
-    text: "Lengkapi data KTA, SBU, perizinan, dan administrasi pada LKUT.",
-    href: "/lkut",
-    label: "Buka LKUT",
-  },
-  "sertifikasi-assessment": {
-    focus: "sertifikasi",
-    text: "Selesaikan pre-test untuk memetakan level kompetensi awal.",
-    href: "/assessment",
-    label: "Mulai assessment",
-  },
-  "sertifikasi-lms": {
-    focus: "sertifikasi",
-    text: "Lanjutkan E-Course, kuis, dan completion record di LMS ASPEKINDO.",
-    href: "/aspekindo-lms",
-    label: "Buka LMS",
-  },
-  "sertifikasi-evidence": {
-    focus: "sertifikasi",
-    text: "Tambahkan bukti penyelesaian dari sertifikat, PANCEK, atau SMAP.",
-    href: "/certificates",
-    label: "Lihat bukti",
-  },
-  "tender-learning": {
-    focus: "tender",
-    text: "Pelajari pengadaan, kontrak, dokumen penawaran, dan risiko tender.",
-    href: "/courses",
-    label: "Buka E-Course",
-  },
-  "tender-team": {
-    focus: "tender",
-    text: "Tinjau kesiapan tim menggunakan assessment dan scoring 4 Pilar.",
-    href: "/analytics",
-    label: "Buka Analytics",
-  },
-  "tender-risk": {
-    focus: "tender",
-    text: "Petakan risiko tender, supplier, dan rencana mitigasinya.",
-    href: "/risk-register",
-    label: "Buka workspace",
-  },
-  "proyek-workspace": {
-    focus: "proyek",
-    text: "Catat proyek aktif atau selesai beserta status dan kompleksitasnya.",
-    href: "/projects",
-    label: "Buka proyek",
-  },
-  "proyek-evidence": {
-    focus: "proyek",
-    text: "Lengkapi evidence pengalaman proyek pada data proyek dan LKUT.",
-    href: "/lkut",
-    label: "Buka LKUT",
-  },
-  "proyek-controls": {
-    focus: "proyek",
-    text: "Lengkapi kontrol K3, risiko, dan biaya pada workspace proyek.",
-    href: "/k3-checklist",
-    label: "Buka kontrol proyek",
-  },
 };
 
 function json(body: unknown, status = 200) {
@@ -102,21 +20,6 @@ function json(body: unknown, status = 200) {
 
 function isPresent(value: unknown) {
   return Array.isArray(value) ? value.length > 0 : Boolean(value);
-}
-
-function toRecommendation(key: string): Recommendation | null {
-  const item = recommendationCatalog[key];
-  return item ? { text: item.text, href: item.href, label: item.label } : null;
-}
-
-function deterministicKeys(missingKeys: string[]) {
-  return [...missingKeys]
-    .sort((left, right) => {
-      const focusOrder: Focus[] = ["legalitas", "sertifikasi", "tender", "proyek"];
-      return focusOrder.indexOf(recommendationCatalog[left].focus)
-        - focusOrder.indexOf(recommendationCatalog[right].focus);
-    })
-    .slice(0, 3);
 }
 
 serve(async (req) => {
@@ -227,38 +130,23 @@ serve(async (req) => {
 
     if (engineUrl && engineApiKey && missingKeys.length > 0) {
       try {
-        const response = await fetch(engineUrl, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${engineApiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            schemaVersion: "pub-siap-v1",
-            availableRecommendationKeys: missingKeys,
-          }),
-          signal: AbortSignal.timeout(8_000),
-        });
-
-        if (response.ok) {
-          const payload = await response.json();
-          const requestedKeys = Array.isArray(payload?.recommendationKeys)
-            ? payload.recommendationKeys.filter(
-                (key: unknown): key is string => typeof key === "string" && missingKeys.includes(key),
-              ).slice(0, 3)
-            : [];
-          if (requestedKeys.length > 0) {
-            return json({
-              source: "connected",
-              recommendations: requestedKeys.map(toRecommendation).filter(Boolean),
-              generatedAt: new Date().toISOString(),
-            });
-          }
-        } else {
-          console.error("Competency engine returned non-success status", response.status);
+        const requestedKeys = await requestRecommendationKeys(
+          engineUrl,
+          engineApiKey,
+          missingKeys,
+        );
+        if (requestedKeys.length > 0) {
+          return json({
+            source: "connected",
+            recommendations: requestedKeys.map(toRecommendation).filter(Boolean),
+            generatedAt: new Date().toISOString(),
+          });
         }
       } catch (error) {
-        console.error("Competency engine request failed", error);
+        console.error(
+          "Competency engine request failed",
+          error instanceof Error ? error.message : "Unknown error",
+        );
       }
     }
 

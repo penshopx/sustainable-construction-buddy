@@ -65,10 +65,11 @@ externalPort = 5173
 [userenv]
 
 [userenv.shared]
-SUPABASE_URL = "https://vwbgdyykeiilhffwvnku.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YmdkeXlrZWlpbGhmZnd2bmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQwNTksImV4cCI6MjA4ODAyMDA1OX0.VzGsEYvlRVjchA-b8N9IE-jNJ4AiZr5Jd_uyjiuW1SU"
-VITE_SUPABASE_URL = "https://vwbgdyykeiilhffwvnku.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ3YmdkeXlrZWlpbGhmZnd2bmt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0NDQwNTksImV4cCI6MjA4ODAyMDA1OX0.VzGsEYvlRVjchA-b8N9IE-jNJ4AiZr5Jd_uyjiuW1SU"
+SUPABASE_URL = "https://yidlglstzvizsszrpobi.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpZGxnbHN0enZpenNzenJwb2JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMDUxNDUsImV4cCI6MjA5ODg4MTE0NX0.hce28ZO-UvtEB022fwrzCYht-kEezreDe4QkD45wDTI"
+VITE_SUPABASE_URL = "https://yidlglstzvizsszrpobi.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpZGxnbHN0enZpenNzenJwb2JpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzMDUxNDUsImV4cCI6MjA5ODg4MTE0NX0.hce28ZO-UvtEB022fwrzCYht-kEezreDe4QkD45wDTI"
+VITE_SUPABASE_PROJECT_ID = "yidlglstzvizsszrpobi"
 
 [postMerge]
 path = "scripts/post-merge.sh"

@@ -50,6 +50,26 @@ function assertResult(
   }
 }
 
+function buildFallbackInsight(
+  map: ReturnType<typeof buildSiapCompetencyMap>,
+): SiapEngineInsight {
+  const recommendations = map.dimensions
+    .flatMap((dimension) => dimension.recommendations)
+    .filter(
+      (item, index, all) =>
+        all.findIndex(
+          (candidate) => candidate.href === item.href && candidate.text === item.text,
+        ) === index,
+    )
+    .slice(0, 3);
+
+  return {
+    source: "deterministic",
+    recommendations,
+    generatedAt: map.generatedAt,
+  };
+}
+
 export function useSiapCompetencyMap() {
   const { user } = useAuth();
 
@@ -277,7 +297,7 @@ export function useSiapCompetencyMap() {
         return { ...map, insight: insightData };
       }
 
-      return map;
+      return { ...map, insight: buildFallbackInsight(map) };
     },
   });
 }
