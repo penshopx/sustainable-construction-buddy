@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Download,
+  Eye,
   ExternalLink,
   FileText,
   GraduationCap,
@@ -45,6 +46,11 @@ type Activity = Pick<Tables<"aspekindo_pub_activities">, "id" | "title" | "statu
 type Profile = Pick<Tables<"profiles">, "user_id" | "full_name" | "company">;
 
 type DialogKind = "course" | "session" | "lesson" | "material" | "enrollment" | null;
+type PreviewTarget =
+  | { kind: "course"; course: Course }
+  | { kind: "session"; session: Session }
+  | { kind: "lesson"; lesson: Lesson }
+  | null;
 
 type CourseForm = {
   title: string;
@@ -225,6 +231,7 @@ export default function AdminAspekindoLmsNative() {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogKind>(null);
+  const [previewTarget, setPreviewTarget] = useState<PreviewTarget>(null);
   const [saving, setSaving] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [editingSession, setEditingSession] = useState<Session | null>(null);
@@ -236,6 +243,8 @@ export default function AdminAspekindoLmsNative() {
   const [lessonForm, setLessonForm] = useState<LessonForm>(EMPTY_LESSON);
   const [materialForm, setMaterialForm] = useState<MaterialForm>(EMPTY_MATERIAL);
   const [enrollmentForm, setEnrollmentForm] = useState<EnrollmentForm>(EMPTY_ENROLLMENT);
+  const [rosterSearch, setRosterSearch] = useState("");
+  const [rosterStatus, setRosterStatus] = useState("all");
 
   const loadData = useCallback(async (background = false) => {
     if (background) setRefreshing(true);
@@ -336,6 +345,12 @@ export default function AdminAspekindoLmsNative() {
   const courseEnrollments = enrollments.filter((enrollment) => enrollment.course_id === selectedCourseId);
   const courseProgress = progress.filter((item) => item.course_id === selectedCourseId);
   const courseCompletions = completions.filter((item) => item.course_id === selectedCourseId);
+  const visibleEnrollments = courseEnrollments.filter((enrollment) => {
+    const person = profileMap.get(enrollment.user_id);
+    const query = rosterSearch.trim().toLowerCase();
+    const matchesSearch = !query || `${person?.full_name ?? ""} ${person?.company ?? ""} ${enrollment.user_id}`.toLowerCase().includes(query);
+    return matchesSearch && (rosterStatus === "all" || enrollment.status === rosterStatus);
+  });
 
   const openCreateCourse = () => {
     setEditingCourse(null);
@@ -467,17 +482,29 @@ export default function AdminAspekindoLmsNative() {
       agenda_id: courseForm.agenda_id || null,
       published_at: courseForm.status === "published" ? editingCourse?.published_at ?? new Date().toISOString() : null,
     };
-    const result = editingCourse
-      ? await supabase.from("aspekindo_lms_courses").update(payload).eq("id", editingCourse.id)
-      : await supabase.from("aspekindo_lms_courses").insert({ ...payload, created_by: user?.id ?? null } satisfies TablesInsert<"aspekindo_lms_courses">);
+    let saveError: { message: string } | null = null;
+    let savedCourseId = editingCourse?.id;
+    if (editingCourse) {
+      const result = await supabase.from("aspekindo_lms_courses").update(payload).eq("id", editingCourse.id);
+      saveError = result.error;
+    } else {
+      const result = await supabase
+        .from("aspekindo_lms_courses")
+        .insert({ ...payload, created_by: user?.id ?? null } satisfies TablesInsert<"aspekindo_lms_courses">)
+        .select("id")
+        .single();
+      saveError = result.error;
+      savedCourseId = result.data?.id;
+    }
     setSaving(false);
-    if (result.error) {
-      toast({ title: "Kursus gagal disimpan", description: result.error.message, variant: "destructive" });
+    if (saveError) {
+      toast({ title: "Kursus gagal disimpan", description: saveError.message, variant: "destructive" });
       return;
     }
     setDialog(null);
     toast({ title: editingCourse ? "Kursus diperbarui" : "Kursus dibuat" });
     await loadData(true);
+    if (savedCourseId) setSelectedCourseId(savedCourseId);
   };
 
   const saveSession = async () => {
@@ -820,6 +847,7 @@ export default function AdminAspekindoLmsNative() {
                       <CardDescription className="mt-1 max-w-2xl">{selectedCourse.audience || "Belum ada sasaran peserta"}</CardDescription>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setPreviewTarget({ kind: "course", course: selectedCourse })}><Eye className="mr-2 h-4 w-4" /> Pratinjau</Button>
                       <Button variant="outline" size="sm" onClick={() => openEditCourse(selectedCourse)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
                       {selectedCourse.status === "published"
                         ? <Button variant="outline" size="sm" onClick={() => void updateCourseStatus(selectedCourse, "archived")}><Archive className="mr-2 h-4 w-4" /> Arsipkan</Button>
@@ -853,6 +881,7 @@ export default function AdminAspekindoLmsNative() {
                           {(session.starts_at || session.ends_at) && <p className="mt-1 text-xs text-muted-foreground">{formatDate(session.starts_at)}{session.ends_at ? ` — ${formatDate(session.ends_at)}` : ""}</p>}
                         </div>
                         <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => setPreviewTarget({ kind: "session", session })}><Eye className="mr-1 h-4 w-4" /> Lihat</Button>
                           <Button size="sm" variant="ghost" onClick={() => openEditSession(session)}><Pencil className="mr-1 h-4 w-4" /> Edit</Button>
                           {session.status === "published"
                             ? <Button size="sm" variant="ghost" onClick={() => void updateSessionStatus(session, "archived")}><Archive className="mr-1 h-4 w-4" /> Arsip</Button>
@@ -888,6 +917,7 @@ export default function AdminAspekindoLmsNative() {
                             <p className="text-xs text-muted-foreground">{lessonSession ? `Sesi: ${lessonSession.title}` : "Belum dikaitkan ke sesi"} · {lessonMaterials.length} materi</p>
                           </div>
                           <div className="flex flex-wrap gap-1">
+                            <Button size="sm" variant="ghost" onClick={() => setPreviewTarget({ kind: "lesson", lesson })}><Eye className="mr-1 h-4 w-4" /> Lihat</Button>
                             <Button size="sm" variant="ghost" onClick={() => openEditLesson(lesson)}><Pencil className="mr-1 h-4 w-4" /> Edit</Button>
                             <Button size="sm" variant="ghost" onClick={() => void updateLessonStatus(lesson, !lesson.is_published)}>{lesson.is_published ? "Jadikan draft" : "Terbitkan"}</Button>
                             <Button size="sm" variant="outline" onClick={() => openCreateMaterial(lesson)}><Plus className="mr-1 h-4 w-4" /> Materi</Button>
@@ -927,10 +957,28 @@ export default function AdminAspekindoLmsNative() {
             </CardHeader>
             <CardContent className="overflow-x-auto">
               {!selectedCourse ? <p className="py-8 text-center text-sm text-muted-foreground">Belum ada kursus yang dipilih.</p> : courseEnrollments.length === 0 ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Belum ada enrollment untuk kursus ini.</div> : (
+                <>
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input aria-label="Cari peserta LMS" value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder="Cari nama, perusahaan, atau user ID..." className="pl-9" />
+                  </div>
+                  <Select value={rosterStatus} onValueChange={setRosterStatus}>
+                    <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua status</SelectItem>
+                      <SelectItem value="enrolled">Terdaftar</SelectItem>
+                      <SelectItem value="in_progress">Sedang belajar</SelectItem>
+                      <SelectItem value="completed">Selesai</SelectItem>
+                      <SelectItem value="withdrawn">Dibatalkan</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {visibleEnrollments.length === 0 ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Tidak ada peserta yang cocok dengan filter.</div> : (
                 <Table>
                   <TableHeader><TableRow><TableHead>Peserta</TableHead><TableHead>Status</TableHead><TableHead>Progres</TableHead><TableHead>Terdaftar</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {courseEnrollments.map((enrollment) => {
+                    {visibleEnrollments.map((enrollment) => {
                       const person = profileMap.get(enrollment.user_id);
                       const personProgress = courseProgress.filter((item) => item.user_id === enrollment.user_id);
                       const completedLessons = personProgress.filter((item) => item.status === "completed").length;
@@ -946,6 +994,8 @@ export default function AdminAspekindoLmsNative() {
                     })}
                   </TableBody>
                 </Table>
+                )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -965,6 +1015,39 @@ export default function AdminAspekindoLmsNative() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={Boolean(previewTarget)} onOpenChange={(open) => !open && setPreviewTarget(null)}>
+        <DialogContent className="max-h-[92vh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {previewTarget?.kind === "course" ? "Pratinjau kursus" : previewTarget?.kind === "session" ? "Pratinjau sesi" : "Pratinjau pelajaran"}
+            </DialogTitle>
+          </DialogHeader>
+          {previewTarget?.kind === "course" && (
+            <div className="space-y-5">
+              <div><div className="flex flex-wrap gap-2"><Badge variant="outline">{previewTarget.course.course_code}</Badge><Badge variant="outline">{formatStatus(previewTarget.course.status)}</Badge></div><h2 className="mt-3 text-2xl font-bold font-heading">{previewTarget.course.title}</h2><p className="mt-2 text-sm text-muted-foreground">{previewTarget.course.audience}</p></div>
+              {previewTarget.course.description_markdown && <div className="whitespace-pre-wrap rounded-lg bg-muted/40 p-4 text-sm leading-relaxed">{previewTarget.course.description_markdown}</div>}
+              <div><p className="font-semibold">Struktur pembelajaran</p><div className="mt-2 space-y-2">{selectedSessions.length === 0 && selectedLessons.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada sesi atau pelajaran.</p> : selectedSessions.map((session) => <div key={session.id} className="rounded-lg border p-3"><p className="font-medium">{session.title}</p><p className="text-xs text-muted-foreground">{DELIVERY_LABELS[session.delivery_mode] ?? session.delivery_mode} · {selectedLessons.filter((lesson) => lesson.session_id === session.id).length} pelajaran</p></div>)}</div></div>
+            </div>
+          )}
+          {previewTarget?.kind === "session" && (
+            <div className="space-y-4">
+              <div><div className="flex flex-wrap gap-2"><Badge variant="outline">{DELIVERY_LABELS[previewTarget.session.delivery_mode] ?? previewTarget.session.delivery_mode}</Badge><Badge variant="outline">{formatStatus(previewTarget.session.status)}</Badge></div><h2 className="mt-3 text-2xl font-bold font-heading">{previewTarget.session.title}</h2></div>
+              {previewTarget.session.description_markdown && <div className="whitespace-pre-wrap rounded-lg bg-muted/40 p-4 text-sm leading-relaxed">{previewTarget.session.description_markdown}</div>}
+              <div className="grid gap-3 text-sm sm:grid-cols-2"><div><p className="text-xs text-muted-foreground">Sumber</p><p className="font-medium">{previewTarget.session.source_name}</p></div><div><p className="text-xs text-muted-foreground">Jadwal</p><p className="font-medium">{formatDate(previewTarget.session.starts_at)}{previewTarget.session.ends_at ? ` — ${formatDate(previewTarget.session.ends_at)}` : ""}</p></div></div>
+              <div><p className="font-semibold">Pelajaran dalam sesi</p><div className="mt-2 space-y-2">{selectedLessons.filter((lesson) => lesson.session_id === previewTarget.session.id).map((lesson) => <div key={lesson.id} className="rounded-lg border p-3"><p className="font-medium">{lesson.title}</p><p className="text-xs text-muted-foreground">{lesson.is_published ? "Terbit" : "Draft"} · Nilai lulus {lesson.passing_score}</p></div>)}</div></div>
+            </div>
+          )}
+          {previewTarget?.kind === "lesson" && (
+            <div className="space-y-4">
+              <div><div className="flex flex-wrap gap-2"><Badge variant="outline">{previewTarget.lesson.is_published ? "Terbit" : "Draft"}</Badge><Badge variant="secondary">Nilai lulus {previewTarget.lesson.passing_score}</Badge></div><h2 className="mt-3 text-2xl font-bold font-heading">{previewTarget.lesson.title}</h2></div>
+              {previewTarget.lesson.content_markdown ? <div className="whitespace-pre-wrap rounded-lg border p-4 text-sm leading-relaxed">{previewTarget.lesson.content_markdown}</div> : <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Isi pelajaran belum tersedia.</div>}
+              <div><p className="font-semibold">Materi</p><div className="mt-2 space-y-2">{materials.filter((material) => material.lesson_id === previewTarget.lesson.id).map((material) => <div key={material.id} className="rounded-lg border p-3"><p className="font-medium">{material.title}</p><p className="text-xs text-muted-foreground">{material.material_type} · {material.is_published ? "Terbit" : "Draft"}</p></div>)}</div></div>
+            </div>
+          )}
+          <DialogFooter><Button variant="outline" onClick={() => setPreviewTarget(null)}>Tutup pratinjau</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialog === "enrollment"} onOpenChange={(open) => !open && setDialog(null)}>
         <DialogContent className="max-w-lg">

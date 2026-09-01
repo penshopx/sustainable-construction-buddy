@@ -96,7 +96,11 @@ async function installAdminSession(page) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
-        await route.fulfill({ status: 201, contentType: "application/json", body: "[]" });
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify({ id: "00000000-0000-4000-8000-000000000903" }),
+        });
         return;
       }
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(state.courses) });
@@ -142,7 +146,12 @@ test.describe("operasi LMS ASPEKINDO native", () => {
     await page.getByRole("button", { name: "Simpan kursus" }).click();
 
     await expect(page.getByText("Manajemen Risiko Tender").first()).toBeVisible();
-    await expect(page.getByText("ASPEKINDO-LMS-ADMIN-02")).toBeVisible();
+    await expect(page.getByText("ASPEKINDO-LMS-ADMIN-02").first()).toBeVisible();
+
+    await page.getByRole("button", { name: "Pratinjau" }).click();
+    await expect(page.getByRole("dialog")).toContainText("Pratinjau kursus");
+    await expect(page.getByRole("dialog")).toContainText("Manajemen Risiko Tender");
+    await page.getByRole("button", { name: "Tutup pratinjau" }).click();
 
     await page.getByRole("tab", { name: "Peserta & bukti" }).click();
     await page.getByRole("button", { name: "Tambah peserta" }).click();
@@ -152,5 +161,9 @@ test.describe("operasi LMS ASPEKINDO native", () => {
 
     await expect(page.getByText("Peserta Baru")).toBeVisible();
     await expect(page.getByText("BUJK Uji")).toBeVisible();
+    await page.getByLabel("Cari peserta LMS").fill("tidak ditemukan");
+    await expect(page.getByText("Tidak ada peserta yang cocok dengan filter.")).toBeVisible();
+    await page.getByLabel("Cari peserta LMS").fill("");
+    await expect(page.getByText("Peserta Baru")).toBeVisible();
   });
 });
