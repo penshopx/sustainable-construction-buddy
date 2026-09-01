@@ -231,12 +231,12 @@ export default function FloatingChatbot({ variant = "dashboard", initialOpen = f
                 transition={{ delay: 3 }}
                 className="absolute bottom-16 left-0 bg-card border border-border rounded-xl px-3 py-2 shadow-card text-xs font-body text-foreground whitespace-nowrap pointer-events-none"
               >
-                ❓ Panduan & Cara Pakai PUB
+                 ❓ Panduan & Cara Pakai aplikasi PUB
               </motion.div>
             )}
             <button
               onClick={handleOpen}
-              title="PUB HelpDesk — Panduan Fitur"
+               title="Panduan & Cara Pakai aplikasi PUB"
               id="floating-helpdesk-btn"
               className="w-14 h-14 rounded-full shadow-xl flex items-center justify-center bg-gradient-to-br from-pub-sky to-pub-navy hover:brightness-110 transition-all border-2 border-[hsl(0,0%,100%)/20%] relative"
             >
@@ -279,7 +279,7 @@ export default function FloatingChatbot({ variant = "dashboard", initialOpen = f
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-white font-bold text-sm font-heading leading-none">PUB HelpDesk</p>
-                <p className="text-white/60 text-xs font-body mt-0.5">Panduan fitur aspekindo-pub.com</p>
+                 <p className="text-white/60 text-xs font-body mt-0.5">Panduan & Cara Pakai aplikasi PUB dan chatbot LKUT-PUB-LSBUKI</p>
               </div>
               {!standalone && (
                 <Button

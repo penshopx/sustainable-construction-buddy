@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("LKUT floating chatbot exposes Kepdirjen 281 references", async ({ page }) => {
   await page.goto("/");
 
-  await page.getByTitle("LKUT-PUB-LSBUKI").click();
+  await page.getByTitle("Chatbot LKUT-PUB-LSBUKI").click();
   const referencesButton = page.getByRole("button", {
     name: /Pahami rujukan/,
   });

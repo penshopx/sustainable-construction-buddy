@@ -180,7 +180,7 @@ export default function FloatingLkut() {
               >
                 <div className="mb-1 flex items-center gap-2">
                   <FileCheck2 className="h-4 w-4 text-pub-amber" />
-                  <p className="text-xs font-bold font-heading text-white">LKUT-PUB-LSBUKI</p>
+                   <p className="text-xs font-bold font-heading text-white">Chatbot LKUT-PUB-LSBUKI</p>
                   <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 </div>
                 <p className="text-xs font-body leading-relaxed text-[hsl(0,0%,65%)]">
@@ -195,7 +195,7 @@ export default function FloatingLkut() {
                 setIsOpen(true);
                 setHasInteracted(true);
               }}
-              title="LKUT-PUB-LSBUKI"
+               title="Chatbot LKUT-PUB-LSBUKI"
               className="relative flex h-14 w-14 items-center justify-center rounded-full border-2 border-pub-amber/30 bg-gradient-to-br from-pub-amber to-orange-500 text-[hsl(220,60%,14%)] shadow-xl transition-all hover:brightness-110"
             >
               <FileCheck2 className="h-6 w-6" />
@@ -225,8 +225,8 @@ export default function FloatingLkut() {
                 <FileCheck2 className="h-4 w-4 text-pub-amber" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold font-heading leading-none text-white">LKUT-PUB-LSBUKI</p>
-                <p className="mt-0.5 text-xs font-body text-[hsl(0,0%,60%)]">Produk asli ASPEKINDO</p>
+                 <p className="text-sm font-bold font-heading leading-none text-white">Chatbot LKUT-PUB-LSBUKI</p>
+                 <p className="mt-0.5 text-xs font-body text-[hsl(0,0%,60%)]">Panduan dan rujukan LKUT-PUB-LSBUKI</p>
               </div>
               <Button
                 variant="ghost"
