@@ -142,7 +142,11 @@ function slugify(value: string) {
 
 function downloadCalendarFile(agenda: Agenda) {
   const dates = getCalendarDates(agenda);
-  const timestamp = new Date().toISOString().replace(/[-:.]/g, "").replace(/\d{3}Z$/, "Z");
+  const timestamp = new Date().toISOString()
+    .replace(/-/g, "")
+    .replace(/:/g, "")
+    .replace(/\./g, "")
+    .replace(/\d{3}Z$/, "Z");
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
