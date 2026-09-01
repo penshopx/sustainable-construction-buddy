@@ -8,7 +8,9 @@ import {
   ShieldCheck,
   Sparkles,
   XCircle,
+  ArrowRight,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -359,6 +361,17 @@ export default function ReadinessSimulator({ kind }: { kind: ReadinessKind }) {
                 <p className="font-semibold font-heading text-foreground">{scoreLabel}</p>
                 <p className="text-sm text-muted-foreground">{completedCount} dari {config.items.length} butir sudah diberi status.</p>
               </div>
+            </div>
+            <div className="flex flex-col gap-3 rounded-xl border border-pub-sky/20 bg-pub-sky/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="font-semibold font-heading text-foreground">Lanjutkan dengan data aktual anggota</p>
+                <p className="mt-1 text-sm text-muted-foreground">Bandingkan hasil simulator ini dengan bukti dari LMS, asesmen, LKUT, PANCEK, SMAP, dan workspace proyek.</p>
+              </div>
+              <Button asChild variant="outline" className="shrink-0 border-pub-sky/30 text-pub-sky">
+                <Link to="/siap-kompetensi">
+                  Peta Kompetensi 4 SIAP <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
             </div>
             {needsAttention.length > 0 ? (
               <div>

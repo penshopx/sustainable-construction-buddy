@@ -7,6 +7,8 @@ Peta 4 SIAP harus menampilkan skor bukti dan cakupan data sebagai dua ukuran ter
 
 Engine eksternal hanya boleh menjadi mesin internal. Jangan menampilkan nama engine, tautan eksternal, secret, atau klaim integrasi aktif di browser sebelum kontrak server-side tersedia.
 
-**Why:** Menggabungkan kekosongan data dengan ketidakmampuan menghasilkan penilaian yang menyesatkan, sedangkan mempublikasikan engine eksternal mengaburkan kepemilikan produk dan batas keamanan. Atribusi eksplisit mencegah progres atau bukti kursus masuk ke dimensi yang salah ketika nama kursus atau agenda ambigu.
+Adapter engine tidak boleh mempercayai skor, gap, identitas anggota, atau teks rekomendasi yang dikirim browser. Server harus menurunkan konteks dari JWT dan sumber milik pengguna, lalu membatasi request serta response eksternal dengan katalog sinyal dan aksi internal.
 
-**How to apply:** Setiap sumber baru harus memiliki atribusi SIAP yang eksplisit, batas kepemilikan anggota, indikator yang dapat dijelaskan, state data parsial, serta adapter server-side bila membutuhkan engine eksternal. Progres LMS native dihitung hanya dari enrollment milik pengguna, lesson progress, dan completion record pada kursus yang sudah diberi fokus.
+**Why:** Menggabungkan kekosongan data dengan ketidakmampuan menghasilkan penilaian yang menyesatkan, sedangkan mempublikasikan engine eksternal mengaburkan kepemilikan produk dan batas keamanan. Payload client yang dipercaya juga memungkinkan pemalsuan konteks dan penyalahgunaan kredensial server. Atribusi eksplisit mencegah bukti kursus masuk ke dimensi yang salah ketika nama kursus ambigu.
+
+**How to apply:** Setiap sumber baru harus memiliki atribusi SIAP yang eksplisit, batas kepemilikan anggota, indikator yang dapat dijelaskan, state data parsial, serta adapter server-side berquery read-only bila membutuhkan engine eksternal. Kirim hanya konteks minimum tanpa identitas dan abaikan output yang tidak ada dalam allowlist server. Progres LMS native dihitung hanya dari data milik pengguna pada kursus yang sudah diberi fokus.

@@ -144,7 +144,21 @@ function DimensionCard({ dimension, onOpen }: { dimension: SiapDimensionResult; 
           <p className="text-xs font-bold uppercase tracking-[0.14em] text-muted-foreground">Prioritas berikutnya</p>
           {dimension.recommendations.length > 0 ? (
             <ul className="mt-2 space-y-2">
-              {dimension.recommendations.map((recommendation) => <li key={recommendation} className="flex gap-2 text-sm leading-relaxed text-foreground"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-pub-amber" />{recommendation}</li>)}
+              {dimension.recommendations.map((recommendation) => (
+                <li key={`${recommendation.href}-${recommendation.text}`} className="flex flex-col gap-2 rounded-lg border border-border/70 bg-background/60 p-3 text-sm leading-relaxed text-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <span className="flex gap-2">
+                    <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-pub-amber" />
+                    {recommendation.text}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(recommendation.href)}
+                    className="inline-flex shrink-0 items-center gap-1 self-start text-xs font-semibold text-pub-sky sm:self-auto"
+                  >
+                    {recommendation.label} <ArrowUpRight className="h-3.5 w-3.5" />
+                  </button>
+                </li>
+              ))}
             </ul>
           ) : <p className="mt-2 text-sm text-muted-foreground">Belum ada rekomendasi tambahan.</p>}
         </div>
@@ -215,6 +229,43 @@ const SiapCompetencyMap = () => {
           <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-pub-amber" />
           <p><span className="font-semibold">Snapshot sebagian:</span> baru {dimensions.length} dari 4 dimensi tersedia. Hasil dapat berubah setelah data dimensi lain tersedia.</p>
         </div>
+      )}
+      {data.insight && data.insight.recommendations.length > 0 && (
+        <section className="rounded-2xl border border-pub-violet/20 bg-pub-violet/5 p-5 shadow-card md:p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-pub-violet/10 text-pub-violet">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="font-heading text-base font-bold text-foreground">Rekomendasi prioritas</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {data.insight.source === "connected"
+                      ? "Dirangkum oleh engine internal dari konteks minimum yang tersedia."
+                      : "Dirangkum dengan aturan deterministik dari gap yang tersedia."}
+                  </p>
+                </div>
+                <span className="text-[11px] text-muted-foreground">{formatDate(data.insight.generatedAt)}</span>
+              </div>
+              <div className="mt-4 grid gap-2 md:grid-cols-3">
+                {data.insight.recommendations.slice(0, 3).map((recommendation) => (
+                  <button
+                    key={`${recommendation.href}-${recommendation.text}`}
+                    type="button"
+                    onClick={() => navigate(recommendation.href)}
+                    className="group rounded-xl border border-border bg-card p-3 text-left transition-colors hover:border-pub-violet/30"
+                  >
+                    <p className="text-sm leading-relaxed text-foreground">{recommendation.text}</p>
+                    <span className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-pub-violet">
+                      {recommendation.label} <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">

@@ -1,7 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const PROJECT_REF = "yidlglstzvizsszrpobi";
-const LEGACY_PROJECT_REF = "vwbgdyykeiilhffwvnku";
+const PROJECT_REFS = ["yidlglstzvizsszrpobi", "vwbgdyykeiilhffwvnku"];
 const USER_ID = "00000000-0000-4000-8000-000000000061";
 const MEMBER_ID = "00000000-0000-4000-8000-000000000062";
 
@@ -25,11 +24,11 @@ async function installSession(page) {
   };
 
   await page.addInitScript(({ authSession, projectRefs }) => {
-    for (const projectRef of projectRefs) {
+    projectRefs.forEach((projectRef) => {
       localStorage.setItem(`sb-${projectRef}-auth-token`, JSON.stringify(authSession));
-    }
+    });
     localStorage.setItem("pub_onboarding_done", "1");
-  }, { authSession: session, projectRefs: [PROJECT_REF, LEGACY_PROJECT_REF] });
+  }, { authSession: session, projectRefs: PROJECT_REFS });
 
   await page.route("**/auth/v1/**", async (route) => {
     if (route.request().url().endsWith("/user")) {
@@ -44,6 +43,24 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
   await installSession(page);
   const userOwnedRequests = [];
   const obligationRequests = [];
+  let insightRequestBody;
+
+  await page.route("**/functions/v1/competency-insight", async (route) => {
+    insightRequestBody = route.request().postDataJSON();
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        source: "deterministic",
+        recommendations: [{
+          text: "Tinjau kesiapan tim menggunakan assessment dan scoring 4 Pilar.",
+          href: "/analytics",
+          label: "Buka Analytics",
+        }],
+        generatedAt: "2026-09-01T00:00:00.000Z",
+      }),
+    });
+  });
 
   await page.route("**/rest/v1/**", async (route) => {
     const requestUrl = new URL(route.request().url());
@@ -151,32 +168,33 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
         contract_type: "Lump Sum",
         complexity_score: 80,
       }];
+    } else if (table === "lkut_project_data") {
+      body = [{ id: "00000000-0000-4000-8000-000000000073" }];
+    } else if (table === "pre_tests") {
+      body = {
+        score: 68,
+        determined_level: "Berkembang",
+        completed_at: "2026-08-24T00:00:00.000Z",
+      };
+    } else if (table === "competency_scores") {
+      body = {
+        total_score: 72,
+        learning_points: 70,
+        toolkit_points: 75,
+        project_points: 72,
+        contribution_points: 71,
+        computed_at: "2026-08-25T00:00:00.000Z",
+      };
     } else if (table === "aspekindo_lms_courses") {
-      body = [{
-        id: "00000000-0000-4000-8000-000000000073",
-        title: "Klinik Tender Native",
-        siap_focus: "tender",
-      }];
+      body = [{ id: "course-1", title: "Tender Dasar" }];
     } else if (table === "aspekindo_lms_enrollments") {
-      body = [{
-        course_id: "00000000-0000-4000-8000-000000000073",
-        status: "completed",
-        completed_at: "2026-08-25T00:00:00.000Z",
-        last_activity_at: "2026-08-25T00:00:00.000Z",
-      }];
+      body = [{ course_id: "course-1", status: "completed" }];
     } else if (table === "aspekindo_lms_lesson_progress") {
-      body = [{
-        course_id: "00000000-0000-4000-8000-000000000073",
-        status: "completed",
-        progress_percent: 100,
-        updated_at: "2026-08-25T00:00:00.000Z",
-      }];
+      body = [{ status: "completed" }];
+    } else if (table === "aspekindo_lms_quiz_attempts") {
+      body = [{ passed: true }];
     } else if (table === "aspekindo_lms_completion_records") {
-      body = [{
-        course_id: "00000000-0000-4000-8000-000000000073",
-        status: "ready_for_review",
-        issued_at: "2026-08-25T00:00:00.000Z",
-      }];
+      body = [{ id: "completion-1" }];
     } else if (["risk_registers", "budget_entries", "k3_checklists"].includes(table)) {
       body = [{ id: `00000000-0000-4000-8000-0000000000${table === "risk_registers" ? "70" : table === "budget_entries" ? "71" : "72"}` }];
     }
@@ -191,12 +209,16 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
       "lkut_reports",
       "smap_documents",
       "projects",
+      "lkut_project_data",
+      "pre_tests",
+      "competency_scores",
+      "aspekindo_lms_enrollments",
+      "aspekindo_lms_lesson_progress",
+      "aspekindo_lms_quiz_attempts",
+      "aspekindo_lms_completion_records",
       "risk_registers",
       "budget_entries",
       "k3_checklists",
-      "aspekindo_lms_enrollments",
-      "aspekindo_lms_lesson_progress",
-      "aspekindo_lms_completion_records",
     ].includes(table)) {
       userOwnedRequests.push(requestUrl);
     }
@@ -218,11 +240,41 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
   await expect(page.getByText("bukan keputusan sertifikasi resmi")).toBeVisible();
   await expect(page.getByText("KTA, SBU, dan LKUT")).toBeVisible();
   await expect(page.getByText("Rekam kontrak proyek")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Pembelajaran LMS ASPEKINDO", level: 4 })).toHaveCount(4);
-  await expect(page.getByText("1 dari 1 kursus pada fokus ini selesai dan 1 bukti tercatat.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Rekomendasi prioritas" })).toBeVisible();
 
   expect(userOwnedRequests.length).toBeGreaterThan(0);
   expect(userOwnedRequests.every((url) => url.searchParams.get("user_id") === `eq.${USER_ID}`)).toBe(true);
   expect(obligationRequests).toHaveLength(1);
   expect(obligationRequests[0].searchParams.get("member_id")).toBe(`eq.${MEMBER_ID}`);
+  expect(insightRequestBody).toEqual({});
+});
+
+test("recorded zero assessment remains evidence instead of becoming no data", async ({ page }) => {
+  await installSession(page);
+
+  await page.route("**/functions/v1/competency-insight", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" }),
+    });
+  });
+  await page.route("**/rest/v1/**", async (route) => {
+    const requestUrl = new URL(route.request().url());
+    const table = requestUrl.pathname.split("/").pop();
+    const isSingle = route.request().headers().accept?.includes("application/vnd.pgrst.object+json");
+    let body = [];
+    if (table === "pre_tests") {
+      body = { score: 0, determined_level: "Pemula", completed_at: "2026-09-01T00:00:00.000Z" };
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(isSingle && Array.isArray(body) ? (body[0] ?? null) : body),
+    });
+  });
+
+  await page.goto("/siap-kompetensi");
+  await expect(page.getByText("Assessment terakhir 0% pada level Pemula.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "SIAP Sertifikasi" })).toBeVisible();
 });
