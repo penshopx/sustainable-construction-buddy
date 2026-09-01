@@ -29,6 +29,46 @@ export const corsHeaders = {
 };
 
 const HEALTH_ROW_ID = "global";
+export const FALLBACK_ALERT_AFTER_PROBES = 3;
+export const FALLBACK_ALERT_AFTER_MS = 15 * 60 * 1_000;
+export const FALLBACK_ALERT_TYPE = "competency_insight_fallback";
+
+export function nextInsightHealthState(previous, status, failureReason, probeAt) {
+  const isFailure = status === "deterministic" && failureReason !== "none";
+  const wasFailure = previous?.status === "deterministic"
+    && previous?.failure_reason !== "none";
+  const fallbackStartedAt = isFailure
+    ? (wasFailure && previous.fallback_started_at
+      ? previous.fallback_started_at
+      : probeAt)
+    : null;
+  const consecutiveFailureCount = isFailure
+    ? (wasFailure ? Number(previous.consecutive_failure_count || 0) + 1 : 1)
+    : 0;
+  const fallbackDuration = fallbackStartedAt
+    ? Math.max(0, Date.parse(probeAt) - Date.parse(fallbackStartedAt))
+    : 0;
+  const thresholdReached = isFailure && (
+    consecutiveFailureCount >= FALLBACK_ALERT_AFTER_PROBES
+    || fallbackDuration >= FALLBACK_ALERT_AFTER_MS
+  );
+  const alertActive = thresholdReached || (isFailure && previous?.alert_active === true);
+
+  return {
+    row: {
+      id: HEALTH_ROW_ID,
+      status,
+      failure_reason: failureReason,
+      last_probe_at: probeAt,
+      updated_at: probeAt,
+      consecutive_failure_count: consecutiveFailureCount,
+      fallback_started_at: fallbackStartedAt,
+      alert_active: alertActive,
+    },
+    shouldNotifyAdmins: alertActive && previous?.alert_active !== true,
+    shouldResolveAdminAlert: !isFailure && previous?.alert_active === true,
+  };
+}
 
 function isPresent(value) {
   return Array.isArray(value) ? value.length > 0 : Boolean(value);
@@ -65,16 +105,61 @@ export function createCompetencyInsightHandler({
 
     const adminClient = createClient(supabaseUrl, serviceKey);
     const probeAt = now();
-    const { error } = await adminClient.from("competency_insight_health").upsert({
-      id: HEALTH_ROW_ID,
-      status,
-      failure_reason: failureReason,
-      last_probe_at: probeAt,
-      updated_at: probeAt,
-    });
+    const { data: previous, error: readError } = await adminClient
+      .from("competency_insight_health")
+      .select(
+        "status, failure_reason, consecutive_failure_count, fallback_started_at, alert_active",
+      )
+      .eq("id", HEALTH_ROW_ID)
+      .maybeSingle();
+    if (readError) {
+      logger.error("Competency insight health transition read failed", readError.message);
+      throw new Error("Competency insight health transition read failed");
+    }
+
+    const transition = nextInsightHealthState(previous, status, failureReason, probeAt);
+    const { error } = await adminClient
+      .from("competency_insight_health")
+      .upsert(transition.row);
     if (error) {
       logger.error("Competency insight health update failed", error.message);
       throw new Error("Competency insight health update failed");
+    }
+
+    if (transition.shouldNotifyAdmins) {
+      const { data: adminRoles, error: roleError } = await adminClient
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin");
+      if (roleError) {
+        logger.error("Competency insight admin lookup failed", roleError.message);
+      } else {
+        const adminIds = [...new Set((adminRoles || []).map((role) => role.user_id))];
+        if (adminIds.length > 0) {
+          const { error: notificationError } = await adminClient
+            .from("notifications")
+            .insert(adminIds.map((userId) => ({
+              user_id: userId,
+              type: FALLBACK_ALERT_TYPE,
+              title: "Insight kompetensi perlu diperiksa",
+              message: "Fallback deterministik telah berlangsung melewati ambang operasional. Periksa status layanan insight.",
+            })));
+          if (notificationError) {
+            logger.error("Competency insight admin notification failed", notificationError.message);
+          }
+        }
+      }
+    }
+
+    if (transition.shouldResolveAdminAlert) {
+      const { error: resolutionError } = await adminClient
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("type", FALLBACK_ALERT_TYPE)
+        .eq("is_read", false);
+      if (resolutionError) {
+        logger.error("Competency insight alert resolution failed", resolutionError.message);
+      }
     }
   }
 

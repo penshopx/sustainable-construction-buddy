@@ -80,6 +80,7 @@ export function NotificationBell() {
     level_up: "🎉",
     certificate: "🏆",
     info: "ℹ️",
+    competency_insight_fallback: "⚠️",
   };
 
   return (

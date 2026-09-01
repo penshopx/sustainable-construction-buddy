@@ -11,6 +11,8 @@ Adapter engine tidak boleh mempercayai skor, gap, identitas anggota, atau teks r
 
 Response rekomendasi anggota dan status kesehatan admin harus diturunkan dari satu outcome server-side yang sama: source, key rekomendasi, dan alasan fallback tidak boleh dihitung pada cabang terpisah. Kegagalan membaca sumber harus mengganti health lama menjadi deterministic/source_unavailable sebelum response 500 dikirim.
 
+Alert fallback hanya dibuka setelah tiga probe gagal berturut-turut atau 15 menit dan ditujukan ke role admin; pemulihan connected harus menutup alert aktif.
+
 **Why:** Menggabungkan kekosongan data dengan ketidakmampuan menghasilkan penilaian yang menyesatkan, sedangkan mempublikasikan engine eksternal mengaburkan kepemilikan produk dan batas keamanan. Payload client yang dipercaya juga memungkinkan pemalsuan konteks dan penyalahgunaan kredensial server. Atribusi eksplisit mencegah bukti kursus masuk ke dimensi yang salah ketika nama kursus ambigu. Cabang keputusan terpisah dapat membuat anggota menerima connected sementara admin mencatat fallback, atau sebaliknya.
 
 **How to apply:** Setiap sumber baru harus memiliki atribusi SIAP yang eksplisit, batas kepemilikan anggota, indikator yang dapat dijelaskan, state data parsial, serta adapter server-side berquery read-only bila membutuhkan engine eksternal. Kirim hanya konteks minimum tanpa identitas dan abaikan output yang tidak ada dalam allowlist server. Gunakan satu outcome untuk membentuk response anggota dan row health admin. Progres LMS native dihitung hanya dari data milik pengguna pada kursus yang sudah diberi fokus.

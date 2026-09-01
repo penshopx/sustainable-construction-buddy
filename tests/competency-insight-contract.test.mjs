@@ -11,7 +11,10 @@ import {
   toInsightHealth,
 } from "../supabase/functions/competency-insight/contract.js";
 import {
+  FALLBACK_ALERT_AFTER_MS,
+  FALLBACK_ALERT_AFTER_PROBES,
   createCompetencyInsightHandler,
+  nextInsightHealthState,
   sourceUnavailableOutcome,
 } from "../supabase/functions/competency-insight/handler.js";
 
@@ -157,14 +160,23 @@ const INSIGHT_ENV = {
   GUSTAFTA_ENGINE_URL: "https://insight.example.test/recommendations",
 };
 
-function createFakeSupabase({ admin = false, initialHealth = null, healthWriteError = null } = {}) {
+function createFakeSupabase({
+  admin = false,
+  initialHealth = null,
+  healthWriteError = null,
+  adminIds = ["admin-1", "admin-2"],
+} = {}) {
   const persistedHealth = { current: initialHealth };
   const healthWrites = [];
+  const notifications = [];
   const user = { id: "member-1" };
 
   function resultFor(table) {
     if (table === "aspekindo_members") return { data: { id: "member-record-1" }, error: null };
     if (table === "competency_insight_health") return { data: persistedHealth.current, error: null };
+    if (table === "user_roles") {
+      return { data: adminIds.map((userId) => ({ user_id: userId })), error: null };
+    }
     return { data: [], error: null };
   }
 
@@ -190,9 +202,25 @@ function createFakeSupabase({ admin = false, initialHealth = null, healthWriteEr
           status: payload.status,
           failure_reason: payload.failure_reason,
           last_probe_at: payload.last_probe_at,
+          consecutive_failure_count: payload.consecutive_failure_count,
+          fallback_started_at: payload.fallback_started_at,
+          alert_active: payload.alert_active,
         };
         healthWrites.push(payload);
         return Promise.resolve({ data: null, error: null });
+      },
+      insert(payload) {
+        const rows = Array.isArray(payload) ? payload : [payload];
+        notifications.push(...rows.map((row) => ({ ...row, is_read: false })));
+        return Promise.resolve({ data: null, error: null });
+      },
+      update(payload) {
+        if (table === "notifications" && payload.is_read === true) {
+          notifications.forEach((notification) => {
+            notification.is_read = true;
+          });
+        }
+        return query;
       },
       then(resolve, reject) {
         return Promise.resolve(resultFor(table)).then(resolve, reject);
@@ -213,7 +241,7 @@ function createFakeSupabase({ admin = false, initialHealth = null, healthWriteEr
     return userClient;
   };
 
-  return { createClient, healthWrites, persistedHealth };
+  return { createClient, healthWrites, notifications, persistedHealth };
 }
 
 function responseBody(response) {
@@ -357,6 +385,111 @@ test("health status remains admin-only without calling the insight service", () 
   assert.equal(healthRequestStatus(true), 200);
 });
 
+test("fallback alert waits for repeated failures or duration threshold and resolves on recovery", () => {
+  const firstProbeAt = "2026-09-01T00:00:00.000Z";
+  const first = nextInsightHealthState(null, "deterministic", "timeout", firstProbeAt);
+  assert.equal(first.row.consecutive_failure_count, 1);
+  assert.equal(first.row.alert_active, false);
+  assert.equal(first.shouldNotifyAdmins, false);
+
+  const second = nextInsightHealthState(
+    first.row,
+    "deterministic",
+    "timeout",
+    "2026-09-01T00:01:00.000Z",
+  );
+  assert.equal(second.row.consecutive_failure_count, FALLBACK_ALERT_AFTER_PROBES - 1);
+  assert.equal(second.shouldNotifyAdmins, false);
+
+  const third = nextInsightHealthState(
+    second.row,
+    "deterministic",
+    "timeout",
+    "2026-09-01T00:02:00.000Z",
+  );
+  assert.equal(third.row.alert_active, true);
+  assert.equal(third.shouldNotifyAdmins, true);
+
+  const repeated = nextInsightHealthState(
+    third.row,
+    "deterministic",
+    "unavailable",
+    "2026-09-01T00:03:00.000Z",
+  );
+  assert.equal(repeated.shouldNotifyAdmins, false);
+
+  const durationThreshold = nextInsightHealthState(
+    first.row,
+    "deterministic",
+    "timeout",
+    new Date(Date.parse(firstProbeAt) + FALLBACK_ALERT_AFTER_MS).toISOString(),
+  );
+  assert.equal(durationThreshold.row.alert_active, true);
+  assert.equal(durationThreshold.shouldNotifyAdmins, true);
+
+  const recovered = nextInsightHealthState(
+    third.row,
+    "connected",
+    "none",
+    "2026-09-01T00:04:00.000Z",
+  );
+  assert.equal(recovered.row.consecutive_failure_count, 0);
+  assert.equal(recovered.row.fallback_started_at, null);
+  assert.equal(recovered.row.alert_active, false);
+  assert.equal(recovered.shouldResolveAdminAlert, true);
+});
+
+test("handler notifies admins only once after threshold and resolves the alert on recovery", async () => {
+  const fakeSupabase = createFakeSupabase();
+  const fallbackEnv = {
+    ...INSIGHT_ENV,
+    GUSTAFTA_ENGINE_URL: undefined,
+    GUSTAFTA_ENGINE_API_KEY: undefined,
+  };
+  let seconds = 0;
+  const handler = createCompetencyInsightHandler({
+    createClient: fakeSupabase.createClient,
+    getEnv: (key) => fallbackEnv[key],
+    fetchImpl: async () => {
+      throw new Error("The unconfigured engine must not be called");
+    },
+    now: () => `2026-09-01T00:00:0${seconds++}.000Z`,
+    logger: { error() {} },
+  });
+
+  await handler(requestFor());
+  await handler(requestFor());
+  assert.equal(fakeSupabase.notifications.length, 0);
+
+  await handler(requestFor());
+  assert.deepEqual(
+    fakeSupabase.notifications.map((notification) => notification.user_id),
+    ["admin-1", "admin-2"],
+  );
+  assert.equal(
+    fakeSupabase.notifications.some((notification) => notification.user_id === "member-1"),
+    false,
+  );
+
+  await handler(requestFor());
+  assert.equal(fakeSupabase.notifications.length, 2);
+
+  const connectedEnv = { ...INSIGHT_ENV, GUSTAFTA_ENGINE_API_KEY: "known-key" };
+  const recoveredHandler = createCompetencyInsightHandler({
+    createClient: fakeSupabase.createClient,
+    getEnv: (key) => connectedEnv[key],
+    fetchImpl: createEngineFetch("connected"),
+    now: () => "2026-09-01T00:01:00.000Z",
+    logger: { error() {} },
+  });
+  await recoveredHandler(requestFor());
+  assert.equal(
+    fakeSupabase.notifications.every((notification) => notification.is_read),
+    true,
+  );
+  assert.equal(fakeSupabase.persistedHealth.current.alert_active, false);
+});
+
 test("source query failures return 500 and replace stale health with source_unavailable", () => {
   const outcome = sourceUnavailableOutcome();
 
@@ -489,6 +622,9 @@ test("global admin health follows the latest persisted probe during interleaved 
     status: "deterministic",
     failure_reason: "not_configured",
     last_probe_at: "2026-09-01T00:00:01.000Z",
+    consecutive_failure_count: 1,
+    fallback_started_at: "2026-09-01T00:00:01.000Z",
+    alert_active: false,
   });
 
   releaseConnectedEngine();
@@ -498,6 +634,9 @@ test("global admin health follows the latest persisted probe during interleaved 
     status: "connected",
     failure_reason: "none",
     last_probe_at: "2026-09-01T00:00:02.000Z",
+    consecutive_failure_count: 0,
+    fallback_started_at: null,
+    alert_active: false,
   });
   assert.deepEqual(
     fakeSupabase.healthWrites.map(({ status, failure_reason }) => ({ status, failure_reason })),
