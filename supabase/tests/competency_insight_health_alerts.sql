@@ -70,6 +70,32 @@ BEGIN
     RAISE EXCEPTION 'Non-admin users must never receive insight alerts';
   END IF;
 
+  UPDATE public.notifications
+  SET is_read = true
+  WHERE type = 'competency_insight_fallback'
+    AND competency_insight_incident_id = active_incident;
+
+  IF expected_admins > 0 THEN
+    BEGIN
+      INSERT INTO public.notifications (
+        user_id, type, title, message, competency_insight_incident_id
+      )
+      SELECT user_id, 'competency_insight_fallback', 'Duplicate test incident', 'Test',
+             active_incident
+      FROM public.user_roles
+      WHERE public.has_role(user_id, 'admin'::public.app_role)
+      LIMIT 1;
+      RAISE EXCEPTION 'A read alert for the same incident must remain unique';
+    EXCEPTION WHEN unique_violation THEN
+      NULL;
+    END;
+  END IF;
+
+  UPDATE public.notifications
+  SET is_read = false
+  WHERE type = 'competency_insight_fallback'
+    AND competency_insight_incident_id = active_incident;
+
   INSERT INTO public.notifications (
     user_id, type, title, message, competency_insight_incident_id
   )
