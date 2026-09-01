@@ -88,6 +88,32 @@ export interface SiapProjectSource {
   complexity_score: number;
 }
 
+export interface SiapNativeLmsCourseSource {
+  id: string;
+  title: string;
+  siap_focus: string;
+}
+
+export interface SiapNativeLmsEnrollmentSource {
+  course_id: string;
+  status: string;
+  completed_at: string | null;
+  last_activity_at: string | null;
+}
+
+export interface SiapNativeLmsProgressSource {
+  course_id: string;
+  status: string;
+  progress_percent: number;
+  updated_at: string;
+}
+
+export interface SiapNativeLmsCompletionSource {
+  course_id: string;
+  status: string;
+  issued_at: string;
+}
+
 export interface SiapCompetencySnapshot {
   member: SiapMemberSource | null;
   obligations: SiapObligationSource[];
@@ -100,6 +126,10 @@ export interface SiapCompetencySnapshot {
   lkut: SiapLkutSource | null;
   smapDocuments: SiapSmapSource[];
   projects: SiapProjectSource[];
+  nativeLmsCourses: SiapNativeLmsCourseSource[];
+  nativeLmsEnrollments: SiapNativeLmsEnrollmentSource[];
+  nativeLmsProgress: SiapNativeLmsProgressSource[];
+  nativeLmsCompletions: SiapNativeLmsCompletionSource[];
   operationalCounts: {
     risks: number;
     budgets: number;
@@ -242,6 +272,49 @@ function nativeIndicators(snapshot: SiapCompetencySnapshot, focus: SiapFocus): S
   ];
 }
 
+function nativeLmsIndicator(snapshot: SiapCompetencySnapshot, focus: SiapFocus): SiapIndicator {
+  const courses = snapshot.nativeLmsCourses.filter((item) => item.siap_focus === focus);
+  const courseIds = new Set(courses.map((item) => item.id));
+  const enrollments = snapshot.nativeLmsEnrollments.filter((item) => courseIds.has(item.course_id));
+  const progress = snapshot.nativeLmsProgress.filter((item) => courseIds.has(item.course_id));
+  const completions = snapshot.nativeLmsCompletions.filter((item) => courseIds.has(item.course_id));
+  const enrolledCourseIds = new Set(enrollments.map((item) => item.course_id));
+  const courseScores = [...enrolledCourseIds].map((courseId) => {
+    const enrollment = enrollments.find((item) => item.course_id === courseId);
+    if (enrollment?.status === "completed" || completions.some((item) => item.course_id === courseId)) return 100;
+    const lessonProgress = progress.filter((item) => item.course_id === courseId);
+    if (lessonProgress.length > 0) {
+      return lessonProgress.reduce((total, item) => total + item.progress_percent, 0) / lessonProgress.length;
+    }
+    return enrollment?.status === "in_progress" ? 10 : 0;
+  });
+  const available = enrollments.length > 0 || progress.length > 0 || completions.length > 0;
+  const completedCourses = new Set([
+    ...enrollments.filter((item) => item.status === "completed").map((item) => item.course_id),
+    ...completions.map((item) => item.course_id),
+  ]).size;
+  const updatedDates = [
+    ...enrollments.flatMap((item) => [item.completed_at, item.last_activity_at]),
+    ...progress.map((item) => item.updated_at),
+    ...completions.map((item) => item.issued_at),
+  ].filter((value): value is string => Boolean(value)).sort().reverse();
+
+  return indicator(
+    `${focus}-native-lms`,
+    "Pembelajaran LMS ASPEKINDO",
+    "LMS anggota",
+    "/aspekindo-lms",
+    available,
+    courseScores.length > 0
+      ? courseScores.reduce((total, value) => total + value, 0) / courseScores.length
+      : null,
+    available
+      ? `${completedCourses} dari ${enrolledCourseIds.size} kursus pada fokus ini selesai dan ${completions.length} bukti tercatat.`
+      : "Belum ada enrollment atau bukti LMS ASPEKINDO pada fokus ini.",
+    updatedDates[0] ?? null,
+  );
+}
+
 function legalitasIndicators(snapshot: SiapCompetencySnapshot): SiapIndicator[] {
   const member = snapshot.member;
   const lkut = snapshot.lkut;
@@ -300,6 +373,7 @@ function legalitasIndicators(snapshot: SiapCompetencySnapshot): SiapIndicator[] 
         ? `${pancekFields} dari 3 identitas utama terisi pada PANCEK ${pancek.period_year}.`
         : "Belum ada data identitas BUJK dari PANCEK.",
     ),
+    nativeLmsIndicator(snapshot, "legalitas"),
     ...nativeIndicators(snapshot, "legalitas"),
   ];
 }
@@ -350,6 +424,7 @@ function sertifikasiIndicators(snapshot: SiapCompetencySnapshot): SiapIndicator[
         ? `${smapVerified} dari ${snapshot.smapDocuments.length} dokumen terverifikasi atau selesai.`
         : "Belum ada dokumen SMAP sebagai bukti kepatuhan.",
     ),
+    nativeLmsIndicator(snapshot, "sertifikasi"),
     ...nativeIndicators(snapshot, "sertifikasi"),
   ];
 }
@@ -401,6 +476,7 @@ function tenderIndicators(snapshot: SiapCompetencySnapshot): SiapIndicator[] {
         : "Belum ada LKUT untuk menilai rekam pengalaman.",
       lkut?.submitted_at,
     ),
+    nativeLmsIndicator(snapshot, "tender"),
     ...nativeIndicators(snapshot, "tender"),
   ];
 }
@@ -455,6 +531,7 @@ function proyekIndicators(snapshot: SiapCompetencySnapshot): SiapIndicator[] {
         ? `Rata-rata kompleksitas ${Math.round(projects.reduce((total, item) => total + item.complexity_score, 0) / projects.length)} dari 100.`
         : "Belum ada data kompleksitas proyek.",
     ),
+    nativeLmsIndicator(snapshot, "proyek"),
     ...nativeIndicators(snapshot, "proyek"),
   ];
 }

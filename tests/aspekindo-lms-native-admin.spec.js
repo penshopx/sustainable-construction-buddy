@@ -31,6 +31,7 @@ async function installAdminSession(page) {
       description_markdown: "Pembelajaran awal untuk admin.",
       audience: "Anggota BUJK",
       status: "draft",
+      siap_focus: "proyek",
       member_only: true,
       agenda_id: null,
       created_by: ADMIN_ID,
@@ -79,7 +80,11 @@ async function installAdminSession(page) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
-        await route.fulfill({ status: 201, contentType: "application/json", body: "[]" });
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify({ id: "00000000-0000-4000-8000-000000000903" }),
+        });
         return;
       }
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(state.courses) });
@@ -105,8 +110,12 @@ test("admin keeps access to the incoming native LMS course manager", async ({ pa
   await page.getByRole("button", { name: "Tambah kursus" }).click();
   await page.getByLabel("Judul kursus *").fill("Manajemen Risiko Tender");
   await expect(page.getByLabel("Slug *")).toHaveValue("manajemen-risiko-tender");
+  await page.getByText("SIAP Sertifikasi", { exact: true }).click();
+  await page.getByRole("option", { name: "SIAP Tender" }).click();
   await page.getByRole("button", { name: "Simpan kursus" }).click();
 
   await expect(page.getByText("Manajemen Risiko Tender").first()).toBeVisible();
-  await expect(page.getByText("ASPEKINDO-LMS-ADMIN-02")).toBeVisible();
+  await expect(page.getByText("ASPEKINDO-LMS-ADMIN-02").first()).toBeVisible();
+  await page.getByRole("button", { name: "Pratinjau" }).click();
+  await expect(page.getByRole("dialog")).toContainText("SIAP Tender");
 });

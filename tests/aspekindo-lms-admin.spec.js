@@ -20,6 +20,7 @@ const course = {
   published_at: "2026-09-01T01:00:00.000Z",
   slug: "persiapan-lkut",
   status: "published",
+  siap_focus: "sertifikasi",
   title: "Persiapan Dokumen LKUT",
   updated_at: "2026-09-01T01:00:00.000Z",
 };

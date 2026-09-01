@@ -60,6 +60,7 @@ type CourseForm = {
   status: string;
   member_only: boolean;
   agenda_id: string;
+  siap_focus: string;
 };
 
 type SessionForm = {
@@ -109,6 +110,14 @@ const EMPTY_COURSE: CourseForm = {
   status: "draft",
   member_only: true,
   agenda_id: "",
+  siap_focus: "sertifikasi",
+};
+
+const SIAP_LABELS: Record<string, string> = {
+  legalitas: "SIAP Legalitas",
+  sertifikasi: "SIAP Sertifikasi",
+  tender: "SIAP Tender",
+  proyek: "SIAP Proyek",
 };
 
 const EMPTY_SESSION: SessionForm = {
@@ -368,6 +377,7 @@ export default function AdminAspekindoLmsNative() {
       status: course.status,
       member_only: course.member_only,
       agenda_id: course.agenda_id ?? "",
+      siap_focus: course.siap_focus,
     });
     setDialog("course");
   };
@@ -480,6 +490,7 @@ export default function AdminAspekindoLmsNative() {
       status: courseForm.status,
       member_only: courseForm.member_only,
       agenda_id: courseForm.agenda_id || null,
+      siap_focus: courseForm.siap_focus,
       published_at: courseForm.status === "published" ? editingCourse?.published_at ?? new Date().toISOString() : null,
     };
     let saveError: { message: string } | null = null;
@@ -1025,7 +1036,7 @@ export default function AdminAspekindoLmsNative() {
           </DialogHeader>
           {previewTarget?.kind === "course" && (
             <div className="space-y-5">
-              <div><div className="flex flex-wrap gap-2"><Badge variant="outline">{previewTarget.course.course_code}</Badge><Badge variant="outline">{formatStatus(previewTarget.course.status)}</Badge></div><h2 className="mt-3 text-2xl font-bold font-heading">{previewTarget.course.title}</h2><p className="mt-2 text-sm text-muted-foreground">{previewTarget.course.audience}</p></div>
+              <div><div className="flex flex-wrap gap-2"><Badge variant="outline">{previewTarget.course.course_code}</Badge><Badge variant="outline">{formatStatus(previewTarget.course.status)}</Badge><Badge variant="secondary">{SIAP_LABELS[previewTarget.course.siap_focus] ?? previewTarget.course.siap_focus}</Badge></div><h2 className="mt-3 text-2xl font-bold font-heading">{previewTarget.course.title}</h2><p className="mt-2 text-sm text-muted-foreground">{previewTarget.course.audience}</p></div>
               {previewTarget.course.description_markdown && <div className="whitespace-pre-wrap rounded-lg bg-muted/40 p-4 text-sm leading-relaxed">{previewTarget.course.description_markdown}</div>}
               <div><p className="font-semibold">Struktur pembelajaran</p><div className="mt-2 space-y-2">{selectedSessions.length === 0 && selectedLessons.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada sesi atau pelajaran.</p> : selectedSessions.map((session) => <div key={session.id} className="rounded-lg border p-3"><p className="font-medium">{session.title}</p><p className="text-xs text-muted-foreground">{DELIVERY_LABELS[session.delivery_mode] ?? session.delivery_mode} · {selectedLessons.filter((lesson) => lesson.session_id === session.id).length} pelajaran</p></div>)}</div></div>
             </div>
@@ -1099,6 +1110,7 @@ export default function AdminAspekindoLmsNative() {
               <div><Label htmlFor="native-course-audience">Sasaran peserta</Label><Input id="native-course-audience" value={courseForm.audience} onChange={(event) => setCourseForm((current) => ({ ...current, audience: event.target.value }))} /></div>
               <div><Label>Status</Label><Select value={courseForm.status} onValueChange={(value) => setCourseForm((current) => ({ ...current, status: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="draft">Draft</SelectItem><SelectItem value="published">Terbit</SelectItem><SelectItem value="archived">Arsip</SelectItem></SelectContent></Select></div>
             </div>
+            <div><Label>Fokus 4 SIAP *</Label><Select value={courseForm.siap_focus} onValueChange={(value) => setCourseForm((current) => ({ ...current, siap_focus: value }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="legalitas">SIAP Legalitas</SelectItem><SelectItem value="sertifikasi">SIAP Sertifikasi</SelectItem><SelectItem value="tender">SIAP Tender</SelectItem><SelectItem value="proyek">SIAP Proyek</SelectItem></SelectContent></Select><p className="mt-1 text-xs text-muted-foreground">Progres dan bukti kursus diproyeksikan ke dimensi ini pada peta kompetensi anggota.</p></div>
             <div><Label>Agenda ASPEKINDO (opsional)</Label><Select value={courseForm.agenda_id || "none"} onValueChange={(value) => setCourseForm((current) => ({ ...current, agenda_id: value === "none" ? "" : value }))}><SelectTrigger><SelectValue placeholder="Pilih agenda" /></SelectTrigger><SelectContent><SelectItem value="none">Tidak dikaitkan</SelectItem>{agendas.map((agenda) => <SelectItem key={agenda.id} value={agenda.id}>{agenda.title} · {agenda.status}</SelectItem>)}</SelectContent></Select></div>
             <div className="flex items-center justify-between rounded-lg border p-3"><div><Label htmlFor="native-course-member-only">Khusus anggota</Label><p className="text-xs text-muted-foreground">Kursus hanya terlihat oleh anggota aktif saat terbit.</p></div><Switch id="native-course-member-only" checked={courseForm.member_only} onCheckedChange={(checked) => setCourseForm((current) => ({ ...current, member_only: checked }))} /></div>
           </div>

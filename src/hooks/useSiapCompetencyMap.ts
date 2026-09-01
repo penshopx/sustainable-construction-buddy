@@ -57,6 +57,10 @@ export function useSiapCompetencyMap() {
         budgetsResult,
         k3Result,
         obligationsResult,
+         nativeCoursesResult,
+         nativeEnrollmentsResult,
+         nativeProgressResult,
+         nativeCompletionsResult,
       ] = await Promise.all([
         supabase
           .from("aspekindo_pub_activities")
@@ -113,6 +117,22 @@ export function useSiapCompetencyMap() {
               .select("id, title, siap_focus, status, fulfilled_at")
               .eq("member_id", memberResult.data.id)
           : Promise.resolve({ data: [], error: null }),
+         supabase
+           .from("aspekindo_lms_courses")
+           .select("id, title, siap_focus")
+           .eq("status", "published"),
+         supabase
+           .from("aspekindo_lms_enrollments")
+           .select("course_id, status, completed_at, last_activity_at")
+           .eq("user_id", user.id),
+         supabase
+           .from("aspekindo_lms_lesson_progress")
+           .select("course_id, status, progress_percent, updated_at")
+           .eq("user_id", user.id),
+         supabase
+           .from("aspekindo_lms_completion_records")
+           .select("course_id, status, issued_at")
+           .eq("user_id", user.id),
       ]);
 
       [
@@ -129,6 +149,10 @@ export function useSiapCompetencyMap() {
         ["Budget tracker", budgetsResult],
         ["K3 checklist", k3Result],
         ["Kewajiban anggota", obligationsResult],
+         ["Kursus LMS ASPEKINDO", nativeCoursesResult],
+         ["Enrollment LMS ASPEKINDO", nativeEnrollmentsResult],
+         ["Progres LMS ASPEKINDO", nativeProgressResult],
+         ["Bukti LMS ASPEKINDO", nativeCompletionsResult],
       ].forEach(([label, result]) =>
         assertResult(label as string, result as { error: { message: string } | null }),
       );
@@ -160,6 +184,10 @@ export function useSiapCompetencyMap() {
         lkut: lkutResult.data,
         smapDocuments: smapResult.data ?? [],
         projects: projectsResult.data ?? [],
+         nativeLmsCourses: nativeCoursesResult.data ?? [],
+         nativeLmsEnrollments: nativeEnrollmentsResult.data ?? [],
+         nativeLmsProgress: nativeProgressResult.data ?? [],
+         nativeLmsCompletions: nativeCompletionsResult.data ?? [],
         operationalCounts: {
           risks: risksResult.data?.length ?? 0,
           budgets: budgetsResult.data?.length ?? 0,

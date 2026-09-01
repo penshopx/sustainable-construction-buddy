@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const PROJECT_REF = "yidlglstzvizsszrpobi";
+const LEGACY_PROJECT_REF = "vwbgdyykeiilhffwvnku";
 const USER_ID = "00000000-0000-4000-8000-000000000061";
 const MEMBER_ID = "00000000-0000-4000-8000-000000000062";
 
@@ -23,10 +24,12 @@ async function installSession(page) {
     user,
   };
 
-  await page.addInitScript(({ authSession, projectRef }) => {
-    localStorage.setItem(`sb-${projectRef}-auth-token`, JSON.stringify(authSession));
+  await page.addInitScript(({ authSession, projectRefs }) => {
+    for (const projectRef of projectRefs) {
+      localStorage.setItem(`sb-${projectRef}-auth-token`, JSON.stringify(authSession));
+    }
     localStorage.setItem("pub_onboarding_done", "1");
-  }, { authSession: session, projectRef: PROJECT_REF });
+  }, { authSession: session, projectRefs: [PROJECT_REF, LEGACY_PROJECT_REF] });
 
   await page.route("**/auth/v1/**", async (route) => {
     if (route.request().url().endsWith("/user")) {
@@ -148,6 +151,32 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
         contract_type: "Lump Sum",
         complexity_score: 80,
       }];
+    } else if (table === "aspekindo_lms_courses") {
+      body = [{
+        id: "00000000-0000-4000-8000-000000000073",
+        title: "Klinik Tender Native",
+        siap_focus: "tender",
+      }];
+    } else if (table === "aspekindo_lms_enrollments") {
+      body = [{
+        course_id: "00000000-0000-4000-8000-000000000073",
+        status: "completed",
+        completed_at: "2026-08-25T00:00:00.000Z",
+        last_activity_at: "2026-08-25T00:00:00.000Z",
+      }];
+    } else if (table === "aspekindo_lms_lesson_progress") {
+      body = [{
+        course_id: "00000000-0000-4000-8000-000000000073",
+        status: "completed",
+        progress_percent: 100,
+        updated_at: "2026-08-25T00:00:00.000Z",
+      }];
+    } else if (table === "aspekindo_lms_completion_records") {
+      body = [{
+        course_id: "00000000-0000-4000-8000-000000000073",
+        status: "ready_for_review",
+        issued_at: "2026-08-25T00:00:00.000Z",
+      }];
     } else if (["risk_registers", "budget_entries", "k3_checklists"].includes(table)) {
       body = [{ id: `00000000-0000-4000-8000-0000000000${table === "risk_registers" ? "70" : table === "budget_entries" ? "71" : "72"}` }];
     }
@@ -165,6 +194,9 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
       "risk_registers",
       "budget_entries",
       "k3_checklists",
+      "aspekindo_lms_enrollments",
+      "aspekindo_lms_lesson_progress",
+      "aspekindo_lms_completion_records",
     ].includes(table)) {
       userOwnedRequests.push(requestUrl);
     }
@@ -186,6 +218,8 @@ test("member can inspect an explainable 4 SIAP map without cross-member queries"
   await expect(page.getByText("bukan keputusan sertifikasi resmi")).toBeVisible();
   await expect(page.getByText("KTA, SBU, dan LKUT")).toBeVisible();
   await expect(page.getByText("Rekam kontrak proyek")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pembelajaran LMS ASPEKINDO", level: 4 })).toHaveCount(4);
+  await expect(page.getByText("1 dari 1 kursus pada fokus ini selesai dan 1 bukti tercatat.")).toBeVisible();
 
   expect(userOwnedRequests.length).toBeGreaterThan(0);
   expect(userOwnedRequests.every((url) => url.searchParams.get("user_id") === `eq.${USER_ID}`)).toBe(true);

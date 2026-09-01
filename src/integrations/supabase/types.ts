@@ -106,6 +106,7 @@ export type Database = {
           id: string
           member_only: boolean
           published_at: string | null
+          siap_focus: string
           slug: string
           status: string
           title: string
@@ -121,6 +122,7 @@ export type Database = {
           id?: string
           member_only?: boolean
           published_at?: string | null
+          siap_focus?: string
           slug: string
           status?: string
           title: string
@@ -136,6 +138,7 @@ export type Database = {
           id?: string
           member_only?: boolean
           published_at?: string | null
+          siap_focus?: string
           slug?: string
           status?: string
           title?: string
