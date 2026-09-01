@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import type { ReactNode } from "react";
 import { X, MessageCircle, Search, ChevronRight, ChevronDown, ArrowLeft, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -14,6 +15,96 @@ interface FloatingChatbotProps {
 type Article = { q: string; a: string };
 type Category = { icon: string; label: string; articles: Article[] };
 type ChatMsg = { from: "user" | "bot"; text: string };
+type ChatbotContentPart = { kind: "text"; value: string } | { kind: "link"; label: string; href: string };
+
+const CHATBOT_LINK_PATTERN = /<a\b[^>]*\bhref\s*=\s*(['"])(.*?)\1[^>]*>([\s\S]*?)<\/a\s*>|\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/gi;
+
+function decodeChatbotEntities(value: string): string {
+  return value
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"")
+    .replace(/&#39;|&apos;/gi, "'");
+}
+
+function cleanChatbotText(value: string): string {
+  return decodeChatbotEntities(value)
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(?:p|div|li|h[1-6])\s*>/gi, "\n")
+    .replace(/^\s{0,3}#{1,6}\s*/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    .replace(/^\s*\d+[.)]\s+/gm, "")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\((?:[^()]|\([^)]*\))*\)/g, "$1")
+    .replace(/\*\*|__|~~|`/g, "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function getSafeChatbotHref(value: string): string | null {
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function parseChatbotContent(value: string): ChatbotContentPart[] {
+  const parts: ChatbotContentPart[] = [];
+  let lastIndex = 0;
+
+  for (const match of value.matchAll(CHATBOT_LINK_PATTERN)) {
+    const matchIndex = match.index ?? 0;
+    const rawHref = match[2] || match[5] || "";
+    const rawLabel = match[3] || match[4] || "";
+
+    if (matchIndex > lastIndex) {
+      parts.push({ kind: "text", value: cleanChatbotText(value.slice(lastIndex, matchIndex)) });
+    }
+
+    const safeHref = getSafeChatbotHref(rawHref);
+    const label = cleanChatbotText(rawLabel);
+    if (safeHref && label) {
+      parts.push({ kind: "link", label, href: safeHref });
+    } else if (label) {
+      parts.push({ kind: "text", value: label });
+    }
+
+    lastIndex = matchIndex + match[0].length;
+  }
+
+  if (lastIndex < value.length) {
+    parts.push({ kind: "text", value: cleanChatbotText(value.slice(lastIndex)) });
+  }
+
+  return parts.filter((part) => part.kind === "link" || part.value.length > 0);
+}
+
+function ChatbotContent({ value }: { value: string }): ReactNode {
+  return parseChatbotContent(value).map((part, index) => {
+    if (part.kind === "link") {
+      const isExternal = /^https?:\/\//i.test(part.href) && !part.href.startsWith(window.location.origin);
+      return (
+        <a
+          key={`link-${index}`}
+          href={part.href}
+          target={isExternal ? "_blank" : undefined}
+          rel={isExternal ? "noopener noreferrer" : undefined}
+          className="text-pub-sky underline underline-offset-2"
+        >
+          {part.label}
+        </a>
+      );
+    }
+    return <span key={`text-${index}`}>{part.value}</span>;
+  });
+}
 
 const CATEGORIES: Category[] = [
   {
@@ -383,7 +474,7 @@ export default function FloatingChatbot({ variant = "dashboard", initialOpen = f
                                 className="overflow-hidden"
                               >
                                 <p className="text-xs text-muted-foreground font-body px-3 pb-3 pt-1 leading-relaxed border-t border-border">
-                                  {article.a}
+                                   <ChatbotContent value={article.a} />
                                 </p>
                               </motion.div>
                             )}
@@ -407,14 +498,15 @@ export default function FloatingChatbot({ variant = "dashboard", initialOpen = f
                           <MessageCircle className="w-3 h-3 text-pub-sky" />
                         </div>
                       )}
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs font-body leading-relaxed ${
-                          msg.from === "user"
-                            ? "bg-pub-sky text-white rounded-br-sm"
-                            : "bg-muted text-foreground rounded-bl-sm border border-border"
-                        }`}
-                        dangerouslySetInnerHTML={{ __html: msg.text }}
-                      />
+                       <div
+                         className={`max-w-[80%] rounded-2xl px-3 py-2 text-xs font-body leading-relaxed whitespace-pre-line ${
+                           msg.from === "user"
+                             ? "bg-pub-sky text-white rounded-br-sm"
+                             : "bg-muted text-foreground rounded-bl-sm border border-border"
+                         }`}
+                       >
+                         <ChatbotContent value={msg.text} />
+                       </div>
                     </div>
                   ))}
 
