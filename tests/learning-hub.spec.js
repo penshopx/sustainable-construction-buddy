@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const PROJECT_REF = "yidlglstzvizsszrpobi";
+const PROJECT_REFS = ["yidlglstzvizsszrpobi", "vwbgdyykeiilhffwvnku"];
 
 async function installSession(page) {
   const user = {
@@ -21,10 +21,12 @@ async function installSession(page) {
     user,
   };
 
-  await page.addInitScript(({ authSession, projectRef }) => {
-    localStorage.setItem(`sb-${projectRef}-auth-token`, JSON.stringify(authSession));
+  await page.addInitScript(({ authSession, projectRefs }) => {
+    for (const projectRef of projectRefs) {
+      localStorage.setItem(`sb-${projectRef}-auth-token`, JSON.stringify(authSession));
+    }
     localStorage.setItem("pub_onboarding_done", "1");
-  }, { authSession: session, projectRef: PROJECT_REF });
+  }, { authSession: session, projectRefs: PROJECT_REFS });
 
   await page.route("**/auth/v1/**", async (route) => {
     if (route.request().url().endsWith("/user")) {

@@ -2,7 +2,7 @@ import { ArrowRight, CalendarDays, GraduationCap, Target } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Courses from "./Courses";
-import AspekindoLms from "./AspekindoLms";
+import { AspekindoLmsCatalog } from "./AspekindoLmsNative";
 
 export default function LearningHub() {
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ export default function LearningHub() {
           <Courses embedded />
         </TabsContent>
         <TabsContent value="activities" className="mt-6">
-          <AspekindoLms />
+          <AspekindoLmsCatalog />
         </TabsContent>
       </Tabs>
     </div>

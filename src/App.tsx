@@ -65,6 +65,8 @@ import PitchDeck from "./pages/PitchDeck";
 import PubAspekindoVideo from "./pages/PubAspekindoVideo";
 import ReadinessSimulatorPage from "./pages/ReadinessSimulatorPage";
 import LearningHub from "./pages/LearningHub";
+import { AspekindoLmsCourseDetail } from "./pages/AspekindoLmsNative";
+import AspekindoLms from "./pages/AspekindoLms";
 import AdminAspekindoLms from "./pages/admin/AdminAspekindoLms";
 import AdminAccessManagement from "./pages/admin/AdminAccessManagement";
 import InformationCenter from "./pages/InformationCenter";
@@ -97,7 +99,9 @@ const App = () => (
             <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
             <Route path="/assessment" element={<DashboardLayout><Assessment /></DashboardLayout>} />
             <Route path="/courses" element={<DashboardLayout><LearningHub /></DashboardLayout>} />
+            <Route path="/aspekindo-lms/kursus/:courseId" element={<DashboardLayout><AspekindoLmsCourseDetail /></DashboardLayout>} />
             <Route path="/aspekindo-lms" element={<DashboardLayout><LearningHub /></DashboardLayout>} />
+            <Route path="/aspekindo-aktivitas" element={<DashboardLayout><AspekindoLms /></DashboardLayout>} />
             <Route path="/mentor" element={<DashboardLayout><Mentor /></DashboardLayout>} />
             <Route path="/analytics" element={<DashboardLayout><Analytics /></DashboardLayout>} />
             <Route path="/siap-kompetensi" element={<DashboardLayout><SiapCompetencyMap /></DashboardLayout>} />

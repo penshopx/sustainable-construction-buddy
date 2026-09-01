@@ -2,15 +2,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json, Tables, TablesInsert } from "@/integrations/supabase/types";
 
-type Course = Tables<"aspekindo_lms_courses">;
-type Session = Tables<"aspekindo_lms_sessions">;
-type Lesson = Tables<"aspekindo_lms_lessons">;
-type Material = Tables<"aspekindo_lms_materials">;
-type Enrollment = Tables<"aspekindo_lms_enrollments">;
-type LessonProgress = Tables<"aspekindo_lms_lesson_progress">;
-type QuizQuestion = Tables<"aspekindo_lms_quiz_questions">;
-type QuizAttempt = Tables<"aspekindo_lms_quiz_attempts">;
-type CompletionRecord = Tables<"aspekindo_lms_completion_records">;
+export type Course = Tables<"aspekindo_lms_courses">;
+export type Session = Tables<"aspekindo_lms_sessions">;
+export type Lesson = Tables<"aspekindo_lms_lessons">;
+export type Material = Tables<"aspekindo_lms_materials">;
+export type Enrollment = Tables<"aspekindo_lms_enrollments">;
+export type LessonProgress = Tables<"aspekindo_lms_lesson_progress">;
+export type QuizQuestion = Tables<"aspekindo_lms_quiz_questions">;
+export type QuizAttempt = Tables<"aspekindo_lms_quiz_attempts">;
+export type CompletionRecord = Tables<"aspekindo_lms_completion_records">;
 type WritableLessonProgress = Omit<
   TablesInsert<"aspekindo_lms_lesson_progress">,
   "status" | "completed_at"
@@ -84,6 +84,7 @@ export function useAspekindoLmsCourse(courseId: string | undefined) {
   return useQuery({
     queryKey: ["aspekindo-lms", "course", courseId],
     enabled: Boolean(courseId),
+    retry: false,
     queryFn: async () => {
       if (!courseId) throw new Error("Kursus belum dipilih.");
       const { data, error } = await supabase
@@ -106,6 +107,7 @@ export function useAspekindoLmsMyEnrollments(userId: string | undefined) {
       const { data, error } = await supabase
         .from("aspekindo_lms_enrollments")
         .select("*")
+        .eq("user_id", userId!)
         .order("enrolled_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Enrollment[];
@@ -114,20 +116,23 @@ export function useAspekindoLmsMyEnrollments(userId: string | undefined) {
 }
 
 export function useAspekindoLmsMyProgress({
+  userId,
   enrollmentId,
   courseId,
 }: {
+  userId?: string;
   enrollmentId?: string;
   courseId?: string;
 } = {}) {
   return useQuery({
-    queryKey: ["aspekindo-lms", "progress", enrollmentId, courseId],
-    enabled: Boolean(enrollmentId || courseId),
+    queryKey: ["aspekindo-lms", "progress", userId, enrollmentId, courseId],
+    enabled: Boolean(userId && (enrollmentId || courseId || userId)),
     queryFn: async () => {
       let query = supabase
         .from("aspekindo_lms_lesson_progress")
         .select("*")
         .order("updated_at", { ascending: false });
+      if (userId) query = query.eq("user_id", userId);
       if (enrollmentId) query = query.eq("enrollment_id", enrollmentId);
       if (courseId) query = query.eq("course_id", courseId);
       const { data, error } = await query;
@@ -186,6 +191,7 @@ export function useAspekindoLmsCompletionRecords(userId: string | undefined) {
       const { data, error } = await supabase
         .from("aspekindo_lms_completion_records")
         .select("*")
+        .eq("user_id", userId!)
         .order("issued_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as CompletionRecord[];
@@ -202,11 +208,9 @@ export function useEnrollAspekindoLmsCourse() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Anda harus masuk untuk mendaftar kursus.");
 
-      const { data, error } = await supabase
-        .from("aspekindo_lms_enrollments")
-        .insert({ course_id: courseId, user_id: user.id })
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc("enroll_aspekindo_lms_course", {
+        _course_id: courseId,
+      });
       if (error) throw error;
       return data;
     },
@@ -229,8 +233,7 @@ export function useSaveAspekindoLmsProgress() {
       return data;
     },
     onSuccess: (progress) => {
-      queryClient.invalidateQueries({ queryKey: ["aspekindo-lms", "progress", progress.enrollment_id] });
-      queryClient.invalidateQueries({ queryKey: ["aspekindo-lms", "progress", undefined, progress.course_id] });
+      queryClient.invalidateQueries({ queryKey: ["aspekindo-lms", "progress", progress.user_id] });
     },
   });
 }
@@ -247,10 +250,7 @@ export function useCompleteAspekindoLmsLesson() {
     },
     onSuccess: (progress) => {
       queryClient.invalidateQueries({
-        queryKey: ["aspekindo-lms", "progress", progress.enrollment_id],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["aspekindo-lms", "progress", undefined, progress.course_id],
+        queryKey: ["aspekindo-lms", "progress", progress.user_id],
       });
       queryClient.invalidateQueries({
         queryKey: ["aspekindo-lms", "enrollments", progress.user_id],
@@ -291,7 +291,7 @@ export function useCompleteAspekindoLmsCourse() {
     onSuccess: (enrollment) => {
       queryClient.invalidateQueries({ queryKey: ["aspekindo-lms", "enrollments", enrollment.user_id] });
       queryClient.invalidateQueries({ queryKey: ["aspekindo-lms", "completion-records", enrollment.user_id] });
-      queryClient.invalidateQueries({ queryKey: ["aspekindo-lms", "progress", enrollment.id] });
+      queryClient.invalidateQueries({ queryKey: ["aspekindo-lms", "progress", enrollment.user_id] });
     },
   });
 }

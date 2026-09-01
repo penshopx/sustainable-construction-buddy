@@ -3778,6 +3778,10 @@ export type Database = {
         Args: { _course_id: string }
         Returns: Database["public"]["Tables"]["aspekindo_lms_enrollments"]["Row"]
       }
+      enroll_aspekindo_lms_course: {
+        Args: { _course_id: string }
+        Returns: Database["public"]["Tables"]["aspekindo_lms_enrollments"]["Row"]
+      }
       check_question_answer: {
         Args: { _question_id: string; _selected_answer: number }
         Returns: Json
