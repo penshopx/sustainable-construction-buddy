@@ -107,6 +107,24 @@ const lessons = [
   },
 ];
 
+const defaultMaterials = [{
+  id: "00000000-0000-4000-8000-000000000851",
+  lesson_id: LESSON_ONE_ID,
+  title: "Panduan bukti",
+  material_type: "link",
+  content_markdown: "Gunakan panduan ini sebagai referensi.",
+  external_url: "https://example.com/panduan",
+  storage_path: "",
+  file_name: "",
+  mime_type: "",
+  file_size_bytes: 0,
+  sort_order: 0,
+  is_published: true,
+  created_by: null,
+  created_at: "2026-08-31T00:00:00.000Z",
+  updated_at: "2026-08-31T00:00:00.000Z",
+}];
+
 function responseRows(route, rows, { object = false, status = 200 } = {}) {
   return route.fulfill({
     status,
@@ -116,7 +134,10 @@ function responseRows(route, rows, { object = false, status = 200 } = {}) {
   });
 }
 
-async function installLmsMock(page, { courses = [publishedCourse, draftCourse] } = {}) {
+async function installLmsMock(page, {
+  courses = [publishedCourse, draftCourse],
+  materials = defaultMaterials,
+} = {}) {
   const user = {
     id: USER_ID,
     aud: "authenticated",
@@ -264,19 +285,7 @@ async function installLmsMock(page, { courses = [publishedCourse, draftCourse] }
       return;
     }
     if (endpoint === "aspekindo_lms_materials") {
-      await responseRows(route, [{
-        id: "00000000-0000-4000-8000-000000000851",
-        lesson_id: LESSON_ONE_ID,
-        title: "Panduan bukti",
-        material_type: "link",
-        content_markdown: "Gunakan panduan ini sebagai referensi.",
-        external_url: "https://example.com/panduan",
-        sort_order: 0,
-        is_published: true,
-        created_by: null,
-        created_at: "2026-08-31T00:00:00.000Z",
-        updated_at: "2026-08-31T00:00:00.000Z",
-      }]);
+      await responseRows(route, materials);
       return;
     }
     if (endpoint === "aspekindo_lms_enrollments") {
@@ -410,5 +419,53 @@ test.describe("pengalaman peserta LMS ASPEKINDO", () => {
     await expect(page.getByRole("heading", { name: "LMS ASPEKINDO" })).toBeVisible();
     await expect(page.getByLabel("Cari pembelajaran ASPEKINDO")).toBeVisible();
     await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 390);
+  });
+
+  test("meminta signed URL hanya setelah peserta terdaftar dan dapat mencoba ulang", async ({ page }) => {
+    const videoMaterial = {
+      ...defaultMaterials[0],
+      id: "00000000-0000-4000-8000-000000000852",
+      title: "Video pengantar kontrak",
+      material_type: "video",
+      content_markdown: "",
+      external_url: "",
+      storage_path: `native/${COURSE_ID}/${LESSON_ONE_ID}/video-pengantar.mp4`,
+      file_name: "video-pengantar.mp4",
+      mime_type: "video/mp4",
+      file_size_bytes: 2048,
+    };
+    let signedUrlRequests = 0;
+
+    await installLmsMock(page, { materials: [videoMaterial] });
+    await page.route("**/storage/v1/object/sign/**", async (route) => {
+      signedUrlRequests += 1;
+      if (signedUrlRequests === 1) {
+        await route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "Signed URL sementara gagal dibuat" }),
+        });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          signedURL: `/storage/v1/object/sign/aspekindo-learning/${videoMaterial.storage_path}?token=test-signed-token`,
+        }),
+      });
+    });
+
+    await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`);
+    await expect(page.getByRole("button", { name: "Daftar kursus" })).toBeVisible();
+    expect(signedUrlRequests).toBe(0);
+
+    await page.getByRole("button", { name: "Daftar kursus" }).click();
+    await expect(page.getByText("Video belum dapat diputar")).toBeVisible();
+    expect(signedUrlRequests).toBe(1);
+
+    await page.getByRole("button", { name: "Muat ulang video" }).click();
+    await expect.poll(() => signedUrlRequests).toBe(2);
+    await expect(page.locator("video source")).toHaveAttribute("src", /test-signed-token/);
   });
 });

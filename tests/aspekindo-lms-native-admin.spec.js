@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { installSupabaseSession } from "./helpers/supabase-session.js";
 const ADMIN_ID = "00000000-0000-4000-8000-000000000901";
 const COURSE_ID = "00000000-0000-4000-8000-000000000902";
+const LESSON_ID = "00000000-0000-4000-8000-000000000904";
 
 async function installAdminSession(page) {
   const user = {
@@ -37,6 +38,7 @@ async function installAdminSession(page) {
       published_at: null,
       created_at: "2026-09-01T00:00:00.000Z",
       updated_at: "2026-09-01T00:00:00.000Z",
+      public_landing_enabled: false,
     }],
   };
 
@@ -112,4 +114,140 @@ test("admin keeps access to the incoming native LMS course manager", async ({ pa
   await expect(page.getByText("ASPEKINDO-LMS-ADMIN-02").first()).toBeVisible();
   await page.getByRole("button", { name: "Pratinjau" }).click();
   await expect(page.getByRole("dialog")).toContainText("SIAP Tender");
+});
+
+test("admin can enable a public course landing and upload an MP4 lesson video", async ({ page }) => {
+  await installAdminSession(page);
+
+  const courses = [{
+    id: COURSE_ID,
+    course_code: "ASPEKINDO-LMS-ADMIN-01",
+    slug: "fondasi-siap-proyek",
+    title: "Fondasi SIAP Proyek",
+    description_markdown: "Pembelajaran awal untuk admin.",
+    audience: "Anggota BUJK",
+    status: "draft",
+    siap_focus: "proyek",
+    member_only: true,
+    agenda_id: null,
+    created_by: ADMIN_ID,
+    published_at: null,
+    created_at: "2026-09-01T00:00:00.000Z",
+    updated_at: "2026-09-01T00:00:00.000Z",
+    public_landing_enabled: false,
+  }];
+  const lessons = [{
+    id: LESSON_ID,
+    course_id: COURSE_ID,
+    session_id: null,
+    title: "Video pengantar",
+    slug: "video-pengantar",
+    content_markdown: "Materi utama.",
+    passing_score: 70,
+    is_published: false,
+    sort_order: 0,
+    created_by: ADMIN_ID,
+    created_at: "2026-09-01T00:00:00.000Z",
+    updated_at: "2026-09-01T00:00:00.000Z",
+  }];
+  const materials = [];
+  let savedMaterial = null;
+
+  await page.route("**/auth/v1/**", async (route) => {
+    if (route.request().url().endsWith("/user")) {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        id: ADMIN_ID,
+        aud: "authenticated",
+        role: "authenticated",
+        email: "admin-lms@example.test",
+        app_metadata: { provider: "email", providers: ["email"] },
+        user_metadata: { full_name: "Admin LMS" },
+        created_at: "2026-09-01T00:00:00.000Z",
+      }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: "{}" });
+  });
+
+  await page.route("**/storage/v1/object/**", async (route) => {
+    if (route.request().method() === "POST") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ Key: "native/video.mp4" }) });
+      return;
+    }
+    await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+  });
+
+  await page.route("**/rest/v1/**", async (route) => {
+    const request = route.request();
+    const requestUrl = new URL(request.url());
+    const endpoint = requestUrl.pathname.split("/").pop();
+    const objectRequested = request.headers().accept?.includes("vnd.pgrst.object");
+
+    if (endpoint === "user_roles") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ role: "admin" }]) });
+      return;
+    }
+    if (endpoint === "profiles") {
+      const profile = { user_id: ADMIN_ID, full_name: "Admin LMS", company: "PUB ASPEKINDO" };
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(objectRequested ? profile : [profile]) });
+      return;
+    }
+    if (endpoint === "aspekindo_lms_courses") {
+      if (request.method() === "PATCH") {
+        const body = request.postDataJSON();
+        courses[0] = { ...courses[0], ...body, public_landing_enabled: body.public_landing_enabled };
+        await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([]) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(courses) });
+      return;
+    }
+    if (endpoint === "aspekindo_lms_lessons") {
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(lessons) });
+      return;
+    }
+    if (endpoint === "aspekindo_lms_materials") {
+      if (request.method() === "POST") {
+        savedMaterial = request.postDataJSON();
+        materials.push({ ...savedMaterial, id: "00000000-0000-4000-8000-000000000905" });
+        await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify([]) });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(materials) });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      headers: { "content-range": "*/0" },
+      contentType: "application/json",
+      body: request.method() === "HEAD" ? "" : "[]",
+    });
+  });
+
+  await page.goto("/admin/lms-aspekindo");
+  await expect(page.getByRole("heading", { name: "Kelola LMS ASPEKINDO" })).toBeVisible();
+  await page.getByRole("button", { name: "Edit" }).first().click();
+  await page.getByLabel("Landing publik").click();
+  await page.getByRole("button", { name: "Simpan kursus" }).click();
+  await expect(page.getByText("Landing publik aktif")).toBeVisible();
+
+  await page.getByRole("button", { name: "Materi" }).click();
+  await page.getByLabel("Judul materi *").fill("Video pengantar");
+  await page.getByRole("combobox").last().click();
+  await page.getByRole("option", { name: "Video privat" }).click();
+  await page.locator("#native-material-video").setInputFiles({
+    name: "pengantar.mp4",
+    mimeType: "video/mp4",
+    buffer: Buffer.from("fake-mp4-content"),
+  });
+  await expect(page.getByText("pengantar.mp4")).toBeVisible();
+  await page.getByRole("button", { name: "Simpan materi" }).click();
+
+  await expect.poll(() => savedMaterial).toMatchObject({
+    material_type: "video",
+    file_name: "pengantar.mp4",
+    mime_type: "video/mp4",
+    file_size_bytes: 16,
+  });
+  expect(savedMaterial.storage_path).toMatch(/^native\//);
 });
