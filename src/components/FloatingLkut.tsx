@@ -271,14 +271,6 @@ export default function FloatingLkut() {
                       </span>
                       <ArrowRight className="h-4 w-4 shrink-0 text-pub-amber" />
                     </button>
-                    <button onClick={() => openWorkspace("/lkut")} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted/50">
-                      {user ? <LayoutDashboard className="h-5 w-5 shrink-0 text-pub-sky" /> : <LogIn className="h-5 w-5 shrink-0 text-pub-sky" />}
-                      <span className="flex-1">
-                        <span className="block text-xs font-bold font-heading text-foreground">{user ? "Buka workspace saya" : "Masuk ke aplikasi"}</span>
-                        <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">{user ? "Lanjutkan data dan dokumen LKUT." : "Simpan progres dan kelola data Anda."}</span>
-                      </span>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-pub-sky" />
-                    </button>
                     <button onClick={() => setMode("workspace")} className="flex w-full items-center gap-3 rounded-xl border border-border p-3 text-left transition-colors hover:bg-muted/50">
                       <LayoutDashboard className="h-5 w-5 shrink-0 text-pub-emerald" />
                       <span className="flex-1">
@@ -295,6 +287,53 @@ export default function FloatingLkut() {
                       </span>
                       <ArrowRight className="h-4 w-4 shrink-0 text-pub-sky" />
                     </button>
+                  </div>
+
+                  <div className="mt-4">
+                    <p className="px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Akses cepat ke aplikasi</p>
+                    <div className="mt-2 space-y-2">
+                      <button
+                        data-testid="lkut-app-link"
+                        aria-label="LKUT — Login ke dashboard"
+                        onClick={() => openWorkspace("/lkut")}
+                        className="flex w-full items-center gap-3 rounded-xl border border-pub-amber/30 bg-pub-amber/5 p-3 text-left transition-colors hover:bg-pub-amber/10"
+                      >
+                        {user ? <LayoutDashboard className="h-5 w-5 shrink-0 text-pub-amber" /> : <LogIn className="h-5 w-5 shrink-0 text-pub-amber" />}
+                        <span className="flex-1">
+                          <span className="block text-xs font-bold font-heading text-foreground">LKUT</span>
+                          <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">{user ? "Buka dashboard LKUT." : "Login ke dashboard LKUT."}</span>
+                        </span>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-pub-amber" />
+                      </button>
+                      <a
+                        data-testid="pub-app-link"
+                        href="https://lms.dokumenproyek.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-xl border border-pub-sky/30 bg-pub-sky/5 p-3 text-left transition-colors hover:bg-pub-sky/10"
+                      >
+                        <BookOpen className="h-5 w-5 shrink-0 text-pub-sky" />
+                        <span className="flex-1">
+                          <span className="block text-xs font-bold font-heading text-foreground">PUB</span>
+                          <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">Login ke dashboard LMS.</span>
+                        </span>
+                        <ExternalLink className="h-4 w-4 shrink-0 text-pub-sky" />
+                      </a>
+                      <a
+                        data-testid="lsbuki-app-link"
+                        href="https://lsbukonstruksi.co.id"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 rounded-xl border border-pub-emerald/30 bg-pub-emerald/5 p-3 text-left transition-colors hover:bg-pub-emerald/10"
+                      >
+                        <ExternalLink className="h-5 w-5 shrink-0 text-pub-emerald" />
+                        <span className="flex-1">
+                          <span className="block text-xs font-bold font-heading text-foreground">LSBUKI</span>
+                          <span className="mt-0.5 block text-[11px] font-body text-muted-foreground">Informasi LSBU Konstruksi Indonesia.</span>
+                        </span>
+                        <ExternalLink className="h-4 w-4 shrink-0 text-pub-emerald" />
+                      </a>
+                    </div>
                   </div>
 
                   <div className="mt-4 flex items-start gap-2 rounded-xl border border-border bg-muted/40 p-3">
