@@ -9,7 +9,7 @@ Engine eksternal hanya boleh menjadi mesin internal. Jangan menampilkan nama eng
 
 Adapter engine tidak boleh mempercayai skor, gap, identitas anggota, atau teks rekomendasi yang dikirim browser. Server harus menurunkan konteks dari JWT dan sumber milik pengguna, lalu membatasi request serta response eksternal dengan katalog sinyal dan aksi internal.
 
-Response rekomendasi anggota dan status kesehatan admin harus diturunkan dari satu outcome server-side yang sama: source, key rekomendasi, dan alasan fallback tidak boleh dihitung pada cabang terpisah.
+Response rekomendasi anggota dan status kesehatan admin harus diturunkan dari satu outcome server-side yang sama: source, key rekomendasi, dan alasan fallback tidak boleh dihitung pada cabang terpisah. Kegagalan membaca sumber harus mengganti health lama menjadi deterministic/source_unavailable sebelum response 500 dikirim.
 
 **Why:** Menggabungkan kekosongan data dengan ketidakmampuan menghasilkan penilaian yang menyesatkan, sedangkan mempublikasikan engine eksternal mengaburkan kepemilikan produk dan batas keamanan. Payload client yang dipercaya juga memungkinkan pemalsuan konteks dan penyalahgunaan kredensial server. Atribusi eksplisit mencegah bukti kursus masuk ke dimensi yang salah ketika nama kursus ambigu. Cabang keputusan terpisah dapat membuat anggota menerima connected sementara admin mencatat fallback, atau sebaliknya.
 

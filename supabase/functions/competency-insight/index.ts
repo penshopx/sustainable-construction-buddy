@@ -6,6 +6,7 @@ import {
   toRecommendation,
   toInsightHealth,
 } from "./contract.js";
+import { sourceUnavailableOutcome } from "./handler.js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -173,8 +174,13 @@ serve(async (req) => {
     const sourceError = results.find((result) => result.error)?.error;
     if (sourceError) {
       console.error("Competency source query failed", sourceError.message);
-      await recordInsightHealth(supabaseUrl, "deterministic", "source_unavailable");
-      return json({ error: "Unable to read competency sources" }, 500);
+      const outcome = sourceUnavailableOutcome();
+      await recordInsightHealth(
+        supabaseUrl,
+        outcome.health.status,
+        outcome.health.failureReason,
+      );
+      return json(outcome.response, outcome.httpStatus);
     }
 
     const missingKeys = [

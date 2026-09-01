@@ -10,6 +10,7 @@ import {
   resolveInsight,
   toInsightHealth,
 } from "../supabase/functions/competency-insight/contract.js";
+import { sourceUnavailableOutcome } from "../supabase/functions/competency-insight/handler.js";
 
 test("success sends only bounded recommendation keys and accepts allowlisted output", async () => {
   const availableKeys = [
@@ -171,6 +172,21 @@ test("health status remains admin-only without calling the insight service", () 
   assert.equal(healthRequestStatus(false), 403);
   assert.equal(healthRequestStatus(undefined), 403);
   assert.equal(healthRequestStatus(true), 200);
+});
+
+test("source query failures return 500 and replace stale health with source_unavailable", () => {
+  const outcome = sourceUnavailableOutcome();
+
+  assert.deepEqual(outcome, {
+    httpStatus: 500,
+    response: { error: "Unable to read competency sources" },
+    health: {
+      status: "deterministic",
+      failureReason: "source_unavailable",
+    },
+  });
+  assert.notEqual(outcome.health.status, "connected");
+  assert.equal(outcome.response.recommendations, undefined);
 });
 
 test("member source and admin health stay aligned for every insight outcome", async () => {

@@ -2,14 +2,14 @@
   "projectRef": "yidlglstzvizsszrpobi",
   "functionName": "competency-insight",
   "functionStatus": "ACTIVE",
-  "functionVersion": 12,
+  "functionVersion": 13,
   "verifyJwt": true,
   "contractSchemaVersion": "pub-siap-v1",
   "authenticatedProbe": {
     "httpStatus": 200,
     "source": "connected",
     "recommendationCount": 3,
-    "checkedAt": "2026-09-01T08:52:01Z"
+    "checkedAt": "2026-09-01T08:57:20Z"
   },
   "securityAssertions": {
     "unauthenticatedStatus": 401,
