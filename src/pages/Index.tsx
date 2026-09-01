@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense } from "react";
 import HeroSection from "@/components/HeroSection";
 import FloatingChatbot from "@/components/FloatingChatbot";
 import FloatingLkut from "@/components/FloatingLkut";
@@ -20,55 +20,25 @@ const TeamSection = lazy(() => import("@/components/TeamSection"));
 const CTASection = lazy(() => import("@/components/CTASection"));
 const Footer = lazy(() => import("@/components/Footer"));
 
-function DeferredSection({
+function LazySection({
   children,
   minHeight = 420,
 }: {
   children: React.ReactNode;
   minHeight?: number;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    if (!("IntersectionObserver" in window)) {
-      setIsVisible(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "700px 0px" },
-    );
-
-    observer.observe(container);
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <div ref={containerRef} style={{ minHeight }}>
-      {isVisible && (
-        <Suspense
-          fallback={
-            <div
-              className="min-h-[inherit]"
-              aria-label="Memuat bagian halaman"
-              aria-busy="true"
-            />
-          }
-        >
-          {children}
-        </Suspense>
-      )}
-    </div>
+    <Suspense
+      fallback={
+        <div
+          style={{ minHeight }}
+          aria-label="Memuat bagian halaman"
+          aria-busy="true"
+        />
+      }
+    >
+      {children}
+    </Suspense>
   );
 }
 
@@ -82,78 +52,78 @@ const Index = () => {
       <InformationLandingSection />
 
       {/* Motion piece: 4 Siap menghadapi perubahan industri */}
-      <DeferredSection minHeight={480}>
+      <LazySection minHeight={480}>
         <ProjectVideoSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* I — INTEREST: Deep dive into real problems + public data */}
-      <DeferredSection>
+      <LazySection>
         <IndustryProblemSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* D — DESIRE: The One Thing solution + before/after + features */}
-      <DeferredSection>
+      <LazySection>
         <TheOneThingSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* Readiness tools for SBU and LKUT preparation */}
-      <DeferredSection>
+      <LazySection>
         <ReadinessToolsSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* Quality, anti-bribery governance, and legal support */}
-      <DeferredSection>
+      <LazySection>
         <QualityGovernanceSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* Supporting access for the SKK session */}
-      <DeferredSection>
+      <LazySection>
         <SkkSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* Learning session: implementation of PUB through structured learning */}
-      <DeferredSection>
+      <LazySection>
         <SiapPubSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* From 4 SIAP readiness into project management and opportunities */}
-      <DeferredSection>
+      <LazySection>
         <ProjectEcosystemSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* ASPEKINDO's own learning activities and public agenda */}
-      <DeferredSection>
+      <LazySection>
         <AspekindoLearningSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* Siap Proyek: third-party document administration service */}
-      <DeferredSection>
+      <LazySection>
         <DokumenProyekSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* Social proof: logos, legal basis, reach */}
-      <DeferredSection>
+      <LazySection>
         <SocialProofSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* System architecture */}
-      <DeferredSection>
+      <LazySection>
         <EngineCards />
-      </DeferredSection>
+      </LazySection>
 
       {/* Team credibility */}
-      <DeferredSection minHeight={560}>
+      <LazySection minHeight={560}>
         <TeamSection />
-      </DeferredSection>
+      </LazySection>
 
       {/* A — ACTION: Urgent CTA */}
-      <DeferredSection>
+      <LazySection>
         <CTASection />
-      </DeferredSection>
+      </LazySection>
 
-      <DeferredSection minHeight={260}>
+      <LazySection minHeight={260}>
         <Footer />
-      </DeferredSection>
+      </LazySection>
       {/* Kiri: Helpdesk aplikasi */}
       <FloatingChatbot variant="landing" />
       {/* Kanan: produk asli ASPEKINDO */}

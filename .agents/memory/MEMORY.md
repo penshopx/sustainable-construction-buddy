@@ -16,3 +16,4 @@
 - [Pusat Informasi boundaries](information-center-boundaries.md) — agenda PUB hanya dari tabel agenda kanonik; agen eksternal tidak boleh menyalin kegiatan ASPEKINDO.
 - [4 SIAP scoring boundaries](four-siap-scoring-boundaries.md) — pisahkan skor bukti dari cakupan data; engine eksternal tetap internal dan hasilnya hanya panduan.
 - [Chatbot handoff](chatbot-handoff.md) — chatbot publik menjadi navigator/guided intake; data, progres, dan tindakan harus dilanjutkan di workspace aplikasi.
+- [Landing lazy-loading boundary](landing-lazy-loading-boundary.md) — pecah section publik sebagai chunk, tetapi jangan tunda mount berdasarkan viewport.
