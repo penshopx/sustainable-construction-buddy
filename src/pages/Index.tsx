@@ -1,22 +1,76 @@
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import HeroSection from "@/components/HeroSection";
-import ProjectVideoSection from "@/components/ProjectVideoSection";
-import IndustryProblemSection from "@/components/IndustryProblemSection";
-import TheOneThingSection from "@/components/TheOneThingSection";
-import ReadinessToolsSection from "@/components/ReadinessToolsSection";
-import SkkSection from "@/components/SkkSection";
-import SiapPubSection from "@/components/SiapPubSection";
-import AspekindoLearningSection from "@/components/AspekindoLearningSection";
-import DokumenProyekSection from "@/components/DokumenProyekSection";
-import SocialProofSection from "@/components/SocialProofSection";
-import EngineCards from "@/components/EngineCards";
-import TeamSection from "@/components/TeamSection";
-import CTASection from "@/components/CTASection";
-import Footer from "@/components/Footer";
 import FloatingChatbot from "@/components/FloatingChatbot";
 import FloatingLkut from "@/components/FloatingLkut";
 import InformationLandingSection from "@/components/InformationLandingSection";
-import ProjectEcosystemSection from "@/components/ProjectEcosystemSection";
-import QualityGovernanceSection from "@/components/QualityGovernanceSection";
+
+const ProjectVideoSection = lazy(() => import("@/components/ProjectVideoSection"));
+const IndustryProblemSection = lazy(() => import("@/components/IndustryProblemSection"));
+const TheOneThingSection = lazy(() => import("@/components/TheOneThingSection"));
+const ReadinessToolsSection = lazy(() => import("@/components/ReadinessToolsSection"));
+const QualityGovernanceSection = lazy(() => import("@/components/QualityGovernanceSection"));
+const SkkSection = lazy(() => import("@/components/SkkSection"));
+const SiapPubSection = lazy(() => import("@/components/SiapPubSection"));
+const ProjectEcosystemSection = lazy(() => import("@/components/ProjectEcosystemSection"));
+const AspekindoLearningSection = lazy(() => import("@/components/AspekindoLearningSection"));
+const DokumenProyekSection = lazy(() => import("@/components/DokumenProyekSection"));
+const SocialProofSection = lazy(() => import("@/components/SocialProofSection"));
+const EngineCards = lazy(() => import("@/components/EngineCards"));
+const TeamSection = lazy(() => import("@/components/TeamSection"));
+const CTASection = lazy(() => import("@/components/CTASection"));
+const Footer = lazy(() => import("@/components/Footer"));
+
+function DeferredSection({
+  children,
+  minHeight = 420,
+}: {
+  children: React.ReactNode;
+  minHeight?: number;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    if (!("IntersectionObserver" in window)) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "700px 0px" },
+    );
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ minHeight }}>
+      {isVisible && (
+        <Suspense
+          fallback={
+            <div
+              className="min-h-[inherit]"
+              aria-label="Memuat bagian halaman"
+              aria-busy="true"
+            />
+          }
+        >
+          {children}
+        </Suspense>
+      )}
+    </div>
+  );
+}
 
 const Index = () => {
   return (
@@ -28,48 +82,78 @@ const Index = () => {
       <InformationLandingSection />
 
       {/* Motion piece: 4 Siap menghadapi perubahan industri */}
-      <ProjectVideoSection />
+      <DeferredSection minHeight={480}>
+        <ProjectVideoSection />
+      </DeferredSection>
 
       {/* I — INTEREST: Deep dive into real problems + public data */}
-      <IndustryProblemSection />
+      <DeferredSection>
+        <IndustryProblemSection />
+      </DeferredSection>
 
       {/* D — DESIRE: The One Thing solution + before/after + features */}
-      <TheOneThingSection />
+      <DeferredSection>
+        <TheOneThingSection />
+      </DeferredSection>
 
       {/* Readiness tools for SBU and LKUT preparation */}
-      <ReadinessToolsSection />
+      <DeferredSection>
+        <ReadinessToolsSection />
+      </DeferredSection>
 
       {/* Quality, anti-bribery governance, and legal support */}
-      <QualityGovernanceSection />
+      <DeferredSection>
+        <QualityGovernanceSection />
+      </DeferredSection>
 
       {/* Supporting access for the SKK session */}
-      <SkkSection />
+      <DeferredSection>
+        <SkkSection />
+      </DeferredSection>
 
       {/* Learning session: implementation of PUB through structured learning */}
-      <SiapPubSection />
+      <DeferredSection>
+        <SiapPubSection />
+      </DeferredSection>
 
       {/* From 4 SIAP readiness into project management and opportunities */}
-      <ProjectEcosystemSection />
+      <DeferredSection>
+        <ProjectEcosystemSection />
+      </DeferredSection>
 
       {/* ASPEKINDO's own learning activities and public agenda */}
-      <AspekindoLearningSection />
+      <DeferredSection>
+        <AspekindoLearningSection />
+      </DeferredSection>
 
       {/* Siap Proyek: third-party document administration service */}
-      <DokumenProyekSection />
+      <DeferredSection>
+        <DokumenProyekSection />
+      </DeferredSection>
 
       {/* Social proof: logos, legal basis, reach */}
-      <SocialProofSection />
+      <DeferredSection>
+        <SocialProofSection />
+      </DeferredSection>
 
       {/* System architecture */}
-      <EngineCards />
+      <DeferredSection>
+        <EngineCards />
+      </DeferredSection>
 
       {/* Team credibility */}
-      <TeamSection />
+      <DeferredSection minHeight={560}>
+        <TeamSection />
+      </DeferredSection>
 
       {/* A — ACTION: Urgent CTA */}
-      <CTASection />
+      <DeferredSection>
+        <CTASection />
+      </DeferredSection>
 
-      <Footer />
+      <DeferredSection minHeight={260}>
+        <Footer />
+      </DeferredSection>
       {/* Kiri: Helpdesk aplikasi */}
       <FloatingChatbot variant="landing" />
       {/* Kanan: produk asli ASPEKINDO */}
