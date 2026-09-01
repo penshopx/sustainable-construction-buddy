@@ -19,6 +19,7 @@ interface Notification {
 const typeIcon: Record<string, string> = {
   level_up: "🎉",
   certificate: "🏆",
+  competency_insight_fallback: "⚠️",
   info: "ℹ️",
 };
 

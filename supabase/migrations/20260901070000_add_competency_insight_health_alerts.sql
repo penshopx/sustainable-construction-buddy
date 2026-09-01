@@ -129,7 +129,7 @@ BEGIN
       'Fallback deterministik telah berlangsung melewati ambang operasional. Periksa status layanan insight.',
       next_incident_id
     FROM public.user_roles AS roles
-    WHERE public.has_role(roles.user_id, 'admin'::public.app_role)
+    WHERE roles.role IN ('admin'::public.app_role, 'super_admin'::public.app_role)
     ON CONFLICT DO NOTHING;
   END IF;
 

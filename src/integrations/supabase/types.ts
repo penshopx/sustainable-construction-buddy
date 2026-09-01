@@ -2935,6 +2935,42 @@ export type Database = {
         }
         Relationships: []
       }
+      competency_insight_health: {
+        Row: {
+          active_alert_notification_ids: string[]
+          alert_active: boolean
+          consecutive_failure_count: number
+          failure_reason: string
+          fallback_started_at: string | null
+          id: string
+          last_probe_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          active_alert_notification_ids?: string[]
+          alert_active?: boolean
+          consecutive_failure_count?: number
+          failure_reason: string
+          fallback_started_at?: string | null
+          id: string
+          last_probe_at: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          active_alert_notification_ids?: string[]
+          alert_active?: boolean
+          consecutive_failure_count?: number
+          failure_reason?: string
+          fallback_started_at?: string | null
+          id?: string
+          last_probe_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pancek_assessments: {
         Row: {
           answers: Json
