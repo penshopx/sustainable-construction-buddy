@@ -19,6 +19,9 @@ test.describe("public and unauthenticated user flows", () => {
       }),
     ).toBeVisible();
     await expect(joinCta).toBeVisible();
+    await expect(
+      page.getByText("Kep Dirjen PU No. 281 Tahun 2026", { exact: true }),
+    ).toBeVisible();
 
     await joinCta.click();
 
@@ -53,6 +56,16 @@ test.describe("public and unauthenticated user flows", () => {
 
     await expect(page.getByTestId("link-tender-readiness-map")).toHaveAttribute("href", "/siap-kompetensi");
     await expect(page.getByTestId("text-tender-login-required")).toContainText("masuk diperlukan");
+    await revealLandingSection(page, page.locator("#siap-pub"));
+    await expect(page.getByTestId("link-lkpm-legalitas")).toHaveAttribute(
+      "href",
+      "https://lkpm.dokumenproyek.com/",
+    );
+    await expect(page.getByTestId("link-lkpm-legalitas")).toHaveAttribute("target", "_blank");
+    await expect(page.getByTestId("link-lkpm-legalitas")).toHaveAttribute(
+      "rel",
+      "noopener noreferrer",
+    );
     await page.getByTestId("link-tender-readiness-map").click();
     await expect(page).toHaveURL(/\/auth$/);
   });

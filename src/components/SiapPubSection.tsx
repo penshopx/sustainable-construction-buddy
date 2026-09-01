@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, BookOpenCheck, GraduationCap, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpenCheck, ExternalLink, GraduationCap, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const learningSteps = [
@@ -21,7 +21,12 @@ const learningSteps = [
 ];
 
 const siapFocuses = [
-  { title: "Siap Legalitas", description: "Fondasi usaha dan dokumen legal." },
+  {
+    title: "Siap Legalitas",
+    description: "Fondasi usaha dan dokumen legal.",
+    externalHref: "https://lkpm.dokumenproyek.com/",
+    externalLabel: "Buka LKPM — Legalitas & Perizinan",
+  },
   { title: "Siap Sertifikasi", description: "Kegiatan PUB dan dokumen LKUT disiapkan untuk aplikasi resmi." },
   { title: "Siap Tender", description: "Kesiapan membaca dan mengikuti peluang." },
   { title: "Siap Proyek", description: "Kesiapan menjalankan pekerjaan secara tertib." },
@@ -58,6 +63,19 @@ export default function SiapPubSection() {
                 <div key={focus.title} className="rounded-xl border border-white/10 bg-white/[0.04] p-3.5">
                   <p className="text-sm font-bold text-white">{focus.title}</p>
                   <p className="mt-1 text-xs leading-relaxed text-white/55">{focus.description}</p>
+                  {focus.externalHref && focus.externalLabel && (
+                    <a
+                      href={focus.externalHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-pub-sky transition-colors hover:text-pub-amber focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-sky"
+                      data-testid="link-lkpm-legalitas"
+                      aria-label={`${focus.externalLabel}, layanan eksternal, buka di tab baru`}
+                    >
+                      {focus.externalLabel}
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  )}
                 </div>
               ))}
             </div>

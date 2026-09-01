@@ -10,6 +10,7 @@ const credentials = [
   { value: "Permen PU 7/2024", label: "Regulasi PUB", sub: "Persyaratan Perpanjangan SBU" },
   { value: "Permen PU 6/2025", label: "Regulasi Terbaru", sub: "Ketentuan Pelaksanaan PUB" },
   { value: "PP 14/2021", label: "Peraturan Pemerintah", sub: "Kewajiban BUJK" },
+  { value: "Kep Dirjen PU No. 281 Tahun 2026", label: "Regulasi Sertifikasi", sub: "Standar Skema Sertifikasi BUJK" },
 ];
 
 const logos = [
@@ -59,7 +60,7 @@ const SocialProofSection = () => {
           viewport={{ once: true }}
           className="mb-16"
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {credentials.map((c) => (
               <div key={c.value} className="p-4 rounded-xl bg-pub-amber/5 border border-pub-amber/15 text-center">
                 <p className="text-lg font-extrabold font-heading text-pub-amber">{c.value}</p>
