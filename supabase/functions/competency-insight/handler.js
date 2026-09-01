@@ -120,7 +120,7 @@ export function createCompetencyInsightHandler({
       p_probe_at: probeAt,
     });
     if (error) {
-      logger.error("Competency insight health update failed", error.message);
+      logger.error("Competency insight health update failed");
       throw new Error("Competency insight health update failed");
     }
   }
@@ -132,7 +132,7 @@ export function createCompetencyInsightHandler({
       .eq("id", HEALTH_ROW_ID)
       .maybeSingle();
     if (error) {
-      logger.error("Competency insight health read failed", error.message);
+      logger.error("Competency insight health read failed");
       return null;
     }
     if (!data) return null;
@@ -250,7 +250,7 @@ export function createCompetencyInsightHandler({
       results.push(obligations);
       const sourceError = results.find((result) => result.error)?.error;
       if (sourceError) {
-        logger.error("Competency source query failed", sourceError.message);
+        logger.error("Competency source query failed");
         const outcome = sourceUnavailableOutcome();
         await recordInsightHealth(
           supabaseUrl,
@@ -303,7 +303,7 @@ export function createCompetencyInsightHandler({
       });
       return await recommendationResponse(supabaseUrl, insight);
     } catch (error) {
-      logger.error("competency-insight error", error);
+      logger.error("competency-insight request failed");
       return json({ error: "Unable to create competency insight" }, 500);
     }
   };

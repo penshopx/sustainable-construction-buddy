@@ -17,3 +17,4 @@
 - [4 SIAP scoring boundaries](four-siap-scoring-boundaries.md) — pisahkan skor bukti dari cakupan data; engine eksternal tetap internal dan hasilnya hanya panduan.
 - [Chatbot handoff](chatbot-handoff.md) — chatbot publik menjadi navigator/guided intake; data, progres, dan tindakan harus dilanjutkan di workspace aplikasi.
 - [Landing lazy-loading boundary](landing-lazy-loading-boundary.md) — pecah section publik sebagai chunk, tetapi jangan tunda mount berdasarkan viewport.
+- [Supabase Edge deployment bundling](supabase-edge-deployment-bundling.md) — gunakan bundling API jika bundler Docker Replit gagal mengambil import Deno.

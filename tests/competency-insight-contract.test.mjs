@@ -700,6 +700,7 @@ test("member insight is not returned successfully when matching admin health can
     failure_reason: "none",
     last_probe_at: "2026-08-31T23:59:00.000Z",
   };
+  const sensitiveBackendDetail = "https://provider.example.test user@example.test secret-token";
   const scenarios = [
     {
       name: "service role key missing",
@@ -708,7 +709,7 @@ test("member insight is not returned successfully when matching admin health can
     },
     {
       name: "health upsert rejected",
-      fakeOptions: { initialHealth: staleHealth, healthWriteError: "database unavailable" },
+      fakeOptions: { initialHealth: staleHealth, healthWriteError: sensitiveBackendDetail },
       envOverrides: {},
     },
   ];
@@ -716,6 +717,7 @@ test("member insight is not returned successfully when matching admin health can
   for (const scenario of scenarios) {
     await t.test(scenario.name, async () => {
       const fakeSupabase = createFakeSupabase(scenario.fakeOptions);
+      const logs = [];
       const env = {
         ...INSIGHT_ENV,
         GUSTAFTA_ENGINE_URL: undefined,
@@ -729,7 +731,7 @@ test("member insight is not returned successfully when matching admin health can
           throw new Error("The unconfigured engine must not be called");
         },
         now: () => "2026-09-01T00:00:00.000Z",
-        logger: { error() {} },
+        logger: { error: (...args) => logs.push(args) },
       });
 
       const response = await handler(requestFor());
@@ -738,6 +740,8 @@ test("member insight is not returned successfully when matching admin health can
         error: "Unable to create competency insight",
       });
       assert.deepEqual(fakeSupabase.persistedHealth.current, staleHealth);
+      assert.equal(JSON.stringify(logs).includes(sensitiveBackendDetail), false);
+      assert.equal(logs.every((entry) => entry.length === 1), true);
     });
   }
 });

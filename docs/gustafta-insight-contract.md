@@ -57,4 +57,4 @@ npm run test:insight
 npm run test:insight:live
 ```
 
-Tes kontrak lokal mencakup success, timeout, output invalid, deduplikasi, dan allowlist. Probe live memverifikasi bahwa request tanpa sesi ditolak dan request dengan sesi anggota sementara menghasilkan `source: connected`; akun probe selalu dihapus.
+Tes kontrak lokal mencakup success, timeout, output invalid, deduplikasi, dan allowlist. Probe live memverifikasi bahwa request tanpa sesi ditolak, health hanya dapat dibaca admin, dan request dengan sesi anggota sementara menghasilkan respons aman dengan `source: connected` atau `source: deterministic` serta maksimal tiga rekomendasi. Probe tidak mencetak payload, token, identitas, atau URL provider, dan akun sementara selalu dihapus agar dapat dijalankan ulang.
