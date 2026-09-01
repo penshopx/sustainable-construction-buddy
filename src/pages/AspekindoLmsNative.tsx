@@ -138,6 +138,12 @@ function CatalogCard({
           <span className="flex items-center gap-1.5"><LayoutList className="h-3.5 w-3.5 text-pub-sky" /> {publishedLessons} pelajaran</span>
           <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-pub-amber" /> {course.audience || "Anggota BUJK"}</span>
         </div>
+        {course.agenda && (
+          <Link to="/agenda-pub" className="flex items-start gap-1.5 text-xs font-semibold text-pub-emerald hover:underline">
+            <CalendarDays className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <span>Agenda terkait: {course.agenda.title}</span>
+          </Link>
+        )}
         {enrollment && (
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs text-muted-foreground"><span>Progres</span><span>{percent}%</span></div>

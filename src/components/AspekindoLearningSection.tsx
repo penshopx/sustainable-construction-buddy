@@ -9,6 +9,7 @@ import {
   Clock3,
   Download,
   ExternalLink,
+  GraduationCap,
   HeartHandshake,
   Loader2,
   MapPin,
@@ -251,29 +252,38 @@ export default function AspekindoLearningSection({ standalone = false }: Aspekin
               </div>
             </div>
 
-            {standalone ? (
-              <a
-                href={ASPEKINDO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-pub-emerald px-6 py-3.5 font-bold text-white shadow-card transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-emerald focus-visible:ring-offset-2"
-              >
-                Situs resmi & pendaftaran
-                <ExternalLink className="h-4 w-4" aria-hidden="true" />
-              </a>
-            ) : (
+            <div className="mt-7 flex flex-wrap gap-3">
+              {standalone ? (
+                <a
+                  href={ASPEKINDO_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-pub-emerald px-6 py-3.5 font-bold text-white shadow-card transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-emerald focus-visible:ring-offset-2"
+                >
+                  Situs resmi & pendaftaran
+                  <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                </a>
+              ) : (
+                <Link
+                  to="/agenda-pub"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-pub-emerald px-6 py-3.5 font-bold text-white shadow-card transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-emerald focus-visible:ring-offset-2"
+                >
+                  Lihat agenda lengkap
+                  <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                </Link>
+              )}
               <Link
-                to="/agenda-pub"
-                className="mt-7 inline-flex min-h-11 items-center gap-2 rounded-xl bg-pub-emerald px-6 py-3.5 font-bold text-white shadow-card transition-all hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-emerald focus-visible:ring-offset-2"
+                to="/aspekindo-lms"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-pub-sky/30 bg-white px-5 py-3.5 font-bold text-pub-sky shadow-card transition-all hover:bg-pub-sky/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pub-sky focus-visible:ring-offset-2"
               >
-                Lihat agenda lengkap
-                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                <GraduationCap className="h-4 w-4" aria-hidden="true" />
+                LMS anggota
               </Link>
-            )}
+            </div>
             <p className="mt-3 text-xs text-muted-foreground font-body">
               {standalone
-                ? "Detail jadwal dan pendaftaran mengikuti pengumuman resmi ASPEKINDO."
-                : "Lihat jadwal publik terlebih dahulu, lalu buka sumber resmi untuk mendaftar."}
+                ? "Detail jadwal dan pendaftaran mengikuti pengumuman resmi ASPEKINDO. LMS memerlukan akun anggota."
+                : "Lihat jadwal publik terlebih dahulu, lalu buka sumber resmi untuk mendaftar. Pembelajaran lanjutan tersedia di LMS anggota."}
             </p>
           </motion.div>
 

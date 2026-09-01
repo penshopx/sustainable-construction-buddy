@@ -23,6 +23,7 @@ async function installAdminSession(page) {
     user,
   };
   const state = {
+    enrollments: [],
     courses: [{
       id: COURSE_ID,
       course_code: "ASPEKINDO-LMS-ADMIN-01",
@@ -67,15 +68,20 @@ async function installAdminSession(page) {
     }
 
     if (endpoint === "profiles") {
-      const profile = {
+      const adminProfile = {
         user_id: ADMIN_ID,
         full_name: "Admin LMS",
         company: "PUB ASPEKINDO",
       };
+      const participantProfile = {
+        user_id: "00000000-0000-4000-8000-000000000904",
+        full_name: "Peserta Baru",
+        company: "BUJK Uji",
+      };
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(objectRequested ? profile : [profile]),
+        body: JSON.stringify(objectRequested ? adminProfile : [adminProfile, participantProfile]),
       });
       return;
     }
@@ -94,6 +100,21 @@ async function installAdminSession(page) {
         return;
       }
       await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(state.courses) });
+      return;
+    }
+
+    if (endpoint === "aspekindo_lms_enrollments") {
+      if (request.method() === "POST") {
+        const body = request.postDataJSON();
+        state.enrollments.push({
+          ...body,
+          id: "00000000-0000-4000-8000-000000000905",
+          enrolled_at: new Date().toISOString(),
+        });
+        await route.fulfill({ status: 201, contentType: "application/json", body: "[]" });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(state.enrollments) });
       return;
     }
 
@@ -122,5 +143,14 @@ test.describe("operasi LMS ASPEKINDO native", () => {
 
     await expect(page.getByText("Manajemen Risiko Tender").first()).toBeVisible();
     await expect(page.getByText("ASPEKINDO-LMS-ADMIN-02")).toBeVisible();
+
+    await page.getByRole("tab", { name: "Peserta & bukti" }).click();
+    await page.getByRole("button", { name: "Tambah peserta" }).click();
+    await page.getByRole("dialog").getByRole("combobox").first().click();
+    await page.getByText("Peserta Baru · BUJK Uji").click();
+    await page.getByRole("button", { name: "Simpan enrollment" }).click();
+
+    await expect(page.getByText("Peserta Baru")).toBeVisible();
+    await expect(page.getByText("BUJK Uji")).toBeVisible();
   });
 });

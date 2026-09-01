@@ -11,6 +11,10 @@ export type LessonProgress = Tables<"aspekindo_lms_lesson_progress">;
 export type QuizQuestion = Tables<"aspekindo_lms_quiz_questions">;
 export type QuizAttempt = Tables<"aspekindo_lms_quiz_attempts">;
 export type CompletionRecord = Tables<"aspekindo_lms_completion_records">;
+export type AspekindoLmsAgendaSummary = Pick<
+  Tables<"aspekindo_learning_agendas">,
+  "id" | "title" | "start_date" | "status"
+>;
 type WritableLessonProgress = Omit<
   TablesInsert<"aspekindo_lms_lesson_progress">,
   "status" | "completed_at"
@@ -22,11 +26,15 @@ type WritableLessonProgress = Omit<
 export type AspekindoLmsCatalogCourse = Course & {
   sessions: Session[];
   lessons: Array<Lesson & { materials: Material[] }>;
+  agenda?: AspekindoLmsAgendaSummary | null;
 };
 
 export type AspekindoLmsCourseDetail = AspekindoLmsCatalogCourse;
 
-async function fetchCourseContent(course: Course): Promise<AspekindoLmsCatalogCourse> {
+async function fetchCourseContent(
+  course: Course,
+  agenda: AspekindoLmsAgendaSummary | null = null,
+): Promise<AspekindoLmsCatalogCourse> {
   const [sessionsResult, lessonsResult] = await Promise.all([
     supabase
       .from("aspekindo_lms_sessions")
@@ -57,6 +65,7 @@ async function fetchCourseContent(course: Course): Promise<AspekindoLmsCatalogCo
 
   return {
     ...course,
+    agenda,
     sessions: sessionsResult.data ?? [],
     lessons: lessons.map((lesson) => ({
       ...lesson,
@@ -69,13 +78,20 @@ export function useAspekindoLmsCatalog() {
   return useQuery({
     queryKey: ["aspekindo-lms", "catalog"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("aspekindo_lms_courses")
-        .select("*")
-        .eq("status", "published")
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return Promise.all((data ?? []).map(fetchCourseContent));
+      const [coursesResult, agendasResult] = await Promise.all([
+        supabase
+          .from("aspekindo_lms_courses")
+          .select("*")
+          .eq("status", "published")
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("aspekindo_learning_agendas")
+          .select("id, title, start_date, status")
+          .eq("status", "published"),
+      ]);
+      if (coursesResult.error) throw coursesResult.error;
+      const agendaMap = new Map((agendasResult.data ?? []).map((agenda) => [agenda.id, agenda]));
+      return Promise.all((coursesResult.data ?? []).map((course) => fetchCourseContent(course, course.agenda_id ? agendaMap.get(course.agenda_id) ?? null : null)));
     },
   });
 }
@@ -94,7 +110,16 @@ export function useAspekindoLmsCourse(courseId: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("Kursus tidak ditemukan atau belum diterbitkan.");
-      return fetchCourseContent(data);
+       let agenda: AspekindoLmsAgendaSummary | null = null;
+       if (data.agenda_id) {
+         const agendaResult = await supabase
+           .from("aspekindo_learning_agendas")
+           .select("id, title, start_date, status")
+           .eq("id", data.agenda_id)
+           .maybeSingle();
+         agenda = agendaResult.data ?? null;
+       }
+       return fetchCourseContent(data, agenda);
     },
   });
 }

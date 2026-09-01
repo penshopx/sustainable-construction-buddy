@@ -44,7 +44,7 @@ type Agenda = Pick<Tables<"aspekindo_learning_agendas">, "id" | "title" | "statu
 type Activity = Pick<Tables<"aspekindo_pub_activities">, "id" | "title" | "status" | "start_at">;
 type Profile = Pick<Tables<"profiles">, "user_id" | "full_name" | "company">;
 
-type DialogKind = "course" | "session" | "lesson" | "material" | null;
+type DialogKind = "course" | "session" | "lesson" | "material" | "enrollment" | null;
 
 type CourseForm = {
   title: string;
@@ -89,6 +89,12 @@ type MaterialForm = {
   sort_order: string;
 };
 
+type EnrollmentForm = {
+  user_id: string;
+  status: string;
+  notes: string;
+};
+
 const EMPTY_COURSE: CourseForm = {
   title: "",
   slug: "",
@@ -130,6 +136,12 @@ const EMPTY_MATERIAL: MaterialForm = {
   external_url: "",
   is_published: false,
   sort_order: "0",
+};
+
+const EMPTY_ENROLLMENT: EnrollmentForm = {
+  user_id: "",
+  status: "enrolled",
+  notes: "",
 };
 
 const DELIVERY_LABELS: Record<string, string> = {
@@ -218,10 +230,12 @@ export default function AdminAspekindoLmsNative() {
   const [editingSession, setEditingSession] = useState<Session | null>(null);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
+  const [editingEnrollment, setEditingEnrollment] = useState<Enrollment | null>(null);
   const [courseForm, setCourseForm] = useState<CourseForm>(EMPTY_COURSE);
   const [sessionForm, setSessionForm] = useState<SessionForm>(EMPTY_SESSION);
   const [lessonForm, setLessonForm] = useState<LessonForm>(EMPTY_LESSON);
   const [materialForm, setMaterialForm] = useState<MaterialForm>(EMPTY_MATERIAL);
+  const [enrollmentForm, setEnrollmentForm] = useState<EnrollmentForm>(EMPTY_ENROLLMENT);
 
   const loadData = useCallback(async (background = false) => {
     if (background) setRefreshing(true);
@@ -416,6 +430,23 @@ export default function AdminAspekindoLmsNative() {
     setDialog("material");
   };
 
+  const openCreateEnrollment = () => {
+    if (!selectedCourse) return;
+    setEditingEnrollment(null);
+    setEnrollmentForm(EMPTY_ENROLLMENT);
+    setDialog("enrollment");
+  };
+
+  const openEditEnrollment = (enrollment: Enrollment) => {
+    setEditingEnrollment(enrollment);
+    setEnrollmentForm({
+      user_id: enrollment.user_id,
+      status: enrollment.status,
+      notes: enrollment.notes,
+    });
+    setDialog("enrollment");
+  };
+
   const saveCourse = async () => {
     if (!courseForm.title.trim() || !courseForm.slug.trim()) {
       toast({ title: "Lengkapi kursus", description: "Judul dan slug wajib diisi.", variant: "destructive" });
@@ -565,6 +596,48 @@ export default function AdminAspekindoLmsNative() {
     }
     setDialog(null);
     toast({ title: editingMaterial ? "Materi diperbarui" : "Materi dibuat" });
+    await loadData(true);
+  };
+
+  const saveEnrollment = async () => {
+    if (!selectedCourse || !enrollmentForm.user_id) {
+      toast({ title: "Pilih peserta", description: "Peserta wajib dipilih sebelum enrollment disimpan.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const payload = {
+      course_id: selectedCourse.id,
+      user_id: enrollmentForm.user_id,
+      status: enrollmentForm.status,
+      notes: enrollmentForm.notes.trim(),
+      completed_at: enrollmentForm.status === "completed" ? editingEnrollment?.completed_at ?? new Date().toISOString() : null,
+      last_activity_at: editingEnrollment?.last_activity_at ?? null,
+    };
+    const result = editingEnrollment
+      ? await supabase.from("aspekindo_lms_enrollments").update(payload).eq("id", editingEnrollment.id)
+      : await supabase.from("aspekindo_lms_enrollments").insert(payload);
+    setSaving(false);
+    if (result.error) {
+      toast({ title: "Enrollment gagal disimpan", description: result.error.message, variant: "destructive" });
+      return;
+    }
+    setDialog(null);
+    toast({ title: editingEnrollment ? "Enrollment diperbarui" : "Peserta ditambahkan ke kursus" });
+    await loadData(true);
+  };
+
+  const markCompletionExported = async (record: Completion) => {
+    const exportedAt = new Date().toISOString();
+    const exportBatchId = `manual-${exportedAt.slice(0, 10)}-${record.id.slice(0, 8)}`;
+    const { error: updateError } = await supabase
+      .from("aspekindo_lms_completion_records")
+      .update({ status: "exported", exported_at: exportedAt, export_batch_id: exportBatchId })
+      .eq("id", record.id);
+    if (updateError) {
+      toast({ title: "Bukti gagal ditandai sebagai diekspor", description: updateError.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Bukti ditandai sudah diekspor", description: `Batch ${exportBatchId}` });
     await loadData(true);
   };
 
@@ -847,12 +920,15 @@ export default function AdminAspekindoLmsNative() {
           <Card>
             <CardHeader className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div><CardTitle className="text-base">Roster kursus</CardTitle><CardDescription>{selectedCourse ? `Peserta untuk ${selectedCourse.title}` : "Pilih kursus di tab Kurikulum terlebih dahulu."}</CardDescription></div>
-              <Button variant="outline" size="sm" disabled={!selectedCourse || courseEnrollments.length === 0} onClick={exportRoster}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" disabled={!selectedCourse} onClick={openCreateEnrollment}><Plus className="mr-2 h-4 w-4" /> Tambah peserta</Button>
+                <Button variant="outline" size="sm" disabled={!selectedCourse || courseEnrollments.length === 0} onClick={exportRoster}><Download className="mr-2 h-4 w-4" /> Export CSV</Button>
+              </div>
             </CardHeader>
             <CardContent className="overflow-x-auto">
               {!selectedCourse ? <p className="py-8 text-center text-sm text-muted-foreground">Belum ada kursus yang dipilih.</p> : courseEnrollments.length === 0 ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Belum ada enrollment untuk kursus ini.</div> : (
                 <Table>
-                  <TableHeader><TableRow><TableHead>Peserta</TableHead><TableHead>Status</TableHead><TableHead>Progres</TableHead><TableHead>Terdaftar</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>Peserta</TableHead><TableHead>Status</TableHead><TableHead>Progres</TableHead><TableHead>Terdaftar</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {courseEnrollments.map((enrollment) => {
                       const person = profileMap.get(enrollment.user_id);
@@ -864,6 +940,7 @@ export default function AdminAspekindoLmsNative() {
                           <TableCell><Badge variant="outline">{formatStatus(enrollment.status)}</Badge></TableCell>
                           <TableCell>{completedLessons}/{selectedLessons.length} pelajaran</TableCell>
                           <TableCell className="whitespace-nowrap">{formatDate(enrollment.enrolled_at)}</TableCell>
+                          <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => openEditEnrollment(enrollment)}><Pencil className="mr-1 h-3.5 w-3.5" /> Kelola</Button></TableCell>
                         </TableRow>
                       );
                     })}
@@ -878,9 +955,9 @@ export default function AdminAspekindoLmsNative() {
             <CardContent className="overflow-x-auto">
               {!selectedCourse || courseCompletions.length === 0 ? <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">Belum ada completion record untuk kursus ini.</div> : (
                 <Table>
-                  <TableHeader><TableRow><TableHead>Nomor</TableHead><TableHead>Peserta</TableHead><TableHead>Status</TableHead><TableHead>Diterbitkan</TableHead></TableRow></TableHeader>
+                  <TableHeader><TableRow><TableHead>Nomor</TableHead><TableHead>Peserta</TableHead><TableHead>Status</TableHead><TableHead>Diterbitkan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                   <TableBody>
-                    {courseCompletions.map((record) => <TableRow key={record.id}><TableCell className="font-mono text-xs">{record.record_number}</TableCell><TableCell>{profileMap.get(record.user_id)?.full_name ?? record.user_id}</TableCell><TableCell><Badge variant="outline">{formatStatus(record.status)}</Badge></TableCell><TableCell className="whitespace-nowrap">{formatDate(record.issued_at)}</TableCell></TableRow>)}
+                    {courseCompletions.map((record) => <TableRow key={record.id}><TableCell className="font-mono text-xs">{record.record_number}</TableCell><TableCell>{profileMap.get(record.user_id)?.full_name ?? record.user_id}</TableCell><TableCell><Badge variant="outline">{formatStatus(record.status)}</Badge></TableCell><TableCell className="whitespace-nowrap">{formatDate(record.issued_at)}</TableCell><TableCell className="text-right">{record.status === "exported" ? <span className="text-xs text-muted-foreground">{record.export_batch_id}</span> : <Button size="sm" variant="outline" onClick={() => void markCompletionExported(record)}><CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Tandai diekspor</Button>}</TableCell></TableRow>)}
                   </TableBody>
                 </Table>
               )}
@@ -888,6 +965,45 @@ export default function AdminAspekindoLmsNative() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={dialog === "enrollment"} onOpenChange={(open) => !open && setDialog(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>{editingEnrollment ? "Kelola enrollment peserta" : "Tambah peserta ke kursus"}</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Peserta *</Label>
+              <Select
+                value={enrollmentForm.user_id || "none"}
+                disabled={Boolean(editingEnrollment)}
+                onValueChange={(value) => setEnrollmentForm((current) => ({ ...current, user_id: value === "none" ? "" : value }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Pilih peserta" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Pilih peserta</SelectItem>
+                  {profiles
+                    .filter((profile) => editingEnrollment?.user_id === profile.user_id || !courseEnrollments.some((item) => item.user_id === profile.user_id))
+                    .map((profile) => <SelectItem key={profile.user_id} value={profile.user_id}>{profile.full_name || profile.user_id} · {profile.company || "Tanpa perusahaan"}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={enrollmentForm.status} onValueChange={(value) => setEnrollmentForm((current) => ({ ...current, status: value }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="enrolled">Terdaftar</SelectItem>
+                  <SelectItem value="in_progress">Sedang belajar</SelectItem>
+                  <SelectItem value="completed">Selesai</SelectItem>
+                  <SelectItem value="withdrawn">Dibatalkan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label htmlFor="native-enrollment-notes">Catatan admin</Label><Textarea id="native-enrollment-notes" value={enrollmentForm.notes} onChange={(event) => setEnrollmentForm((current) => ({ ...current, notes: event.target.value }))} rows={4} placeholder="Alasan penambahan, penarikan, atau catatan operasional..." /></div>
+            <p className="rounded-lg bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">Perubahan status enrollment tidak menandai pelajaran selesai dan tidak menerbitkan completion record secara otomatis.</p>
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setDialog(null)}>Batal</Button><Button onClick={() => void saveEnrollment()} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan enrollment</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialog === "course"} onOpenChange={(open) => !open && setDialog(null)}>
         <DialogContent className="max-h-[92vh] max-w-2xl overflow-y-auto">

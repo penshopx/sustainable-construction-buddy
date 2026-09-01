@@ -445,6 +445,7 @@ test.describe("ASPEKINDO agenda calendar exports", () => {
     await expect(page.getByRole("heading", { name: "Belajar bersama, bertumbuh sebagai BUJK." })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Agenda WITA titik dua" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Daftar kegiatan" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "LMS anggota" })).toHaveAttribute("href", "/aspekindo-lms");
     await expect(page.getByRole("link", { name: "Masuk / Daftar" })).toBeVisible();
   });
 

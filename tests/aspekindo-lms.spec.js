@@ -7,6 +7,14 @@ const DRAFT_ID = "00000000-0000-4000-8000-000000000812";
 const LESSON_ONE_ID = "00000000-0000-4000-8000-000000000821";
 const LESSON_TWO_ID = "00000000-0000-4000-8000-000000000822";
 const QUESTION_ID = "00000000-0000-4000-8000-000000000831";
+const AGENDA_ID = "00000000-0000-4000-8000-000000000832";
+
+const linkedAgenda = {
+  id: AGENDA_ID,
+  title: "Klinik Persiapan Tender ASPEKINDO",
+  start_date: "2026-09-15",
+  status: "published",
+};
 
 const publishedCourse = {
   id: COURSE_ID,
@@ -17,7 +25,7 @@ const publishedCourse = {
   audience: "Anggota dan pengelola BUJK",
   status: "published",
   member_only: false,
-  agenda_id: null,
+  agenda_id: AGENDA_ID,
   created_by: null,
   published_at: "2026-08-31T00:00:00.000Z",
   created_at: "2026-08-31T00:00:00.000Z",
@@ -249,6 +257,10 @@ async function installLmsMock(page, { courses = [publishedCourse, draftCourse] }
       await responseRows(route, rows, { object: objectRequested });
       return;
     }
+    if (endpoint === "aspekindo_learning_agendas") {
+      await responseRows(route, [linkedAgenda], { object: objectRequested });
+      return;
+    }
     if (endpoint === "aspekindo_lms_sessions") {
       await responseRows(route, sessions.filter((item) => item.status === "published"));
       return;
@@ -363,6 +375,7 @@ test.describe("pengalaman peserta LMS ASPEKINDO", () => {
   test("menyimpan daftar, progres, kuis, penyelesaian, dan bukti setelah refresh", async ({ page }) => {
     await installLmsMock(page);
     await page.goto("/aspekindo-lms");
+    await expect(page.getByRole("link", { name: "Agenda terkait: Klinik Persiapan Tender ASPEKINDO" })).toHaveAttribute("href", "/agenda-pub");
     await page.getByRole("link", { name: /Daftar/ }).click();
     await expect(page).toHaveURL(new RegExp(`/aspekindo-lms/kursus/${COURSE_ID}$`));
     await page.getByRole("button", { name: "Daftar kursus" }).click();
