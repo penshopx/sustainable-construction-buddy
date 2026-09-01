@@ -10,7 +10,10 @@ import {
   resolveInsight,
   toInsightHealth,
 } from "../supabase/functions/competency-insight/contract.js";
-import { sourceUnavailableOutcome } from "../supabase/functions/competency-insight/handler.js";
+import {
+  createCompetencyInsightHandler,
+  sourceUnavailableOutcome,
+} from "../supabase/functions/competency-insight/handler.js";
 
 test("success sends only bounded recommendation keys and accepts allowlisted output", async () => {
   const availableKeys = [
@@ -141,31 +144,211 @@ test("authentication failures and invalid contracts are classified safely", asyn
       "https://insight.example.test/recommendations",
       "test-api-key",
       ["legalitas-pancek"],
-      async () => new Response("{not-json", {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }),
-    ),
-    (error) => error instanceof CompetencyInsightError && error.code === "invalid_contract",
-  );
-  await assert.rejects(
-    requestRecommendationKeys(
-      "https://insight.example.test/recommendations",
-      "test-api-key",
-      ["legalitas-pancek"],
-      responseFor({ recommendationKeys: [] }),
-    ),
-    (error) => error instanceof CompetencyInsightError && error.code === "invalid_contract",
-  );
-  await assert.rejects(
-    requestRecommendationKeys(
-      "https://insight.example.test/recommendations",
-      "test-api-key",
-      ["legalitas-pancek"],
       responseFor({ recommendationKeys: ["unknown-key"] }),
     ),
     (error) => error instanceof CompetencyInsightError && error.code === "invalid_contract",
   );
+});
+
+const INSIGHT_ENV = {
+  SUPABASE_URL: "https://supabase.example.test",
+  SUPABASE_ANON_KEY: "anon-key",
+  SUPABASE_SERVICE_ROLE_KEY: "service-key",
+  GUSTAFTA_ENGINE_URL: "https://insight.example.test/recommendations",
+};
+
+function createFakeSupabase({ admin = false, initialHealth = null, healthWriteError = null } = {}) {
+  const persistedHealth = { current: initialHealth };
+  const healthWrites = [];
+  const user = { id: "member-1" };
+
+  function resultFor(table) {
+    if (table === "aspekindo_members") return { data: { id: "member-record-1" }, error: null };
+    if (table === "competency_insight_health") return { data: persistedHealth.current, error: null };
+    return { data: [], error: null };
+  }
+
+  function queryFor(table) {
+    const query = {
+      select() {
+        return query;
+      },
+      eq() {
+        return query;
+      },
+      limit() {
+        return Promise.resolve(resultFor(table));
+      },
+      maybeSingle() {
+        return Promise.resolve(resultFor(table));
+      },
+      upsert(payload) {
+        if (healthWriteError) {
+          return Promise.resolve({ data: null, error: { message: healthWriteError } });
+        }
+        persistedHealth.current = {
+          status: payload.status,
+          failure_reason: payload.failure_reason,
+          last_probe_at: payload.last_probe_at,
+        };
+        healthWrites.push(payload);
+        return Promise.resolve({ data: null, error: null });
+      },
+      then(resolve, reject) {
+        return Promise.resolve(resultFor(table)).then(resolve, reject);
+      },
+    };
+    return query;
+  }
+
+  const userClient = {
+    auth: {
+      getUser: async () => ({ data: { user }, error: null }),
+    },
+    from: queryFor,
+    rpc: async () => ({ data: admin, error: null }),
+  };
+  const createClient = (_url, key) => {
+    assert.ok(key === INSIGHT_ENV.SUPABASE_ANON_KEY || key === INSIGHT_ENV.SUPABASE_SERVICE_ROLE_KEY);
+    return userClient;
+  };
+
+  return { createClient, healthWrites, persistedHealth };
+}
+
+function responseBody(response) {
+  return response.json();
+}
+
+function requestFor(body = {}) {
+  return new Request("https://supabase.example.test/functions/v1/competency-insight", {
+    method: "POST",
+    headers: { Authorization: "Bearer member-token", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+function createEngineFetch(scenario) {
+  let calls = 0;
+  const fetchImpl = async (_input, init) => {
+    calls += 1;
+    if (scenario === "timeout") {
+      return new Promise((_resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("fake timeout")), 100);
+        init.signal.addEventListener("abort", () => {
+          clearTimeout(timeout);
+          reject(new DOMException("The operation timed out", "TimeoutError"));
+        }, { once: true });
+      });
+    }
+    if (scenario === "authentication") {
+      return new Response(JSON.stringify({ error: "invalid key" }), { status: 401 });
+    }
+    if (scenario === "invalid-json") {
+      return new Response("{not-json", { status: 200 });
+    }
+    return new Response(JSON.stringify({ recommendationKeys: ["tender-risk"] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  fetchImpl.calls = () => calls;
+  return fetchImpl;
+}
+
+async function runIsolatedScenario({ name, envOverrides = {}, engineScenario = "connected", expected }) {
+  const fakeSupabase = createFakeSupabase();
+  const env = { ...INSIGHT_ENV, GUSTAFTA_ENGINE_API_KEY: "known-key", ...envOverrides };
+  const fetchImpl = createEngineFetch(engineScenario);
+  const getEnv = (key) => env[key];
+  const memberHandler = createCompetencyInsightHandler({
+    createClient: fakeSupabase.createClient,
+    getEnv,
+    fetchImpl,
+    timeoutMs: 10,
+    now: () => "2026-09-01T00:00:00.000Z",
+    logger: { error() {} },
+  });
+
+  const memberResponse = await memberHandler(requestFor());
+  const memberBody = await responseBody(memberResponse);
+  assert.equal(memberResponse.status, 200, `${name}: member response status`);
+  assert.equal(memberBody.source, expected.source, `${name}: member source`);
+  assert.ok(memberBody.recommendations.length > 0, `${name}: member recommendations`);
+
+  const memberHealthResponse = await memberHandler(requestFor({ action: "health" }));
+  assert.equal(memberHealthResponse.status, 403, `${name}: member health access`);
+
+  const adminClient = {
+    ...fakeSupabase.createClient(INSIGHT_ENV.SUPABASE_URL, INSIGHT_ENV.SUPABASE_ANON_KEY),
+    rpc: async () => ({ data: true, error: null }),
+  };
+  const adminHandlerWithRole = createCompetencyInsightHandler({
+    createClient: (_url, key) => key === INSIGHT_ENV.SUPABASE_SERVICE_ROLE_KEY
+      ? fakeSupabase.createClient(_url, key)
+      : adminClient,
+    getEnv,
+    fetchImpl,
+    timeoutMs: 10,
+    now: () => "2026-09-01T00:00:00.000Z",
+    logger: { error() {} },
+  });
+  const adminHealthResponse = await adminHandlerWithRole(requestFor({ action: "health" }));
+  const adminHealthBody = await responseBody(adminHealthResponse);
+  assert.equal(adminHealthResponse.status, 200, `${name}: admin health access`);
+  assert.deepEqual(adminHealthBody.health, {
+    status: expected.healthStatus,
+    failureReason: expected.failureReason,
+    lastProbeAt: "2026-09-01T00:00:00.000Z",
+  }, `${name}: saved health matches member source`);
+  assert.equal(adminHealthBody.health.status, memberBody.source, `${name}: source and health status are aligned`);
+  assert.equal(fetchImpl.calls(), expected.engineCalls, `${name}: fake engine call count`);
+  assert.equal(fakeSupabase.healthWrites.at(-1)?.status, expected.healthStatus, `${name}: persisted status`);
+  assert.equal(fakeSupabase.healthWrites.at(-1)?.failure_reason, expected.failureReason, `${name}: persisted reason`);
+}
+
+test("isolated Edge Function keeps member source and admin health aligned on every engine path", async (t) => {
+  const scenarios = [
+    {
+      name: "connected",
+      expected: { source: "connected", healthStatus: "connected", failureReason: "none", engineCalls: 1 },
+    },
+    {
+      name: "authentication rejected",
+      engineScenario: "authentication",
+      expected: { source: "deterministic", healthStatus: "deterministic", failureReason: "authentication", engineCalls: 1 },
+    },
+    {
+      name: "timeout",
+      engineScenario: "timeout",
+      expected: { source: "deterministic", healthStatus: "deterministic", failureReason: "timeout", engineCalls: 1 },
+    },
+    {
+      name: "invalid JSON",
+      engineScenario: "invalid-json",
+      expected: { source: "deterministic", healthStatus: "deterministic", failureReason: "invalid_contract", engineCalls: 1 },
+    },
+    {
+      name: "empty engine key",
+      envOverrides: { GUSTAFTA_ENGINE_API_KEY: "" },
+      expected: { source: "deterministic", healthStatus: "deterministic", failureReason: "not_configured", engineCalls: 0 },
+    },
+    {
+      name: "unknown engine key",
+      engineScenario: "authentication",
+      envOverrides: { GUSTAFTA_ENGINE_API_KEY: "unknown-key" },
+      expected: { source: "deterministic", healthStatus: "deterministic", failureReason: "authentication", engineCalls: 1 },
+    },
+    {
+      name: "missing engine configuration",
+      envOverrides: { GUSTAFTA_ENGINE_URL: undefined, GUSTAFTA_ENGINE_API_KEY: undefined },
+      expected: { source: "deterministic", healthStatus: "deterministic", failureReason: "not_configured", engineCalls: 0 },
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    await t.test(scenario.name, () => runIsolatedScenario(scenario));
+  }
 });
 
 test("health status remains admin-only without calling the insight service", () => {
@@ -189,7 +372,7 @@ test("source query failures return 500 and replace stale health with source_unav
   assert.equal(outcome.response.recommendations, undefined);
 });
 
-test("member source and admin health stay aligned for every insight outcome", async () => {
+test("contract derives admin health from every member insight outcome", async () => {
   const availableKeys = ["legalitas-pancek", "tender-risk"];
   const scenarios = [
     {
@@ -206,7 +389,7 @@ test("member source and admin health stay aligned for every insight outcome", as
       requestKeys: async () => {
         throw new CompetencyInsightError("authentication", "denied");
       },
-      expected: { source: "deterministic", failureReason: "authentication", recommendationKeys: ["legalitas-pancek", "tender-risk"] },
+      expected: { source: "deterministic", failureReason: "authentication", recommendationKeys: availableKeys },
     },
     {
       name: "timeout",
@@ -215,38 +398,29 @@ test("member source and admin health stay aligned for every insight outcome", as
       requestKeys: async () => {
         throw new CompetencyInsightError("timeout", "timed out");
       },
-      expected: { source: "deterministic", failureReason: "timeout", recommendationKeys: ["legalitas-pancek", "tender-risk"] },
+      expected: { source: "deterministic", failureReason: "timeout", recommendationKeys: availableKeys },
     },
     {
-      name: "invalid json",
+      name: "invalid contract",
       engineUrl: "https://insight.example.test/recommendations",
       engineApiKey: "test-api-key",
       requestKeys: async () => {
-        throw new CompetencyInsightError("invalid_contract", "invalid json");
+        throw new CompetencyInsightError("invalid_contract", "invalid response");
       },
-      expected: { source: "deterministic", failureReason: "invalid_contract", recommendationKeys: ["legalitas-pancek", "tender-risk"] },
-    },
-    {
-      name: "empty or unknown keys",
-      engineUrl: "https://insight.example.test/recommendations",
-      engineApiKey: "test-api-key",
-      requestKeys: async () => {
-        throw new CompetencyInsightError("invalid_contract", "no usable keys");
-      },
-      expected: { source: "deterministic", failureReason: "invalid_contract", recommendationKeys: ["legalitas-pancek", "tender-risk"] },
+      expected: { source: "deterministic", failureReason: "invalid_contract", recommendationKeys: availableKeys },
     },
     {
       name: "configuration missing",
       engineUrl: "",
       engineApiKey: "",
-      expected: { source: "deterministic", failureReason: "not_configured", recommendationKeys: ["legalitas-pancek", "tender-risk"] },
+      expected: { source: "deterministic", failureReason: "not_configured", recommendationKeys: availableKeys },
     },
     {
       name: "no missing recommendations",
       engineUrl: "https://insight.example.test/recommendations",
       engineApiKey: "test-api-key",
-      expected: { source: "deterministic", failureReason: "none", recommendationKeys: [] },
       missingKeys: [],
+      expected: { source: "deterministic", failureReason: "none", recommendationKeys: [] },
     },
   ];
 
@@ -262,5 +436,122 @@ test("member source and admin health stay aligned for every insight outcome", as
       status: outcome.source,
       failureReason: outcome.failureReason,
     }, scenario.name);
+  }
+});
+
+test("global admin health follows the latest persisted probe during interleaved requests", async () => {
+  const fakeSupabase = createFakeSupabase();
+  let releaseConnectedEngine;
+  let markConnectedEngineStarted;
+  const connectedEngineStarted = new Promise((resolve) => {
+    markConnectedEngineStarted = resolve;
+  });
+  const connectedEngineReleased = new Promise((resolve) => {
+    releaseConnectedEngine = resolve;
+  });
+  const connectedFetch = async () => {
+    markConnectedEngineStarted();
+    await connectedEngineReleased;
+    return new Response(JSON.stringify({ recommendationKeys: ["tender-risk"] }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  };
+  const connectedEnv = { ...INSIGHT_ENV, GUSTAFTA_ENGINE_API_KEY: "known-key" };
+  const connectedHandler = createCompetencyInsightHandler({
+    createClient: fakeSupabase.createClient,
+    getEnv: (key) => connectedEnv[key],
+    fetchImpl: connectedFetch,
+    now: () => "2026-09-01T00:00:02.000Z",
+    logger: { error() {} },
+  });
+  const fallbackEnv = {
+    ...INSIGHT_ENV,
+    GUSTAFTA_ENGINE_URL: undefined,
+    GUSTAFTA_ENGINE_API_KEY: undefined,
+  };
+  const fallbackHandler = createCompetencyInsightHandler({
+    createClient: fakeSupabase.createClient,
+    getEnv: (key) => fallbackEnv[key],
+    fetchImpl: async () => {
+      throw new Error("The unconfigured engine must not be called");
+    },
+    now: () => "2026-09-01T00:00:01.000Z",
+    logger: { error() {} },
+  });
+
+  const connectedResponsePromise = connectedHandler(requestFor());
+  await connectedEngineStarted;
+
+  const fallbackResponse = await fallbackHandler(requestFor());
+  assert.equal((await responseBody(fallbackResponse)).source, "deterministic");
+  assert.deepEqual(fakeSupabase.persistedHealth.current, {
+    status: "deterministic",
+    failure_reason: "not_configured",
+    last_probe_at: "2026-09-01T00:00:01.000Z",
+  });
+
+  releaseConnectedEngine();
+  const connectedResponse = await connectedResponsePromise;
+  assert.equal((await responseBody(connectedResponse)).source, "connected");
+  assert.deepEqual(fakeSupabase.persistedHealth.current, {
+    status: "connected",
+    failure_reason: "none",
+    last_probe_at: "2026-09-01T00:00:02.000Z",
+  });
+  assert.deepEqual(
+    fakeSupabase.healthWrites.map(({ status, failure_reason }) => ({ status, failure_reason })),
+    [
+      { status: "deterministic", failure_reason: "not_configured" },
+      { status: "connected", failure_reason: "none" },
+    ],
+  );
+});
+
+test("member insight is not returned successfully when matching admin health cannot be stored", async (t) => {
+  const staleHealth = {
+    status: "connected",
+    failure_reason: "none",
+    last_probe_at: "2026-08-31T23:59:00.000Z",
+  };
+  const scenarios = [
+    {
+      name: "service role key missing",
+      fakeOptions: { initialHealth: staleHealth },
+      envOverrides: { SUPABASE_SERVICE_ROLE_KEY: undefined },
+    },
+    {
+      name: "health upsert rejected",
+      fakeOptions: { initialHealth: staleHealth, healthWriteError: "database unavailable" },
+      envOverrides: {},
+    },
+  ];
+
+  for (const scenario of scenarios) {
+    await t.test(scenario.name, async () => {
+      const fakeSupabase = createFakeSupabase(scenario.fakeOptions);
+      const env = {
+        ...INSIGHT_ENV,
+        GUSTAFTA_ENGINE_URL: undefined,
+        GUSTAFTA_ENGINE_API_KEY: undefined,
+        ...scenario.envOverrides,
+      };
+      const handler = createCompetencyInsightHandler({
+        createClient: fakeSupabase.createClient,
+        getEnv: (key) => env[key],
+        fetchImpl: async () => {
+          throw new Error("The unconfigured engine must not be called");
+        },
+        now: () => "2026-09-01T00:00:00.000Z",
+        logger: { error() {} },
+      });
+
+      const response = await handler(requestFor());
+      assert.equal(response.status, 500);
+      assert.deepEqual(await responseBody(response), {
+        error: "Unable to create competency insight",
+      });
+      assert.deepEqual(fakeSupabase.persistedHealth.current, staleHealth);
+    });
   }
 });

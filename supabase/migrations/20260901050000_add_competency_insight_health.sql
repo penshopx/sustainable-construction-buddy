@@ -1,4 +1,5 @@
--- Store only the safe operational state of the competency insight probe.
+-- Store only the safe operational state of the latest globally persisted
+-- competency insight probe. This is not a per-member history.
 -- Credentials, URLs, member payloads, and provider names never belong in this table.
 CREATE TABLE IF NOT EXISTS public.competency_insight_health (
   id text PRIMARY KEY CHECK (id = 'global'),
