@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  CompetencyInsightError,
   ENGINE_SCHEMA_VERSION,
   deterministicKeys,
   parseRecommendationKeys,
@@ -78,7 +79,7 @@ test("timeout rejects and lets the function use deterministic fallback", async (
       neverResolvingFetch,
       10,
     ),
-    (error) => error?.name === "TimeoutError",
+    (error) => error instanceof CompetencyInsightError && error.code === "timeout",
   );
   assert.deepEqual(deterministicKeys(["legalitas-pancek"]), ["legalitas-pancek"]);
 });
@@ -104,5 +105,40 @@ test("invalid, unknown, and excessive output is bounded to the internal catalog"
       ],
     }, availableKeys),
     ["proyek-workspace", "tender-risk", "sertifikasi-assessment"],
+  );
+});
+
+test("authentication failures and invalid contracts are classified safely", async () => {
+  const responseFor = (body, status = 200) => async () => new Response(
+    body === undefined ? "" : JSON.stringify(body),
+    { status, headers: { "Content-Type": "application/json" } },
+  );
+
+  await assert.rejects(
+    requestRecommendationKeys(
+      "https://insight.example.test/recommendations",
+      "test-api-key",
+      ["legalitas-pancek"],
+      responseFor({ error: "unauthorized" }, 401),
+    ),
+    (error) => error instanceof CompetencyInsightError && error.code === "authentication",
+  );
+  await assert.rejects(
+    requestRecommendationKeys(
+      "https://insight.example.test/recommendations",
+      "test-api-key",
+      ["legalitas-pancek"],
+      responseFor({ recommendationKeys: "not-an-array" }),
+    ),
+    (error) => error instanceof CompetencyInsightError && error.code === "invalid_contract",
+  );
+  await assert.rejects(
+    requestRecommendationKeys(
+      "https://insight.example.test/recommendations",
+      "test-api-key",
+      ["legalitas-pancek"],
+      responseFor({ recommendationKeys: ["unknown-key"] }),
+    ),
+    (error) => error instanceof CompetencyInsightError && error.code === "invalid_contract",
   );
 });

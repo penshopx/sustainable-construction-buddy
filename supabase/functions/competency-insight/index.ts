@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
+  CompetencyInsightError,
   deterministicKeys,
   requestRecommendationKeys,
   toRecommendation,
@@ -22,6 +23,68 @@ function isPresent(value: unknown) {
   return Array.isArray(value) ? value.length > 0 : Boolean(value);
 }
 
+type InsightHealthStatus = "connected" | "deterministic";
+type InsightFailureReason =
+  | "none"
+  | "not_configured"
+  | "authentication"
+  | "timeout"
+  | "invalid_contract"
+  | "unavailable"
+  | "source_unavailable";
+
+const HEALTH_ROW_ID = "global";
+
+async function recordInsightHealth(
+  supabaseUrl: string,
+  status: InsightHealthStatus,
+  failureReason: InsightFailureReason,
+) {
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceKey) {
+    console.error("Competency insight health storage is not configured");
+    return;
+  }
+
+  const adminClient = createClient(supabaseUrl, serviceKey);
+  const { error } = await adminClient.from("competency_insight_health").upsert({
+    id: HEALTH_ROW_ID,
+    status,
+    failure_reason: failureReason,
+    last_probe_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  });
+  if (error) {
+    console.error("Competency insight health update failed", error.message);
+  }
+}
+
+async function readInsightHealth(client: ReturnType<typeof createClient>) {
+  const { data, error } = await client
+    .from("competency_insight_health")
+    .select("status, failure_reason, last_probe_at")
+    .eq("id", HEALTH_ROW_ID)
+    .maybeSingle();
+  if (error) {
+    console.error("Competency insight health read failed", error.message);
+    return null;
+  }
+  if (!data) return null;
+  return {
+    status: data.status as InsightHealthStatus,
+    failureReason: data.failure_reason as InsightFailureReason,
+    lastProbeAt: data.last_probe_at,
+  };
+}
+
+async function isAdmin(client: ReturnType<typeof createClient>, userId: string) {
+  const { data, error } = await client.rpc("has_role", {
+    _user_id: userId,
+    _role: "admin",
+  });
+  return !error && data === true;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -39,6 +102,21 @@ serve(async (req) => {
     });
     const { data: { user }, error: authError } = await client.auth.getUser();
     if (authError || !user) return json({ error: "Unauthorized" }, 401);
+
+    let requestBody: { action?: unknown } = {};
+    try {
+      const parsedBody = await req.json();
+      if (parsedBody && typeof parsedBody === "object" && !Array.isArray(parsedBody)) {
+        requestBody = parsedBody as { action?: unknown };
+      }
+    } catch {
+      // The insight request body is optional; malformed JSON is treated as a normal request.
+    }
+
+    if (requestBody.action === "health") {
+      if (!(await isAdmin(client, user.id))) return json({ error: "Forbidden" }, 403);
+      return json({ health: await readInsightHealth(client) });
+    }
 
     const [
       member,
@@ -94,6 +172,7 @@ serve(async (req) => {
     const sourceError = results.find((result) => result.error)?.error;
     if (sourceError) {
       console.error("Competency source query failed", sourceError.message);
+      await recordInsightHealth(supabaseUrl, "deterministic", "source_unavailable");
       return json({ error: "Unable to read competency sources" }, 500);
     }
 
@@ -128,7 +207,9 @@ serve(async (req) => {
     const engineUrl = Deno.env.get("GUSTAFTA_ENGINE_URL");
     const engineApiKey = Deno.env.get("GUSTAFTA_ENGINE_API_KEY");
 
-    if (engineUrl && engineApiKey && missingKeys.length > 0) {
+    if (missingKeys.length === 0) {
+      await recordInsightHealth(supabaseUrl, "deterministic", "none");
+    } else if (engineUrl && engineApiKey) {
       try {
         const requestedKeys = await requestRecommendationKeys(
           engineUrl,
@@ -136,6 +217,7 @@ serve(async (req) => {
           missingKeys,
         );
         if (requestedKeys.length > 0) {
+          await recordInsightHealth(supabaseUrl, "connected", "none");
           return json({
             source: "connected",
             recommendations: requestedKeys.map(toRecommendation).filter(Boolean),
@@ -143,11 +225,17 @@ serve(async (req) => {
           });
         }
       } catch (error) {
+        const failureReason = error instanceof CompetencyInsightError
+          ? error.code
+          : "unavailable";
         console.error(
           "Competency engine request failed",
           error instanceof Error ? error.message : "Unknown error",
         );
+        await recordInsightHealth(supabaseUrl, "deterministic", failureReason);
       }
+    } else {
+      await recordInsightHealth(supabaseUrl, "deterministic", "not_configured");
     }
 
     return json({

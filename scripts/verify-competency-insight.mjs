@@ -81,12 +81,58 @@ try {
   assert.ok(Array.isArray(insight.body?.recommendations));
   assert.ok(insight.body.recommendations.length > 0);
   assert.ok(insight.body.recommendations.length <= 3);
+  assert.equal("health" in insight.body, false);
+  assert.deepEqual(Object.keys(insight.body).sort(), ["generatedAt", "recommendations", "source"]);
+
+  const memberHealth = await request("/functions/v1/competency-insight", {
+    method: "POST",
+    headers: {
+      apikey: publishableKey,
+      Authorization: `Bearer ${signedIn.body.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "health" }),
+  });
+  assert.equal(memberHealth.response.status, 403);
+
+  const adminRole = await request("/rest/v1/user_roles", {
+    method: "POST",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ user_id: userId, role: "admin" }),
+  });
+  assert.equal(adminRole.response.status, 201);
+
+  const adminHealth = await request("/functions/v1/competency-insight", {
+    method: "POST",
+    headers: {
+      apikey: publishableKey,
+      Authorization: `Bearer ${signedIn.body.access_token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ action: "health" }),
+  });
+  assert.equal(adminHealth.response.status, 200);
+  assert.ok(["connected", "deterministic"].includes(adminHealth.body?.health?.status));
+  assert.equal(typeof adminHealth.body?.health?.failureReason, "string");
+  assert.equal(typeof adminHealth.body?.health?.lastProbeAt, "string");
+  assert.deepEqual(
+    Object.keys(adminHealth.body.health).sort(),
+    ["failureReason", "lastProbeAt", "status"],
+  );
 
   console.log(JSON.stringify({
     unauthenticatedStatus: unauthenticated.response.status,
     authenticatedStatus: insight.response.status,
+    memberHealthStatus: memberHealth.response.status,
+    adminHealthStatus: adminHealth.response.status,
     source: insight.body.source,
     recommendationCount: insight.body.recommendations.length,
+    healthStatus: adminHealth.body.health.status,
+    healthFailureReason: adminHealth.body.health.failureReason,
   }));
 } finally {
   if (userId) {

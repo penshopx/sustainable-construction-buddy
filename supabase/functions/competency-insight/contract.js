@@ -2,6 +2,14 @@ export const ENGINE_SCHEMA_VERSION = "pub-siap-v1";
 export const ENGINE_TIMEOUT_MS = 8_000;
 export const MAX_RECOMMENDATIONS = 3;
 
+export class CompetencyInsightError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = "CompetencyInsightError";
+    this.code = code;
+  }
+}
+
 export const recommendationCatalog = {
   "legalitas-member": {
     focus: "legalitas",
@@ -104,6 +112,19 @@ export function parseRecommendationKeys(payload, availableKeys) {
     .slice(0, MAX_RECOMMENDATIONS);
 }
 
+function parseRecommendationKeysStrict(payload, availableKeys) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    throw new CompetencyInsightError("invalid_contract", "Insight response must be an object");
+  }
+  if (!Array.isArray(payload.recommendationKeys)) {
+    throw new CompetencyInsightError(
+      "invalid_contract",
+      "Insight response is missing recommendation keys",
+    );
+  }
+  return parseRecommendationKeys(payload, availableKeys);
+}
+
 export async function requestRecommendationKeys(
   engineUrl,
   engineApiKey,
@@ -111,27 +132,59 @@ export async function requestRecommendationKeys(
   fetchImpl = fetch,
   timeoutMs = ENGINE_TIMEOUT_MS,
 ) {
-  const url = new URL(engineUrl);
+  let url;
+  try {
+    url = new URL(engineUrl);
+  } catch {
+    throw new CompetencyInsightError("unavailable", "Insight URL is invalid");
+  }
   if (url.protocol !== "https:") {
-    throw new Error("Competency engine URL must use HTTPS");
+    throw new CompetencyInsightError("unavailable", "Insight URL must use HTTPS");
   }
 
-  const response = await fetchImpl(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${engineApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      schemaVersion: ENGINE_SCHEMA_VERSION,
-      availableRecommendationKeys: deterministicKeys(availableKeys),
-    }),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  let response;
+  try {
+    response = await fetchImpl(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${engineApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        schemaVersion: ENGINE_SCHEMA_VERSION,
+        availableRecommendationKeys: deterministicKeys(availableKeys),
+      }),
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+      throw new CompetencyInsightError("timeout", "Insight request timed out");
+    }
+    throw new CompetencyInsightError("unavailable", "Insight request failed");
+  }
 
   if (!response.ok) {
-    throw new Error(`Competency engine returned HTTP ${response.status}`);
+    if (response.status === 401 || response.status === 403) {
+      throw new CompetencyInsightError("authentication", "Insight authentication failed");
+    }
+    if (response.status === 408 || response.status === 504) {
+      throw new CompetencyInsightError("timeout", "Insight request timed out");
+    }
+    throw new CompetencyInsightError("unavailable", "Insight service returned an error");
   }
 
-  return parseRecommendationKeys(await response.json(), availableKeys);
+  let payload;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new CompetencyInsightError("invalid_contract", "Insight response is not valid JSON");
+  }
+  const recommendationKeys = parseRecommendationKeysStrict(payload, availableKeys);
+  if (deterministicKeys(availableKeys).length > 0 && recommendationKeys.length === 0) {
+    throw new CompetencyInsightError(
+      "invalid_contract",
+      "Insight response has no usable recommendation keys",
+    );
+  }
+  return recommendationKeys;
 }
