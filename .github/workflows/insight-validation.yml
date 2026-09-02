@@ -61,7 +61,7 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
         run: npm run test:routing
 
-      - name: Run authenticated frontend smoke tests
+      - name: Run authenticated frontend smoke tests, including LMS
         env:
           VITE_SUPABASE_URL: https://ci-playwright.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key

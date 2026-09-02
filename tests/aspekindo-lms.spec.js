@@ -363,7 +363,7 @@ async function installLmsMock(page, {
   return state;
 }
 
-test.describe("pengalaman peserta LMS ASPEKINDO", () => {
+test.describe("pengalaman peserta LMS ASPEKINDO @pr-auth", () => {
   test("menangani katalog kosong dan menolak akses kursus draft", async ({ page }) => {
     await installLmsMock(page, { courses: [draftCourse] });
     await page.goto("/aspekindo-lms");
