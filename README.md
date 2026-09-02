@@ -69,14 +69,21 @@ Use the guarded release command so the production application and the
 npm run release
 ```
 
-The release runs the TypeScript check and frontend build, then invokes
-`npm run publish:insight`. That publisher deploys the Edge Function and runs
-the live contract probe. A deployment or probe failure returns a non-zero
-status and blocks the release; its failure summary is sanitized JSON retained
-in the release log. Do not deploy `competency-insight` directly with the
-Supabase CLI.
+The release runs the standard insight validator, TypeScript check, and
+frontend build, then invokes `npm run publish:insight`. The standard validator
+covers the local contract tests and publication gate. That publisher deploys
+the Edge Function and runs the live contract probe. A validation, deployment,
+or probe failure returns a non-zero status and blocks the release; failure
+summaries are sanitized JSON retained in the release log. Do not deploy
+`competency-insight` directly with the Supabase CLI.
 
 ## Quality checks
+
+Run the standard insight validation before an insight release:
+
+```sh
+npm run validate:insight
+```
 
 Run the full TypeScript check before building a release:
 

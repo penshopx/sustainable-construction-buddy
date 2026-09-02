@@ -127,7 +127,7 @@ test("release configuration keeps the insight publication gate", async () => {
   assert.deepEqual(JSON.parse(buildMatch[1]), ["npm", "run", "release"]);
   assert.deepEqual(
     releaseSteps,
-    ["npm run test:insight:publish", "npm run build", "npm run publish:insight"],
+    ["npm run validate:insight", "npm run build", "npm run publish:insight"],
     "the release script must run validation and propagate the insight publication result",
   );
 });
