@@ -95,6 +95,13 @@ npm run typecheck
 ```
 
 `npm run build` runs this check automatically before Vite creates the production bundle.
+
+Every pull request runs the same standard validation in
+`.github/workflows/insight-validation.yml`. The workflow's source-of-truth
+command is `npm run test:insight:validate`; because that command includes both
+the insight contract checks and the deterministic publication gate, either
+failure makes the pull request check fail.
+
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!
