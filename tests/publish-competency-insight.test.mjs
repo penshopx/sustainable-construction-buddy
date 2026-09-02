@@ -8,6 +8,8 @@ import test from "node:test";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publisherPath = path.join(rootDir, "scripts", "publish-competency-insight.mjs");
+const packageJsonPath = path.join(rootDir, "package.json");
+const replitConfigPath = path.join(rootDir, ".replit");
 const projectRef = "publication-gate-test-ref";
 const sensitiveValues = [
   "publication-gate-secret",
@@ -79,6 +81,20 @@ async function readTrace(tracePath) {
   return trace.trim().split("\n").filter(Boolean);
 }
 
+function readTomlSection(source, sectionName) {
+  const lines = source.split(/\r?\n/);
+  const sectionHeader = `[${sectionName}]`;
+  const sectionStart = lines.findIndex((line) => line.trim() === sectionHeader);
+  assert.notEqual(sectionStart, -1, `${sectionHeader} section is missing`);
+
+  const sectionLines = [];
+  for (const line of lines.slice(sectionStart + 1)) {
+    if (/^\s*\[[^\]]+\]\s*$/.test(line)) break;
+    sectionLines.push(line);
+  }
+  return sectionLines.join("\n");
+}
+
 function assertSanitizedOutput(result) {
   assert.notEqual(result.status, 0);
   assert.equal(result.signal, null);
@@ -94,6 +110,27 @@ function assertSanitizedOutput(result) {
   });
   assert.equal(result.stdout, "");
 }
+
+test("release configuration keeps the insight publication gate", async () => {
+  const [packageJsonSource, replitConfig] = await Promise.all([
+    readFile(packageJsonPath, "utf8"),
+    readFile(replitConfigPath, "utf8"),
+  ]);
+  const packageJson = JSON.parse(packageJsonSource);
+  const releaseScript = packageJson.scripts?.release;
+  const deploymentSection = readTomlSection(replitConfig, "deployment");
+  const buildMatch = deploymentSection.match(/^\s*build\s*=\s*(.+?)\s*$/m);
+  const releaseSteps = releaseScript?.split("&&").map((step) => step.trim());
+
+  assert.ok(releaseScript, "package.json must define a release script");
+  assert.ok(buildMatch, ".replit deployment section must define a build command");
+  assert.deepEqual(JSON.parse(buildMatch[1]), ["npm", "run", "release"]);
+  assert.deepEqual(
+    releaseSteps,
+    ["npm run test:insight:publish", "npm run build", "npm run publish:insight"],
+    "the release script must run validation and propagate the insight publication result",
+  );
+});
 
 test("live probe runs only after a successful deployment", async (t) => {
   const fakeNpm = await createFakeNpm(t);
