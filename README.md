@@ -79,20 +79,22 @@ summaries are sanitized JSON retained in the release log. Do not deploy
 
 ## Quality checks
 
-Run the standard insight validation before an insight release:
+Run the standard competency insight validation before releasing. It runs both
+the insight contract checks and the deterministic publication gate; either
+failure stops the validation with a non-zero status:
 
 ```sh
-npm run validate:insight
+npm run test:insight:validate
 ```
 
-Run the full TypeScript check before building a release:
+`npm run validate:insight` remains available as a compatibility alias. Run the
+full TypeScript check independently when checking the frontend:
 
 ```sh
 npm run typecheck
 ```
 
 `npm run build` runs this check automatically before Vite creates the production bundle.
-
 ## Can I connect a custom domain to my Lovable project?
 
 Yes, you can!

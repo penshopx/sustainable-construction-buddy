@@ -118,16 +118,28 @@ test("release configuration keeps the insight publication gate", async () => {
   ]);
   const packageJson = JSON.parse(packageJsonSource);
   const releaseScript = packageJson.scripts?.release;
+  const insightValidationScript = packageJson.scripts?.["test:insight:validate"];
+  const validationAlias = packageJson.scripts?.["validate:insight"];
   const deploymentSection = readTomlSection(replitConfig, "deployment");
   const buildMatch = deploymentSection.match(/^\s*build\s*=\s*(.+?)\s*$/m);
   const releaseSteps = releaseScript?.split("&&").map((step) => step.trim());
 
   assert.ok(releaseScript, "package.json must define a release script");
+  assert.equal(
+    insightValidationScript,
+    "node scripts/validate-competency-insight.mjs",
+    "the standard insight validation must run both insight checks and stop on failure",
+  );
+  assert.equal(
+    validationAlias,
+    "npm run test:insight:validate",
+    "the legacy validation command must point to the standard insight validation",
+  );
   assert.ok(buildMatch, ".replit deployment section must define a build command");
   assert.deepEqual(JSON.parse(buildMatch[1]), ["npm", "run", "release"]);
   assert.deepEqual(
     releaseSteps,
-    ["npm run validate:insight", "npm run build", "npm run publish:insight"],
+    ["npm run test:insight:validate", "npm run build", "npm run publish:insight"],
     "the release script must run validation and propagate the insight publication result",
   );
 });
