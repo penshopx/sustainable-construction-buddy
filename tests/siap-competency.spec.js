@@ -33,7 +33,7 @@ async function installSession(page) {
   });
 }
 
-test("member can inspect an explainable 4 SIAP map without cross-member queries", async ({ page }) => {
+test("member can inspect an explainable 4 SIAP map without cross-member queries @pr-auth", async ({ page }) => {
   await installSession(page);
   const userOwnedRequests = [];
   const obligationRequests = [];

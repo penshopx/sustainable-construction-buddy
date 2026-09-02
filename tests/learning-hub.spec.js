@@ -41,7 +41,7 @@ async function installSession(page) {
   });
 }
 
-test("authenticated users can move between the unified learning hub tabs", async ({ page }) => {
+test("authenticated users can move between the unified learning hub tabs @pr-auth", async ({ page }) => {
   await installSession(page);
   await page.goto("/courses");
 

@@ -33,7 +33,7 @@ async function installSession(page, { email, userId }) {
   return user;
 }
 
-test.describe("super admin access management", () => {
+test.describe("super admin access management @pr-auth", () => {
   test("super admin grants and revokes operational admin access", async ({ page }) => {
     const superAdminId = "00000000-0000-4000-8000-000000000030";
     const targetUserId = "00000000-0000-4000-8000-000000000031";

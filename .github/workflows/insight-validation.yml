@@ -57,6 +57,24 @@ jobs:
 
       - name: Run frontend routing smoke test
         env:
-          VITE_SUPABASE_URL: https://ci-placeholder.invalid
+          VITE_SUPABASE_URL: https://ci-playwright.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
         run: npm run test:routing
+
+      - name: Run authenticated frontend smoke tests
+        env:
+          VITE_SUPABASE_URL: https://ci-playwright.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
+          PLAYWRIGHT_SUPABASE_PROJECT_REF: ci-playwright
+        run: npm run test:auth
+
+      - name: Upload authenticated Playwright artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-playwright-results
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7

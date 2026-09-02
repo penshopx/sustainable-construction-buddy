@@ -14,7 +14,10 @@ function readDotEnvValue(name) {
 }
 
 export function getSupabaseProjectRef() {
-  const configuredProjectRef = process.env.VITE_SUPABASE_PROJECT_ID || readDotEnvValue("VITE_SUPABASE_PROJECT_ID");
+  const configuredProjectRef =
+    process.env.PLAYWRIGHT_SUPABASE_PROJECT_REF ||
+    process.env.VITE_SUPABASE_PROJECT_ID ||
+    readDotEnvValue("VITE_SUPABASE_PROJECT_ID");
   if (configuredProjectRef) {
     return configuredProjectRef;
   }
