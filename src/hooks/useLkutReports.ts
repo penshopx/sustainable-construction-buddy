@@ -40,7 +40,13 @@ export function useLkutReports() {
       .select()
       .single();
     if (error) {
-      toast({ title: "Gagal membuat laporan", description: error.message, variant: "destructive" });
+      toast({
+        title: "Gagal membuat laporan",
+        description: error.code === "23505"
+          ? `LKUT ${year} sudah ada. Pilih tahun laporan yang lain.`
+          : error.message,
+        variant: "destructive",
+      });
       return null;
     }
     toast({ title: `LKUT ${year} dibuat` });

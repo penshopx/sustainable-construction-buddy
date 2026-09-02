@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useLkutReports, LkutReport } from "@/hooks/useLkutReports";
 import { useLkutDocuments } from "@/hooks/useLkutDocuments";
@@ -61,13 +61,25 @@ export default function LkutReportPage() {
   const [activeTab, setActiveTab] = useState("kepatuhan");
   const [mainTab, setMainTab] = useState("lkut");
   const { documents, uploading, uploadDocument, deleteDocument, getByComponent, acceptString, fetchDocs } = useLkutDocuments(editReport?.id);
-  const handleCreate = async () => {
-    const result = await createReport(Number(selectedYear));
-    setCreateOpen(false);
-    if (result) {
-      setEditReport(result);
-      setForm(result);
+  const availableYears = Array.from({ length: 5 }, (_, i) => currentYear - i);
+  const existingYears = reports.map(r => r.report_year);
+  const creatableYears = availableYears.filter(y => !existingYears.includes(y));
+
+  useEffect(() => {
+    if (creatableYears.length > 0 && !creatableYears.includes(Number(selectedYear))) {
+      setSelectedYear(String(creatableYears[0]));
     }
+  }, [creatableYears, selectedYear]);
+
+  const handleCreate = async () => {
+    const year = Number(selectedYear);
+    if (!Number.isInteger(year) || !creatableYears.includes(year)) return;
+
+    const result = await createReport(year);
+    if (!result) return;
+    setCreateOpen(false);
+    setEditReport(result);
+    setForm(result);
   };
 
   const openEdit = (r: LkutReport) => {
@@ -90,9 +102,6 @@ export default function LkutReportPage() {
     const success = await submitReport(editReport.id);
     if (success) setEditReport(null);
   };
-
-  const availableYears = Array.from({ length: 5 }, (_, i) => currentYear - 1 - i);
-  const existingYears = reports.map(r => r.report_year);
 
   return (
     <div className="space-y-6">
@@ -227,18 +236,23 @@ export default function LkutReportPage() {
             <Select value={selectedYear} onValueChange={setSelectedYear}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {availableYears.filter(y => !existingYears.includes(y)).map(y => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                ))}
+                  {creatableYears.length > 0 ? creatableYears.map(y => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  )) : (
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      Semua tahun laporan sudah dibuat
+                    </div>
+                  )}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-2">
-              Laporan tahun N disampaikan paling lambat 30 April tahun N+1
+                Pilihan tahun mencakup lima tahun terakhir ({availableYears[availableYears.length - 1]}–{availableYears[0]}).
+                Laporan tahun N disampaikan paling lambat 30 April tahun N+1
             </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Batal</Button>
-            <Button onClick={handleCreate}>Buat Laporan</Button>
+              <Button onClick={handleCreate} disabled={creatableYears.length === 0}>Buat Laporan</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
