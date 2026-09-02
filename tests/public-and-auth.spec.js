@@ -12,7 +12,7 @@ test.describe("public and unauthenticated user flows", () => {
       })
       .first();
 
-    await expect(page).toHaveTitle(/PUB Konstruksi/);
+    await expect(page).toHaveTitle(/PUB ASPEKINDO/);
     await expect(
       page.getByRole("heading", {
         name: /Industri Konstruksi Berubah Cepat/,

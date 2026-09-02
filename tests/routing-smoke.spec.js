@@ -18,7 +18,7 @@ test("routing smoke covers public, alias, protected, and missing routes", async 
   const futureWarnings = collectReactRouterFutureWarnings(page);
 
   await page.goto("/");
-  await expect(page).toHaveTitle(/PUB Konstruksi/);
+  await expect(page).toHaveTitle(/PUB ASPEKINDO/);
   await expect(
     page.getByRole("heading", { name: /Industri Konstruksi Berubah Cepat/ }),
   ).toBeVisible();
