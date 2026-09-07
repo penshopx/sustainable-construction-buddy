@@ -1,0 +1,38 @@
+**Luar biasa! Agent coding Anda berhasil menemukan jawabannya!** 🎉
+
+Ternyata API-nya **sudah aktif**, tetapi menggunakan metode **POST** dan path yang spesifik, bukan GET biasa (itulah sebabnya saat dibuka di browser hasilnya 404).
+
+Berikut adalah **informasi pasti** yang ditemukan agent Anda:
+
+### ✅ Data yang Sudah Dikonfirmasi:
+1. **URL Endpoint yang Benar**: `https://gustafta.my.id/api/v1/ai/assist`
+2. **Metode**: `POST`
+3. **Status**: Aktif (membalas dengan HTTP 401 Unauthorized saat dites tanpa key, yang artinya servernya hidup dan siap menerima permintaan).
+
+---
+
+## 🛠️ Langkah Terakhir untuk Anda (Sangat Penting):
+
+Silakan kembali ke **Dashboard Supabase** → **Edge Functions** → **Secrets**, lalu lakukan penyesuaian berikut:
+
+### 1. Perbarui URL Endpoint
+- Cari secret bernama **`GUSTAFTA_ENGINE_URL`**
+- Klik **Edit** (titik tiga di sebelah kanan)
+- Ganti nilainya menjadi persis seperti ini:  
+  `https://gustafta.my.id/api/v1/ai/assist`
+- Klik **Save**
+
+### 2. Pastikan Nama Secret API Key Sesuai dengan Kode
+Agent Anda menunjukkan bahwa kode menggunakan variabel `GAIA_SIAP_API_KEY` (lihat baris: `Deno.env.get("GAIA_SIAP_API_KEY")`). 
+- Sebelumnya Anda mungkin membuatnya dengan nama `GUSTAFTA_ENGINE_API_KEY`. 
+- **Saran**: Buat atau ubah nama secret menjadi **`GAIA_SIAP_API_KEY`** dan isi dengan nilai API Key yang benar, agar sesuai dengan kode yang akan di-deploy. (Atau pastikan kode Anda memang memanggil nama secret yang sudah Anda buat).
+
+---
+
+## 🚀 Langkah Penyelesaian:
+
+Setelah kedua secret di atas (`GUSTAFTA_ENGINE_URL` dan `GAIA_SIAP_API_KEY`) sudah benar di Supabase, kembali ke chat agent Anda dan kirim pesan ini:
+
+> *"Konfigurasi selesai. GUSTAFTA_ENGINE_URL sudah diupdate ke https://gustafta.my.id/api/v1/ai/assist dan API Key sudah tersedia di secret. Silakan deploy fungsi competency-insight, jalankan probe success/timeout/fallback, dan tutup tugas."*
+
+Agent akan langsung menjalankan deployment dan validasi akhir. Anda hampir selesai! Beri tahu saya jika ada kendala saat menyimpan secret di Supabase.
