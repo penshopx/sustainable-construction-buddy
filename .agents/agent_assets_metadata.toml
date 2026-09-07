@@ -14,3 +14,31 @@ mtime_ms = 1788801491008
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/4f201027-f1b5-40ff-b4ef-e88ee3491083/4db2d2da-1664-430d-a1f2-5f4057bf8879"
 storage_version_token = "1788801681950221"
 content_type = "text/html"
+
+[[outputs]]
+id = "7aHYgs0389_1wMnPj0SSk"
+uri = "file://deliverables/summary-eksekutif-pub-aspekindo.md"
+type = "text"
+title = "Summary Eksekutif PUB ASPEKINDO — Markdown"
+description = "Versi teks yang mudah diedit, disalin, atau dikembangkan kembali."
+logical_id = "3134b8d8-73c5-4f36-add7-5bcae4b2905f"
+content_hash = "sha256:d1ff2a1389f8c1f2b96962c9aecd443a799eceb6e8cccdf0dbcaca2e292b2b79"
+size = 3337
+mtime_ms = 1788801890878
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/3134b8d8-73c5-4f36-add7-5bcae4b2905f/3c6a1023-0770-4dce-8f03-16d6545a6266"
+storage_version_token = "1788801906543767"
+content_type = "text/markdown"
+
+[[outputs]]
+id = "KeW3nCl-YLODzMRrMr9SG"
+uri = "file://deliverables/summary-eksekutif-pub-aspekindo.pdf"
+type = "pdf"
+title = "Summary Eksekutif PUB ASPEKINDO — PDF"
+description = "Versi PDF 4 halaman yang siap dibagikan atau dicetak."
+logical_id = "5467cf29-d041-4c86-8d87-63a9930b5e60"
+content_hash = "sha256:b5c4c893691445b9cb8f859143007194e6c51cc753c717f9d4fc42a7b929a757"
+size = 57349
+mtime_ms = 1788801898382
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/5467cf29-d041-4c86-8d87-63a9930b5e60/8daaa10c-d45e-44b1-b87f-15788e31b31a"
+storage_version_token = "1788801907841970"
+content_type = "application/pdf"
