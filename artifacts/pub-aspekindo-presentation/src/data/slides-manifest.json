@@ -1,0 +1,146 @@
+[
+  {
+    "id": "779c2961-c9d2-4889-985d-cf471df36fb7",
+    "position": 1,
+    "filepath": "src/pages/slides/Slide01.tsx",
+    "title": "PUB ASPEKINDO — Dari Data Anggota Menjadi Kesiapan yang Terarah",
+    "description": "PUB ASPEKINDO — Dari Data Anggota Menjadi Kesiapan yang Terarah",
+    "speakerNotes": ""
+  },
+  {
+    "id": "d8c18126-872e-4460-8220-6f82448211fa",
+    "position": 2,
+    "filepath": "src/pages/slides/Slide02.tsx",
+    "title": "Mengapa PUB ASPEKINDO Dibutuhkan",
+    "description": "Mengapa PUB ASPEKINDO Dibutuhkan",
+    "speakerNotes": ""
+  },
+  {
+    "id": "0dcdc200-e38b-4a7c-bd30-f4cef4cc3669",
+    "position": 3,
+    "filepath": "src/pages/slides/Slide03.tsx",
+    "title": "PUB Adalah Payung Layanan Digital ASPEKINDO",
+    "description": "PUB Adalah Payung Layanan Digital ASPEKINDO",
+    "speakerNotes": ""
+  },
+  {
+    "id": "5912ea62-ebd6-4ab9-a29c-bbece0b867f7",
+    "position": 4,
+    "filepath": "src/pages/slides/Slide04.tsx",
+    "title": "Satu Perjalanan Anggota, Bukan Kumpulan Menu",
+    "description": "Satu Perjalanan Anggota, Bukan Kumpulan Menu",
+    "speakerNotes": ""
+  },
+  {
+    "id": "7e98d41c-bdeb-45c4-b969-f393b3aa4477",
+    "position": 5,
+    "filepath": "src/pages/slides/Slide05.tsx",
+    "title": "Pintu Masuk Publik: Informasi yang Lebih Terarah",
+    "description": "Pintu Masuk Publik: Informasi yang Lebih Terarah",
+    "speakerNotes": ""
+  },
+  {
+    "id": "fd3a08c5-b805-4238-9390-53815f6d0efe",
+    "position": 6,
+    "filepath": "src/pages/slides/Slide06.tsx",
+    "title": "HelpDesk: Navigator, Bukan Pengganti Layanan Resmi",
+    "description": "HelpDesk: Navigator, Bukan Pengganti Layanan Resmi",
+    "speakerNotes": ""
+  },
+  {
+    "id": "b7ff7320-9da8-4691-9eb5-b9ecc755ffdf",
+    "position": 7,
+    "filepath": "src/pages/slides/Slide07.tsx",
+    "title": "Workspace Anggota: Pusat Kendali Kesiapan",
+    "description": "Workspace Anggota: Pusat Kendali Kesiapan",
+    "speakerNotes": ""
+  },
+  {
+    "id": "9cfc7ac8-6da5-4e29-9bed-ea27e2d23ed8",
+    "position": 8,
+    "filepath": "src/pages/slides/Slide08.tsx",
+    "title": "Peta Kompetensi 4 SIAP: Membaca Posisi Secara Utuh",
+    "description": "Peta Kompetensi 4 SIAP: Membaca Posisi Secara Utuh",
+    "speakerNotes": ""
+  },
+  {
+    "id": "cc1651f2-d60e-4dbc-96ff-823d7f61ebb7",
+    "position": 9,
+    "filepath": "src/pages/slides/Slide09.tsx",
+    "title": "Skor Bukan Vonis — Ia Adalah Titik Mulai Perbaikan",
+    "description": "Skor Bukan Vonis — Ia Adalah Titik Mulai Perbaikan",
+    "speakerNotes": ""
+  },
+  {
+    "id": "5fd790cc-b8db-4efe-9e83-bbaa296c6c5d",
+    "position": 10,
+    "filepath": "src/pages/slides/Slide10.tsx",
+    "title": "LKUT: Dari Checklist Menjadi Siklus Laporan",
+    "description": "LKUT: Dari Checklist Menjadi Siklus Laporan",
+    "speakerNotes": ""
+  },
+  {
+    "id": "9c262ebe-4d2c-4e06-9344-fa66b1a451c7",
+    "position": 11,
+    "filepath": "src/pages/slides/Slide11.tsx",
+    "title": "LMS Native ASPEKINDO: Belajar dalam Ekosistem Sendiri",
+    "description": "LMS Native ASPEKINDO: Belajar dalam Ekosistem Sendiri",
+    "speakerNotes": ""
+  },
+  {
+    "id": "56934901-08d8-4786-80fd-f631e50418ae",
+    "position": 12,
+    "filepath": "src/pages/slides/Slide12.tsx",
+    "title": "Informasi, Agenda, dan LMS Saling Menguatkan",
+    "description": "Informasi, Agenda, dan LMS Saling Menguatkan",
+    "speakerNotes": ""
+  },
+  {
+    "id": "c988f55b-68fb-45ae-a16e-e032a9d6a222",
+    "position": 13,
+    "filepath": "src/pages/slides/Slide13.tsx",
+    "title": "Gustafta: Insight untuk Membantu Menentukan Prioritas",
+    "description": "Gustafta: Insight untuk Membantu Menentukan Prioritas",
+    "speakerNotes": ""
+  },
+  {
+    "id": "d51c9372-f3cf-49ce-953c-91f2920d6e5f",
+    "position": 14,
+    "filepath": "src/pages/slides/Slide14.tsx",
+    "title": "Keandalan Insight Dijaga Sepanjang Siklusnya",
+    "description": "Keandalan Insight Dijaga Sepanjang Siklusnya",
+    "speakerNotes": ""
+  },
+  {
+    "id": "33fb00f2-3cc0-4a1b-9999-2cc805214d5e",
+    "position": 15,
+    "filepath": "src/pages/slides/Slide15.tsx",
+    "title": "Tata Kelola dan Batas Klaim Dibangun Sejak Awal",
+    "description": "Tata Kelola dan Batas Klaim Dibangun Sejak Awal",
+    "speakerNotes": ""
+  },
+  {
+    "id": "39b5da83-3d21-45ee-a740-80c2053ac9f4",
+    "position": 16,
+    "filepath": "src/pages/slides/Slide16.tsx",
+    "title": "Nilai bagi Anggota dan ASPEKINDO",
+    "description": "Nilai bagi Anggota dan ASPEKINDO",
+    "speakerNotes": ""
+  },
+  {
+    "id": "31a1158b-f8cc-4c3c-a3d1-35b5630cbc90",
+    "position": 17,
+    "filepath": "src/pages/slides/Slide17.tsx",
+    "title": "Skenario Demonstrasi yang Disarankan",
+    "description": "Skenario Demonstrasi yang Disarankan",
+    "speakerNotes": ""
+  },
+  {
+    "id": "7f2e5bd2-252a-4597-9f31-6377668bebd1",
+    "position": 18,
+    "filepath": "src/pages/slides/Slide18.tsx",
+    "title": "Usulan Tahap Implementasi Bersama Anggota",
+    "description": "Usulan Tahap Implementasi Bersama Anggota",
+    "speakerNotes": ""
+  }
+]

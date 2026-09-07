@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "biWgM9bzbP9mZaj86sIMN"
+uri = "file://deliverables/summary-eksekutif-pub-aspekindo.html"
+type = "text"
+title = "Summary Eksekutif PUB ASPEKINDO"
+description = "Bahan pre-read dalam Bahasa Indonesia yang merangkum tujuan, modul utama, nilai strategis, tata kelola, dan rekomendasi pilot PUB ASPEKINDO."
+logical_id = "4f201027-f1b5-40ff-b4ef-e88ee3491083"
+content_hash = "sha256:ee1868fcc62d8f095707d47326b237618db5c20fb671ad99d1d6732c378b1e0f"
+size = 4569
+mtime_ms = 1788801491008
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/4f201027-f1b5-40ff-b4ef-e88ee3491083/4db2d2da-1664-430d-a1f2-5f4057bf8879"
+storage_version_token = "1788801681950221"
+content_type = "text/html"
