@@ -42,3 +42,17 @@ mtime_ms = 1788801898382
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/5467cf29-d041-4c86-8d87-63a9930b5e60/8daaa10c-d45e-44b1-b87f-15788e31b31a"
 storage_version_token = "1788801907841970"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "cxIpjUBfjZ2YWjEI_qqNm"
+uri = "file://.local/outputs/Presentasi-Lengkap-PUB-ASPEKINDO.pdf"
+type = "pdf"
+title = "Presentasi Lengkap PUB ASPEKINDO (PDF)"
+description = "Deck lengkap 18 slide untuk presentasi kepada anggota ASPEKINDO."
+logical_id = "c41e4c5a-bc83-4393-9dda-280de5e77346"
+content_hash = "sha256:6a46aac692ceecc9adb1dc770416321c025f1a9a824018344ad0e3eb1a7e9c1a"
+size = 1563419
+mtime_ms = 1788802207249
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/c41e4c5a-bc83-4393-9dda-280de5e77346/0b75bb95-ab0a-40cf-a6e3-5266285b7af5"
+storage_version_token = "1788802209116143"
+content_type = "application/pdf"
