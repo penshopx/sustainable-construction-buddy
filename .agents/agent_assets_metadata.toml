@@ -70,3 +70,31 @@ mtime_ms = 1788847024436
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/4097508a-34ec-47ea-bde8-0d191f2df85b/5e8b64e8-767f-48d2-8084-8cedc969d223"
 storage_version_token = "1788847026124583"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "b3K8w0bSbb410wk1vciX-"
+uri = "file://.local/outputs/PUB-ASPEKINDO-Versi-Ringkas.pptx"
+type = "slides"
+title = "PUB ASPEKINDO — Versi Ringkas (PPTX)"
+description = "Presentasi ringkas 6 slide dalam format PowerPoint, siap dibagikan dan dipresentasikan."
+logical_id = "4cee9da1-6bcf-4105-a4a1-37ad7288be10"
+content_hash = "sha256:7fa7e8e94109dca10d124a9c70b946283b1443719750fd82e754fb1aba63dfa8"
+size = 5906856
+mtime_ms = 1788847287423
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/4cee9da1-6bcf-4105-a4a1-37ad7288be10/d21f8bac-477a-4eff-9562-99b94a1efa28"
+storage_version_token = "1788847326453497"
+content_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+
+[[outputs]]
+id = "oCYUPPRA6f5AaNlYmdFgM"
+uri = "file://.local/outputs/PUB-ASPEKINDO-Versi-Ringkas.pdf"
+type = "pdf"
+title = "PUB ASPEKINDO — Versi Ringkas (PDF)"
+description = "Presentasi ringkas 6 halaman dalam format PDF, siap dibagikan atau dicetak."
+logical_id = "cf639f60-93b5-43ea-a5a4-7bb1dfab0997"
+content_hash = "sha256:87e694d54d230feb97e878414f78d8d3bbb1620bac0fce940810155534bdc815"
+size = 752898
+mtime_ms = 1788847289615
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/cf639f60-93b5-43ea-a5a4-7bb1dfab0997/44d66805-341b-45f6-b3c3-9dc9f1870fa2"
+storage_version_token = "1788847327756746"
+content_type = "application/pdf"
