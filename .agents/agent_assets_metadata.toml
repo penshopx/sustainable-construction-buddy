@@ -56,3 +56,17 @@ mtime_ms = 1788802207249
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/c41e4c5a-bc83-4393-9dda-280de5e77346/0b75bb95-ab0a-40cf-a6e3-5266285b7af5"
 storage_version_token = "1788802209116143"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "61ELD4aIp8YPz3jowOzpH"
+uri = "file://.local/outputs/Presentasi-Lengkap-PUB-ASPEKINDO---Revisi.pdf"
+type = "pdf"
+title = "Presentasi Lengkap PUB ASPEKINDO — Revisi (PDF)"
+description = "PDF 18 slide dengan landasan regulasi, nomenklatur ekosistem, dan 4 SIAP yang telah diperbarui."
+logical_id = "4097508a-34ec-47ea-bde8-0d191f2df85b"
+content_hash = "sha256:faa2420727acc08a30e9e77b3747d3b542eedb7e7c10e50355bde5fa5122d822"
+size = 1585221
+mtime_ms = 1788847024436
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/4097508a-34ec-47ea-bde8-0d191f2df85b/5e8b64e8-767f-48d2-8084-8cedc969d223"
+storage_version_token = "1788847026124583"
+content_type = "application/pdf"

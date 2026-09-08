@@ -8,15 +8,18 @@ PUB ASPEKINDO adalah platform digital untuk membantu BUJK anggota ASPEKINDO berg
 
 Platform ini menjawab kondisi ketika informasi, agenda, bukti, pembelajaran, dan tindak lanjut anggota masih tersebar. PUB menghadirkan satu perjalanan terpadu: anggota menemukan informasi, memperoleh navigasi awal, bekerja di workspace, mengikuti pembelajaran, memetakan posisi pada 4 SIAP, lalu menindaklanjuti rekomendasi melalui modul yang relevan.
 
+Landasan regulasi utama yang menjadi konteks PUB ASPEKINDO adalah **Permen PU No. 07 Tahun 2024** dan **Keputusan Dirjen PU No. 281 Tahun 2026**.
+
 ## Komponen Utama
 
 - **Pintu masuk publik:** landing page, Pusat Informasi, dan agenda kanonik ASPEKINDO yang telah dipublikasikan dan akan datang.
 - **HelpDesk:** Navigator dan Guided Intake untuk membantu pengguna memahami kebutuhan awal serta masuk ke workspace.
 - **Workspace anggota:** dashboard yang mempertemukan asesmen, domain, proyek, risiko, anggaran, PANCEK, LKUT, notifikasi, dan sumber bukti.
-- **Peta Kompetensi 4 SIAP:** membaca kesiapan Administrasi, Operasi, Kompetensi, dan Pasar. Skor bukti dipisahkan dari coverage data.
+- **Peta Kompetensi 4 SIAP:** membaca kesiapan Legalitas & Perijinan, Sertifikasi, Tender, dan Proyek. Skor bukti dipisahkan dari coverage data.
 - **LKUT:** siklus laporan tahunan dari draft, penyuntingan, peninjauan, submit, hingga tindak lanjut.
 - **LMS native ASPEKINDO:** katalog internal, eksternal, dan hybrid; pembelajaran berurutan; kuis; progres; video privat; dan completion record.
-- **Gustafta:** engine insight internal yang menghasilkan maksimal tiga rekomendasi dari katalog tindakan yang diizinkan serta memiliki fallback deterministik.
+- **Fasilitator BUJK ASPEKINDO:** mendampingi proses dan kesiapan anggota.
+- **Dokumenproyek.com:** platform pendukung dokumen dan insight yang menghasilkan maksimal tiga rekomendasi dari katalog tindakan yang diizinkan serta memiliki fallback deterministik.
 
 ## Nilai bagi Pemangku Kepentingan
 
