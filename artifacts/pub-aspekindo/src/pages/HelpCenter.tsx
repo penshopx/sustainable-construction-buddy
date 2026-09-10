@@ -3,6 +3,7 @@ import { BookOpen, CheckCircle2, ExternalLink, Info, LifeBuoy } from "lucide-rea
 import { Link, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { trackHelpTopicSelected } from "@/lib/helpAnalytics";
 import { helpSections, type HelpSectionId } from "@/lib/helpGuide";
 
 const markerDetails = {
@@ -54,6 +55,7 @@ export default function HelpCenter() {
             <Link
               key={section.id}
               to={goToSection(section.id)}
+              onClick={() => trackHelpTopicSelected(section.id)}
               className="rounded-xl border bg-card p-3 text-sm font-semibold text-card-foreground shadow-sm transition-colors hover:border-pub-sky hover:bg-pub-sky/5"
             >
               <span className="mr-2 text-pub-sky">{String(index + 1).padStart(2, "0")}</span>

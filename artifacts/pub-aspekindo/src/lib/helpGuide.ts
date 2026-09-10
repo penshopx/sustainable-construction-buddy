@@ -193,3 +193,11 @@ export function getHelpSectionForPath(pathname: string): HelpSectionId {
     paths.some((path) => pathname === path || pathname.startsWith(`${path}/`)),
   )?.section ?? "mulai";
 }
+
+export function getHelpLocationForPath(pathname: string): string {
+  const matchedPath = contextualHelp
+    .flatMap(({ paths }) => paths)
+    .find((path) => pathname === path || pathname.startsWith(`${path}/`));
+
+  return matchedPath?.slice(1).replaceAll("-", "_") || "other";
+}
