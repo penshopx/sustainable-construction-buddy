@@ -9,6 +9,7 @@ import {
   buildSiapCompetencyMap,
   type SiapCompetencySnapshot,
 } from "./siapCompetencyEngine.ts";
+import { mapAssessmentResponse } from "./assessmentResponse.ts";
 
 function emptySnapshot(): SiapCompetencySnapshot {
   return {
@@ -76,4 +77,32 @@ test("peta kompetensi tetap terbentuk saat level dan tanggal assessment null", (
     "Assessment terakhir 72% pada level Belum ditentukan.",
   );
   assert.equal(assessment?.updatedAt, null);
+});
+
+test("useSiapCompetencyMap mempertahankan assessment nullable dari respons database", () => {
+  assert.deepEqual(
+    mapAssessmentResponse({
+      score: 72,
+      determined_level: null,
+      completed_at: null,
+    }),
+    {
+      score: 72,
+      level: null,
+      completed_at: null,
+    },
+  );
+  assert.deepEqual(
+    mapAssessmentResponse({
+      score: null,
+      determined_level: null,
+      completed_at: null,
+    }),
+    {
+      score: 0,
+      level: null,
+      completed_at: null,
+    },
+  );
+  assert.equal(mapAssessmentResponse(null), null);
 });

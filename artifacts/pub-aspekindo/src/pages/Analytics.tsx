@@ -32,11 +32,32 @@ const levelConfig: Record<string, { icon: LucideIcon; color: string; bg: string;
   Utama: { icon: Gem, color: "text-pub-violet", bg: "bg-pub-violet/10", min: 85, max: 100 },
 };
 
-const Analytics = () => {
+export interface AnalyticsAssessmentRow {
+  score: number | null;
+  determined_level: string | null;
+  completed_at: string | null;
+}
+
+export function buildAssessmentHistory(tests: AnalyticsAssessmentRow[]) {
+  return tests.map((test, index) => ({
+    test: `#${index + 1}`,
+    score: test.score ?? 0,
+    level: assessmentLevel(test.determined_level, "Pemula"),
+    date: formatAssessmentDate(test.completed_at, "short"),
+  }));
+}
+
+interface AnalyticsProps {
+  initialAssessmentRows?: AnalyticsAssessmentRow[];
+}
+
+const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
   const { user, profile } = useAuth();
   const [radarData, setRadarData] = useState<{ domain: string; score: number; fullMark: number }[]>([]);
   const [barData, setBarData] = useState<{ domain: string; completed: number; total: number; color: string }[]>([]);
-  const [assessmentHistory, setAssessmentHistory] = useState<{ test: string; score: number; level: string; date: string }[]>([]);
+  const [assessmentHistory, setAssessmentHistory] = useState(() =>
+    buildAssessmentHistory(initialAssessmentRows),
+  );
   const [moduleStats, setModuleStats] = useState({ total: 0, completed: 0, inProgress: 0 });
 
   useEffect(() => {
@@ -99,12 +120,7 @@ const Analytics = () => {
       });
 
       // Assessment history for trend
-      const history = (tests || []).map((t, i) => ({
-        test: `#${i + 1}`,
-        score: t.score,
-        level: assessmentLevel(t.determined_level, "Pemula"),
-        date: formatAssessmentDate(t.completed_at, "short"),
-      }));
+      const history = buildAssessmentHistory(tests || []);
 
       setRadarData(radar);
       setBarData(bar);
@@ -258,6 +274,14 @@ const Analytics = () => {
           className="bg-card border border-border rounded-xl p-6 shadow-card"
         >
           <h3 className="font-heading font-bold text-foreground mb-4">Tren Skor Assessment</h3>
+          <p className="mb-3 text-sm text-muted-foreground font-body">
+            Assessment terbaru:{" "}
+            <span className="font-semibold text-foreground">
+              {assessmentHistory[assessmentHistory.length - 1].level}
+            </span>
+            {" · "}
+            {assessmentHistory[assessmentHistory.length - 1].date}
+          </p>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={assessmentHistory}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 15%, 90%)" />

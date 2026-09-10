@@ -12,6 +12,7 @@ import {
   type SiapNativeLmsSource,
   type SiapRecommendation,
 } from "@/lib/siapCompetencyEngine";
+import { mapAssessmentResponse } from "@/lib/assessmentResponse";
 
 interface ModuleProgressRow {
   status: string;
@@ -261,13 +262,7 @@ export function useSiapCompetencyMap() {
         smapDocuments: smapResult.data ?? [],
         projects: projectsResult.data ?? [],
         projectEvidenceCount: projectEvidenceResult.data?.length ?? 0,
-        assessment: assessmentResult.data
-          ? {
-              score: assessmentResult.data.score,
-              level: assessmentResult.data.determined_level,
-              completed_at: assessmentResult.data.completed_at,
-            } satisfies SiapAssessmentSource
-          : null,
+        assessment: mapAssessmentResponse(assessmentResult.data),
         competencyScore: competencyScoreResult.data
           ? competencyScoreResult.data satisfies SiapCompetencyScoreSource
           : null,

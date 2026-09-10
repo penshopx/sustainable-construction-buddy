@@ -82,7 +82,11 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-const Assessment = () => {
+interface AssessmentProps {
+  initialPastTests?: Tables<"pre_tests">[];
+}
+
+const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const { user, refreshProfile } = useAuth();
   const [phase, setPhase] = useState<"intro" | "test" | "review" | "result">("intro");
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -93,7 +97,7 @@ const Assessment = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ score: number; level: string; correct: number; total: number } | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [pastTests, setPastTests] = useState<Tables<"pre_tests">[]>([]);
+  const [pastTests, setPastTests] = useState<Tables<"pre_tests">[]>(initialPastTests);
   const [checkingAnswer, setCheckingAnswer] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
