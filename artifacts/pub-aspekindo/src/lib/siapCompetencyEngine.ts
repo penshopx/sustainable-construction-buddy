@@ -90,7 +90,7 @@ export interface SiapProjectSource {
 
 export interface SiapAssessmentSource {
   score: number;
-  level: string;
+  level: string | null;
   completed_at: string | null;
 }
 
@@ -406,7 +406,7 @@ function sertifikasiIndicators(snapshot: SiapCompetencySnapshot): SiapIndicator[
       Boolean(snapshot.assessment),
       snapshot.assessment?.score ?? null,
       snapshot.assessment
-        ? `Assessment terakhir ${snapshot.assessment.score}% pada level ${snapshot.assessment.level}.`
+        ? `Assessment terakhir ${snapshot.assessment.score}% pada level ${snapshot.assessment.level?.trim() || "Belum ditentukan"}.`
         : "Belum ada hasil pre-test yang selesai.",
       snapshot.assessment?.completed_at,
     ),

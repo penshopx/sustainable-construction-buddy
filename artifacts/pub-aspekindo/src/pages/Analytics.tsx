@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { assessmentLevel, formatAssessmentDate } from "@/lib/competencyFallbacks";
 
 const domainColors = [
   "hsl(200, 80%, 55%)", // sky
@@ -101,8 +102,8 @@ const Analytics = () => {
       const history = (tests || []).map((t, i) => ({
         test: `#${i + 1}`,
         score: t.score,
-        level: t.determined_level ?? "Pemula",
-        date: new Date(t.completed_at ?? Date.now()).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+        level: assessmentLevel(t.determined_level, "Pemula"),
+        date: formatAssessmentDate(t.completed_at, "short"),
       }));
 
       setRadarData(radar);

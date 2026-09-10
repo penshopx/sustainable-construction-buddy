@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import type { LucideIcon } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
+import { assessmentLevel, formatAssessmentDate } from "@/lib/competencyFallbacks";
 
 interface Question {
   id: string;
@@ -344,10 +345,12 @@ const Assessment = () => {
                       <div>
                         <p className="font-heading font-semibold text-foreground">Skor: {t.score}</p>
                         <p className="text-xs text-muted-foreground font-body">
-                           {new Date(t.completed_at ?? Date.now()).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                           {formatAssessmentDate(t.completed_at, "long")}
                         </p>
                       </div>
-                      <span className="text-sm font-heading font-semibold text-pub-amber">{t.determined_level}</span>
+                      <span className="text-sm font-heading font-semibold text-pub-amber">
+                        {assessmentLevel(t.determined_level, "Belum ditentukan")}
+                      </span>
                     </div>
                   ))}
                 </div>
