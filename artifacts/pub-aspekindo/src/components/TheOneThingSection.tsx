@@ -7,28 +7,28 @@ import {
 } from "lucide-react";
 
 const pillars = [
-  { icon: ClipboardCheck, title: "Assessment & Pre-test", desc: "Tentukan level kompetensi personil secara digital & objektif" },
+  { icon: ClipboardCheck, title: "Assessment & Pre-test", desc: "Petakan kondisi awal kompetensi melalui asesmen digital" },
   { icon: GraduationCap, title: "Pusat Pembelajaran PUB", desc: "Pembelajaran terstruktur per level dari Pemula hingga Utama" },
   { icon: Wrench, title: "Mini Apps & Generator", desc: "Risk Register, Budget Tracker, K3 Checklist, dan tools lainnya" },
-  { icon: BarChart3, title: "Kinerja & Grading", desc: "Scoring otomatis empat pilar kinerja dengan grade terverifikasi" },
+  { icon: BarChart3, title: "Skor & Cakupan Data", desc: "Baca hasil evaluasi dan kelengkapan data sebagai titik awal perbaikan" },
   { icon: Shield, title: "SMAP, PANCEK, & K3", desc: "Sistem Anti Penyuapan, Panduan Cegah Korupsi, dan manajemen K3" },
   { icon: FileText, title: "Persiapan LKUT", desc: "Siapkan dokumen dan data untuk aplikasi LKUT resmi" },
   { icon: Building2, title: "Direktori BUJK", desc: "Profil perusahaan & jaringan antar BUJK se-Indonesia" },
-  { icon: Bot, title: "AI Mentor", desc: "Konsultan AI untuk manajemen konstruksi kapan saja" },
-  { icon: Award, title: "Sertifikat Digital", desc: "Bukti kompetensi terverifikasi untuk portofolio profesional" },
-  { icon: Lightbulb, title: "Inovasi PUB", desc: "Dari tender intelligence hingga ESG — semua dalam satu roadmap" },
+  { icon: Bot, title: "AI Mentor", desc: "Pendamping informasi untuk membantu menemukan langkah berikutnya" },
+  { icon: Award, title: "Catatan Pencapaian PUB", desc: "Dokumentasi penyelesaian pembelajaran dan kegiatan di dalam platform" },
+  { icon: Lightbulb, title: "Inovasi PUB", desc: "Ruang pengembangan gagasan dan praktik baru untuk BUJK" },
   { icon: ShoppingBag, title: "Marketplace", desc: "Jual beli template, tools, dan produk digital konstruksi" },
-  { icon: BookCheck, title: "Compliance Tracker", desc: "Monitor kepatuhan regulasi dan sertifikasi real-time" },
+  { icon: BookCheck, title: "Compliance Tracker", desc: "Pantau data kepatuhan yang telah dicatat pada dashboard" },
 ];
 
 const pubPrograms = [
   "Peningkatan kualitas manajemen BUJK secara terstruktur",
   "Penyiapan dokumen dan data LKUT sebelum batas pelaporan",
-  "Penilaian PANCEK dan penerapan SMAP terintegrasi",
+  "Penilaian PANCEK dan pembelajaran penerapan SMAP",
   "Workshop, webinar, dan belajar mandiri berbasis modul",
   "Sesi SIAP PUB yang terhubung dengan platform pembelajaran Konstruksi AI",
   "Kegiatan kolaborasi antar anggota ASPEKINDO",
-  "Dokumentasi bukti PUB untuk perpanjangan SBU",
+  "Persiapan bukti kegiatan PUB dan data pendukung LKUT",
 ];
 
 const TheOneThingSection = () => {
@@ -50,12 +50,12 @@ const TheOneThingSection = () => {
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-extrabold font-heading text-foreground leading-tight">
-            Satu Platform.{" "}
-            <span className="text-gradient-hero">Semua Solusi.</span>
+            Satu Perjalanan.{" "}
+            <span className="text-gradient-hero">Langkah Lebih Terarah.</span>
           </h2>
           <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto font-body leading-relaxed">
-            PUB ASPEKINDO mengintegrasikan assessment, pembelajaran, toolkit, grading, compliance, dan inovasi
-            dalam satu ekosistem digital — dirancang khusus untuk BUJK Indonesia.
+            PUB ASPEKINDO mempertemukan asesmen, pembelajaran, perangkat kerja, pemetaan
+            kesiapan, dan dokumentasi kegiatan dalam satu pengalaman digital untuk BUJK.
           </p>
         </motion.div>
 
@@ -67,14 +67,14 @@ const TheOneThingSection = () => {
             viewport={{ once: true }}
             className="p-6 rounded-xl bg-destructive/5 border border-destructive/15"
           >
-            <h3 className="text-lg font-bold font-heading text-destructive mb-4">❌ Tanpa PUB ASPEKINDO</h3>
+            <h3 className="text-lg font-bold font-heading text-destructive mb-4">Pola reaktif</h3>
             <ul className="space-y-3 text-sm text-muted-foreground font-body">
               {[
                 "Dokumen berserakan, tidak terorganisir",
-                "Tidak ada bukti PUB untuk perpanjangan SBU",
+                "Bukti kegiatan PUB baru dicari menjelang pelaporan",
                 "Kompetensi personil tidak terukur",
                 "Grading kinerja manual & subjektif",
-                "Sulit bersaing di tender, rentan gagal audit",
+                "Kesiapan tender dan evaluasi sulit dibaca",
                 "Biaya operasional tinggi tanpa efisiensi sistem",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2">
@@ -90,14 +90,14 @@ const TheOneThingSection = () => {
             viewport={{ once: true }}
             className="p-6 rounded-xl bg-pub-emerald/5 border border-pub-emerald/15"
           >
-            <h3 className="text-lg font-bold font-heading text-pub-emerald mb-4">✅ Dengan PUB ASPEKINDO</h3>
+            <h3 className="text-lg font-bold font-heading text-pub-emerald mb-4">Pola terarah</h3>
             <ul className="space-y-3 text-sm text-muted-foreground font-body">
               {[
-                "Semua dokumen terpusat di satu dashboard",
-                "Bukti PUB otomatis terdokumentasi",
-                "Level kompetensi terukur dan terverifikasi",
-                "Grading kinerja otomatis dan objektif",
-                "Siap audit, kompetitif di tender",
+                "Data kegiatan dan progres dibaca dari satu dashboard",
+                "Bukti PUB dicatat sepanjang tahun",
+                "Skor dan cakupan data dibedakan dengan jelas",
+                "Prioritas perbaikan lebih mudah ditentukan",
+                "Persiapan LKUT dan tender menjadi lebih tertib",
                 "Operasional lebih efisien dan profesional",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2">
@@ -145,8 +145,9 @@ const TheOneThingSection = () => {
                 Membangun BUJK yang Lebih Berkualitas
               </h3>
               <p className="text-muted-foreground font-body leading-relaxed">
-                Program PUB dirancang untuk membantu BUJK memenuhi seluruh kewajiban regulasi sekaligus 
-                meningkatkan kapasitas manajerial secara berkelanjutan melalui berbagai kegiatan terstruktur.
+                Program PUB membantu BUJK menata pelaksanaan Pengembangan Usaha Berkelanjutan,
+                meningkatkan kemampuan manajerial, dan menyiapkan data pendukung melalui kegiatan
+                yang terstruktur.
               </p>
             </div>
             <ul className="space-y-3">

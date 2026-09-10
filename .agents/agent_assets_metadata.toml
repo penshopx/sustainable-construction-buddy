@@ -98,3 +98,17 @@ mtime_ms = 1788847289615
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:0bf1f3c7-899a-4fa8-a323-4cda600b8c0d/cf639f60-93b5-43ea-a5a4-7bb1dfab0997/44d66805-341b-45f6-b3c3-9dc9f1870fa2"
 storage_version_token = "1788847327756746"
 content_type = "application/pdf"
+
+[[outputs]]
+id = "HdbiiFy6SvoIR3mQ6j2xa"
+uri = "file://deliverables/catatan-review-materi-pub-aspekindo.md"
+type = "text"
+title = "Catatan Review Materi PUB ASPEKINDO"
+description = "Catatan per slide mengenai bagian yang sesuai, klaim yang perlu diturunkan, serta rumusan pengganti yang lebih akurat terhadap aplikasi saat ini."
+logical_id = "556eff81-6e68-436b-a8f6-b56f3e9945a8"
+content_hash = "sha256:25ddf65c5ed7b4dfc47dcd6b4478457bf62c95f7aec66613c9fbced15dc96eb2"
+size = 12371
+mtime_ms = 1789015155368
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/556eff81-6e68-436b-a8f6-b56f3e9945a8/6440dac7-bbfe-4d90-8c22-fb580a939ef6"
+storage_version_token = "1789015265864808"
+content_type = "text/markdown"

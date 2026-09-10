@@ -54,10 +54,12 @@ export default function ReadinessToolsSection() {
             Uji kesiapan BUJK
           </span>
           <h2 className="mt-4 text-3xl font-extrabold leading-tight font-heading text-foreground md:text-5xl">
-            Ketahui prioritas Anda sebelum mulai mengurus
+            LKUT bukan checklist dadakan
           </h2>
           <p className="mt-4 text-base leading-relaxed text-muted-foreground font-body md:text-lg">
-            Dua simulator singkat untuk membantu anggota memetakan dokumen dan bukti yang perlu disiapkan melalui ekosistem PUB ASPEKINDO.
+            Jadikan LKUT sebagai siklus tahunan: lengkapi data, tinjau bukti, siapkan pelaporan,
+            lalu gunakan hasilnya untuk perbaikan berikutnya. Dua simulator ini membantu Anda
+            melihat bagian yang masih perlu disiapkan sebelum proses resmi.
           </p>
         </motion.div>
 

@@ -102,10 +102,10 @@ export default function ProjectEcosystemSection() {
               className="mt-5 max-w-xl text-base leading-relaxed text-white/70 font-body md:text-lg"
               data-testid="text-project-ecosystem-description"
             >
-              PUB ASPEKINDO menghubungkan kesiapan Legalitas, Sertifikasi, Tender, dan Proyek
-              dengan pembelajaran serta jalur kerja yang relevan. Saat BUJK semakin siap,
-              langkah berikutnya adalah mengelola pekerjaan dengan rapi dan menemukan peluang
-              konstruksi yang sesuai.
+              PUB ASPEKINDO membantu membaca kesiapan Legalitas, Sertifikasi, Tender, dan Proyek,
+              lalu menunjukkan pembelajaran, fitur internal, atau rujukan eksternal yang relevan.
+              Platform ini berfungsi sebagai kompas untuk menentukan arah tindakan, bukan sebagai
+              kanal pengajuan resmi pada situs pemerintah.
             </p>
 
             <div className="mt-8 grid max-w-xl grid-cols-1 gap-2 sm:grid-cols-2" data-testid="list-readiness-tracks">
@@ -217,9 +217,10 @@ export default function ProjectEcosystemSection() {
               className="mt-6 border-t border-white/10 pt-5 text-xs leading-relaxed text-white/45 font-body"
               data-testid="text-external-services-disclaimer"
             >
-              Tautan di atas membawa Anda ke layanan eksternal. Ketersediaan, akun, dan ketentuan
-              penggunaannya mengikuti masing-masing layanan; PUB ASPEKINDO tidak mengklaim
-              integrasi akun, SSO, atau kemitraan resmi.
+              Tautan di atas membawa Anda ke layanan eksternal. Ketersediaan, akun, hasil layanan,
+              dan ketentuan penggunaannya mengikuti masing-masing penyedia. PUB ASPEKINDO tidak
+              mengklaim integrasi akun, SSO, kemitraan resmi, persetujuan otomatis, atau hasil
+              sertifikasi tertentu.
             </div>
           </motion.div>
         </div>

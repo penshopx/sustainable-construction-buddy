@@ -1,126 +1,130 @@
 import { motion } from "framer-motion";
 import {
-  ClipboardCheck,
-  GraduationCap,
-  Wrench,
-  BarChart3,
   ArrowRight,
+  BookOpenCheck,
+  Compass,
+  Gauge,
+  LayoutDashboard,
+  ListChecks,
+  Newspaper,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
-const engines = [
+const journey = [
   {
-    title: "Assessment Engine",
-    subtitle: "Pre-test & Evaluasi",
-    icon: ClipboardCheck,
-    description:
-      "Baseline assessment melalui tes knowledge, mapping pengalaman, dan portfolio review untuk menentukan level awal.",
-    features: ["Pre-test Digital", "Experience Mapping", "Portfolio Review", "Adaptive Assessment"],
-    gradient: "from-pub-sky/10 to-pub-sky/5",
-    iconBg: "bg-pub-sky/15",
-    iconColor: "text-pub-sky",
-    borderColor: "border-pub-sky/15",
+    step: "01",
+    title: "Temukan",
+    description: "Baca informasi dan agenda yang dikelola oleh admin PUB ASPEKINDO.",
+    href: "/informasi",
+    action: "Buka informasi",
+    icon: Newspaper,
+    tone: "border-pub-sky/20 bg-pub-sky/[0.06] text-pub-sky",
   },
   {
-    title: "Learning Engine",
-    subtitle: "Pusat Pembelajaran PUB",
-    icon: GraduationCap,
-    description:
-      "Kurikulum terstruktur per level dengan e-course, modul e-book, dan chatbot mentor digital.",
-    features: ["E-Course Terstruktur", "Modul & E-Book", "Chatbot Mentor", "Learning Path"],
-    gradient: "from-pub-emerald/10 to-pub-emerald/5",
-    iconBg: "bg-pub-emerald/15",
-    iconColor: "text-pub-emerald",
-    borderColor: "border-pub-emerald/15",
+    step: "02",
+    title: "Navigasi",
+    description: "Gunakan Helpdesk untuk menerjemahkan kebutuhan awal menjadi jalur tindakan.",
+    href: "/helpdesk-standalone",
+    action: "Mulai navigasi",
+    icon: Compass,
+    tone: "border-pub-emerald/20 bg-pub-emerald/[0.06] text-pub-emerald",
   },
   {
-    title: "Implementation Engine",
-    subtitle: "Generator & Mini Apps",
-    icon: Wrench,
-    description:
-      "Toolkit praktis: generator dokumen (SOP, RAB, RKK) dan mini apps (Risk Register, Budget Tracker, K3 Checklist).",
-    features: ["Generator Dokumen", "Risk Register", "Budget Tracker", "K3 Checklist"],
-    gradient: "from-pub-amber/10 to-pub-amber/5",
-    iconBg: "bg-pub-amber/15",
-    iconColor: "text-pub-amber",
-    borderColor: "border-pub-amber/15",
+    step: "03",
+    title: "Lengkapi",
+    description: "Catat progres, data kegiatan, dan bukti pendukung pada dashboard anggota.",
+    href: "/dashboard",
+    action: "Buka dashboard",
+    icon: LayoutDashboard,
+    tone: "border-pub-amber/20 bg-pub-amber/[0.06] text-pub-amber",
   },
   {
-    title: "Analytics Engine",
-    subtitle: "Scoring & Leveling",
-    icon: BarChart3,
-    description:
-      "Competency analytics berbasis data aktivitas nyata — scoring otomatis, gap analysis, dan rekomendasi peningkatan.",
-    features: ["Scoring Real-time", "Gap Analysis", "Level Progression", "Knowledge Heatmap"],
-    gradient: "from-pub-violet/10 to-pub-violet/5",
-    iconBg: "bg-pub-violet/15",
-    iconColor: "text-pub-violet",
-    borderColor: "border-pub-violet/15",
+    step: "04",
+    title: "Belajar",
+    description: "Ikuti pelajaran, kuis, dan kegiatan PUB yang tersedia di LMS ASPEKINDO.",
+    href: "/aspekindo-lms",
+    action: "Masuk ke LMS",
+    icon: BookOpenCheck,
+    tone: "border-pub-violet/20 bg-pub-violet/[0.06] text-pub-violet",
+  },
+  {
+    step: "05",
+    title: "Ukur",
+    description: "Bedakan skor hasil evaluasi dan cakupan data pada Peta Kompetensi 4 SIAP.",
+    href: "/siap-kompetensi",
+    action: "Lihat peta",
+    icon: Gauge,
+    tone: "border-pub-sky/20 bg-pub-sky/[0.06] text-pub-sky",
+  },
+  {
+    step: "06",
+    title: "Tindak Lanjuti",
+    description: "Gunakan hasil pemetaan untuk menata LKUT, proyek, risiko, dan prioritas perbaikan.",
+    href: "/lkut",
+    action: "Siapkan LKUT",
+    icon: ListChecks,
+    tone: "border-pub-emerald/20 bg-pub-emerald/[0.06] text-pub-emerald",
   },
 ];
 
 const EngineCards = () => {
   return (
-    <section className="py-20 bg-muted/30">
+    <section id="perjalanan-anggota" className="bg-muted/30 py-20">
       <div className="container mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="mx-auto mb-14 max-w-3xl text-center"
         >
-          <span className="text-sm font-semibold text-pub-amber uppercase tracking-wider font-heading">
-            Arsitektur Sistem
+          <span className="text-sm font-semibold uppercase tracking-wider text-pub-amber font-heading">
+            Satu Perjalanan Anggota
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold font-heading text-foreground mt-2">
-            4 Engine Utama
+          <h2 className="mt-2 text-3xl font-bold text-foreground font-heading md:text-5xl">
+            Dari kebutuhan menuju tindakan
           </h2>
-          <p className="text-muted-foreground mt-3 max-w-2xl mx-auto font-body">
-            Ekosistem yang menghubungkan assessment, learning, implementasi, dan analytics dalam satu platform.
+          <p className="mt-4 text-base leading-relaxed text-muted-foreground font-body md:text-lg">
+            PUB ASPEKINDO membantu anggota bergerak melalui enam langkah yang jelas.
+            Setiap hasil tetap menjadi alat bantu persiapan; keputusan resmi berada pada
+            lembaga yang berwenang.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {engines.map((engine, i) => (
-            <motion.div
-              key={engine.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className={`relative p-7 rounded-xl border ${engine.borderColor} bg-gradient-to-br ${engine.gradient} backdrop-blur shadow-card hover:shadow-card-hover transition-all duration-300 group cursor-pointer`}
-            >
-              <div className="flex items-start gap-4">
-                <div className={`w-14 h-14 rounded-xl ${engine.iconBg} flex items-center justify-center shrink-0`}>
-                  <engine.icon className={`w-7 h-7 ${engine.iconColor}`} />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 font-heading">
-                    {engine.subtitle}
-                  </p>
-                  <h3 className="text-xl font-bold font-heading text-foreground mb-2">
-                    {engine.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground font-body leading-relaxed mb-4">
-                    {engine.description}
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {engine.features.map((f) => (
-                      <span
-                        key={f}
-                        className="text-xs px-2.5 py-1 rounded-full bg-card border border-border text-foreground/70 font-medium"
-                      >
-                        {f}
-                      </span>
-                    ))}
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {journey.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 24 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.06 }}
+              >
+                <Link
+                  to={item.href}
+                  className="group flex h-full flex-col rounded-2xl border border-border bg-card p-6 shadow-card transition-all hover:-translate-y-1 hover:border-pub-sky/30 hover:shadow-card-hover"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <span className={`inline-flex rounded-xl border p-3 ${item.tone}`}>
+                      <Icon className="h-6 w-6" aria-hidden="true" />
+                    </span>
+                    <span className="text-sm font-black tracking-[0.16em] text-muted-foreground/50 font-heading">
+                      {item.step}
+                    </span>
                   </div>
-                </div>
-              </div>
-
-              <div className="absolute top-7 right-7 opacity-0 group-hover:opacity-100 transition-opacity">
-                <ArrowRight className="w-5 h-5 text-muted-foreground" />
-              </div>
-            </motion.div>
-          ))}
+                  <h3 className="mt-5 text-xl font-bold text-foreground font-heading">{item.title}</h3>
+                  <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground font-body">
+                    {item.description}
+                  </p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-pub-navy transition-colors group-hover:text-pub-sky dark:text-white">
+                    {item.action}
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  </span>
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </section>

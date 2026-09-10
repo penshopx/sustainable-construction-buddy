@@ -1,0 +1,1 @@
+- [Batas klaim PUB ASPEKINDO](pub-claim-boundaries.md) — bedakan fitur aktif, rujukan eksternal, dan roadmap; platform membantu persiapan, bukan keputusan resmi.
