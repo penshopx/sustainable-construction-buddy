@@ -140,3 +140,45 @@ mtime_ms = 1789029457164
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/d1407289-711d-4a7b-bb55-347c5f7f7a25/73c343a8-a9fe-4a06-9968-e5f8048298a8"
 storage_version_token = "1789029519445132"
 content_type = "text/html"
+
+[[outputs]]
+id = "9EOcw9I_j_Vb4zJsmMI6O"
+uri = "file://deliverables/manual-lengkap-pub-aspekindo.pdf"
+type = "pdf"
+title = "Manual Lengkap PUB ASPEKINDO"
+description = "Dokumen gabungan 42 halaman: panduan anggota serta panduan operasional Admin dan Operator."
+logical_id = "e8b22516-1d88-459a-a71e-4225cc8968bc"
+content_hash = "sha256:cab3e86838097cfd6419977df7ca4acc49692a830f042cf2550c64d30d2ae7df"
+size = 736486
+mtime_ms = 1789030250324
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/e8b22516-1d88-459a-a71e-4225cc8968bc/7e04213d-6a53-40b9-8ae0-f5be1a0791cd"
+storage_version_token = "1789030260977184"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "57xe0uMBvdYjVcDoLb-dO"
+uri = "file://deliverables/panduan-admin-operator-pub-aspekindo.pdf"
+type = "pdf"
+title = "Panduan Admin & Operator PUB ASPEKINDO"
+description = "Manual A4 22 halaman untuk pengelolaan akses, konten, LMS, PANCEK, marketplace, laporan, publikasi, dan penanganan insiden."
+logical_id = "91cfbae2-0afb-48d0-ae07-b12d3b7cde07"
+content_hash = "sha256:4919ba62a43babfa41270419f9449516cfbc372e2767cc417faec803568ba037"
+size = 482614
+mtime_ms = 1789030249590
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/91cfbae2-0afb-48d0-ae07-b12d3b7cde07/66efab8f-b603-45db-a882-5ceb375f0978"
+storage_version_token = "1789030262340433"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "OhgfN_YzEIYuMEQQqG8-G"
+uri = "file://deliverables/panduan-admin-operator-pub-aspekindo.html"
+type = "text"
+title = "Panduan Admin & Operator — Versi Web"
+description = "Versi interaktif dan responsif dengan daftar isi yang dapat diklik."
+logical_id = "d9194074-93df-4e18-9be8-d835c632c369"
+content_hash = "sha256:f63ee88820748d09b30f470ed1aa0896eaa2e556a6d6b21bb9ba4f2630377a92"
+size = 28528
+mtime_ms = 1789030230308
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/d9194074-93df-4e18-9be8-d835c632c369/ec737724-baf4-4ac2-9f9c-418ded199208"
+storage_version_token = "1789030263615897"
+content_type = "text/html"
