@@ -189,7 +189,39 @@ export const contextualHelpRoutes: ReadonlyArray<{
   { paths: ["/smap", "/pancek"], section: "smap-pancek" },
   { paths: ["/profile"], section: "akun" },
   { paths: ["/informasi", "/inovasi", "/program-kegiatan", "/marketplace", "/direktori", "/helpdesk", "/pesanan", "/produk-saya", "/notifications", "/mentor"], section: "layanan" },
+  { paths: ["/agenda-pub", "/kursus"], section: "belajar" },
 ];
+
+/**
+ * Setiap rute publik di App.tsx harus diklasifikasikan di sini. Rute wajib
+ * menyediakan tautan panduan kontekstual; rute bebas adalah halaman utilitas,
+ * autentikasi, atau materi presentasi yang tidak menawarkan alur fitur publik.
+ */
+export const publicHelpRoutePolicy = {
+  required: [
+    "/informasi",
+    "/informasi/:slug",
+    "/agenda-pub",
+    "/kursus/:slug",
+    "/simulator-sbu",
+    "/simulator-lkut",
+    "/program-kegiatan",
+    "/program-kegiatan/:id",
+  ],
+  exempt: [
+    "/",
+    "/auth",
+    "/reset-password",
+    "/onboarding",
+    "/ai-helpdesk",
+    "/my-products",
+    "/install",
+    "/pitch-deck",
+    "/video-pub-aspekindo",
+    "/helpdesk-standalone",
+    "/chatbot/:token",
+  ],
+} as const;
 
 export function getHelpSectionForPath(pathname: string): HelpSectionId {
   return contextualHelpRoutes.find(({ paths }) =>

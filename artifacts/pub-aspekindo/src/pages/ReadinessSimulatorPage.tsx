@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { ArrowLeft, CircleHelp, FileCheck2, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import ReadinessSimulator, { SIMULATOR_CONFIGS, type ReadinessKind } from "@/components/ReadinessSimulator";
+import { getHelpHrefForPath } from "@/lib/helpGuide";
 
 export default function ReadinessSimulatorPage({ kind }: { kind: ReadinessKind }) {
   const config = SIMULATOR_CONFIGS[kind];
@@ -19,7 +20,7 @@ export default function ReadinessSimulatorPage({ kind }: { kind: ReadinessKind }
               <ArrowLeft className="h-4 w-4" /> Kembali ke halaman utama
             </Link>
             <Link
-              to="/bantuan#empat-siap"
+              to={getHelpHrefForPath(`/simulator-${kind}`)}
               className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/20 px-3 text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
             >
               <CircleHelp className="h-4 w-4 text-pub-amber" />

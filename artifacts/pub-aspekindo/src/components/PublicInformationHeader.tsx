@@ -1,8 +1,11 @@
 import { ArrowLeft, CircleHelp, LogIn } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import logoPub from "@/assets/logo-pub-new.png";
+import { getHelpHrefForPath } from "@/lib/helpGuide";
 
 export default function PublicInformationHeader({ backToHome = false }: { backToHome?: boolean }) {
+  const { pathname } = useLocation();
+
   return (
     <header className="border-b border-white/10 bg-[hsl(220,60%,8%)] text-white">
       <div className="container mx-auto flex min-h-20 items-center justify-between gap-4 px-6">
@@ -15,7 +18,7 @@ export default function PublicInformationHeader({ backToHome = false }: { backTo
         </Link>
         <nav className="flex items-center gap-2" aria-label="Navigasi publik">
           <Link
-            to="/bantuan#layanan"
+            to={getHelpHrefForPath(pathname)}
             className="flex min-h-11 items-center gap-2 rounded-lg border border-white/20 px-3 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white"
             aria-label="Buka panduan fitur ini"
             title="Panduan fitur ini"

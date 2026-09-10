@@ -7,6 +7,7 @@ import {
   getHelpSectionForPath,
   getHelpSectionFromHash,
   helpSections,
+  publicHelpRoutePolicy,
 } from "./helpGuide.ts";
 
 const mainRouteExpectations = {
@@ -35,6 +36,8 @@ const mainRouteExpectations = {
   "/smap": "smap-pancek",
   "/pancek": "smap-pancek",
   "/informasi": "layanan",
+  "/agenda-pub": "belajar",
+  "/kursus/kursus-publik": "belajar",
   "/inovasi": "layanan",
   "/program-kegiatan": "layanan",
   "/marketplace": "layanan",
@@ -47,6 +50,40 @@ const mainRouteExpectations = {
 test("setiap rute utama membuka bagian panduan yang terkait", () => {
   for (const [pathname, expectedSection] of Object.entries(mainRouteExpectations)) {
     assert.equal(getHelpSectionForPath(pathname), expectedSection, pathname);
+  }
+});
+
+test("setiap rute publik diklasifikasikan dan rute wajib memiliki panduan", () => {
+  const appSource = readFileSync(new URL("../App.tsx", import.meta.url), "utf8");
+  const publicRoutePaths = appSource
+    .split("\n")
+    .filter((line) => line.includes("<Route path=") && !line.includes("<DashboardLayout>"))
+    .flatMap((line) => {
+      const match = line.match(/path="([^"]+)"/);
+      return match && match[1] !== "*" ? [match[1]] : [];
+    });
+  const requiredPaths = new Set<string>(publicHelpRoutePolicy.required);
+  const classifiedPaths = new Set<string>([
+    ...publicHelpRoutePolicy.required,
+    ...publicHelpRoutePolicy.exempt,
+  ]);
+
+  assert.ok(publicRoutePaths.length > 0, "Daftar rute publik dari App.tsx tidak boleh kosong");
+  for (const routePath of publicRoutePaths) {
+    assert.ok(
+      classifiedPaths.has(routePath),
+      `${routePath} belum diklasifikasikan sebagai rute publik wajib panduan atau bebas panduan`,
+    );
+  }
+
+  for (const routePath of requiredPaths) {
+    assert.ok(publicRoutePaths.includes(routePath), `${routePath} tidak ditemukan di App.tsx`);
+    const representativePath = routePath.replace(/:[^/]+/g, "contoh");
+    assert.notEqual(
+      getHelpSectionForPath(representativePath),
+      "mulai",
+      `${routePath} wajib memiliki pemetaan panduan kontekstual`,
+    );
   }
 });
 
