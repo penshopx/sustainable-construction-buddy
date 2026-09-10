@@ -264,7 +264,7 @@ export function useSiapCompetencyMap() {
         assessment: assessmentResult.data
           ? {
               score: assessmentResult.data.score,
-              level: assessmentResult.data.determined_level,
+              level: assessmentResult.data.determined_level ?? "Belum ditentukan",
               completed_at: assessmentResult.data.completed_at,
             } satisfies SiapAssessmentSource
           : null,

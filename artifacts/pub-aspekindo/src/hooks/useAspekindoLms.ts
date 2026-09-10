@@ -71,7 +71,7 @@ async function fetchCourseContent(
         .select("*")
         .in("lesson_id", lessons.map((lesson) => lesson.id))
         .order("sort_order")
-    : { data: [], error: null };
+    : { data: [] as Material[], error: null };
 
   if (materialsResult.error) throw materialsResult.error;
   const materials = materialsResult.data ?? [];

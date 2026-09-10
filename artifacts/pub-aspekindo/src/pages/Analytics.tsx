@@ -101,8 +101,8 @@ const Analytics = () => {
       const history = (tests || []).map((t, i) => ({
         test: `#${i + 1}`,
         score: t.score,
-        level: t.determined_level,
-        date: new Date(t.completed_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+        level: t.determined_level ?? "Pemula",
+        date: new Date(t.completed_at ?? Date.now()).toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
       }));
 
       setRadarData(radar);

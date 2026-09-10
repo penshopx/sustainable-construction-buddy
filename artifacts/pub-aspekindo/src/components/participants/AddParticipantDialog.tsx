@@ -27,7 +27,10 @@ export function AddParticipantDialog({ programId }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.full_name.trim()) return toast.error("Nama wajib diisi");
+    if (!form.full_name.trim()) {
+      toast.error("Nama wajib diisi");
+      return;
+    }
     create.mutate(
       {
         program_id: programId,

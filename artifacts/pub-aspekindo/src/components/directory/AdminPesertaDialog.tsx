@@ -63,8 +63,14 @@ export default function AdminPesertaDialog({ mode, participant }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.full_name.trim()) return toast.error("Nama wajib diisi");
-    if (!form.program_id) return toast.error("Program wajib dipilih");
+    if (!form.full_name.trim()) {
+      toast.error("Nama wajib diisi");
+      return;
+    }
+    if (!form.program_id) {
+      toast.error("Program wajib dipilih");
+      return;
+    }
 
     setSaving(true);
     const payload: TablesInsert<"pub_program_participants"> = {
@@ -89,7 +95,10 @@ export default function AdminPesertaDialog({ mode, participant }: Props) {
     }
 
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success(mode === "edit" ? "Peserta diperbarui" : "Peserta ditambahkan");
     qc.invalidateQueries({ queryKey: ["pub-participants-directory"] });
     qc.invalidateQueries({ queryKey: ["pub-program-participants"] });

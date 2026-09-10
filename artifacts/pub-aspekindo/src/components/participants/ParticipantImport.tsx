@@ -136,8 +136,14 @@ export function ParticipantImport({ programs }: { programs: Program[] }) {
   const invalidRows = rows.filter((r) => !r.valid);
 
   const handleImport = async () => {
-    if (!programId) return toast.error("Pilih program terlebih dahulu");
-    if (validRows.length === 0) return toast.error("Tidak ada data valid untuk diimport");
+    if (!programId) {
+      toast.error("Pilih program terlebih dahulu");
+      return;
+    }
+    if (validRows.length === 0) {
+      toast.error("Tidak ada data valid untuk diimport");
+      return;
+    }
 
     setImporting(true);
     try {

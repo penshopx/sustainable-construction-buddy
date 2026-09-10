@@ -31,7 +31,9 @@ function formatValue(v: unknown): string {
 function getPillarBreakdown(breakdown: Json, pillar: string): Record<string, Json> {
   if (!breakdown || typeof breakdown !== "object" || Array.isArray(breakdown)) return {};
   const value = breakdown[pillar];
-  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, Json>)
+    : {};
 }
 
 export function exportGradingPdf(grade: PerformanceGrade, profileName?: string) {

@@ -160,14 +160,15 @@ export default function AdminRoleConflicts() {
       document.body.appendChild(container);
 
       const filename = `Laporan_Konflik_Jabatan_${new Date().toISOString().slice(0, 10)}.pdf`;
-      await html2pdf().set({
-        margin: [15, 15, 15, 15],
+      const pdfOptions = {
+        margin: [15, 15, 15, 15] as [number, number, number, number],
         filename,
-        image: { type: "jpeg", quality: 0.98 },
+        image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
         pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-      }).from(container).save();
+      };
+      await html2pdf().set(pdfOptions).from(container).save();
 
       document.body.removeChild(container);
       toast({ title: "PDF berhasil diunduh", description: filename });

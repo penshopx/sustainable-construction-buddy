@@ -98,7 +98,9 @@ const Assessment = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+     if (!user) {
+       return;
+     }
     supabase
       .from("pre_tests")
       .select("*")
@@ -124,6 +126,7 @@ const Assessment = () => {
       }, 1000);
       return () => { if (timerRef.current) clearInterval(timerRef.current); };
     }
+    return undefined;
   }, [phase, timeLeft]);
 
   const startTest = async () => {
@@ -341,7 +344,7 @@ const Assessment = () => {
                       <div>
                         <p className="font-heading font-semibold text-foreground">Skor: {t.score}</p>
                         <p className="text-xs text-muted-foreground font-body">
-                          {new Date(t.completed_at).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                           {new Date(t.completed_at ?? Date.now()).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                         </p>
                       </div>
                       <span className="text-sm font-heading font-semibold text-pub-amber">{t.determined_level}</span>

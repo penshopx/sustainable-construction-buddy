@@ -63,7 +63,10 @@ function ProgramForm({ onClose }: { onClose: () => void }) {
   });
 
   const handleSubmit = async () => {
-    if (!form.title.trim()) return toast.error("Judul wajib diisi");
+    if (!form.title.trim()) {
+      toast.error("Judul wajib diisi");
+      return;
+    }
     try {
       await create.mutateAsync({
         ...form,

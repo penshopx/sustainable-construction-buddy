@@ -45,7 +45,10 @@ export function GalleryUploadDialog({ programId }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file) return toast.error("Pilih foto terlebih dahulu");
+    if (!file) {
+      toast.error("Pilih foto terlebih dahulu");
+      return;
+    }
 
     setUploading(true);
     try {

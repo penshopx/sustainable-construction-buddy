@@ -34,6 +34,15 @@ interface VerificationSheet {
   notes?: string;
 }
 
+interface IndicatorAnswer {
+  status?: string;
+  score?: number;
+  notes?: string;
+  evidence_url?: string;
+  evidence_name?: string;
+  evidence_files?: { url: string; name: string }[];
+}
+
 const isVerificationSheet = (value: Json | undefined): value is Json & VerificationSheet => {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const candidate = value as Record<string, Json | undefined>;
@@ -308,7 +317,10 @@ export function PancekVerification() {
               <div className="space-y-2">
                 <p className="text-sm font-heading font-semibold">Detail Indikator & Bukti Dokumen</p>
                 {PANCEK_PILLARS.map((pillar) => {
-                  const answers = selectedRow.answers || {};
+                  const answers: Record<string, boolean | IndicatorAnswer | undefined> =
+                    selectedRow.answers && typeof selectedRow.answers === "object" && !Array.isArray(selectedRow.answers)
+                      ? selectedRow.answers as Record<string, boolean | IndicatorAnswer | undefined>
+                      : {};
                   const answered = pillar.indicators.filter(ind => {
                     const a = answers[ind.code];
                     if (typeof a === "boolean") return a;
@@ -338,7 +350,7 @@ export function PancekVerification() {
                           const evidenceName = isLegacy ? "" : raw?.evidence_name || "";
                           // Support multiple files
                           const evidenceFiles: { url: string; name: string }[] = [];
-                          if (raw?.evidence_files?.length) {
+                          if (raw && !isLegacy && raw.evidence_files?.length) {
                             evidenceFiles.push(...raw.evidence_files);
                           } else if (evidenceUrl) {
                             evidenceFiles.push({ url: evidenceUrl, name: evidenceName || "Dokumen" });

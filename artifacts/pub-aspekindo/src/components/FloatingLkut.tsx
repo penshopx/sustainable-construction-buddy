@@ -90,7 +90,12 @@ type GuidedAnswers = {
   status?: "baru" | "data" | "cek";
 };
 
-const GUIDED_STEPS = [
+const GUIDED_STEPS: Array<{
+  key: keyof GuidedAnswers;
+  eyebrow: string;
+  title: string;
+  options: Array<{ value: string; label: string; detail: string }>;
+}> = [
   {
     key: "focus" as const,
     eyebrow: "Langkah 1 dari 2",

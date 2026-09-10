@@ -133,14 +133,15 @@ const Generator = () => {
     toast.info("Menyiapkan PDF...");
     const filename = `${selected?.shortName || "document"}_${projectData?.name?.replace(/\s+/g, "_") || "draft"}_${new Date().toISOString().slice(0, 10)}.pdf`;
     try {
-      await html2pdf().set({
-        margin: [15, 15, 15, 15],
+      const pdfOptions = {
+        margin: [15, 15, 15, 15] as [number, number, number, number],
         filename,
-        image: { type: "jpeg", quality: 0.98 },
+        image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
         pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-      }).from(pdfRef.current).save();
+      };
+      await html2pdf().set(pdfOptions).from(pdfRef.current).save();
       toast.success("PDF berhasil didownload!");
     } catch (err) {
       toast.error("Gagal membuat PDF");

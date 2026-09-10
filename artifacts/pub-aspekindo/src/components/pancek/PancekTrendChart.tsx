@@ -219,7 +219,7 @@ export default function PancekTrendChart({ assessments, aggregateMode = false, t
                 </thead>
                 <tbody>
                   {PILLAR_CONFIG.map(p => {
-                    const values = chartData.map(d => d[p.key]);
+                     const values = chartData.map(d => (d as Record<string, string | number>)[p.key] as number);
                     const delta = values.length >= 2 ? Math.round((values[values.length - 1] - values[values.length - 2]) * 10) / 10 : 0;
                     return (
                       <tr key={p.key} className="border-b border-border/50">

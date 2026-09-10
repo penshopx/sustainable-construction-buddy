@@ -423,7 +423,7 @@ export function AspekindoLmsCourseDetail() {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [quizResult, setQuizResult] = useState<QuizAttempt>();
   const [quizStarted, setQuizStarted] = useState(false);
-  const startedLessonRef = useRef<string>();
+  const startedLessonRef = useRef<string | undefined>(undefined);
   const enrollMutation = useEnrollAspekindoLmsCourse();
   const saveProgressMutation = useSaveAspekindoLmsProgress();
   const completeLessonMutation = useCompleteAspekindoLmsLesson();

@@ -26,8 +26,14 @@ export function EditUpdateDialog({ update }: Props) {
     e.preventDefault();
     const title = form.title.trim();
     const content = form.content.trim();
-    if (!title) return toast.error("Judul wajib diisi");
-    if (!content) return toast.error("Konten wajib diisi");
+    if (!title) {
+      toast.error("Judul wajib diisi");
+      return;
+    }
+    if (!content) {
+      toast.error("Konten wajib diisi");
+      return;
+    }
 
     mutation.mutate(
       { id: update.id, title, content },
