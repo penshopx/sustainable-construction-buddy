@@ -20,12 +20,27 @@ test("event bantuan memakai nama dan payload anonim yang telah ditentukan", () =
   });
 
   trackHelpCenterOpened("/projects/project-private-123");
+  trackHelpCenterOpened("/informasi/article-private-456");
+  trackHelpCenterOpened("/simulator-sbu");
+  trackHelpCenterOpened("/simulator-lkut");
   trackHelpTopicSelected("assessment");
 
   assert.deepEqual(events, [
     {
       name: "help_center_opened",
       data: { section: "proyek", location: "projects" },
+    },
+    {
+      name: "help_center_opened",
+      data: { section: "layanan", location: "informasi" },
+    },
+    {
+      name: "help_center_opened",
+      data: { section: "empat-siap", location: "simulator_sbu" },
+    },
+    {
+      name: "help_center_opened",
+      data: { section: "empat-siap", location: "simulator_lkut" },
     },
     {
       name: "help_topic_selected",

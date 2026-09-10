@@ -1,6 +1,7 @@
 import { ArrowLeft, CircleHelp, LogIn } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import logoPub from "@/assets/logo-pub-new.png";
+import { trackHelpCenterOpened } from "@/lib/helpAnalytics";
 import { getHelpHrefForPath } from "@/lib/helpGuide";
 
 export default function PublicInformationHeader({ backToHome = false }: { backToHome?: boolean }) {
@@ -19,6 +20,7 @@ export default function PublicInformationHeader({ backToHome = false }: { backTo
         <nav className="flex items-center gap-2" aria-label="Navigasi publik">
           <Link
             to={getHelpHrefForPath(pathname)}
+            onClick={() => trackHelpCenterOpened(pathname)}
             className="flex min-h-11 items-center gap-2 rounded-lg border border-white/20 px-3 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white"
             aria-label="Buka panduan fitur ini"
             title="Panduan fitur ini"
