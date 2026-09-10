@@ -29,6 +29,7 @@ import {
   Newspaper,
   ChevronDown,
   ExternalLink,
+  CircleHelp,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -110,6 +111,7 @@ const communitySubItems = [
 
 // Bottom items
 const bottomItems = [
+  { title: "Pusat Bantuan", url: "/bantuan", icon: CircleHelp },
   { title: "Notifikasi", url: "/notifications", icon: Bell },
   { title: "Profil Saya", url: "/profile", icon: User },
 ];

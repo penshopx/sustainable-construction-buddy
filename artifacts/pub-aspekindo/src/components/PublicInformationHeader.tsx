@@ -1,4 +1,4 @@
-import { ArrowLeft, LogIn } from "lucide-react";
+import { ArrowLeft, CircleHelp, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
 import logoPub from "@/assets/logo-pub-new.png";
 
@@ -14,6 +14,15 @@ export default function PublicInformationHeader({ backToHome = false }: { backTo
           </span>
         </Link>
         <nav className="flex items-center gap-2" aria-label="Navigasi publik">
+          <Link
+            to="/bantuan#layanan"
+            className="flex min-h-11 items-center gap-2 rounded-lg border border-white/20 px-3 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white"
+            aria-label="Buka panduan fitur ini"
+            title="Panduan fitur ini"
+          >
+            <CircleHelp className="h-4 w-4 text-pub-sky" />
+            <span className="hidden lg:inline">Panduan</span>
+          </Link>
           {backToHome && (
             <Link to="/informasi" className="hidden min-h-11 items-center gap-2 rounded-lg px-3 text-sm text-white/75 hover:bg-white/10 hover:text-white sm:flex">
               <ArrowLeft className="h-4 w-4" /> Pusat Informasi

@@ -81,6 +81,7 @@ const PublicAgendaPage = lazy(() => import("./pages/PublicAgendaPage"));
 const SiapCompetencyMap = lazy(() => import("./pages/SiapCompetencyMap"));
 const AdminAspekindoLmsCourses = lazy(() => import("./pages/admin/AdminAspekindoLmsCourses"));
 const PublicCourseLanding = lazy(() => import("./pages/PublicCourseLanding"));
+const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 
 const queryClient = new QueryClient();
 
@@ -117,6 +118,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+             <Route path="/bantuan" element={<DashboardLayout><HelpCenter /></DashboardLayout>} />
             <Route path="/assessment" element={<DashboardLayout><Assessment /></DashboardLayout>} />
             <Route path="/courses" element={<DashboardLayout><LearningHub /></DashboardLayout>} />
             <Route path="/aspekindo-lms/kursus/:courseId" element={<DashboardLayout><AspekindoLmsCourseDetail /></DashboardLayout>} />

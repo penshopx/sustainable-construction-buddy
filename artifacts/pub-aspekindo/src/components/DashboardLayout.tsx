@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import FloatingChatbot from "@/components/FloatingChatbot";
 import FloatingLkut from "@/components/FloatingLkut";
+import { ContextualHelpLink } from "@/components/ContextualHelpLink";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -60,6 +61,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-2 md:gap-3 shrink-0">
+              <ContextualHelpLink />
               <NotificationBell />
               <ThemeToggle />
             </div>
