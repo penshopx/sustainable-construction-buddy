@@ -145,14 +145,14 @@ content_type = "text/html"
 id = "9EOcw9I_j_Vb4zJsmMI6O"
 uri = "file://deliverables/manual-lengkap-pub-aspekindo.pdf"
 type = "pdf"
-title = "Manual Lengkap PUB ASPEKINDO"
-description = "Dokumen gabungan 42 halaman: panduan anggota serta panduan operasional Admin dan Operator."
+title = "Unduh Panduan Lengkap PUB ASPEKINDO — 42 Halaman"
+description = "PDF A4 gabungan: 20 halaman panduan anggota dan 22 halaman panduan Admin/Operator. Ukuran 720 KB."
 logical_id = "e8b22516-1d88-459a-a71e-4225cc8968bc"
 content_hash = "sha256:cab3e86838097cfd6419977df7ca4acc49692a830f042cf2550c64d30d2ae7df"
 size = 736486
 mtime_ms = 1789030250324
-storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/e8b22516-1d88-459a-a71e-4225cc8968bc/7e04213d-6a53-40b9-8ae0-f5be1a0791cd"
-storage_version_token = "1789030260977184"
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/e8b22516-1d88-459a-a71e-4225cc8968bc/38df84bf-8ebe-4dcb-91dc-098a769d653f"
+storage_version_token = "1789031110239995"
 content_type = "application/pdf"
 
 [[outputs]]
