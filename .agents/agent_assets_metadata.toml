@@ -112,3 +112,31 @@ mtime_ms = 1789015155368
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/556eff81-6e68-436b-a8f6-b56f3e9945a8/6440dac7-bbfe-4d90-8c22-fb580a939ef6"
 storage_version_token = "1789015265864808"
 content_type = "text/markdown"
+
+[[outputs]]
+id = "eJhfU3db5vr62GGE_f-Nj"
+uri = "file://deliverables/panduan-pengguna-pub-aspekindo.pdf"
+type = "pdf"
+title = "Panduan Pengguna PUB ASPEKINDO"
+description = "Panduan siap cetak untuk sosialisasi: akun, dashboard, assessment, LMS, 4 SIAP, proyek, LKUT, SMAP/PANCEK, serta sinkronisasi dan integrasi."
+logical_id = "561aa062-97d1-4bb9-8544-d875d4a5252b"
+content_hash = "sha256:326d41a6dcccd41b6fa3d512166196f57dc8fa4b3307f273964c7713166f2c70"
+size = 461491
+mtime_ms = 1789029482524
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/561aa062-97d1-4bb9-8544-d875d4a5252b/cd098da9-80f2-4c78-bfc8-80ec2ec2efd6"
+storage_version_token = "1789029518147417"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "3MZ1Qi6-Ip1gArZOtIukc"
+uri = "file://deliverables/panduan-pengguna-pub-aspekindo.html"
+type = "text"
+title = "Panduan PUB ASPEKINDO — Versi Web"
+description = "Versi interaktif dengan daftar isi yang dapat diklik dan tampilan responsif untuk dibuka di komputer atau ponsel."
+logical_id = "d1407289-711d-4a7b-bb55-347c5f7f7a25"
+content_hash = "sha256:43de499564e4937395501759bfb17e45e72452b51f0a80e8ca9f6a0f08a78dee"
+size = 36685
+mtime_ms = 1789029457164
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/d1407289-711d-4a7b-bb55-347c5f7f7a25/73c343a8-a9fe-4a06-9968-e5f8048298a8"
+storage_version_token = "1789029519445132"
+content_type = "text/html"
