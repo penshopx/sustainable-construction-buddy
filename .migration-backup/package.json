@@ -24,6 +24,7 @@
     "validate:insight": "npm run test:insight:validate",
     "publish:insight": "node scripts/publish-competency-insight.mjs",
     "test:rate-limit": "node --test tests/public-chat-rate-limit.test.cjs",
+    "test:assessment:concurrency": "bash scripts/test-submit-assessment-concurrency.sh",
     "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium && PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint . --max-warnings 0",
