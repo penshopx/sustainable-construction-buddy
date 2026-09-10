@@ -111,7 +111,8 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       .select("*")
       .eq("user_id", user.id)
       .eq("status", "completed")
-      .order("completed_at", { ascending: false })
+       .order("completed_at", { ascending: false, nullsFirst: false })
+       .order("id", { ascending: false })
       .then(({ data }) => setPastTests(data || []));
   }, [user, result]);
 

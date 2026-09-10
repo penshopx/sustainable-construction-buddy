@@ -176,7 +176,8 @@ export function useSiapCompetencyMap() {
           .select("score, determined_level, completed_at")
           .eq("user_id", user.id)
           .eq("status", "completed")
-          .order("completed_at", { ascending: false })
+           .order("completed_at", { ascending: false, nullsFirst: false })
+           .order("id", { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase

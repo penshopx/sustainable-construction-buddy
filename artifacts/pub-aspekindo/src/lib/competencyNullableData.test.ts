@@ -10,6 +10,10 @@ import {
   type SiapCompetencySnapshot,
 } from "./siapCompetencyEngine.ts";
 import { mapAssessmentResponse } from "./assessmentResponse.ts";
+import {
+  orderAssessmentsChronologically,
+  selectLatestAssessment,
+} from "./assessmentOrdering.ts";
 
 function emptySnapshot(): SiapCompetencySnapshot {
   return {
@@ -105,4 +109,27 @@ test("useSiapCompetencyMap mempertahankan assessment nullable dari respons datab
     },
   );
   assert.equal(mapAssessmentResponse(null), null);
+});
+
+test("assessment bertanggal dipilih sebagai terbaru meski record tanpa tanggal ikut tersedia", () => {
+  const rows = [
+    { id: "tanpa-tanggal", completed_at: null },
+    { id: "lama", completed_at: "2026-08-01T00:00:00.000Z" },
+    { id: "terbaru", completed_at: "2026-09-01T00:00:00.000Z" },
+  ];
+
+  assert.equal(selectLatestAssessment(rows)?.id, "terbaru");
+  assert.deepEqual(
+    orderAssessmentsChronologically(rows).map((row) => row.id),
+    ["lama", "terbaru", "tanpa-tanggal"],
+  );
+});
+
+test("assessment pertama menjadi fallback konsisten jika semua tanggal kosong", () => {
+  const rows = [
+    { id: "fallback-query", completed_at: null },
+    { id: "record-lain", completed_at: null },
+  ];
+
+  assert.equal(selectLatestAssessment(rows)?.id, "fallback-query");
 });

@@ -15,6 +15,10 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { assessmentLevel, formatAssessmentDate } from "@/lib/competencyFallbacks";
+import {
+  orderAssessmentsChronologically,
+  selectLatestAssessment,
+} from "@/lib/assessmentOrdering";
 
 const domainColors = [
   "hsl(200, 80%, 55%)", // sky
@@ -39,7 +43,7 @@ export interface AnalyticsAssessmentRow {
 }
 
 export function buildAssessmentHistory(tests: AnalyticsAssessmentRow[]) {
-  return tests.map((test, index) => ({
+  return orderAssessmentsChronologically(tests).map((test, index) => ({
     test: `#${index + 1}`,
     score: test.score ?? 0,
     level: assessmentLevel(test.determined_level, "Pemula"),
@@ -58,6 +62,15 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
   const [assessmentHistory, setAssessmentHistory] = useState(() =>
     buildAssessmentHistory(initialAssessmentRows),
   );
+  const [latestAssessment, setLatestAssessment] = useState(() => {
+    const latest = selectLatestAssessment(initialAssessmentRows);
+    return latest
+      ? {
+          level: assessmentLevel(latest.determined_level, "Pemula"),
+          date: formatAssessmentDate(latest.completed_at, "short"),
+        }
+      : null;
+  });
   const [moduleStats, setModuleStats] = useState({ total: 0, completed: 0, inProgress: 0 });
 
   useEffect(() => {
@@ -82,10 +95,11 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
         .select("*")
         .eq("user_id", user.id)
         .eq("status", "completed")
-        .order("completed_at", { ascending: true });
+        .order("completed_at", { ascending: false, nullsFirst: false })
+        .order("id", { ascending: false });
 
       // Fetch latest test answers for domain breakdown
-      const latestTest = tests?.[tests.length - 1];
+      const latestTest = selectLatestAssessment(tests || []);
       const domainScores: Record<string, { correct: number; total: number }> = {};
 
       if (latestTest) {
@@ -121,10 +135,19 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
 
       // Assessment history for trend
       const history = buildAssessmentHistory(tests || []);
+      const latest = selectLatestAssessment(tests || []);
 
       setRadarData(radar);
       setBarData(bar);
       setAssessmentHistory(history);
+      setLatestAssessment(
+        latest
+          ? {
+              level: assessmentLevel(latest.determined_level, "Pemula"),
+              date: formatAssessmentDate(latest.completed_at, "short"),
+            }
+          : null,
+      );
       setModuleStats({
         total: 24,
         completed: (progress || []).filter((p) => p.status === "completed").length,
@@ -266,7 +289,7 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
       </div>
 
       {/* Assessment history trend */}
-      {assessmentHistory.length > 0 && (
+      {assessmentHistory.length > 0 && latestAssessment && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -277,10 +300,10 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
           <p className="mb-3 text-sm text-muted-foreground font-body">
             Assessment terbaru:{" "}
             <span className="font-semibold text-foreground">
-              {assessmentHistory[assessmentHistory.length - 1].level}
+              {latestAssessment.level}
             </span>
             {" · "}
-            {assessmentHistory[assessmentHistory.length - 1].date}
+            {latestAssessment.date}
           </p>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={assessmentHistory}>
