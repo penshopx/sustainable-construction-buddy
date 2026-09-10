@@ -32,10 +32,18 @@ const AboutSection = () => {
               <strong className="text-foreground">ASPEKINDO</strong> (Akselerasi Seluruh Pemborongan Konstruksi Indonesia) adalah Asosiasi Badan Usaha Jasa Konstruksi Terintegrasi yang menaungi dan memperjuangkan kepentingan BUJK di seluruh Indonesia.
             </p>
             <p>
-              <strong className="text-foreground">PUB ASPEKINDO</strong> merupakan program pelaksanaan Pengembangan Usaha Berkelanjutan — kewajiban setiap BUJK berdasarkan regulasi pemerintah. Platform digital ini mengintegrasikan assessment, learning, toolkit, dan analytics dalam satu ekosistem.
+              <strong className="text-foreground">PUB ASPEKINDO</strong> merupakan program
+              Pengembangan Usaha Berkelanjutan yang diselenggarakan untuk membantu anggota
+              mempertahankan dan meningkatkan kemampuan usahanya sebagaimana diatur dalam
+              Permen PUPR No. 7 Tahun 2024. Platform digital ini mengintegrasikan asesmen,
+              pembelajaran, perangkat kerja, dan analitik dalam satu ekosistem.
             </p>
             <p>
-              <strong className="text-foreground">LSBU KI</strong> (Lembaga Sertifikasi Badan Usaha Konstruksi Indonesia) bentukan ASPEKINDO memberikan layanan sertifikasi badan usaha jasa konstruksi, melengkapi ekosistem PUB untuk memastikan setiap BUJK memenuhi standar kompetensi nasional.
+              <strong className="text-foreground">LSBU KI</strong> (Lembaga Sertifikasi Badan
+              Usaha Konstruksi Indonesia) bentukan ASPEKINDO memberikan layanan sertifikasi
+              badan usaha jasa konstruksi. Standar skema sertifikasinya mengacu pada ketentuan
+              terbaru, termasuk KepDirjen Bina Konstruksi No. 281/KPTS/DK/2026 sebagai
+              pengganti KepDirjen No. 37KPTS/DK/2025.
             </p>
           </motion.div>
 
@@ -61,9 +69,9 @@ const AboutSection = () => {
             </div>
 
             <blockquote className="mt-8 p-5 rounded-xl bg-pub-amber/5 border border-pub-amber/20 text-sm italic text-muted-foreground font-body">
-              "Setiap Badan Usaha Jasa Konstruksi memiliki kewajiban melaksanakan kegiatan Pengembangan Usaha Berkelanjutan (PUB) untuk meningkatkan kapasitas dan daya saing."
+              "Setiap BUJK harus melakukan PUB untuk meningkatkan kompetensi BUJK."
               <footer className="mt-2 text-xs font-semibold text-foreground not-italic">
-                — PP 14/2021 tentang Perubahan PP 22/2020
+                — Permen PUPR No. 7 Tahun 2024, Pasal 3 ayat (1)
               </footer>
             </blockquote>
           </motion.div>

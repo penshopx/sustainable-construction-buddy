@@ -54,9 +54,10 @@ export default function SiapPubSection() {
               <span className="text-pub-amber">belajar dan bertumbuh</span>
             </h2>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-white/70 font-body md:text-lg">
-              SIAP adalah payung Program PUB ASPEKINDO untuk membantu BUJK bertumbuh melalui
-              empat fokus yang saling terhubung. LMS native mencatat pembelajaran dan bukti
-              kegiatan; jalur eksternal tetap dibuka pada platform asal tanpa klaim SSO.
+              Berdasarkan Permen PUPR No. 7 Tahun 2024, setiap BUJK harus melakukan PUB
+              untuk meningkatkan kompetensinya. SIAP menjadi payung program PUB ASPEKINDO
+              yang membantu anggota belajar, menerapkan hasil pembelajaran, dan menata bukti
+              kegiatan melalui empat fokus yang saling terhubung.
             </p>
             <div className="mt-6 grid max-w-2xl gap-2 sm:grid-cols-2">
               {siapFocuses.map((focus) => (
@@ -89,7 +90,9 @@ export default function SiapPubSection() {
             <p className="mt-3 text-xs text-white/45 font-body">
               Masuk diperlukan karena peta menggunakan data anggota dan bukti kegiatan Anda.
               Data Siap Sertifikasi hanya membantu persiapan dan tidak menduplikasi formulir
-              atau menggantikan proses LKUT resmi Kementerian PU/LPJK.
+              atau menggantikan proses LKUT maupun sertifikasi resmi Kementerian PU/LPJK.
+              Penyesuaian terhadap KepDirjen 281/KPTS/DK/2026 mengikuti pemberlakuan resmi
+              pada sistem sertifikasi nasional.
             </p>
           </motion.div>
 

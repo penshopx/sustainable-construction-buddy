@@ -6,22 +6,22 @@ import logoLsbuki from "@/assets/logo-lsbuki.webp";
 import logoPu from "@/assets/logo-pu.png";
 
 const credentials = [
-  { value: "UU 02/2017", label: "Dasar Hukum", sub: "Undang-Undang Jasa Konstruksi" },
-  { value: "Permen PU 7/2024", label: "Regulasi PUB", sub: "Persyaratan Perpanjangan SBU" },
-  { value: "Permen PU 6/2025", label: "Regulasi Terbaru", sub: "Ketentuan Pelaksanaan PUB" },
-  { value: "PP 14/2021", label: "Peraturan Pemerintah", sub: "Kewajiban BUJK" },
-  { value: "Kep Dirjen PU No. 281 Tahun 2026", label: "Regulasi Sertifikasi", sub: "Standar Skema Sertifikasi BUJK" },
+  { value: "UU 2/2017", label: "Jasa Konstruksi", sub: "Kerangka hukum penyelenggaraan jasa konstruksi" },
+  { value: "PP 14/2021", label: "Pelaksanaan UU", sub: "Perubahan atas PP 22 Tahun 2020" },
+  { value: "Permen PUPR 7/2024", label: "Dasar Penyelenggaraan PUB", sub: "Pengembangan Usaha Berkelanjutan" },
+  { value: "Permen PU 6/2025", label: "Standar Berusaha Berbasis Risiko", sub: "Acuan kegiatan usaha dan produk/jasa sektor PU" },
+  { value: "KepDirjen BK 281/2026", label: "Standar Skema Sertifikasi BUJK", sub: "Mencabut dan menggantikan KepDirjen 37/2025" },
 ];
 
 const logos = [
-  { src: logoPu, alt: "Kementerian PUPR", name: "Kementerian PUPR" },
+  { src: logoPu, alt: "Kementerian Pekerjaan Umum", name: "Kementerian PU" },
   { src: logoPub, alt: "PUB ASPEKINDO", name: "PUB ASPEKINDO" },
   { src: logoAspekindo, alt: "ASPEKINDO", name: "ASPEKINDO" },
   { src: logoLsbuki, alt: "LSBU KI", name: "LSBU KI" },
 ];
 
 const values = [
-  { icon: Shield, title: "Berbasis Regulasi Resmi", desc: "Seluruh program PUB mengacu pada peraturan perundang-undangan jasa konstruksi yang berlaku." },
+  { icon: Shield, title: "Berbasis Regulasi Resmi", desc: "Program PUB merujuk pada ketentuan Pengembangan Usaha Berkelanjutan dan sertifikasi BUJK yang berlaku." },
   { icon: Globe, title: "Jangkauan Nasional", desc: "Platform digital yang dapat diakses oleh BUJK dari seluruh wilayah Indonesia kapan saja." },
   { icon: BookOpen, title: "Pembelajaran Berkelanjutan", desc: "Modul dan program belajar dirancang untuk mendukung pengembangan kompetensi jangka panjang." },
   { icon: Award, title: "Sertifikasi Terverifikasi", desc: "Setiap pencapaian kompetensi didokumentasikan sebagai bukti nyata pengembangan BUJK." },
@@ -39,7 +39,7 @@ const SocialProofSection = () => {
           className="text-center mb-14"
         >
           <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider font-heading mb-6">
-            Didukung & Diamanatkan Oleh
+            Dalam Ekosistem Jasa Konstruksi
           </p>
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {logos.map((logo) => (
@@ -60,14 +60,29 @@ const SocialProofSection = () => {
           viewport={{ once: true }}
           className="mb-16"
         >
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div className="mb-8 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-pub-amber font-heading">
+              Landasan Regulasi PUB dan Sertifikasi BUJK
+            </p>
+            <h3 className="mt-2 text-2xl font-bold text-foreground font-heading md:text-3xl">
+              Dasar yang jelas untuk BUJK yang lebih siap
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             {credentials.map((c) => (
               <div key={c.value} className="p-4 rounded-xl bg-pub-amber/5 border border-pub-amber/15 text-center">
-                <p className="text-lg font-extrabold font-heading text-pub-amber">{c.value}</p>
+                <p className="text-base font-extrabold font-heading text-pub-amber">{c.value}</p>
                 <p className="text-sm font-semibold text-foreground mt-1 font-heading">{c.label}</p>
-                <p className="text-xs text-muted-foreground font-body">{c.sub}</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground font-body">{c.sub}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-5 rounded-xl border border-pub-sky/20 bg-pub-sky/5 px-5 py-4 text-sm leading-relaxed text-muted-foreground font-body">
+            <strong className="text-foreground">Status ketentuan terbaru:</strong> KepDirjen Bina
+            Konstruksi No. 281/KPTS/DK/2026 ditetapkan pada 26 Agustus 2026 dan mencabut
+            KepDirjen No. 37KPTS/DK/2025. Implementasi skema sertifikasi berdasarkan
+            pengaturan baru mengikuti kesiapan SIJK terintegrasi dan surat pemberlakuan resmi
+            dari unit organisasi yang membidangi jasa konstruksi.
           </div>
         </motion.div>
 
@@ -113,10 +128,10 @@ const SocialProofSection = () => {
           className="mt-4 p-6 rounded-xl bg-pub-amber/5 border border-pub-amber/20 text-center max-w-3xl mx-auto"
         >
           <p className="text-base italic text-muted-foreground font-body leading-relaxed">
-            "Setiap Badan Usaha Jasa Konstruksi memiliki kewajiban melaksanakan kegiatan Pengembangan Usaha Berkelanjutan (PUB) untuk meningkatkan kapasitas dan daya saing."
+            "PUB adalah upaya terus-menerus untuk mempertahankan dan/atau meningkatkan kemampuan BUJK agar mampu melaksanakan pekerjaan sesuai dengan sertifikat badan usaha yang dimilikinya."
           </p>
           <footer className="mt-3 text-sm font-semibold text-foreground not-italic font-heading">
-            — PP 14/2021 tentang Perubahan PP 22/2020 tentang Jasa Konstruksi
+            — Permen PUPR No. 7 Tahun 2024, Pasal 1 angka 3
           </footer>
         </motion.blockquote>
       </div>

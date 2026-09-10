@@ -7,8 +7,8 @@ import logoAspekindo from "@/assets/logo-aspekindo.png";
 import logoLsbuki from "@/assets/logo-lsbuki.webp";
 
 const challenges = [
-  { label: "Regulasi terus berubah", sub: "BUJK dituntut selalu patuh & adaptif" },
-  { label: "SBU makin sulit dipenuhi", sub: "Persyaratan kian berat, proses kian ketat" },
+  { label: "Standar sertifikasi diperbarui", sub: "KepDirjen 281/2026 menggantikan KepDirjen 37/2025" },
+  { label: "Skema SBU perlu disesuaikan", sub: "BUJK dan LSBU perlu menyiapkan persyaratan terbaru" },
   { label: "Proyek makin kompetitif", sub: "Efisiensi anggaran, harga naik, tender berat" },
 ];
 
@@ -49,20 +49,23 @@ const HeroSection = () => {
         >
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-destructive/15 border border-destructive/25 text-destructive text-sm font-semibold font-heading mb-5">
             <AlertTriangle className="w-3.5 h-3.5" />
-            TANTANGAN NYATA BUJK INDONESIA
+            REGULASI BARU SERTIFIKASI BUJK 2026
           </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-[3.5rem] font-extrabold font-heading text-white leading-[1.1] mb-6" style={{ textShadow: '2px 2px 8px rgba(0,0,0,0.8)' }}>
-            Industri Konstruksi Berubah Cepat.{" "}
+            Standar Sertifikasi BUJK Diperbarui.{" "}
             <span className="text-pub-amber" style={{ textShadow: '2px 2px 6px rgba(0,0,0,0.9)' }}>
-              Apakah BUJK Anda Siap?
+              Saatnya BUJK Anda Lebih Siap.
             </span>
           </h1>
 
           <p className="text-lg md:text-xl text-[hsl(0,0%,85%)] leading-relaxed mb-10 max-w-3xl font-body" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
-            Regulasi berubah, persyaratan SBU semakin berat, dan persaingan tender kian sengit. 
-            <strong className="text-[hsl(0,0%,97%)]"> ASPEKINDO hadir </strong> 
-            sebagai mitra strategis BUJK untuk tumbuh, patuh, dan berdaya saing.
+            Permen PUPR No. 7 Tahun 2024 menjadi dasar penyelenggaraan PUB. Kini,
+            KepDirjen Bina Konstruksi No. 281/KPTS/DK/2026 menindaklanjuti Permen PU
+            No. 6 Tahun 2025 dan menetapkan standar skema sertifikasi BUJK terbaru.
+            <strong className="text-[hsl(0,0%,97%)]"> PUB ASPEKINDO mendampingi BUJK </strong>
+            untuk meningkatkan kemampuan, menata bukti kegiatan, dan menyiapkan diri
+            menghadapi ketentuan sertifikasi yang berlaku.
           </p>
 
           <div className="flex max-w-6xl flex-wrap gap-4 mb-16">

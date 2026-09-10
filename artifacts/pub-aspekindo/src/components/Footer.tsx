@@ -15,7 +15,7 @@ const Footer = () => {
             </div>
           </div>
           <p className="text-sm text-primary-foreground/50 font-body">
-            © 2026 Pengembangan Usaha Berkelanjutan — Bidang Konstruksi
+            © 2026 PUB ASPEKINDO · Berlandaskan Permen PUPR 7/2024 · Menyikapi KepDirjen BK 281/2026
           </p>
         </div>
       </div>
