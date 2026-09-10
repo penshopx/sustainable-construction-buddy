@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import {
   BarChart3, TrendingUp, Target, Activity,
-  Star, Award, Crown, Gem
+  Star, Award, Crown, Gem, AlertCircle, RotateCcw
 } from "lucide-react";
 import { FourPillarCard } from "@/components/scoring/FourPillarCard";
 import {
@@ -71,12 +71,15 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
         }
       : null;
   });
+  const [assessmentHistoryError, setAssessmentHistoryError] = useState(false);
+  const [isRetryingAssessmentHistory, setIsRetryingAssessmentHistory] = useState(false);
   const [moduleStats, setModuleStats] = useState({ total: 0, completed: 0, inProgress: 0 });
 
-  useEffect(() => {
-    if (!user) return;
+  const fetchAnalytics = useCallback(async (isRetry = false) => {
+      if (!user) return;
+      if (isRetry) setIsRetryingAssessmentHistory(true);
+      setAssessmentHistoryError(false);
 
-    const fetchAnalytics = async () => {
       // Fetch domains
       const { data: domains } = await supabase
         .from("competency_domains")
@@ -90,16 +93,18 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
         .eq("user_id", user.id);
 
       // Fetch all completed pre-tests with answers
-      const { data: tests } = await supabase
+      const { data: tests, error: testsError } = await supabase
         .from("pre_tests")
         .select("*")
         .eq("user_id", user.id)
         .eq("status", "completed")
         .order("completed_at", { ascending: false, nullsFirst: false })
         .order("id", { ascending: false });
+      const completedTests = testsError ? [] : (tests || []);
+      setAssessmentHistoryError(Boolean(testsError));
 
       // Fetch latest test answers for domain breakdown
-      const latestTest = selectLatestAssessment(tests || []);
+      const latestTest = selectLatestAssessment(completedTests);
       const domainScores: Record<string, { correct: number; total: number }> = {};
 
       if (latestTest) {
@@ -134,8 +139,8 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
       });
 
       // Assessment history for trend
-      const history = buildAssessmentHistory(tests || []);
-      const latest = selectLatestAssessment(tests || []);
+      const history = buildAssessmentHistory(completedTests);
+      const latest = selectLatestAssessment(completedTests);
 
       setRadarData(radar);
       setBarData(bar);
@@ -153,10 +158,13 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
         completed: (progress || []).filter((p) => p.status === "completed").length,
         inProgress: (progress || []).filter((p) => p.status === "in_progress").length,
       });
-    };
-
-    fetchAnalytics();
+      setIsRetryingAssessmentHistory(false);
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchAnalytics();
+  }, [fetchAnalytics, user]);
 
   const level = profile?.current_level || "Pemula";
   const lc = levelConfig[level];
@@ -289,7 +297,24 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
       </div>
 
       {/* Assessment history trend */}
-      {assessmentHistory.length > 0 && latestAssessment && (
+      {assessmentHistoryError ? (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <AlertCircle className="mx-auto mb-3 h-7 w-7 text-destructive" />
+          <h3 className="font-heading font-bold text-foreground">Riwayat assessment gagal dimuat</h3>
+          <p className="mt-1 text-sm text-muted-foreground font-body">
+            Data riwayat Anda belum dapat ditampilkan. Silakan coba lagi.
+          </p>
+          <button
+            type="button"
+            onClick={() => fetchAnalytics(true)}
+            disabled={isRetryingAssessmentHistory}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            <RotateCcw className={`h-4 w-4 ${isRetryingAssessmentHistory ? "animate-spin" : ""}`} />
+            {isRetryingAssessmentHistory ? "Memuat ulang..." : "Coba Lagi"}
+          </button>
+        </div>
+      ) : assessmentHistory.length > 0 && latestAssessment ? (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -323,6 +348,13 @@ const Analytics = ({ initialAssessmentRows = [] }: AnalyticsProps) => {
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
+      ) : (
+        <div className="rounded-xl border border-border bg-card p-6 text-center shadow-card">
+          <h3 className="font-heading font-bold text-foreground">Riwayat Assessment</h3>
+          <p className="mt-1 text-sm text-muted-foreground font-body">
+            Belum ada assessment yang selesai.
+          </p>
+        </div>
       )}
 
       {/* 4-Pillar Scoring Engine */}

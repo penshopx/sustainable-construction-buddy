@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "@/components/ui/sonner-toast";
 import {
   ClipboardCheck, ArrowRight, ArrowLeft, CheckCircle2, XCircle,
-  Trophy, Star, Award, Crown, Gem, Loader2, RotateCcw, Timer, Target
+  Trophy, Star, Award, Crown, Gem, Loader2, RotateCcw, Timer, Target, AlertCircle
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
@@ -98,23 +98,37 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const [result, setResult] = useState<{ score: number; level: string; correct: number; total: number } | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [pastTests, setPastTests] = useState<Tables<"pre_tests">[]>(initialPastTests);
+  const [pastTestsError, setPastTestsError] = useState(false);
+  const [pastTestsLoading, setPastTestsLoading] = useState(false);
   const [checkingAnswer, setCheckingAnswer] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-     if (!user) {
-       return;
-     }
-    supabase
+  const fetchPastTests = useCallback(async () => {
+    if (!user) return;
+
+    setPastTestsLoading(true);
+    setPastTestsError(false);
+    const { data, error } = await supabase
       .from("pre_tests")
       .select("*")
       .eq("user_id", user.id)
       .eq("status", "completed")
-       .order("completed_at", { ascending: false, nullsFirst: false })
-       .order("id", { ascending: false })
-      .then(({ data }) => setPastTests(data || []));
-  }, [user, result]);
+      .order("completed_at", { ascending: false, nullsFirst: false })
+      .order("id", { ascending: false });
+
+    if (error) {
+      setPastTests([]);
+      setPastTestsError(true);
+    } else {
+      setPastTests(data || []);
+    }
+    setPastTestsLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    fetchPastTests();
+  }, [fetchPastTests, result]);
 
   // Timer countdown
   useEffect(() => {
@@ -341,9 +355,26 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
               </button>
             </div>
 
-            {pastTests.length > 0 && (
-              <div className="mt-10">
-                <h3 className="text-lg font-bold font-heading text-foreground mb-4">Riwayat Assessment</h3>
+            <div className="mt-10">
+              <h3 className="text-lg font-bold font-heading text-foreground mb-4">Riwayat Assessment</h3>
+              {pastTestsError ? (
+                <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-center">
+                  <AlertCircle className="mx-auto mb-2 h-6 w-6 text-destructive" />
+                  <p className="font-heading font-semibold text-foreground">Riwayat assessment gagal dimuat</p>
+                  <p className="mt-1 text-sm text-muted-foreground font-body">
+                    Silakan periksa koneksi Anda lalu coba lagi.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={fetchPastTests}
+                    disabled={pastTestsLoading}
+                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    <RotateCcw className={`h-4 w-4 ${pastTestsLoading ? "animate-spin" : ""}`} />
+                    {pastTestsLoading ? "Memuat ulang..." : "Coba Lagi"}
+                  </button>
+                </div>
+              ) : pastTests.length > 0 ? (
                 <div className="space-y-3">
                   {pastTests.slice(0, 5).map((t) => (
                     <div key={t.id} className="bg-card border border-border rounded-xl p-4 flex items-center justify-between shadow-card">
@@ -359,8 +390,12 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : !pastTestsLoading ? (
+                <div className="rounded-xl border border-border bg-card p-5 text-center text-sm text-muted-foreground font-body shadow-card">
+                  Belum ada assessment yang selesai.
+                </div>
+              ) : null}
+            </div>
           </motion.div>
         )}
 
