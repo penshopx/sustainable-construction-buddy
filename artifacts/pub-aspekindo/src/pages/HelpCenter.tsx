@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trackHelpTopicSelected } from "@/lib/helpAnalytics";
-import { helpSections, type HelpSectionId } from "@/lib/helpGuide";
+import { getHelpSectionFromHash, helpSections, type HelpSectionId } from "@/lib/helpGuide";
 
 const markerDetails = {
   internal: { label: "Fitur internal", className: "border-sky-300 bg-sky-100 text-sky-800 dark:border-sky-800 dark:bg-sky-950 dark:text-sky-200" },
@@ -18,8 +18,9 @@ export default function HelpCenter() {
 
   useEffect(() => {
     if (!hash) return;
+    const section = getHelpSectionFromHash(hash);
     requestAnimationFrame(() => {
-      document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(section)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [hash]);
 

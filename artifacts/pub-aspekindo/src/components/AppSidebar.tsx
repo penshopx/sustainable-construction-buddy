@@ -111,7 +111,7 @@ const communitySubItems = [
 
 // Bottom items
 const bottomItems = [
-  { title: "Pusat Bantuan", url: "/bantuan", icon: CircleHelp },
+  { title: "Pusat Bantuan", url: "/bantuan#mulai", icon: CircleHelp },
   { title: "Notifikasi", url: "/notifications", icon: Bell },
   { title: "Profil Saya", url: "/profile", icon: User },
 ];

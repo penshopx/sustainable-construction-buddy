@@ -12,7 +12,7 @@ export type HelpSectionId =
   | "integrasi"
   | "masalah";
 
-type HelpSection = {
+export type HelpSection = {
   id: HelpSectionId;
   title: string;
   description: string;
@@ -176,12 +176,15 @@ export const helpSections: HelpSection[] = [
   },
 ];
 
-const contextualHelp: Array<{ paths: string[]; section: HelpSectionId }> = [
+export const contextualHelpRoutes: ReadonlyArray<{
+  paths: readonly string[];
+  section: HelpSectionId;
+}> = [
   { paths: ["/dashboard"], section: "dashboard" },
   { paths: ["/assessment"], section: "assessment" },
   { paths: ["/courses", "/aspekindo-lms", "/aspekindo-aktivitas", "/certificates", "/analytics", "/leaderboard"], section: "belajar" },
   { paths: ["/siap-kompetensi", "/compliance", "/grading", "/simulator-sbu", "/simulator-lkut"], section: "empat-siap" },
-  { paths: ["/projects", "/risk-register", "/budget-tracker", "/k3-checklist"], section: "proyek" },
+  { paths: ["/projects", "/risk-register", "/budget-tracker", "/k3-checklist", "/generator"], section: "proyek" },
   { paths: ["/lkut"], section: "lkut" },
   { paths: ["/smap", "/pancek"], section: "smap-pancek" },
   { paths: ["/profile"], section: "akun" },
@@ -189,15 +192,28 @@ const contextualHelp: Array<{ paths: string[]; section: HelpSectionId }> = [
 ];
 
 export function getHelpSectionForPath(pathname: string): HelpSectionId {
-  return contextualHelp.find(({ paths }) =>
+  return contextualHelpRoutes.find(({ paths }) =>
     paths.some((path) => pathname === path || pathname.startsWith(`${path}/`)),
   )?.section ?? "mulai";
 }
 
 export function getHelpLocationForPath(pathname: string): string {
-  const matchedPath = contextualHelp
+  const matchedPath = contextualHelpRoutes
     .flatMap(({ paths }) => paths)
     .find((path) => pathname === path || pathname.startsWith(`${path}/`));
 
   return matchedPath?.slice(1).replaceAll("-", "_") || "other";
+}
+
+export function isHelpSectionId(value: string): value is HelpSectionId {
+  return helpSections.some(({ id }) => id === value);
+}
+
+export function getHelpHrefForPath(pathname: string): string {
+  return `/bantuan#${getHelpSectionForPath(pathname)}`;
+}
+
+export function getHelpSectionFromHash(hash: string): HelpSectionId {
+  const candidate = hash.replace(/^#/, "");
+  return isHelpSectionId(candidate) ? candidate : "mulai";
 }
