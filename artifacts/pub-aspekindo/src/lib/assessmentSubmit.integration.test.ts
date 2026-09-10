@@ -66,3 +66,31 @@ test("respons submit_assessment tidak valid tetap di review dan memberi pesan je
     nextPhase: "review",
   });
 });
+
+test("timer habis dan submit manual bersamaan hanya menjalankan satu permintaan", async () => {
+  const { createAssessmentSubmitGuard } =
+    await server.ssrLoadModule("/src/pages/Assessment.tsx");
+  const guard = createAssessmentSubmitGuard();
+  let rpcCalls = 0;
+  let finishRpc: (() => void) | undefined;
+  const rpcPending = new Promise<void>((resolve) => {
+    finishRpc = resolve;
+  });
+  const submitAssessment = async () => {
+    rpcCalls += 1;
+    await rpcPending;
+  };
+
+  const manualSubmit = guard(submitAssessment);
+  const timerSubmit = guard(submitAssessment);
+  const repeatedClick = guard(submitAssessment);
+
+  await Promise.resolve();
+  assert.equal(rpcCalls, 1);
+  assert.equal(manualSubmit, timerSubmit);
+  assert.equal(manualSubmit, repeatedClick);
+
+  finishRpc?.();
+  await Promise.all([manualSubmit, timerSubmit, repeatedClick]);
+  assert.equal(rpcCalls, 1);
+});

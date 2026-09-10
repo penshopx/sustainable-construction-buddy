@@ -68,6 +68,22 @@ type AssessmentSubmitOutcome =
   | { ok: true; result: AssessmentResult; nextPhase: "result" }
   | { ok: false; message: string; nextPhase: "review" };
 
+export const createAssessmentSubmitGuard = () => {
+  let inFlight: Promise<void> | null = null;
+
+  return (submit: () => Promise<void>): Promise<void> => {
+    if (inFlight) return inFlight;
+
+    inFlight = Promise.resolve()
+      .then(submit)
+      .finally(() => {
+        inFlight = null;
+      });
+
+    return inFlight;
+  };
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const isAssessmentQuestion = (value: unknown): value is AssessmentRpcQuestion =>
@@ -147,6 +163,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const [checkingAnswer, setCheckingAnswer] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const submitGuardRef = useRef(createAssessmentSubmitGuard());
 
   const fetchPastTests = useCallback(async () => {
     if (!user) return;
@@ -290,37 +307,40 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   };
 
   const submitTest = useCallback(async () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setLoading(true);
+    return submitGuardRef.current(async () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setLoading(true);
 
-    const answersPayload = questions.map((q) => ({
-      question_id: q.id,
-      selected_answer: answers[q.id] ?? -1,
-    }));
+      try {
+        const answersPayload = questions.map((q) => ({
+          question_id: q.id,
+          selected_answer: answers[q.id] ?? -1,
+        }));
 
-    const { data, error } = await supabase.rpc("submit_assessment", {
-      _pre_test_id: preTestId!,
-      _answers: answersPayload,
+        const { data, error } = await supabase.rpc("submit_assessment", {
+          _pre_test_id: preTestId!,
+          _answers: answersPayload,
+        });
+
+        if (error) {
+          toast.error("Gagal mengirim assessment.");
+          return;
+        }
+
+        const outcome = resolveAssessmentSubmitResponse(data);
+        if (!outcome.ok) {
+          toast.error(outcome.message);
+          return;
+        }
+
+        await refreshProfile();
+
+        setResult(outcome.result);
+        setPhase(outcome.nextPhase);
+      } finally {
+        setLoading(false);
+      }
     });
-
-    if (error) {
-      toast.error("Gagal mengirim assessment.");
-      setLoading(false);
-      return;
-    }
-
-    const outcome = resolveAssessmentSubmitResponse(data);
-    if (!outcome.ok) {
-      toast.error(outcome.message);
-      setLoading(false);
-      return;
-    }
-
-    await refreshProfile();
-
-    setResult(outcome.result);
-    setPhase(outcome.nextPhase);
-    setLoading(false);
   }, [answers, preTestId, questions, refreshProfile]);
 
   // Auto-submit when timer runs out
