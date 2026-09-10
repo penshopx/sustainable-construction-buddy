@@ -182,3 +182,31 @@ mtime_ms = 1789030230308
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/d9194074-93df-4e18-9be8-d835c632c369/ec737724-baf4-4ac2-9f9c-418ded199208"
 storage_version_token = "1789030263615897"
 content_type = "text/html"
+
+[[outputs]]
+id = "gcBw7VyylMuVZ_O4Qocis"
+uri = "file://deliverables/draft-surat-pengantar-sosialisasi-pub-aspekindo.pdf"
+type = "pdf"
+title = "Draft Surat Pengantar Sosialisasi PUB ASPEKINDO"
+description = "Versi PDF A4 dua halaman, siap ditinjau dan dipindahkan ke kop surat resmi DPP ASPEKINDO."
+logical_id = "e4f77b64-3ef8-4c04-a313-4cb1ab476fd2"
+content_hash = "sha256:85ac1afe7647b8e1ce4ca438c47e8fb5aca25908ed98a552bbf01036d11d7277"
+size = 71905
+mtime_ms = 1789033081589
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/e4f77b64-3ef8-4c04-a313-4cb1ab476fd2/4381546e-5bb4-4b59-a378-7cd92e5164c6"
+storage_version_token = "1789033089838175"
+content_type = "application/pdf"
+
+[[outputs]]
+id = "uby80r1Zz3ncJLNzB2DHz"
+uri = "file://deliverables/draft-surat-pengantar-sosialisasi-pub-aspekindo.html"
+type = "text"
+title = "Draft Surat Sosialisasi — Versi Dapat Disunting"
+description = "Versi HTML yang dapat disunting untuk mengisi nomor surat, tanggal, narahubung, lampiran, dan pejabat penandatangan."
+logical_id = "cfd9b2af-5463-4be4-9b26-55344b07ce0b"
+content_hash = "sha256:717c777f5c618a0cd476245f2cbad9ae2f4b2c4192be02b2f3da9d7d9d9480b2"
+size = 6481
+mtime_ms = 1789033073511
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/cfd9b2af-5463-4be4-9b26-55344b07ce0b/c220beb1-ad9a-4131-9fb9-c3408fc9433d"
+storage_version_token = "1789033091153429"
+content_type = "text/html"
