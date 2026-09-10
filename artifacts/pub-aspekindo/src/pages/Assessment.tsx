@@ -63,6 +63,11 @@ interface AssessmentSubmitResponse {
   total: number;
 }
 
+type AssessmentResult = Pick<AssessmentSubmitResponse, "score" | "level" | "correct" | "total">;
+type AssessmentSubmitOutcome =
+  | { ok: true; result: AssessmentResult; nextPhase: "result" }
+  | { ok: false; message: string; nextPhase: "review" };
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const isAssessmentQuestion = (value: unknown): value is AssessmentRpcQuestion =>
@@ -76,6 +81,20 @@ const isAssessmentSubmitResponse = (value: unknown): value is AssessmentSubmitRe
   typeof value.correct === "number" && typeof value.total === "number" &&
   (value.error === undefined || typeof value.error === "string");
 
+export const resolveAssessmentSubmitResponse = (value: unknown): AssessmentSubmitOutcome => {
+  if (!isAssessmentSubmitResponse(value)) {
+    return { ok: false, message: "Respons assessment tidak valid.", nextPhase: "review" };
+  }
+  if (value.error) {
+    return { ok: false, message: value.error, nextPhase: "review" };
+  }
+  return {
+    ok: true,
+    result: { score: value.score, level: value.level, correct: value.correct, total: value.total },
+    nextPhase: "result",
+  };
+};
+
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
@@ -86,6 +105,31 @@ interface AssessmentProps {
   initialPastTests?: Tables<"pre_tests">[];
 }
 
+export const AssessmentResultView = ({ result }: { result: AssessmentResult }) => {
+  const rc = levelConfig[result.level];
+  const Icon = rc?.icon ?? Trophy;
+  const iconColor = rc?.color ?? "text-pub-amber";
+
+  return (
+    <>
+      <h1 className="text-3xl font-bold font-heading text-foreground mb-2">Assessment Selesai!</h1>
+      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-foreground font-heading text-lg font-bold mb-6">
+        Skor: {result.score}
+      </div>
+      <div className="bg-card border border-border rounded-2xl p-8 max-w-md mx-auto shadow-card mb-8">
+        <p className="text-sm text-muted-foreground font-body mb-2">Level Kompetensi Anda:</p>
+        <div className="flex items-center justify-center gap-3">
+          <Icon className={`w-10 h-10 ${iconColor}`} />
+          <span className="text-3xl font-bold font-heading text-foreground">{result.level}</span>
+        </div>
+        <p className="text-sm text-muted-foreground font-body mt-3">
+          {result.correct} dari {result.total} jawaban benar
+        </p>
+      </div>
+    </>
+  );
+};
+
 const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const { user, refreshProfile } = useAuth();
   const [phase, setPhase] = useState<"intro" | "test" | "review" | "result">("intro");
@@ -95,7 +139,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const [answerResults, setAnswerResults] = useState<Record<string, AnswerResult>>({});
   const [preTestId, setPreTestId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ score: number; level: string; correct: number; total: number } | null>(null);
+  const [result, setResult] = useState<AssessmentResult | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
   const [pastTests, setPastTests] = useState<Tables<"pre_tests">[]>(initialPastTests);
   const [pastTestsError, setPastTestsError] = useState(false);
@@ -265,22 +309,17 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       return;
     }
 
-    if (!isAssessmentSubmitResponse(data)) {
-      toast.error("Respons assessment tidak valid.");
-      setLoading(false);
-      return;
-    }
-    const res = data;
-    if (res.error) {
-      toast.error(res.error);
+    const outcome = resolveAssessmentSubmitResponse(data);
+    if (!outcome.ok) {
+      toast.error(outcome.message);
       setLoading(false);
       return;
     }
 
     await refreshProfile();
 
-    setResult({ score: res.score, level: res.level, correct: res.correct, total: res.total });
-    setPhase("result");
+    setResult(outcome.result);
+    setPhase(outcome.nextPhase);
     setLoading(false);
   }, [answers, preTestId, questions, refreshProfile]);
 
@@ -548,30 +587,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
                 <Trophy className="w-12 h-12 text-pub-amber" />
               </motion.div>
 
-              <h1 className="text-3xl font-bold font-heading text-foreground mb-2">Assessment Selesai!</h1>
-
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted text-foreground font-heading text-lg font-bold mb-6">
-                Skor: {result.score}
-              </div>
-
-              <div className="bg-card border border-border rounded-2xl p-8 max-w-md mx-auto shadow-card mb-8">
-                <p className="text-sm text-muted-foreground font-body mb-2">Level Kompetensi Anda:</p>
-                <div className="flex items-center justify-center gap-3">
-                  {(() => {
-                    const rc = levelConfig[result.level];
-                    const Icon = rc.icon;
-                    return (
-                      <>
-                        <Icon className={`w-10 h-10 ${rc.color}`} />
-                        <span className="text-3xl font-bold font-heading text-foreground">{result.level}</span>
-                      </>
-                    );
-                  })()}
-                </div>
-                <p className="text-sm text-muted-foreground font-body mt-3">
-                  {result.correct} dari {result.total} jawaban benar
-                </p>
-              </div>
+              <AssessmentResultView result={result} />
 
               {/* Domain Breakdown Chart */}
               {(() => {
