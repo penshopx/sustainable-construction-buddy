@@ -87,3 +87,47 @@ jobs:
             .migration-backup/test-results/
           if-no-files-found: ignore
           retention-days: 7
+
+  validate-active-frontend:
+    name: Validate active PUB ASPEKINDO frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck shared libraries
+        run: pnpm run typecheck:libs
+
+      - name: Typecheck active frontend
+        run: pnpm --filter @workspace/pub-aspekindo run typecheck
+
+      - name: Build active frontend
+        env:
+          PORT: "4179"
+          BASE_PATH: "/"
+          VITE_SUPABASE_URL: https://ci-playwright.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
+        run: pnpm --filter @workspace/pub-aspekindo run build
+
+      - name: Install Chromium for routing smoke test
+        run: pnpm --filter @workspace/pub-aspekindo exec playwright install --with-deps chromium
+
+      - name: Smoke test active frontend routes
+        run: pnpm --filter @workspace/pub-aspekindo run test:routing
