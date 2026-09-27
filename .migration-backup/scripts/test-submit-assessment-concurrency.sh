@@ -11,6 +11,8 @@ TEST_QUESTION_ID="00000000-0000-4000-8000-000000000163"
 TEST_PRE_TEST_ID="00000000-0000-4000-8000-000000000164"
 TEST_OLD_PRE_TEST_ID="00000000-0000-4000-8000-000000000165"
 TEST_NEW_PRE_TEST_ID="00000000-0000-4000-8000-000000000166"
+TEST_TIE_LOW_ID="00000000-0000-4000-8000-000000000167"
+TEST_TIE_HIGH_ID="00000000-0000-4000-8000-000000000168"
 
 cleanup() {
   "${PSQL[@]}" >/dev/null 2>&1 <<SQL || true
@@ -338,5 +340,139 @@ BEGIN
 END;
 \$\$;
 SQL
+
+# Both assessments start at exactly the same time. The higher UUID must own
+# the profile regardless of which transaction finishes last.
+run_tie_case() {
+  local blocked_id="$1"
+  local first_id="$2"
+  local label="$3"
+  local blocked_answer first_answer
+  local lock_ready="f"
+  local blocked_active="f"
+
+  if [[ "$blocked_id" == "$TEST_TIE_HIGH_ID" ]]; then
+    blocked_answer=1
+    first_answer=0
+  else
+    blocked_answer=0
+    first_answer=1
+  fi
+
+  "${PSQL[@]}" >/dev/null <<SQL
+DELETE FROM public.pre_tests WHERE id IN ('$TEST_TIE_LOW_ID', '$TEST_TIE_HIGH_ID');
+INSERT INTO public.pre_tests (id, user_id, total_questions, started_at)
+VALUES
+  ('$TEST_TIE_LOW_ID', '$TEST_USER_ID', 1, '2026-09-10 11:00:00+00'),
+  ('$TEST_TIE_HIGH_ID', '$TEST_USER_ID', 1, '2026-09-10 11:00:00+00');
+UPDATE public.profiles
+SET current_level = 'Pemula', total_score = 0
+WHERE user_id = '$TEST_USER_ID';
+SQL
+
+  "${PSQL[@]}" >/dev/null <<SQL &
+BEGIN;
+SELECT 1 FROM public.pre_tests WHERE id = '$blocked_id' FOR UPDATE;
+SELECT /* submit_assessment_tie_locker:$label */ pg_sleep(5);
+COMMIT;
+SQL
+  local locker_pid=$!
+
+  for _ in {1..100}; do
+    lock_ready="$("${PSQL[@]}" -Atq -c "
+      SELECT EXISTS (
+        SELECT 1 FROM pg_stat_activity
+        WHERE query LIKE '%submit_assessment_tie_locker:$label%'
+          AND query NOT LIKE '%pg_stat_activity%'
+          AND state = 'active'
+      )
+    ")"
+    [[ "$lock_ready" == "t" ]] && break
+    sleep 0.02
+  done
+  if [[ "$lock_ready" != "t" ]]; then
+    echo "Failed to acquire the tie-case row lock ($label)." >&2
+    exit 1
+  fi
+
+  submit_pre_test "$blocked_id" "$blocked_answer" "tie_blocked_$label" >"$TMP_DIR/tie-blocked-$label.out" &
+  local blocked_pid=$!
+
+  for _ in {1..100}; do
+    blocked_active="$("${PSQL[@]}" -Atq -c "
+      SELECT EXISTS (
+        SELECT 1 FROM pg_stat_activity
+        WHERE query LIKE '%submit_assessment_cross_pretest:tie_blocked_$label%'
+          AND query NOT LIKE '%pg_stat_activity%'
+          AND state = 'active'
+      )
+    ")"
+    [[ "$blocked_active" == "t" ]] && break
+    sleep 0.02
+  done
+  if [[ "$blocked_active" != "t" ]]; then
+    echo "Blocked tie-case submit did not become active ($label)." >&2
+    exit 1
+  fi
+
+  submit_pre_test "$first_id" "$first_answer" "tie_first_$label" >"$TMP_DIR/tie-first-$label.out" &
+  local first_pid=$!
+  wait "$first_pid"
+
+  if ! kill -0 "$blocked_pid" 2>/dev/null; then
+    echo "Tie-case setup invalid: blocked submit finished before the first one ($label)." >&2
+    exit 1
+  fi
+
+  wait "$locker_pid"
+  wait "$blocked_pid"
+
+  "${PSQL[@]}" >/dev/null <<SQL
+DO \$\$
+DECLARE
+  profile_level text;
+  profile_score integer;
+  completed_count integer;
+  shared_start_count integer;
+  low_score integer;
+  high_score integer;
+BEGIN
+  SELECT count(*), count(DISTINCT started_at)
+  INTO completed_count, shared_start_count
+  FROM public.pre_tests
+  WHERE id IN ('$TEST_TIE_LOW_ID', '$TEST_TIE_HIGH_ID')
+    AND user_id = '$TEST_USER_ID'
+    AND status = 'completed';
+
+  IF completed_count <> 2 OR shared_start_count <> 1 THEN
+    RAISE EXCEPTION 'Tie-case assessments were not both completed with identical started_at (%)',
+      '$label';
+  END IF;
+
+  SELECT score INTO low_score FROM public.pre_tests WHERE id = '$TEST_TIE_LOW_ID';
+  SELECT score INTO high_score FROM public.pre_tests WHERE id = '$TEST_TIE_HIGH_ID';
+  IF low_score IS DISTINCT FROM 0 OR high_score IS DISTINCT FROM 100 THEN
+    RAISE EXCEPTION 'Tie-case assessment scores incorrect (%): low %, high %',
+      '$label', low_score, high_score;
+  END IF;
+
+  SELECT current_level, total_score
+  INTO profile_level, profile_score
+  FROM public.profiles
+  WHERE user_id = '$TEST_USER_ID';
+
+  IF profile_level IS DISTINCT FROM 'Utama' OR profile_score IS DISTINCT FROM 100 THEN
+    RAISE EXCEPTION
+      'Tie-case profile followed wrong ID (%): level %, score %; expected Utama, 100 from %',
+      '$label', profile_level, profile_score, '$TEST_TIE_HIGH_ID';
+  END IF;
+END;
+\$\$;
+SQL
+}
+
+# Higher ID finishes last, then higher ID finishes first.
+run_tie_case "$TEST_TIE_HIGH_ID" "$TEST_TIE_LOW_ID" high_last
+run_tie_case "$TEST_TIE_LOW_ID" "$TEST_TIE_HIGH_ID" high_first
 
 echo "Concurrent submit_assessment tests passed."
