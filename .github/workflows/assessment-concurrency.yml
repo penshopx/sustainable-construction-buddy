@@ -1,0 +1,37 @@
+name: Assessment concurrency
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  assessment-concurrency:
+    name: Verify concurrent assessment submissions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: .migration-backup
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+
+      - name: Start local Supabase and apply migrations
+        run: supabase start
+
+      - name: Test duplicate submits and competing pre-tests
+        run: bash scripts/test-submit-assessment-concurrency.sh
