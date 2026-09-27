@@ -1,3 +1,4 @@
 - [Batas klaim PUB ASPEKINDO](pub-claim-boundaries.md) — bedakan fitur aktif, rujukan eksternal, dan roadmap; platform membantu persiapan, bukan keputusan resmi.
 - [Prioritas hasil assessment](assessment-profile-precedence.md) — profil mengikuti assessment selesai yang dimulai paling baru, bukan transaksi yang commit paling akhir.
 - [Diagnostik subproses terbatas](bounded-subprocess-diagnostics.md) — samarkan kredensial sebelum memotong output akhir; sisakan overlap untuk nilai yang melintasi batas.
+- [Playwright di Nix](playwright-nix.md) — browser unduhan dapat gagal memuat pustaka native meski instalasinya berhasil; bedakan lingkungan lokal dari CI Ubuntu.
