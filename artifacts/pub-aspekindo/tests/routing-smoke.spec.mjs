@@ -14,8 +14,8 @@ test("rute publik utama dari build aplikasi aktif dapat dibuka", async ({ page }
   await expect(page.getByRole("heading", { name: "Ruang kolaborasi untuk BUJK yang terus bertumbuh.", level: 1 })).toBeVisible();
 });
 
-test("rute anggota dan alias mewajibkan login tanpa sesi", async ({ page }) => {
-  for (const path of ["/dashboard", "/assessment", "/siap-kompetensi", "/aspekindo-lms", "/ai-helpdesk"]) {
+test("rute anggota, admin, dan alias mewajibkan login tanpa sesi", async ({ page }) => {
+  for (const path of ["/dashboard", "/assessment", "/siap-kompetensi", "/aspekindo-lms", "/ai-helpdesk", "/admin", "/admin/users"]) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/auth$/);
     await expect(page.getByRole("heading", { name: "Masuk ke Akun" })).toBeVisible();
@@ -53,7 +53,7 @@ const course = {
 };
 
 const emptyTables = new Set([
-  "notifications", "user_roles", "pre_tests", "aspekindo_members",
+  "notifications", "pre_tests", "aspekindo_members",
   "aspekindo_pub_activities", "aspekindo_activity_enrollments",
   "aspekindo_activity_evidence", "module_progress", "certificates",
   "pancek_assessments", "lkut_reports", "smap_documents", "projects",
@@ -64,7 +64,7 @@ const emptyTables = new Set([
   "aspekindo_lms_sessions", "aspekindo_lms_lessons",
 ]);
 
-async function installMemberFixture(page) {
+async function installAuthenticatedFixture(page, { asAdmin = false } = {}) {
   const unexpectedRequests = [];
   await page.addInitScript(({ user, hostname }) => {
     localStorage.setItem(`sb-${hostname.split(".")[0]}-auth-token`, JSON.stringify({
@@ -93,6 +93,8 @@ async function installMemberFixture(page) {
       data = member;
     } else if (url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
       data = false;
+    } else if (url.pathname === "/rest/v1/user_roles") {
+      data = asAdmin ? [{ role: "admin" }] : [];
     } else if (url.pathname === "/functions/v1/competency-insight") {
       data = { source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" };
     } else if (url.pathname === "/rest/v1/aspekindo_lms_courses") {
@@ -100,7 +102,12 @@ async function installMemberFixture(page) {
     } else if (url.pathname.startsWith("/rest/v1/") && emptyTables.has(endpoint)) {
       data = [];
     } else if (url.pathname === "/rest/v1/profiles") {
-      data = { user_id: MEMBER_ID, full_name: "Anggota Uji", current_level: "Pemula" };
+      const profile = {
+        user_id: MEMBER_ID, full_name: "Anggota Uji", company: "BUJK Uji",
+        position: "Anggota", current_level: "Pemula", total_score: 0,
+        created_at: "2026-09-01T00:00:00.000Z",
+      };
+      data = single ? profile : [profile];
     } else {
       unexpectedRequests.push(`${request.method()} ${url.pathname}`);
     }
@@ -116,7 +123,7 @@ async function installMemberFixture(page) {
 
 test.describe("halaman anggota dengan sesi tiruan", () => {
   test("assessment menampilkan formulir awal dan riwayat", async ({ page }) => {
-    const unexpected = await installMemberFixture(page);
+    const unexpected = await installAuthenticatedFixture(page);
     await page.goto("/assessment");
     await expect(page).toHaveURL(/\/assessment$/);
     await expect(page.getByRole("heading", { name: "Pre-test Assessment" })).toBeVisible();
@@ -126,7 +133,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
   });
 
   test("peta kompetensi memuat hasil kesiapan anggota", async ({ page }) => {
-    const unexpected = await installMemberFixture(page);
+    const unexpected = await installAuthenticatedFixture(page);
     await page.goto("/siap-kompetensi");
     await expect(page).toHaveURL(/\/siap-kompetensi$/);
     await expect(page.getByRole("heading", { name: "Peta kesiapan usaha" })).toBeVisible();
@@ -135,11 +142,39 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
   });
 
   test("LMS menampilkan katalog pembelajaran untuk anggota", async ({ page }) => {
-    const unexpected = await installMemberFixture(page);
+    const unexpected = await installAuthenticatedFixture(page);
     await page.goto("/aspekindo-lms");
     await expect(page).toHaveURL(/\/aspekindo-lms$/);
     await expect(page.getByRole("heading", { name: "Katalog pembelajaran ASPEKINDO" })).toBeVisible();
     await expect(page.getByRole("heading", { name: course.title })).toBeVisible();
     expect(unexpected).toEqual([]);
+  });
+});
+
+test.describe("halaman admin dengan sesi tiruan", () => {
+  test("admin membuka panel dan pengelolaan pengguna", async ({ page }) => {
+    const unexpected = await installAuthenticatedFixture(page, { asAdmin: true });
+
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/admin$/);
+    await expect(page.getByRole("heading", { name: "Panel Admin" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Data Pengguna" })).toBeVisible();
+
+    await page.goto("/admin/users");
+    await expect(page).toHaveURL(/\/admin\/users$/);
+    await expect(page.getByRole("heading", { name: "Data Pengguna" })).toBeVisible();
+    await expect(page.getByRole("cell", { name: "Anggota Uji" })).toBeVisible();
+    expect(unexpected).toEqual([]);
+  });
+
+  test("anggota biasa dialihkan dari panel dan pengelolaan pengguna", async ({ page }) => {
+    await installAuthenticatedFixture(page);
+
+    for (const path of ["/admin", "/admin/users"]) {
+      await page.goto(path);
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await expect(page.getByRole("heading", { name: "Panel Admin" })).toHaveCount(0);
+      await expect(page.getByRole("heading", { name: "Data Pengguna" })).toHaveCount(0);
+    }
   });
 });
