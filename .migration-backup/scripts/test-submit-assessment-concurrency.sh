@@ -6,6 +6,7 @@ PSQL=(psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1)
 TMP_DIR="$(mktemp -d)"
 
 TEST_USER_ID="00000000-0000-4000-8000-000000000161"
+TEST_OTHER_USER_ID="00000000-0000-4000-8000-000000000169"
 TEST_DOMAIN_ID="00000000-0000-4000-8000-000000000162"
 TEST_QUESTION_ID="00000000-0000-4000-8000-000000000163"
 TEST_PRE_TEST_ID="00000000-0000-4000-8000-000000000164"
@@ -13,13 +14,14 @@ TEST_OLD_PRE_TEST_ID="00000000-0000-4000-8000-000000000165"
 TEST_NEW_PRE_TEST_ID="00000000-0000-4000-8000-000000000166"
 TEST_TIE_LOW_ID="00000000-0000-4000-8000-000000000167"
 TEST_TIE_HIGH_ID="00000000-0000-4000-8000-000000000168"
+TEST_OWNERSHIP_PRE_TEST_ID="00000000-0000-4000-8000-000000000170"
 
 cleanup() {
   "${PSQL[@]}" >/dev/null 2>&1 <<SQL || true
 DROP TRIGGER IF EXISTS submit_assessment_concurrency_audit_trigger ON public.pre_tests;
 DROP FUNCTION IF EXISTS public.record_submit_assessment_completion();
 DROP TABLE IF EXISTS public.submit_assessment_concurrency_audit;
-DELETE FROM auth.users WHERE id = '$TEST_USER_ID';
+DELETE FROM auth.users WHERE id IN ('$TEST_USER_ID', '$TEST_OTHER_USER_ID');
 DELETE FROM public.competency_domains WHERE id = '$TEST_DOMAIN_ID';
 SQL
   rm -rf "$TMP_DIR"
@@ -35,19 +37,33 @@ INSERT INTO auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 )
-VALUES (
-  '$TEST_USER_ID',
-  '00000000-0000-0000-0000-000000000000',
-  'authenticated',
-  'authenticated',
-  'assessment-concurrency@example.invalid',
-  '',
-  now(),
-  '{}'::jsonb,
-  '{"full_name":"Assessment Concurrency Test"}'::jsonb,
-  now(),
-  now()
-);
+VALUES
+  (
+    '$TEST_USER_ID',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'assessment-concurrency@example.invalid',
+    '',
+    now(),
+    '{}'::jsonb,
+    '{"full_name":"Assessment Concurrency Test"}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '$TEST_OTHER_USER_ID',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'assessment-other-user@example.invalid',
+    '',
+    now(),
+    '{}'::jsonb,
+    '{"full_name":"Assessment Other User"}'::jsonb,
+    now(),
+    now()
+  );
 
 INSERT INTO public.competency_domains (id, name)
 VALUES ('$TEST_DOMAIN_ID', 'Assessment concurrency test');
@@ -550,5 +566,116 @@ SQL
 # Higher ID finishes last, then higher ID finishes first.
 run_tie_case "$TEST_TIE_HIGH_ID" "$TEST_TIE_LOW_ID" high_last
 run_tie_case "$TEST_TIE_LOW_ID" "$TEST_TIE_HIGH_ID" high_first
+
+# A different authenticated user must not be able to submit the owner's
+# unfinished assessment. Compare complete rows before and after the attempt,
+# then prove the owner can still submit the same pre-test successfully.
+"${PSQL[@]}" >/dev/null <<SQL
+INSERT INTO public.pre_tests (id, user_id, total_questions)
+VALUES ('$TEST_OWNERSHIP_PRE_TEST_ID', '$TEST_USER_ID', 1);
+
+UPDATE public.profiles
+SET current_level = 'Muda', total_score = 73
+WHERE user_id = '$TEST_USER_ID';
+
+DO \$\$
+DECLARE
+  before_pre_test jsonb;
+  before_profile jsonb;
+  attacker_result jsonb;
+  answer_count integer;
+BEGIN
+  SELECT to_jsonb(pt) INTO STRICT before_pre_test
+  FROM public.pre_tests pt WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  SELECT to_jsonb(p) INTO STRICT before_profile
+  FROM public.profiles p WHERE p.user_id = '$TEST_USER_ID';
+
+  PERFORM set_config('request.jwt.claim.sub', '$TEST_OTHER_USER_ID', true);
+  PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+  attacker_result := public.submit_assessment(
+    '$TEST_OWNERSHIP_PRE_TEST_ID',
+    jsonb_build_array(jsonb_build_object(
+      'question_id', '$TEST_QUESTION_ID',
+      'selected_answer', 0
+    ))
+  );
+
+  IF attacker_result IS DISTINCT FROM '{"error":"Unauthorized"}'::jsonb THEN
+    RAISE EXCEPTION 'Submitting another user''s pre-test returned %, expected Unauthorized',
+      attacker_result;
+  END IF;
+
+  SELECT count(*) INTO answer_count
+  FROM public.pre_test_answers WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  IF answer_count <> 0 THEN
+    RAISE EXCEPTION 'Unauthorized submission saved % answers', answer_count;
+  END IF;
+
+  IF (SELECT to_jsonb(pt) FROM public.pre_tests pt
+      WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID') IS DISTINCT FROM before_pre_test THEN
+    RAISE EXCEPTION 'Unauthorized submission changed the owner''s pre-test';
+  END IF;
+  IF (SELECT to_jsonb(p) FROM public.profiles p
+      WHERE p.user_id = '$TEST_USER_ID') IS DISTINCT FROM before_profile THEN
+    RAISE EXCEPTION 'Unauthorized submission changed the owner''s profile';
+  END IF;
+END;
+\$\$;
+SQL
+
+OWNER_RESULT="$(
+  "${PSQL[@]}" -Atq <<SQL | grep '^{'
+BEGIN;
+SELECT set_config('request.jwt.claim.sub', '$TEST_USER_ID', true);
+SELECT set_config('request.jwt.claim.role', 'authenticated', true);
+SELECT public.submit_assessment(
+  '$TEST_OWNERSHIP_PRE_TEST_ID',
+  jsonb_build_array(jsonb_build_object(
+    'question_id', '$TEST_QUESTION_ID',
+    'selected_answer', 1
+  ))
+)::text;
+COMMIT;
+SQL
+)"
+
+"${PSQL[@]}" -v owner_result="$OWNER_RESULT" >/dev/null <<SQL
+SELECT set_config('test.owner_result', :'owner_result', false);
+DO \$\$
+DECLARE
+  answer_count integer;
+  saved_answer integer;
+  saved_correct boolean;
+  owner_pre_test public.pre_tests%ROWTYPE;
+  profile_level text;
+  profile_score integer;
+BEGIN
+  IF current_setting('test.owner_result')::jsonb IS DISTINCT FROM
+     '{"score":100,"level":"Utama","correct":1,"total":1}'::jsonb THEN
+    RAISE EXCEPTION 'Owner could not complete the pre-test: %',
+      current_setting('test.owner_result');
+  END IF;
+
+  SELECT * INTO STRICT owner_pre_test
+  FROM public.pre_tests WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  SELECT count(*), min(selected_answer), bool_and(is_correct)
+  INTO answer_count, saved_answer, saved_correct
+  FROM public.pre_test_answers WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  SELECT current_level, total_score INTO STRICT profile_level, profile_score
+  FROM public.profiles WHERE user_id = '$TEST_USER_ID';
+
+  IF owner_pre_test.status IS DISTINCT FROM 'completed'
+     OR owner_pre_test.completed_at IS NULL
+     OR owner_pre_test.correct_answers IS DISTINCT FROM 1
+     OR owner_pre_test.score IS DISTINCT FROM 100
+     OR owner_pre_test.determined_level IS DISTINCT FROM 'Utama'
+     OR answer_count <> 1 OR saved_answer IS DISTINCT FROM 1
+     OR saved_correct IS DISTINCT FROM true
+     OR profile_level IS DISTINCT FROM 'Utama' OR profile_score IS DISTINCT FROM 100 THEN
+    RAISE EXCEPTION 'Owner submission did not save the expected answer, result and profile';
+  END IF;
+END;
+\$\$;
+SQL
 
 echo "Concurrent submit_assessment tests passed."
