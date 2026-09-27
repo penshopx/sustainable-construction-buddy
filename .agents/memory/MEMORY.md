@@ -1,1 +1,2 @@
 - [Batas klaim PUB ASPEKINDO](pub-claim-boundaries.md) — bedakan fitur aktif, rujukan eksternal, dan roadmap; platform membantu persiapan, bukan keputusan resmi.
+- [Prioritas hasil assessment](assessment-profile-precedence.md) — profil mengikuti assessment selesai yang dimulai paling baru, bukan transaksi yang commit paling akhir.
