@@ -341,6 +341,82 @@ END;
 \$\$;
 SQL
 
+# Both assessments are now completed. Replaying the older one with a different
+# answer must return its original result without changing either stored data or
+# the profile owned by the newer-started assessment.
+OLDER_RESULT="$(grep '^{' "$TMP_DIR/older.out")"
+NEWER_RESULT="$(grep '^{' "$TMP_DIR/newer.out")"
+if [[ -z "$OLDER_RESULT" || -z "$NEWER_RESULT" || "$OLDER_RESULT" == "$NEWER_RESULT" ]]; then
+  printf 'Cross-pre-test submissions did not produce distinct results:\nolder: %s\nnewer: %s\n' \
+    "$OLDER_RESULT" "$NEWER_RESULT" >&2
+  exit 1
+fi
+
+OLDER_COMPLETED_AT="$("${PSQL[@]}" -Atq -c "
+  SELECT completed_at FROM public.pre_tests WHERE id = '$TEST_OLD_PRE_TEST_ID'
+")"
+submit_pre_test "$TEST_OLD_PRE_TEST_ID" 1 older_replay >"$TMP_DIR/older-replay.out"
+OLDER_REPLAY_RESULT="$(grep '^{' "$TMP_DIR/older-replay.out")"
+if [[ "$OLDER_REPLAY_RESULT" != "$OLDER_RESULT" ]]; then
+  printf 'Replaying the older assessment changed its result:\noriginal: %s\nreplay: %s\n' \
+    "$OLDER_RESULT" "$OLDER_REPLAY_RESULT" >&2
+  exit 1
+fi
+
+"${PSQL[@]}" -v older_completed_at="$OLDER_COMPLETED_AT" >/dev/null <<SQL
+SELECT set_config('test.older_completed_at', :'older_completed_at', false);
+DO \$\$
+DECLARE
+  older_started_at timestamptz;
+  newer_started_at timestamptz;
+  older_completed_at timestamptz;
+  older_score integer;
+  newer_score integer;
+  older_level text;
+  profile_level text;
+  profile_score integer;
+  answer_count integer;
+  stored_answer integer;
+BEGIN
+  SELECT started_at, completed_at, score, determined_level
+  INTO older_started_at, older_completed_at, older_score, older_level
+  FROM public.pre_tests
+  WHERE id = '$TEST_OLD_PRE_TEST_ID' AND user_id = '$TEST_USER_ID' AND status = 'completed';
+
+  SELECT started_at, score
+  INTO newer_started_at, newer_score
+  FROM public.pre_tests
+  WHERE id = '$TEST_NEW_PRE_TEST_ID' AND user_id = '$TEST_USER_ID' AND status = 'completed';
+
+  IF older_started_at IS NULL OR newer_started_at IS NULL
+     OR older_started_at >= newer_started_at
+     OR older_score IS DISTINCT FROM 0 OR newer_score IS DISTINCT FROM 100
+     OR older_level IS DISTINCT FROM 'Pemula'
+     OR older_completed_at IS DISTINCT FROM current_setting('test.older_completed_at')::timestamptz THEN
+    RAISE EXCEPTION 'Replayed assessment changed or the distinct completed assessments were not set up correctly';
+  END IF;
+
+  SELECT count(*)::integer, min(selected_answer)
+  INTO answer_count, stored_answer
+  FROM public.pre_test_answers
+  WHERE pre_test_id = '$TEST_OLD_PRE_TEST_ID';
+  IF answer_count <> 1 OR stored_answer IS DISTINCT FROM 0 THEN
+    RAISE EXCEPTION 'Replaying the older assessment changed its saved answer: count %, answer %',
+      answer_count, stored_answer;
+  END IF;
+
+  SELECT current_level, total_score
+  INTO profile_level, profile_score
+  FROM public.profiles
+  WHERE user_id = '$TEST_USER_ID';
+  IF profile_level IS DISTINCT FROM 'Utama' OR profile_score IS DISTINCT FROM 100 THEN
+    RAISE EXCEPTION 'Replaying the older assessment changed the profile: level %, score %',
+      profile_level, profile_score;
+  END IF;
+END;
+\$\$;
+SQL
+
 # Both assessments start at exactly the same time. The higher UUID must own
 # the profile regardless of which transaction finishes last.
 run_tie_case() {
