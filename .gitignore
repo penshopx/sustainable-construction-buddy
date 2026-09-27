@@ -31,6 +31,8 @@ node_modules
 /.sass-cache
 /connect.lock
 /coverage
+/artifacts/pub-aspekindo/test-results/
+/artifacts/pub-aspekindo/playwright-report/
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
