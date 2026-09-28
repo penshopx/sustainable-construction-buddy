@@ -5,6 +5,7 @@ DATABASE_URL="${TEST_DATABASE_URL:-${DATABASE_URL:-postgresql://postgres:postgre
 PSQL=(psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1)
 TEST_SUPABASE_URL="${TEST_SUPABASE_URL:-http://127.0.0.1:54321}"
 TEST_SUPABASE_ANON_KEY="${TEST_SUPABASE_ANON_KEY:?Set TEST_SUPABASE_ANON_KEY to the local Supabase anon key}"
+TEST_SUPABASE_SERVICE_ROLE_KEY="${TEST_SUPABASE_SERVICE_ROLE_KEY:?Set TEST_SUPABASE_SERVICE_ROLE_KEY to the local Supabase service role key}"
 case "$TEST_SUPABASE_URL" in
   http://127.0.0.1:*|http://localhost:*) ;;
   *) echo "Assessment HTTP fixture requires a local Supabase API URL" >&2; exit 1 ;;
@@ -39,25 +40,30 @@ cleanup
 
 mkdir -p "$TMP_DIR"
 
+# Create the owner through local Auth so the HTTP replay uses a real password
+# session rather than a JWT claim manually set on a privileged SQL connection.
+OWNER_PASSWORD="$(openssl rand -hex 24)"
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/owner-created.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/admin/users" \
+  --header "apikey: $TEST_SUPABASE_SERVICE_ROLE_KEY" \
+  --header "Authorization: Bearer $TEST_SUPABASE_SERVICE_ROLE_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "$(jq -nc --arg password "$OWNER_PASSWORD" \
+    '{email:"assessment-concurrency@example.invalid",password:$password,email_confirm:true}')")"
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e '.id | strings | test("^[0-9a-fA-F-]{36}$")' "$TMP_DIR/owner-created.json" >/dev/null; then
+  echo "Could not create the local assessment owner through Auth (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+TEST_USER_ID="$(jq -r '.id' "$TMP_DIR/owner-created.json")"
+
 "${PSQL[@]}" >/dev/null <<SQL
 INSERT INTO auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 )
 VALUES
-  (
-    '$TEST_USER_ID',
-    '00000000-0000-0000-0000-000000000000',
-    'authenticated',
-    'authenticated',
-    'assessment-concurrency@example.invalid',
-    '',
-    now(),
-    '{}'::jsonb,
-    '{"full_name":"Assessment Concurrency Test"}'::jsonb,
-    now(),
-    now()
-  ),
   (
     '$TEST_OTHER_USER_ID',
     '00000000-0000-0000-0000-000000000000',
@@ -865,8 +871,8 @@ COMMIT;
 SQL
 
 # Exercise the local PostgREST gateway as well as the database role. An API key
-# identifies the project, but without an Authorization header this request has
-# no user session. Never point this fixture test at the deployed Supabase URL.
+# identifies the project, but without an Authorization header the first request
+# has no user session. Never point this fixture test at the deployed Supabase URL.
 assessment_http_state() {
   "${PSQL[@]}" -Atq <<SQL
 SELECT jsonb_build_object(
@@ -884,7 +890,7 @@ SQL
 BEFORE_HTTP_STATE="$(assessment_http_state)"
 if ! jq -e '.pre_test.status == "completed" and (.answers | length) == 1 and (.profile | type) == "object"' \
   >/dev/null <<<"$BEFORE_HTTP_STATE"; then
-  echo "Anonymous HTTP replay fixture is not a completed assessment with an answer and owner profile" >&2
+  echo "HTTP replay fixture is not a completed assessment with an answer and owner profile" >&2
   exit 1
 fi
 
@@ -911,6 +917,43 @@ if ! jq -e '
 fi
 if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
   echo "Anonymous HTTP assessment replay changed the assessment, answers, or owner profile" >&2
+  exit 1
+fi
+
+# Sign in as the owner through Auth, then replay with a deliberately different
+# answer. The HTTP gateway must return the stored result without writing again.
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/owner-session.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "$(jq -nc --arg password "$OWNER_PASSWORD" \
+    '{email:"assessment-concurrency@example.invalid",password:$password}')")"
+unset OWNER_PASSWORD
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e --arg owner "$TEST_USER_ID" \
+     '.user.id == $owner and (.access_token | type) == "string" and (.access_token | length) > 0' \
+     "$TMP_DIR/owner-session.json" >/dev/null; then
+  echo "Could not obtain the local assessment owner's Auth session (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/owner-rpc-response.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header "Authorization: Bearer $OWNER_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data "{\"_pre_test_id\":\"$TEST_OWNERSHIP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
+unset OWNER_TOKEN
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e --argjson expected "$OWNER_RESULT" '. == $expected' \
+     "$TMP_DIR/owner-rpc-response.json" >/dev/null 2>&1; then
+  echo "Owner HTTP assessment replay did not return the original result (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
+  echo "Owner HTTP assessment replay changed the assessment, answers, or owner profile" >&2
   exit 1
 fi
 
@@ -1148,4 +1191,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent submit_assessment, anonymous HTTP replay, and direct table RLS tests passed."
+echo "Concurrent submit_assessment, anonymous and owner HTTP replay, and direct table RLS tests passed."
