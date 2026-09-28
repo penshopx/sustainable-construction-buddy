@@ -134,6 +134,22 @@ const lesson = {
   sort_order: 1,
   status: "published",
 };
+const quizQuestions = [
+  {
+    id: "00000000-0000-4000-8000-000000000045",
+    lesson_id: LESSON_ID,
+    question_text: "Dokumen apa yang disiapkan lebih dahulu?",
+    options: ["Dokumen legalitas", "Dokumen tidak terkait"],
+    sort_order: 1,
+  },
+  {
+    id: "00000000-0000-4000-8000-000000000046",
+    lesson_id: LESSON_ID,
+    question_text: "Apa langkah setelah dokumen terkumpul?",
+    options: ["Abaikan pemeriksaan", "Periksa kelengkapan"],
+    sort_order: 2,
+  },
+];
 const secondLesson = {
   id: SECOND_LESSON_ID,
   course_id: COURSE_ID,
@@ -186,7 +202,11 @@ const emptyTables = new Set([
 
 async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, lms = null } = {}) {
   const unexpectedRequests = [];
-  if (lms) lms.progress = [];
+  if (lms) {
+    lms.progress = [];
+    lms.attempts = [];
+    lms.completionRequests = [];
+  }
   await page.addInitScript(({ user, hostname }) => {
     localStorage.setItem(`sb-${hostname.split(".")[0]}-auth-token`, JSON.stringify({
       access_token: "test-only-access-token",
@@ -266,7 +286,7 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
     } else if (url.pathname === "/rest/v1/aspekindo_lms_courses") {
       data = url.searchParams.get("select") === "*" ? [course] : [{ id: COURSE_ID, title: course.title }];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lessons" && request.method() === "GET") {
-      data = [lesson, secondLesson];
+      data = [lms.quiz ? { ...lesson, passing_score: 75 } : lesson, secondLesson];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_materials" && request.method() === "GET") {
       data = lms.video ? [material, videoMaterial] : [material];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_enrollments" && request.method() === "GET") {
@@ -291,14 +311,37 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       }
     } else if (lms && url.pathname === "/rest/v1/rpc/complete_aspekindo_lms_lesson" && request.method() === "POST") {
       const lessonId = request.postDataJSON()?._lesson_id;
+      lms.completionRequests.push(lessonId);
       const current = lms.progress.find((item) => item.lesson_id === lessonId && item.status === "in_progress");
       if (current && (lessonId === LESSON_ID ||
-          lessonId === SECOND_LESSON_ID && lms.progress.some((item) => item.lesson_id === LESSON_ID && item.status === "completed"))) {
+          lessonId === SECOND_LESSON_ID && lms.progress.some((item) => item.lesson_id === LESSON_ID && item.status === "completed")) &&
+          (!lms.quiz || lessonId !== LESSON_ID || lms.attempts.some((attempt) => attempt.passed))) {
         data = { ...current, status: "completed", progress_percent: 100, completed_at: "2026-09-01T01:00:00.000Z" };
         lms.progress = [...lms.progress.filter((item) => item.lesson_id !== lessonId), data];
       }
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_quiz_questions" && request.method() === "GET") {
-      data = [];
+      data = lms.quiz && url.searchParams.get("lesson_id") === `eq.${LESSON_ID}` ? quizQuestions : [];
+    } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_quiz_attempts" && request.method() === "GET") {
+      data = lms.attempts.filter((attempt) =>
+        (!url.searchParams.has("enrollment_id") || url.searchParams.get("enrollment_id") === `eq.${attempt.enrollment_id}`) &&
+        (!url.searchParams.has("lesson_id") || url.searchParams.get("lesson_id") === `eq.${attempt.lesson_id}`)).reverse();
+    } else if (lms?.quiz && url.pathname === "/rest/v1/rpc/submit_aspekindo_lms_quiz" && request.method() === "POST") {
+      const submission = request.postDataJSON();
+      const answers = submission?._answers;
+      if (submission?._lesson_id === LESSON_ID && answers && typeof answers === "object" &&
+          !Array.isArray(answers) && Object.keys(answers).length === quizQuestions.length &&
+          quizQuestions.every((question) => Number.isInteger(answers[question.id]) &&
+            answers[question.id] >= 0 && answers[question.id] < question.options.length)) {
+        const correct = Number(answers[quizQuestions[0].id] === 0) + Number(answers[quizQuestions[1].id] === 1);
+        const score = Math.round(correct / quizQuestions.length * 100);
+        data = {
+          id: `00000000-0000-4000-8000-${String(50 + lms.attempts.length).padStart(12, "0")}`,
+          lesson_id: LESSON_ID, course_id: COURSE_ID, enrollment_id: ENROLLMENT_ID, user_id: MEMBER_ID,
+          attempt_number: lms.attempts.length + 1, correct_answers: correct, total_questions: quizQuestions.length,
+          score, passed: score >= 75, submitted_at: "2026-09-01T00:30:00.000Z",
+        };
+        lms.attempts.push(data);
+      }
     } else if (assessment && url.pathname === "/rest/v1/rpc/get_questions_safe" && request.method() === "POST") {
       data = assessmentQuestions;
     } else if (assessment && url.pathname === "/rest/v1/competency_domains" && request.method() === "GET") {
@@ -721,6 +764,50 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
 
     await expect(page.getByRole("heading", { name: secondLesson.title })).toBeVisible();
     await expect(page.getByText("pemeriksaan kelengkapan dokumen", { exact: false })).toBeVisible();
+    await expect.poll(() => lms.progress.find((item) => item.lesson_id === SECOND_LESSON_ID)?.status).toBe("in_progress");
+    expect(unexpected).toEqual([]);
+  });
+
+  test("kuis gagal menahan penyelesaian dan pelajaran berikutnya sampai percobaan lulus", async ({ page }) => {
+    const lms = { enrolled: true, quiz: true };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`);
+
+    const completeButton = page.getByRole("button", { name: "Tandai pelajaran selesai" });
+    const secondButton = page.getByRole("button", { name: new RegExp(secondLesson.title) });
+    await expect(page.getByRole("heading", { name: "Kuis pelajaran" })).toBeVisible();
+    await expect(page.getByText("Nilai lulus minimal 75%", { exact: false })).toBeVisible();
+    await expect(completeButton).toBeDisabled();
+    await expect(secondButton).toHaveClass(/cursor-not-allowed/);
+    await page.getByRole("button", { name: "Mulai kuis" }).click();
+    await page.getByLabel("Dokumen legalitas").check();
+    await page.getByLabel("Abaikan pemeriksaan").check();
+    await page.getByRole("button", { name: "Kirim jawaban" }).click();
+
+    await expect(page.getByText("Kuis belum lulus · Skor 50%")).toBeVisible();
+    expect(lms.attempts.map(({ score, passed }) => ({ score, passed }))).toEqual([{ score: 50, passed: false }]);
+    await expect(completeButton).toBeDisabled();
+    await secondButton.click();
+    await expect(page.getByRole("heading", { name: secondLesson.title })).toHaveCount(0);
+    expect(lms.completionRequests).toEqual([]);
+
+    await page.getByRole("button", { name: "Coba lagi" }).click();
+    await page.getByLabel("Dokumen legalitas").check();
+    await page.getByLabel("Periksa kelengkapan").check();
+    await page.getByRole("button", { name: "Kirim jawaban" }).click();
+
+    await expect(page.getByText("Kuis lulus · Skor 100%")).toBeVisible();
+    expect(lms.attempts.map(({ score, passed }) => ({ score, passed }))).toEqual([
+      { score: 50, passed: false }, { score: 100, passed: true },
+    ]);
+    await expect(completeButton).toBeEnabled();
+    await expect(secondButton).toHaveClass(/cursor-not-allowed/);
+    await completeButton.click();
+    await expect(page.getByText("Pelajaran ini sudah selesai")).toBeVisible();
+    await expect(secondButton).not.toHaveClass(/cursor-not-allowed/);
+    expect(lms.completionRequests).toEqual([LESSON_ID]);
+    await secondButton.click();
+    await expect(page.getByRole("heading", { name: secondLesson.title })).toBeVisible();
     await expect.poll(() => lms.progress.find((item) => item.lesson_id === SECOND_LESSON_ID)?.status).toBe("in_progress");
     expect(unexpected).toEqual([]);
   });
