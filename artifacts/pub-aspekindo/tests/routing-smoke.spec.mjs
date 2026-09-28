@@ -290,7 +290,8 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       data = { source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" };
     } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "POST") {
       lms.signRequests.push({ path: url.pathname, body: request.postDataJSON() });
-      if (lms.failFirstSign && lms.signRequests.length === 1) {
+      if ((lms.failFirstSign && lms.signRequests.length === 1) ||
+          lms.failSignAt === lms.signRequests.length) {
         await route.fulfill({
           status: 500,
           contentType: "application/json",
@@ -298,13 +299,18 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
         });
         return;
       }
-      data = { signedURL: `/object/sign/aspekindo-learning/${VIDEO_STORAGE_PATH}?token=video-test-only` };
+      const token = lms.rotateVideoTokens ? `video-test-${lms.signRequests.length}` : "video-test-only";
+      data = { signedURL: `/object/sign/aspekindo-learning/${VIDEO_STORAGE_PATH}?token=${token}` };
     } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "GET" &&
-               url.searchParams.get("token") === "video-test-only") {
+               /^video-test-(?:only|\d+)$/.test(url.searchParams.get("token") ?? "")) {
       lms.videoRequests.push(request.url());
       // Keep the simulated media request pending until the DOM assertion; no real
       // video bytes or storage service are needed to check source assignment.
-      await new Promise((resolve) => { lms.releaseVideoResponse = resolve; });
+      await new Promise((resolve) => {
+        lms.releaseVideoResponses ??= [];
+        lms.releaseVideoResponses.push(resolve);
+        lms.releaseVideoResponse = resolve;
+      });
       await route.fulfill({ status: 200, contentType: "video/mp4", body: "" });
       return;
     } else if (url.pathname === "/rest/v1/aspekindo_lms_courses") {
@@ -844,6 +850,93 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       expect(unexpected).toEqual([]);
     } finally {
       lms.releaseVideoResponse?.();
+    }
+  });
+
+  test("player mempertahankan posisi saat pause, resume, gagal menyegarkan storage, lalu mengganti sumber", async ({ page }) => {
+    test.setTimeout(60_000);
+    const lms = { enrolled: true, video: true, rotateVideoTokens: true, signRequests: [], videoRequests: [] };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    await page.addInitScript(() => {
+      const positions = new WeakMap();
+      const paused = new WeakMap();
+      let offset = 0;
+      const realNow = Date.now.bind(Date);
+      Date.now = () => realNow() + offset;
+      window.advanceVideoClock = (milliseconds) => { offset += milliseconds; };
+      Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
+        configurable: true,
+        get() { return positions.get(this) ?? 0; },
+        set(value) { positions.set(this, value); },
+      });
+      Object.defineProperty(HTMLMediaElement.prototype, "paused", {
+        configurable: true,
+        get() { return paused.get(this) ?? true; },
+      });
+      HTMLMediaElement.prototype.play = function () {
+        paused.set(this, false);
+        this.dispatchEvent(new Event("playing"));
+        return Promise.resolve();
+      };
+      HTMLMediaElement.prototype.pause = function () {
+        paused.set(this, true);
+        this.dispatchEvent(new Event("pause"));
+      };
+    });
+    const video = page.locator("video").filter({ has: page.locator("source[type='video/mp4']") });
+    const url = (n) => `https://${SUPABASE_HOST}${VIDEO_SIGN_PATH}?token=video-test-${n}`;
+    try {
+      await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible({ timeout: 20_000 });
+      await expect(page.getByText(videoMaterial.title)).toBeVisible();
+      await page.getByRole("button", { name: "Putar video" }).click();
+      await expect(video.locator("source")).toHaveAttribute("src", url(1));
+      await video.evaluate((element) => element.dispatchEvent(new Event("loadedmetadata")));
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+
+      await video.evaluate((element) => {
+        element.currentTime = 83.5;
+        element.dispatchEvent(new Event("timeupdate"));
+        element.pause();
+      });
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toBeVisible();
+      await page.getByRole("button", { name: "Lanjutkan video" }).click();
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+      expect(lms.signRequests).toHaveLength(1);
+      await expect(video.locator("source")).toHaveAttribute("src", url(1));
+      expect(await video.evaluate((element) => element.currentTime)).toBe(83.5);
+
+      await video.evaluate((element) => element.pause());
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toBeVisible();
+      await page.evaluate(() => window.advanceVideoClock(25 * 60 * 1000 + 1000));
+      await page.getByRole("button", { name: "Lanjutkan video" }).click();
+      await expect(video.locator("source")).toHaveAttribute("src", url(2));
+      await video.evaluate((element) => element.dispatchEvent(new Event("loadedmetadata")));
+      expect(await video.evaluate((element) => element.currentTime)).toBe(83.5);
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+      expect(lms.signRequests).toHaveLength(2);
+
+      await video.evaluate((element) => element.pause());
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toBeVisible();
+      await page.evaluate(() => window.advanceVideoClock(25 * 60 * 1000 + 1000));
+      lms.failSignAt = 3;
+      await page.getByRole("button", { name: "Lanjutkan video" }).click();
+      await expect(page.getByText("Video belum dapat diputar")).toBeVisible();
+      await expect(page.locator("video source")).toHaveCount(0);
+      expect(lms.signRequests).toHaveLength(3);
+
+      lms.failSignAt = null;
+      // A pending media request can keep Playwright's click navigation wait open;
+      // trigger the same DOM click without waiting for unrelated media network idle.
+      await page.getByRole("button", { name: "Muat ulang video" }).evaluate((button) => button.click());
+      await expect(video.locator("source")).toHaveAttribute("src", url(4));
+      await video.evaluate((element) => element.dispatchEvent(new Event("loadedmetadata")));
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+      expect(await video.evaluate((element) => element.currentTime)).toBe(83.5);
+      expect(lms.signRequests).toHaveLength(4);
+      expect(unexpected).toEqual([]);
+    } finally {
+      lms.releaseVideoResponses?.forEach((release) => release());
     }
   });
 
