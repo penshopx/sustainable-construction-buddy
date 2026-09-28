@@ -760,6 +760,23 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await expect.poll(() => lms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("completed");
     await expect(secondButton).not.toHaveClass(/cursor-not-allowed/);
     await expect(page.getByText("Pelajaran ini sudah selesai")).toBeVisible();
+
+    const progressAfterReload = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.hostname === SUPABASE_HOST &&
+        url.pathname === "/rest/v1/aspekindo_lms_lesson_progress" &&
+        response.request().method() === "GET";
+    });
+    await page.reload();
+    const reloadedProgress = await (await progressAfterReload).json();
+    expect(reloadedProgress).toEqual(expect.arrayContaining([
+      expect.objectContaining({ lesson_id: LESSON_ID, status: "completed" }),
+    ]));
+    await expect(page.getByRole("heading", { name: course.title, level: 1 })).toBeVisible();
+    await expect(secondButton).not.toHaveClass(/cursor-not-allowed/);
+    await page.getByRole("button", { name: new RegExp(lesson.title) }).click();
+    await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
+    await expect(page.getByText("Pelajaran ini sudah selesai")).toBeVisible();
     await secondButton.click();
 
     await expect(page.getByRole("heading", { name: secondLesson.title })).toBeVisible();
