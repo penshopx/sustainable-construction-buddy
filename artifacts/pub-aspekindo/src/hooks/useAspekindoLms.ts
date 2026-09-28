@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json, Tables, TablesInsert } from "@/integrations/supabase/types";
+import { issueVideoSignedUrl, VIDEO_URL_FRESH_MS } from "@/lib/lmsVideoUrl";
 
 export type Course = Tables<"aspekindo_lms_courses">;
 export type Session = Tables<"aspekindo_lms_sessions">;
@@ -158,15 +159,12 @@ export function useAspekindoLmsVideoUrl(storagePath: string | undefined, enabled
     queryKey: ["aspekindo-lms", "video-url", storagePath],
     enabled: Boolean(enabled && storagePath),
     retry: false,
-    staleTime: 24 * 60 * 1000,
+    staleTime: VIDEO_URL_FRESH_MS,
     gcTime: 30 * 60 * 1000,
     queryFn: async () => {
       if (!storagePath) throw new Error("Video belum tersedia.");
-      const { data, error } = await supabase.storage
-        .from("aspekindo-learning")
-        .createSignedUrl(storagePath, 30 * 60);
-      if (error) throw error;
-      return data.signedUrl;
+      return issueVideoSignedUrl(storagePath, (path, expiresIn) =>
+        supabase.storage.from("aspekindo-learning").createSignedUrl(path, expiresIn));
     },
   });
 }

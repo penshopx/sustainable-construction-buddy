@@ -53,6 +53,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { getPlayableVideoUrl, type PlayableVideoUrl } from "@/lib/lmsVideoUrl";
 
 const DELIVERY_LABELS: Record<string, string> = {
   internal: "Internal PUB ASPEKINDO",
@@ -114,57 +115,93 @@ function formatFileSize(bytes: number) {
 
 function VideoMaterialPlayer({ material }: { material: Material }) {
   const [playbackError, setPlaybackError] = useState(false);
-  const videoQuery = useAspekindoLmsVideoUrl(material.storage_path, true);
+  const [preparing, setPreparing] = useState(false);
+  const [paused, setPaused] = useState(true);
+  const [playback, setPlayback] = useState<PlayableVideoUrl | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const resumeTime = useRef(0);
+  // Do not mount a video source until a deliberate play request has a fresh URL.
+  const videoQuery = useAspekindoLmsVideoUrl(material.storage_path, false);
 
-  useEffect(() => {
-    setPlaybackError(false);
-  }, [videoQuery.data]);
-
-  if (videoQuery.isLoading) {
-    return (
-      <div className="flex aspect-video items-center justify-center rounded-xl bg-[hsl(220,60%,8%)] text-sm font-semibold text-white/75">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin text-pub-sky" /> Menyiapkan video privat...
-      </div>
-    );
+  async function preparePlayback() {
+    if (preparing) return;
+    setPreparing(true);
+    try {
+      const nextPlayback = await getPlayableVideoUrl(playbackError ? null : playback, async () => {
+        const result = await videoQuery.refetch();
+        if (result.error || !result.data) throw result.error ?? new Error("Tautan video tidak tersedia.");
+        return { url: result.data, issuedAt: result.dataUpdatedAt };
+      });
+      if (nextPlayback === playback) {
+        await videoRef.current?.play();
+      } else {
+        resumeTime.current = videoRef.current?.currentTime ?? resumeTime.current;
+        setPlayback(nextPlayback);
+        setPlaybackError(false);
+        // The new video restores its position and starts in onLoadedMetadata.
+      }
+    } catch {
+      setPlaybackError(true);
+      setPaused(true);
+    } finally {
+      setPreparing(false);
+    }
   }
 
-  if (videoQuery.isError || !videoQuery.data || playbackError) {
+  if (!playback || playbackError) {
     return (
       <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-[hsl(220,60%,8%)] px-6 text-center text-white">
-        <CircleAlert className="h-8 w-8 text-pub-amber" />
-        <p className="mt-3 font-semibold">Video belum dapat diputar</p>
+        {preparing ? <Loader2 className="h-8 w-8 animate-spin text-pub-sky" /> : playbackError ? <CircleAlert className="h-8 w-8 text-pub-amber" /> : <PlayCircle className="h-8 w-8 text-pub-sky" />}
+        <p className="mt-3 font-semibold">{preparing ? "Menyiapkan video privat..." : playbackError ? "Video belum dapat diputar" : "Video pembelajaran"}</p>
         <p className="mt-1 max-w-md text-xs leading-relaxed text-white/60">
-          Tautan video mungkin kedaluwarsa atau file belum tersedia. Muat ulang untuk membuat tautan sementara baru.
+          {playbackError ? "Tautan video mungkin kedaluwarsa atau file belum tersedia. Coba buat tautan baru." : "Tautan privat akan disiapkan saat Anda memutar video."}
         </p>
         <Button
           size="sm"
           variant="secondary"
           className="mt-4"
-          onClick={() => {
-            setPlaybackError(false);
-            void videoQuery.refetch();
-          }}
+          disabled={preparing}
+          onClick={() => void preparePlayback()}
         >
-          <RefreshCw className="mr-2 h-4 w-4" /> Muat ulang video
+          {playbackError ? <RefreshCw className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+          {playbackError ? "Muat ulang video" : "Putar video"}
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl bg-[hsl(220,60%,8%)]">
+    <div className="relative overflow-hidden rounded-xl bg-[hsl(220,60%,8%)]">
       <video
-        key={videoQuery.data}
+        key={playback.issuedAt}
+        ref={videoRef}
         className="aspect-video w-full bg-black object-contain"
-        controls
+        controls={!paused}
         controlsList="nodownload"
         playsInline
         preload="metadata"
-        onError={() => setPlaybackError(true)}
+        onError={(event) => {
+          resumeTime.current = event.currentTarget.currentTime;
+          setPlaybackError(true);
+        }}
+        onPause={() => setPaused(true)}
+        onPlaying={() => setPaused(false)}
+        onLoadedMetadata={(event) => {
+          event.currentTarget.currentTime = resumeTime.current;
+          void event.currentTarget.play().catch(() => setPaused(true));
+        }}
       >
-        <source src={videoQuery.data} type={material.mime_type} />
+        <source src={playback.url} type={material.mime_type} />
         Browser Anda belum mendukung pemutaran video ini.
       </video>
+      {paused && (
+        <div className="absolute inset-x-0 top-0 flex aspect-video items-center justify-center bg-black/55">
+          <Button variant="secondary" disabled={preparing} onClick={() => void preparePlayback()}>
+            {preparing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
+            {preparing ? "Menyiapkan video..." : "Lanjutkan video"}
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-white/65">
         <span className="flex items-center gap-2 font-semibold text-white"><FileVideo className="h-4 w-4 text-pub-sky" /> Video pembelajaran</span>
         <span>{material.mime_type.replace("video/", "").toUpperCase()} · {formatFileSize(material.file_size_bytes)}</span>
@@ -531,7 +568,7 @@ export function AspekindoLmsCourseDetail() {
               <CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge variant="outline">Pelajaran {selectedIndex + 1} dari {lessons.length}</Badge><CardTitle className="mt-2 text-2xl">{selectedLesson.title}</CardTitle></div>{selectedCompleted && <Badge className="bg-pub-emerald text-white">Selesai</Badge>}</div></CardHeader>
               <CardContent className="space-y-5">
                 <MarkdownRenderer>{selectedLesson.content_markdown || "Materi belum memiliki isi Markdown."}</MarkdownRenderer>
-                {selectedLesson.materials.length > 0 && <div className="space-y-3"><h3 className="font-semibold">Materi pendukung</h3>{selectedLesson.materials.map((material) => <div key={material.id} className={material.material_type === "video" ? "space-y-3" : "rounded-lg border p-3"}><p className="text-sm font-semibold">{material.title}</p>{material.material_type === "video" && <VideoMaterialPlayer material={material} />}{material.content_markdown && <MarkdownRenderer>{material.content_markdown}</MarkdownRenderer>}{safeHttps(material.external_url) && <a className="mt-2 inline-flex items-center text-sm text-pub-sky hover:underline" href={material.external_url} target="_blank" rel="noopener noreferrer">Buka tautan aman <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div>)}</div>}
+                {selectedLesson.materials.length > 0 && <div className="space-y-3"><h3 className="font-semibold">Materi pendukung</h3>{selectedLesson.materials.map((material) => <div key={material.id} className={material.material_type === "video" ? "space-y-3" : "rounded-lg border p-3"}><p className="text-sm font-semibold">{material.title}</p>{material.material_type === "video" && <VideoMaterialPlayer key={`${material.id}:${material.storage_path}`} material={material} />}{material.content_markdown && <MarkdownRenderer>{material.content_markdown}</MarkdownRenderer>}{safeHttps(material.external_url) && <a className="mt-2 inline-flex items-center text-sm text-pub-sky hover:underline" href={material.external_url} target="_blank" rel="noopener noreferrer">Buka tautan aman <ExternalLink className="ml-1 h-3.5 w-3.5" /></a>}</div>)}</div>}
                 {questionsQuery.isLoading ? <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Menyiapkan kuis...</div> : questionsQuery.data && questionsQuery.data.length > 0 ? <div className="rounded-xl border bg-muted/20 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="flex items-center gap-2 font-semibold"><Trophy className="h-4 w-4 text-pub-amber" /> Kuis pelajaran</h3><p className="mt-1 text-xs text-muted-foreground">Nilai lulus minimal {selectedLesson.passing_score}% dan jawaban dinilai di server.</p></div>{!quizStarted && !quizResult && <Button onClick={() => setQuizStarted(true)} variant="outline"><PlayCircle className="mr-2 h-4 w-4" /> Mulai kuis</Button>}</div>{latestAttempt && !quizStarted && <div className={`mt-4 rounded-lg border p-3 text-sm ${latestAttempt.passed ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300" : "border-pub-amber/30 bg-pub-amber/10"}`}><p className="font-semibold">{latestAttempt.passed ? "Kuis lulus" : "Kuis belum lulus"} · Skor {latestAttempt.score}%</p><p className="mt-1 text-xs">Percobaan ke-{latestAttempt.attempt_number} · {formatDate(latestAttempt.submitted_at)}</p>{!latestAttempt.passed && <Button size="sm" className="mt-3" onClick={() => { setQuizResult(undefined); setQuizStarted(true); }}>Coba lagi</Button>}</div>}{quizStarted && <div className="mt-4 space-y-4">{questionsQuery.data.map((question, index) => <div key={question.id} className="rounded-lg border bg-background p-4"><p className="text-sm font-semibold">{index + 1}. {question.question_text}</p><div className="mt-3 space-y-2">{jsonStrings(question.options).map((option, optionIndex) => <label key={`${question.id}-${optionIndex}`} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm ${answers[question.id] === optionIndex ? "border-pub-sky bg-pub-sky/10" : "hover:bg-muted/50"}`}><input type="radio" name={question.id} checked={answers[question.id] === optionIndex} onChange={() => setAnswers((current) => ({ ...current, [question.id]: optionIndex }))} className="mt-0.5" />{option}</label>)}</div></div>)}<Button onClick={submitQuiz} disabled={submitQuizMutation.isPending}>{submitQuizMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Kirim jawaban</Button></div>}</div> : null}
                 <div className="flex flex-col justify-between gap-3 border-t pt-4 sm:flex-row sm:items-center">{selectedCompleted ? <p className="flex items-center gap-2 text-sm font-semibold text-pub-emerald"><CheckCircle2 className="h-4 w-4" /> Pelajaran ini sudah selesai</p> : <Button onClick={() => completeLessonMutation.mutate(selectedLesson.id, { onError: (error) => toast({ title: "Pelajaran belum dapat diselesaikan", description: error.message, variant: "destructive" }), onSuccess: () => toast({ title: "Pelajaran selesai", description: "Pelajaran berikutnya sekarang terbuka." }) })} disabled={completeLessonMutation.isPending || (questionsQuery.data?.length ?? 0) > 0 && !latestAttempt?.passed}>{completeLessonMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Tandai pelajaran selesai</Button>}<p className="text-xs text-muted-foreground">Progres tersimpan otomatis saat pelajaran dibuka.</p></div>
               </CardContent>
