@@ -61,20 +61,26 @@ async function readProjectRef() {
   }
 
   const projectRef = parsed.project_id;
-  const override = process.env.SUPABASE_PROJECT_REF;
-  if (override !== undefined && !/^[a-z0-9]{20}$/.test(override)) {
+  const expectedRef = process.env.SUPABASE_PROJECT_REF;
+  if (expectedRef === undefined) {
+    throw new PublishStepError("configuration", {
+      code: "project_ref_missing",
+      message: "SUPABASE_PROJECT_REF must be set in the release environment",
+    });
+  }
+  if (!/^[a-z0-9]{20}$/.test(expectedRef)) {
     throw new PublishStepError("configuration", {
       code: "project_ref_invalid",
       message: "SUPABASE_PROJECT_REF must be a valid project reference",
     });
   }
-  if (override !== undefined && override !== projectRef) {
+  if (expectedRef !== projectRef) {
     throw new PublishStepError("configuration", {
       code: "project_ref_mismatch",
       message: "SUPABASE_PROJECT_REF does not match supabase/config.toml",
     });
   }
-  return projectRef;
+  return expectedRef;
 }
 
 function runQuiet(command, args, step) {

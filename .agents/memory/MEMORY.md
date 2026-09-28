@@ -4,3 +4,4 @@
 - [Playwright di Nix](playwright-nix.md) — browser unduhan dapat gagal memuat pustaka native meski instalasinya berhasil; bedakan lingkungan lokal dari CI Ubuntu.
 - [Jam palsu dan animasi browser](playwright-clock-animation.md) — percepatan jam penuh dapat menahan transisi animasi; gunakan interval terbatas untuk pengujian timer beranimasi.
 - [Tipe plugin Vite di pnpm](vite-peer-types.md) — versi Vite sama dapat menghasilkan tipe tidak cocok bila peer opsionalnya berbeda antar artefak.
+- [Uji proyek lama di luar workspace](legacy-test-dependencies.md) — pengujian skrip migrasi memerlukan dependensi sendiri; paket workspace utama tidak otomatis tersedia.

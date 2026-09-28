@@ -69,6 +69,12 @@ Use the guarded release command so the production application and the
 npm run release
 ```
 
+Set `SUPABASE_PROJECT_REF` in the production release environment to the
+expected Supabase project reference, independently of `supabase/config.toml`.
+The publisher refuses to deploy if the release ref is missing, invalid, or
+different from the TOML `project_id`. Do not derive this release setting from
+the TOML file.
+
 The release runs the standard insight validator, TypeScript check, and
 frontend build, then invokes `npm run publish:insight`. The standard validator
 covers the local contract tests and publication gate. That publisher deploys

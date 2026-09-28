@@ -11,6 +11,7 @@ const publisherPath = path.join(rootDir, "scripts", "publish-competency-insight.
 const packageJsonPath = path.join(rootDir, "package.json");
 const replitConfigPath = path.join(rootDir, ".replit");
 const projectRef = "abcdefghijklmnopqrst";
+const otherProjectRef = "zyxwvutsrqponmlkjihg";
 const sensitiveValues = [
   "publication-gate-secret",
   '{"identity":"probe-user@example.test","payload":"private-probe-payload"}',
@@ -117,7 +118,7 @@ function assertConfigurationFailure(result, code, message) {
   assert.equal(result.signal, null);
   assert.equal(result.stdout, "");
   const output = result.stderr;
-  for (const value of [...sensitiveValues, projectRef]) {
+  for (const value of [...sensitiveValues, projectRef, otherProjectRef]) {
     assert.equal(output.includes(value), false, "configuration error must not expose sensitive values");
   }
   assert.deepEqual(JSON.parse(output), {
@@ -240,12 +241,21 @@ test("a nested project_id cannot override or supply the deployment destination",
   await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
 });
 
-test("an override cannot redirect deployment to another project", async (t) => {
-  for (const override of ["zyxwvutsrqponmlkjihg", "not-a-valid-project-ref", ""]) {
+test("an absent release ref blocks deployment even with a valid config", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\nsecret = "${sensitiveValues[0]}"\n`);
+  const result = await runPublisher({ ...fakeNpm, scriptPath, override: null });
+
+  assertConfigurationFailure(result, "project_ref_missing", "SUPABASE_PROJECT_REF must be set in the release environment");
+  await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+});
+
+test("an invalid or mismatched release ref cannot redirect deployment", async (t) => {
+  for (const override of [otherProjectRef, "not-a-valid-project-ref", ""]) {
     const fakeNpm = await createFakeNpm(t);
     const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
     const result = await runPublisher({ ...fakeNpm, scriptPath, override });
-    if (override === "zyxwvutsrqponmlkjihg") {
+    if (override === otherProjectRef) {
       assertConfigurationFailure(result, "project_ref_mismatch", "SUPABASE_PROJECT_REF does not match supabase/config.toml");
     } else {
       assertConfigurationFailure(result, "project_ref_invalid", "SUPABASE_PROJECT_REF must be a valid project reference");
@@ -254,10 +264,19 @@ test("an override cannot redirect deployment to another project", async (t) => {
   }
 });
 
-test("a valid config deploys to its project without an override", async (t) => {
+test("a valid but wrong config cannot redirect deployment away from the expected release project", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `project_id = "${otherProjectRef}"\nsecret = "${sensitiveValues[0]}"\n`);
+  const result = await runPublisher({ ...fakeNpm, scriptPath, override: projectRef });
+
+  assertConfigurationFailure(result, "project_ref_mismatch", "SUPABASE_PROJECT_REF does not match supabase/config.toml");
+  await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+});
+
+test("a valid config deploys only to the matching release project", async (t) => {
   const fakeNpm = await createFakeNpm(t);
   const scriptPath = await isolatedPublisher(t, `# Publication destination\nproject_id = '${projectRef}' # confirmed\n[api]\nenabled = true\n`);
-  const result = await runPublisher({ ...fakeNpm, scriptPath, override: null });
+  const result = await runPublisher({ ...fakeNpm, scriptPath, override: projectRef });
   assert.equal(result.status, 0);
   assert.deepEqual(await readTrace(fakeNpm.tracePath), [
     `exec --yes -- supabase functions deploy competency-insight --project-ref ${projectRef} --use-api`,
