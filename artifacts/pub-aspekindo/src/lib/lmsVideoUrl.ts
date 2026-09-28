@@ -6,6 +6,19 @@ export function isVideoUrlFresh(issuedAt: number, now = Date.now()) {
   return issuedAt > 0 && now >= issuedAt && now - issuedAt < VIDEO_URL_FRESH_MS;
 }
 
+export function shouldRecoverStalledVideo(
+  issuedAt: number,
+  stalledAt: number,
+  currentTime: number,
+  paused: boolean,
+  ended: boolean,
+  hasFutureData: boolean,
+  now = Date.now(),
+) {
+  return !isVideoUrlFresh(issuedAt, now) && !paused && !ended &&
+    currentTime <= stalledAt + 0.1 && !hasFutureData;
+}
+
 export type PlayableVideoUrl = { url: string; issuedAt: number };
 
 export async function getPlayableVideoUrl(

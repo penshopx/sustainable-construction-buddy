@@ -53,7 +53,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { getPlayableVideoUrl, type PlayableVideoUrl } from "@/lib/lmsVideoUrl";
+import { getPlayableVideoUrl, isVideoUrlFresh, shouldRecoverStalledVideo, VIDEO_URL_FRESH_MS, type PlayableVideoUrl } from "@/lib/lmsVideoUrl";
 
 const DELIVERY_LABELS: Record<string, string> = {
   internal: "Internal PUB ASPEKINDO",
@@ -120,32 +120,67 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
   const [playback, setPlayback] = useState<PlayableVideoUrl | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const resumeTime = useRef(0);
+  const preparingRef = useRef(false);
+  const stallTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Do not mount a video source until a deliberate play request has a fresh URL.
   const videoQuery = useAspekindoLmsVideoUrl(material.storage_path, false);
 
-  async function preparePlayback() {
-    if (preparing) return;
+  function clearStallTimer() {
+    if (stallTimer.current !== null) clearTimeout(stallTimer.current);
+    stallTimer.current = null;
+  }
+
+  useEffect(() => () => {
+    if (stallTimer.current !== null) clearTimeout(stallTimer.current);
+  }, []);
+
+  async function preparePlayback(autoRecovery = false, stalledAt?: number) {
+    if (preparingRef.current) return;
+    preparingRef.current = true;
     setPreparing(true);
     try {
-      const nextPlayback = await getPlayableVideoUrl(playbackError ? null : playback, async () => {
+      const nextPlayback = await getPlayableVideoUrl(autoRecovery || playbackError ? null : playback, async () => {
         const result = await videoQuery.refetch();
         if (result.error || !result.data) throw result.error ?? new Error("Tautan video tidak tersedia.");
         return { url: result.data, issuedAt: result.dataUpdatedAt };
       });
+      // Buffering can resolve while the new link is being requested. Do not restart a healthy stream.
+      if (autoRecovery && stalledAt !== undefined && videoRef.current &&
+        !shouldRecoverStalledVideo(playback?.issuedAt ?? 0, stalledAt, videoRef.current.currentTime,
+          videoRef.current.paused, videoRef.current.ended,
+          videoRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA)) return;
       if (nextPlayback === playback) {
         await videoRef.current?.play();
       } else {
-        resumeTime.current = videoRef.current?.currentTime ?? resumeTime.current;
+        if (videoRef.current && Number.isFinite(videoRef.current.currentTime) && videoRef.current.currentTime > 0) {
+          resumeTime.current = videoRef.current.currentTime;
+        }
         setPlayback(nextPlayback);
         setPlaybackError(false);
         // The new video restores its position and starts in onLoadedMetadata.
       }
     } catch {
+      if (autoRecovery && stalledAt !== undefined && videoRef.current &&
+        (videoRef.current.currentTime > stalledAt + 0.1 ||
+          videoRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA)) return;
       setPlaybackError(true);
       setPaused(true);
     } finally {
+      preparingRef.current = false;
       setPreparing(false);
     }
+  }
+
+  function recoverIfStalled(video: HTMLVideoElement) {
+    if (stallTimer.current !== null || !playback || video.paused || video.ended) return;
+    const stalledAt = video.currentTime;
+    stallTimer.current = setTimeout(() => {
+      stallTimer.current = null;
+      if (videoRef.current !== video ||
+        !shouldRecoverStalledVideo(playback.issuedAt, stalledAt, video.currentTime,
+          video.paused, video.ended, video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA)) return;
+      void preparePlayback(true, stalledAt);
+    }, Math.max(4000, playback.issuedAt + VIDEO_URL_FRESH_MS - Date.now()));
   }
 
   if (!playback || playbackError) {
@@ -181,11 +216,23 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         playsInline
         preload="metadata"
         onError={(event) => {
-          resumeTime.current = event.currentTarget.currentTime;
-          setPlaybackError(true);
+          clearStallTimer();
+          const video = event.currentTarget;
+          if (Number.isFinite(video.currentTime) && video.currentTime > 0) resumeTime.current = video.currentTime;
+          if (!isVideoUrlFresh(playback.issuedAt)) {
+            void preparePlayback(true);
+          } else {
+            setPlaybackError(true);
+          }
         }}
-        onPause={() => setPaused(true)}
-        onPlaying={() => setPaused(false)}
+        onTimeUpdate={(event) => {
+          resumeTime.current = event.currentTarget.currentTime;
+        }}
+        onWaiting={(event) => recoverIfStalled(event.currentTarget)}
+        onStalled={(event) => recoverIfStalled(event.currentTarget)}
+        onPause={() => { clearStallTimer(); setPaused(true); }}
+        onPlaying={() => { clearStallTimer(); setPaused(false); }}
+        onEnded={clearStallTimer}
         onLoadedMetadata={(event) => {
           event.currentTarget.currentTime = resumeTime.current;
           void event.currentTarget.play().catch(() => setPaused(true));

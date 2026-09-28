@@ -4,6 +4,7 @@ import {
   getPlayableVideoUrl,
   isVideoUrlFresh,
   issueVideoSignedUrl,
+  shouldRecoverStalledVideo,
   VIDEO_URL_FRESH_MS,
   VIDEO_URL_LIFETIME_SECONDS,
 } from "./lmsVideoUrl.ts";
@@ -42,6 +43,17 @@ test("tautan yang masih baru dipakai, tautan mendekati kedaluwarsa diganti sebel
   } finally {
     mock.timers.reset();
   }
+});
+
+test("video yang masih lancar tidak diganti; kemacetan yang melewati batas segar dipulihkan", () => {
+  const issuedAt = 1000;
+  const staleAt = issuedAt + VIDEO_URL_FRESH_MS;
+  assert.equal(shouldRecoverStalledVideo(issuedAt, 42, 42, false, false, false, staleAt - 1), false);
+  assert.equal(shouldRecoverStalledVideo(issuedAt, 42, 42, false, false, false, staleAt), true);
+  assert.equal(shouldRecoverStalledVideo(issuedAt, 42, 42.2, false, false, false, staleAt), false);
+  assert.equal(shouldRecoverStalledVideo(issuedAt, 42, 42, true, false, false, staleAt), false);
+  assert.equal(shouldRecoverStalledVideo(issuedAt, 42, 42, false, true, false, staleAt), false);
+  assert.equal(shouldRecoverStalledVideo(issuedAt, 42, 42, false, false, true, staleAt), false);
 });
 
 test("storage gagal tidak mengembalikan tautan lama atau kosong", async () => {
