@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, AlertTriangle, ExternalLink } from "lucide-react";
+import { ArrowDown, ArrowRight, AlertTriangle, ExternalLink } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-construction.jpg";
 import logoPub from "@/assets/logo-pub-new.png";
@@ -58,6 +58,14 @@ const HeroSection = () => {
               Saatnya BUJK Anda Lebih Siap.
             </span>
           </h1>
+
+          <a
+            href="#jelajahi-bagian"
+            data-testid="link-jelajahi-bagian"
+            className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-full border border-pub-amber bg-[hsl(220,65%,11%)] px-5 py-2 text-sm font-bold font-heading text-white shadow-lg transition-colors hover:bg-pub-amber hover:text-pub-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:hidden"
+          >
+            Jelajahi bagian <ArrowDown className="h-4 w-4" aria-hidden="true" />
+          </a>
 
           <p className="text-lg md:text-xl text-[hsl(0,0%,85%)] leading-relaxed mb-10 max-w-3xl font-body" style={{ textShadow: '1px 1px 4px rgba(0,0,0,0.8)' }}>
             Permen PUPR No. 7 Tahun 2024 menjadi dasar penyelenggaraan PUB. Kini,

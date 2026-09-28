@@ -156,6 +156,11 @@ const Index = () => {
       {/* Official industry and PUB publication center */}
       <InformationLandingSection />
 
+      <div id="jelajahi-bagian" className="scroll-mt-4 bg-[hsl(220,65%,11%)] px-5 pt-5 text-white md:hidden">
+        <h2 className="font-heading text-lg font-bold">Jelajahi bagian PUB</h2>
+        <p className="pb-3 text-sm text-white/80">Pilih topik untuk melihat informasi selengkapnya.</p>
+      </div>
+
       <MobileSectionGroup id="pengenalan" title="Kenali PUB" description="Konteks industri dan pendekatan PUB" isMobile={isMobile} open={openGroup === "pengenalan"} onToggle={() => toggleGroup("pengenalan")}>
         <LazySection minHeight={480}><ProjectVideoSection /></LazySection>
         <LazySection><IndustryProblemSection /></LazySection>

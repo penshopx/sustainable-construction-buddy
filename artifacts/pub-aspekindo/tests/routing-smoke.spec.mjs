@@ -14,6 +14,46 @@ test("rute publik utama dari build aplikasi aktif dapat dibuka", async ({ page }
   await expect(page.getByRole("heading", { name: "Ruang kolaborasi untuk BUJK yang terus bertumbuh.", level: 1 })).toBeVisible();
 });
 
+test("ponsel dapat melompat ke daftar bagian dan membuka-tutup accordion", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const explore = page.getByTestId("link-jelajahi-bagian");
+  const introduction = page.getByTestId("button-expand-pengenalan");
+  const readiness = page.getByTestId("button-expand-kesiapan");
+  await expect(explore).toBeVisible();
+  await explore.click();
+  await expect(page).toHaveURL(/#jelajahi-bagian$/);
+  await expect(page.getByRole("heading", { name: "Jelajahi bagian PUB" })).toBeInViewport();
+  await expect(introduction).toHaveAttribute("aria-expanded", "false");
+  await expect(readiness).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#video-pub")).toHaveCount(0);
+
+  await introduction.click();
+  await expect(introduction).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#video-pub")).toBeVisible();
+  await readiness.click();
+  await expect(introduction).toHaveAttribute("aria-expanded", "false");
+  await expect(readiness).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#simulator-kesiapan")).toBeVisible();
+  await readiness.click();
+  await expect(readiness).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#simulator-kesiapan")).toHaveCount(0);
+
+  await page.goto("/#perjalanan-anggota");
+  await expect(page.getByTestId("button-expand-tentang")).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#perjalanan-anggota")).toBeVisible();
+});
+
+test("desktop tetap menampilkan bagian lengkap tanpa tombol accordion", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await expect(page.getByTestId("link-jelajahi-bagian")).toBeHidden();
+  await expect(page.getByTestId("button-expand-pengenalan")).toHaveCount(0);
+  await expect(page.locator("#video-pub")).toBeVisible();
+  await expect(page.locator("#simulator-kesiapan")).toBeVisible();
+});
+
 test("rute anggota, admin, dan alias mewajibkan login tanpa sesi", async ({ page }) => {
   for (const path of ["/dashboard", "/assessment", "/siap-kompetensi", "/aspekindo-lms", "/ai-helpdesk", "/admin", "/admin/users"]) {
     await page.goto(path);
