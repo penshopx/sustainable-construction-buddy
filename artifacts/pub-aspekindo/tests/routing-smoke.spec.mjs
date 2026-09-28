@@ -912,6 +912,35 @@ test.describe("halaman khusus super-admin dengan sesi tiruan", () => {
     expect(unexpected).toEqual([]);
   });
 
+  for (const { path, heading } of restrictedPages) {
+    test(`pencabutan super-admin saat ${path} terbuka menyembunyikan isi dan mengalihkan`, async ({ page }) => {
+      const roleCheck = {
+        response: { status: 200, contentType: "application/json", body: "true" },
+        requests: 0,
+        waitForRelease: Promise.resolve(),
+      };
+      const unexpected = await installAuthenticatedFixture(page, { asSuperAdmin: true, roleCheck });
+      await page.goto(path);
+      await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+      await expect(page.getByRole("cell", { name: "Anggota Uji" })).toBeVisible();
+
+      const previousRequests = roleCheck.requests;
+      roleCheck.response = { status: 200, contentType: "application/json", body: "false" };
+      roleCheck.waitForRelease = new Promise((resolve) => { roleCheck.release = resolve; });
+      try {
+        await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+        await expect.poll(() => roleCheck.requests).toBeGreaterThan(previousRequests);
+        await expect(page.getByRole("heading", { name: heading })).toHaveCount(0);
+        roleCheck.release();
+        await expect(page).toHaveURL(/\/dashboard$/);
+        await expect(page.getByRole("heading", { name: heading })).toHaveCount(0);
+        expect(unexpected).toEqual([]);
+      } finally {
+        roleCheck.release();
+      }
+    });
+  }
+
   for (const { role, options } of [
     { role: "admin biasa", options: { asAdmin: true } },
     { role: "anggota", options: {} },
