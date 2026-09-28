@@ -1265,6 +1265,54 @@ BEGIN
 END;
 \$\$;
 
+-- Revoke the role without replacing the connection or changing its JWT
+-- identity. The fixture connection briefly resumes its privileged role solely
+-- to simulate a role administrator deleting the row.
+RESET ROLE;
+DELETE FROM public.user_roles
+WHERE user_id = '$TEST_ADMIN_USER_ID' AND role = 'admin';
+DO \$\$
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.user_roles
+             WHERE user_id = '$TEST_ADMIN_USER_ID' AND role = 'admin') THEN
+    RAISE EXCEPTION 'Admin role revocation did not remove the role row';
+  END IF;
+END;
+\$\$;
+SET LOCAL ROLE authenticated;
+DO \$\$
+DECLARE
+  own_result public.pre_tests%ROWTYPE;
+  own_answer public.pre_test_answers%ROWTYPE;
+BEGIN
+  IF current_user IS DISTINCT FROM 'authenticated'
+     OR auth.uid() IS DISTINCT FROM '$TEST_ADMIN_USER_ID'::uuid
+     OR public.has_role(auth.uid(), 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'Revoked admin check did not retain the authenticated identity without admin access';
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM public.pre_tests
+             WHERE id IN ('$TEST_OWNERSHIP_PRE_TEST_ID'::uuid,
+                          '00000000-0000-4000-8000-000000000178'::uuid))
+     OR (SELECT count(*) FROM public.pre_tests
+         WHERE user_id IN ('$TEST_USER_ID'::uuid, '$TEST_OTHER_USER_ID'::uuid)) <> 0 THEN
+    RAISE EXCEPTION 'Revoked admin can still SELECT members'' completed results';
+  END IF;
+
+  SELECT * INTO STRICT own_result FROM public.pre_tests
+  WHERE id = '00000000-0000-4000-8000-000000000176';
+  SELECT * INTO STRICT own_answer FROM public.pre_test_answers
+  WHERE id = '00000000-0000-4000-8000-000000000177';
+  IF own_result.user_id IS DISTINCT FROM '$TEST_ADMIN_USER_ID'::uuid
+     OR own_result.status IS DISTINCT FROM 'completed'
+     OR own_result.score IS DISTINCT FROM 50
+     OR own_answer.pre_test_id IS DISTINCT FROM own_result.id
+     OR own_answer.selected_answer IS DISTINCT FROM 1 THEN
+    RAISE EXCEPTION 'Revoked admin cannot read their own completed result and answer';
+  END IF;
+END;
+\$\$;
+
 RESET ROLE;
 DO \$\$
 BEGIN
@@ -1281,4 +1329,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent submit_assessment, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS tests passed."
+echo "Concurrent submit_assessment, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS including admin revocation tests passed."
