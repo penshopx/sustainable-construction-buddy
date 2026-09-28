@@ -678,4 +678,71 @@ END;
 \$\$;
 SQL
 
+# A completed pre-test returns its original score on replay, but only to its
+# owner. An authenticated stranger must not learn that score or change any of
+# the completed assessment's rows, answers, or the owner's profile.
+"${PSQL[@]}" -v owner_result="$OWNER_RESULT" >/dev/null <<SQL
+SELECT set_config('test.owner_result', :'owner_result', false);
+DO \$\$
+DECLARE
+  before_pre_test jsonb;
+  before_answers jsonb;
+  before_profile jsonb;
+  attacker_result jsonb;
+  owner_replay_result jsonb;
+BEGIN
+  SELECT to_jsonb(pt) INTO STRICT before_pre_test
+  FROM public.pre_tests pt WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.question_id), '[]'::jsonb)
+  INTO before_answers
+  FROM public.pre_test_answers a WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  SELECT to_jsonb(p) INTO STRICT before_profile
+  FROM public.profiles p WHERE p.user_id = '$TEST_USER_ID';
+
+  IF before_pre_test->>'status' IS DISTINCT FROM 'completed'
+     OR jsonb_array_length(before_answers) <> 1 THEN
+    RAISE EXCEPTION 'Completed ownership test was not set up correctly';
+  END IF;
+
+  PERFORM set_config('request.jwt.claim.sub', '$TEST_OTHER_USER_ID', true);
+  PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+  attacker_result := public.submit_assessment(
+    '$TEST_OWNERSHIP_PRE_TEST_ID',
+    jsonb_build_array(jsonb_build_object(
+      'question_id', '$TEST_QUESTION_ID',
+      'selected_answer', 0
+    ))
+  );
+
+  IF attacker_result IS DISTINCT FROM '{"error":"Unauthorized"}'::jsonb THEN
+    RAISE EXCEPTION 'Replaying another user''s completed pre-test returned %, expected only Unauthorized',
+      attacker_result;
+  END IF;
+
+  IF (SELECT to_jsonb(pt) FROM public.pre_tests pt
+      WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID') IS DISTINCT FROM before_pre_test
+     OR (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.question_id), '[]'::jsonb)
+         FROM public.pre_test_answers a
+         WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') IS DISTINCT FROM before_answers
+     OR (SELECT to_jsonb(p) FROM public.profiles p
+         WHERE p.user_id = '$TEST_USER_ID') IS DISTINCT FROM before_profile THEN
+    RAISE EXCEPTION 'Unauthorized completed pre-test replay changed the assessment, answers, or profile';
+  END IF;
+
+  PERFORM set_config('request.jwt.claim.sub', '$TEST_USER_ID', true);
+  owner_replay_result := public.submit_assessment(
+    '$TEST_OWNERSHIP_PRE_TEST_ID',
+    jsonb_build_array(jsonb_build_object(
+      'question_id', '$TEST_QUESTION_ID',
+      'selected_answer', 0
+    ))
+  );
+  IF owner_replay_result IS DISTINCT FROM current_setting('test.owner_result')::jsonb THEN
+    RAISE EXCEPTION 'Owner could not retrieve the original completed result: %',
+      owner_replay_result;
+  END IF;
+END;
+\$\$;
+SQL
+
 echo "Concurrent submit_assessment tests passed."
