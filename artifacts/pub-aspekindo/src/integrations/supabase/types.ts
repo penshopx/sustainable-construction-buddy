@@ -3182,6 +3182,7 @@ export type Database = {
         Row: {
           completed_at: string | null
           correct_answers: number
+          deadline_at: string
           determined_level: string | null
           id: string
           score: number
@@ -3193,6 +3194,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           correct_answers?: number
+          deadline_at?: string
           determined_level?: string | null
           id?: string
           score?: number
@@ -3204,6 +3206,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           correct_answers?: number
+          deadline_at?: string
           determined_level?: string | null
           id?: string
           score?: number
@@ -3866,6 +3869,10 @@ export type Database = {
       }
       get_active_assessment_draft: {
         Args: never
+        Returns: Json
+      }
+      get_assessment_time: {
+        Args: { _pre_test_id: string }
         Returns: Json
       }
       save_assessment_draft: {

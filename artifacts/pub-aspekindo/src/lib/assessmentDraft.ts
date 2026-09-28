@@ -7,7 +7,7 @@ export interface AssessmentDraft {
   currentQ: number;
   phase: "test" | "review";
   timeLeft: number;
-  // Older drafts have no deadline; restore them using their last saved remaining time.
+  // Display only; the server's pre_tests.deadline_at remains authoritative.
   deadlineAt?: number;
   timedOut: boolean;
 }
@@ -37,14 +37,27 @@ export function saveLocalAssessmentDraft(storage: Storage, ownerId: string, draf
 export function resolveServerAssessmentDraft(value: unknown): AssessmentDraft | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const record = value as Record<string, unknown>;
-  if (typeof record.preTestId !== "string" || typeof record.startedAt !== "string" ||
+  if (typeof record.preTestId !== "string" || typeof record.deadlineAt !== "string" ||
       !Number.isInteger(record.totalQuestions)) return null;
-  const startedAt = Date.parse(record.startedAt);
-  if (!Number.isFinite(startedAt)) return null;
+  const deadlineAt = Date.parse(record.deadlineAt);
+  if (!Number.isFinite(deadlineAt)) return null;
   const draft = parseAssessmentDraft(JSON.stringify(record.draft));
   if (!draft || draft.preTestId !== record.preTestId || draft.questions.length !== record.totalQuestions) return null;
-  // The start timestamp belongs to the server, not to either device's draft.
-  return { ...draft, deadlineAt: startedAt + draft.questions.length * 90_000 };
+  return { ...draft, deadlineAt };
+}
+
+export function resolveAssessmentClock(value: unknown, monotonicNow: number): { deadlineAt: number; serverNow: number; receivedAt: number } | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.deadlineAt !== "string" || typeof record.serverNow !== "string") return null;
+  const deadlineAt = Date.parse(record.deadlineAt);
+  const serverNow = Date.parse(record.serverNow);
+  if (!Number.isFinite(deadlineAt) || !Number.isFinite(serverNow)) return null;
+  return { deadlineAt, serverNow, receivedAt: monotonicNow };
+}
+
+export function assessmentSecondsLeft(clock: { deadlineAt: number; serverNow: number; receivedAt: number }, monotonicNow: number): number {
+  return Math.max(0, Math.ceil((clock.deadlineAt - clock.serverNow - Math.max(0, monotonicNow - clock.receivedAt)) / 1000));
 }
 
 export function parseAssessmentDraft(raw: string): AssessmentDraft | null {

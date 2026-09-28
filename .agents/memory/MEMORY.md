@@ -8,3 +8,4 @@
 - [Status workflow dan port aktif](workflow-port-state.md) — status failed bisa berasal dari start ganda meski preview masih sehat; periksa port dan proxy sebelum memperbaiki aplikasi.
 - [Privasi draf assessment](assessment-draft-privacy.md) — simpan jawaban sementara di ruang khusus pemilik, bukan kolom hasil pre-test yang bisa dibaca peran admin.
 - [Logout di perangkat bersama](assessment-shared-device-logout.md) — utamakan penghapusan semua cadangan draf lokal saat logout, termasuk penulisan tertunda, walau progres offline bisa hilang.
+- [Drift migrasi Supabase](supabase-migration-drift.md) — migrasi dalam repositori belum tentu pernah diterapkan ke database hosted; periksa definisi fungsi aktif sebelum membungkusnya.

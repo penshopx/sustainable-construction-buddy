@@ -14,7 +14,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import type { LucideIcon } from "lucide-react";
 import type { Json, Tables } from "@/integrations/supabase/types";
 import { assessmentLevel, formatAssessmentDate } from "@/lib/competencyFallbacks";
-import { assessmentDraftKey, assessmentDraftStorageEpoch, parseAssessmentDraft, resolveServerAssessmentDraft, saveLocalAssessmentDraft, type AssessmentDraft } from "@/lib/assessmentDraft";
+import { assessmentDraftKey, assessmentDraftStorageEpoch, assessmentSecondsLeft, parseAssessmentDraft, resolveAssessmentClock, resolveServerAssessmentDraft, saveLocalAssessmentDraft, type AssessmentDraft } from "@/lib/assessmentDraft";
 
 interface Question {
   id: string;
@@ -165,6 +165,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const [checkingAnswer, setCheckingAnswer] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [deadlineAt, setDeadlineAt] = useState<number | null>(null);
+  const [serverClock, setServerClock] = useState<ReturnType<typeof resolveAssessmentClock>>(null);
   const [timedOut, setTimedOut] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutSubmissionRef = useRef(false);
@@ -187,7 +188,8 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         return;
       }
       let draft = remote ? resolveServerAssessmentDraft(remote) : null;
-      if (remote && !draft) {
+      let clock = remote ? resolveAssessmentClock(remote, performance.now()) : null;
+      if (remote && (!draft || !clock)) {
         setRecoveryState("error");
         return;
       }
@@ -199,7 +201,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         if (pending?.preTestId === draft.preTestId &&
             pending.questions.map((q) => q.id).join(",") === draft.questions.map((q) => q.id).join(",")) {
           const missingAnswers = Object.keys(pending.answers).filter((id) => draft!.answers[id] === undefined);
-          if (missingAnswers.length) {
+          if (missingAnswers.length && clock && assessmentSecondsLeft(clock, performance.now()) > 0) {
             const merged: AssessmentDraft = {
               ...draft,
               answers: { ...pending.answers, ...draft.answers },
@@ -229,10 +231,14 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
           if (!active) return;
           if (error) { setRecoveryState("error"); return; }
           if (row?.status === "in_progress" && row.total_questions === legacy.questions.length) {
+            const { data: time, error: timeError } = await supabase.rpc("get_assessment_time", { _pre_test_id: row.id });
+            if (!active) return;
+            clock = resolveAssessmentClock(time, performance.now());
+            if (timeError || !clock) { setRecoveryState("error"); return; }
             draft = resolveServerAssessmentDraft({
-              preTestId: row.id, startedAt: row.started_at, totalQuestions: row.total_questions, draft: legacy,
+              preTestId: row.id, deadlineAt: new Date(clock.deadlineAt).toISOString(), totalQuestions: row.total_questions, draft: legacy,
             });
-            if (draft) {
+            if (draft && assessmentSecondsLeft(clock, performance.now()) > 0) {
               const { error: saveError } = await supabase.rpc("save_assessment_draft", {
                 _pre_test_id: row.id, _draft: draftJson(draft),
               });
@@ -246,6 +252,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         setRecoveryState("ready");
         return;
       }
+      if (!clock) { setRecoveryState("error"); return; }
       try { localStorage.removeItem(key); } catch { /* No browser storage. */ }
       setQuestions(draft.questions);
       setPreTestId(draft.preTestId);
@@ -254,9 +261,12 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       setCurrentQ(draft.currentQ);
       const restoredDeadline = draft.deadlineAt!;
       setDeadlineAt(restoredDeadline);
-      setTimeLeft(Math.max(0, Math.ceil((restoredDeadline - Date.now()) / 1000)));
+      setServerClock(clock);
+      setTimeLeft(assessmentSecondsLeft(clock, performance.now()));
       setTimedOut(draft.timedOut);
-      timeoutSubmissionRef.current = draft.timedOut;
+      // A previous tab may have attempted submission without reaching the server.
+      // Retry against the server's idempotent endpoint after recovery.
+      timeoutSubmissionRef.current = false;
       setShowExplanation(false);
       setDraftOwner(user.id);
       setPhase(draft.phase);
@@ -266,7 +276,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   }, [user?.id, recoveryAttempt]);
 
   useEffect(() => {
-    if (!user || draftOwner !== user.id || !preTestId ||
+    if (!user || draftOwner !== user.id || !preTestId || timedOut ||
         (phase !== "test" && phase !== "review") || !questions.length) return;
     const draft: AssessmentDraft = {
       version: 1, preTestId, questions, answers, answerResults,
@@ -278,6 +288,8 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       if (storageEpoch !== assessmentDraftStorageEpoch()) return;
       const { error } = await supabase.rpc("save_assessment_draft", { _pre_test_id: preTestId, _draft: draftJson(draft) });
       if (error) {
+        // After expiry the server intentionally freezes its last saved answers.
+        if (serverClock && assessmentSecondsLeft(serverClock, performance.now()) === 0) return;
         // Preserve the unsaved snapshot until it can be migrated on the next visit.
         if (storageEpoch === assessmentDraftStorageEpoch()) {
           try { saveLocalAssessmentDraft(localStorage, ownerId, draft, storageEpoch); } catch { /* Unavailable. */ }
@@ -292,7 +304,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         } catch { /* Unavailable. */ }
       }
     });
-  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, deadlineAt, timedOut]);
+  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, deadlineAt, timedOut, serverClock]);
 
   const fetchPastTests = useCallback(async () => {
     if (!user) return;
@@ -320,11 +332,11 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     fetchPastTests();
   }, [fetchPastTests, result]);
 
-  // The interval refreshes the display; elapsed time is always calculated from
-  // the fixed deadline, including after a background tab is throttled.
+  // Use the server's time sample and a monotonic clock; the device wall clock
+  // cannot extend the countdown. Server validation is authoritative on submit.
   useEffect(() => {
-    if ((phase !== "test" && phase !== "review") || deadlineAt === null || timedOut) return;
-    const update = () => setTimeLeft(Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000)));
+    if ((phase !== "test" && phase !== "review") || !serverClock || timedOut) return;
+    const update = () => setTimeLeft(assessmentSecondsLeft(serverClock, performance.now()));
     update();
     timerRef.current = setInterval(update, 1000);
     document.addEventListener("visibilitychange", update);
@@ -335,7 +347,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       document.removeEventListener("visibilitychange", update);
       window.removeEventListener("focus", update);
     };
-  }, [phase, deadlineAt, timedOut]);
+  }, [phase, serverClock, timedOut]);
 
   const startTest = async () => {
     if (!user || recoveryState !== "ready") return;
@@ -378,15 +390,14 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       timeLeft: selected.length * 90, timedOut: false,
     };
     const { data: started, error } = await supabase.rpc("start_assessment_draft", { _draft: draftJson(initialDraft) });
+    const clock = resolveAssessmentClock(started, performance.now());
     if (error || !started || typeof started !== "object" || Array.isArray(started) ||
-        typeof started.preTestId !== "string" || typeof started.startedAt !== "string" ||
-        !Number.isFinite(Date.parse(started.startedAt))) {
+        typeof started.preTestId !== "string" || !clock) {
       toast.error("Gagal memulai assessment.");
       setLoading(false);
       return;
     }
 
-    const deadline = Date.parse(started.startedAt) + selected.length * 90 * 1000;
     setQuestions(selected);
     setPreTestId(started.preTestId);
     setDraftOwner(user.id);
@@ -397,8 +408,9 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     setShowExplanation(false);
     timeoutSubmissionRef.current = false;
     setTimedOut(false);
-    setDeadlineAt(deadline);
-    setTimeLeft(selected.length * 90); // 90 seconds per question
+    setDeadlineAt(clock.deadlineAt);
+    setServerClock(clock);
+    setTimeLeft(assessmentSecondsLeft(clock, performance.now()));
     setLoading(false);
   };
 
@@ -618,6 +630,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         {phase === "test" && q && (
           <motion.div key={`test-${currentQ}`} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.25 }}>
             <div className="mb-6">
+              {deadlineAt !== null && <p className="mb-2 text-xs text-muted-foreground">Batas waktu server: {new Date(deadlineAt).toLocaleString("id-ID")}</p>}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-heading text-pub-amber font-semibold uppercase">{q.domain_name}</span>
                 <div className="flex items-center gap-3">
@@ -711,9 +724,10 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         {phase === "review" && (
           <motion.div key="review" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
             <h2 className="text-2xl font-bold font-heading text-foreground mb-6">Review Jawaban</h2>
+            {deadlineAt !== null && <p className="mb-3 text-xs text-muted-foreground">Batas waktu server: {new Date(deadlineAt).toLocaleString("id-ID")}</p>}
             {timedOut && (
               <p className="mb-6 text-sm text-muted-foreground" role="status">
-                Waktu habis. Soal yang belum dijawab dihitung salah. Jika pengiriman gagal, pilih Selesai &amp; Lihat Hasil untuk mencoba lagi.
+                Waktu habis. Hanya jawaban yang tersimpan di server sebelum batas waktu yang dinilai; soal lain dihitung salah. Jika pengiriman gagal, pilih Selesai &amp; Lihat Hasil untuk mencoba lagi.
               </p>
             )}
             <div className="grid grid-cols-6 md:grid-cols-8 gap-2 mb-8">
