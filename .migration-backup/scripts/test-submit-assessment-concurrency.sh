@@ -58,25 +58,30 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
 fi
 TEST_USER_ID="$(jq -r '.id' "$TMP_DIR/owner-created.json")"
 
+# Create the stranger through Auth too; a manually inserted auth.users row
+# cannot supply a real session token for the HTTP gateway check.
+OTHER_PASSWORD="$(openssl rand -hex 24)"
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/other-created.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/admin/users" \
+  --header "apikey: $TEST_SUPABASE_SERVICE_ROLE_KEY" \
+  --header "Authorization: Bearer $TEST_SUPABASE_SERVICE_ROLE_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "$(jq -nc --arg password "$OTHER_PASSWORD" \
+    '{email:"assessment-other-user@example.invalid",password:$password,email_confirm:true}')")"
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e '.id | strings | test("^[0-9a-fA-F-]{36}$")' "$TMP_DIR/other-created.json" >/dev/null; then
+  echo "Could not create the local assessment stranger through Auth (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+TEST_OTHER_USER_ID="$(jq -r '.id' "$TMP_DIR/other-created.json")"
+
 "${PSQL[@]}" >/dev/null <<SQL
 INSERT INTO auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 )
 VALUES
-  (
-    '$TEST_OTHER_USER_ID',
-    '00000000-0000-0000-0000-000000000000',
-    'authenticated',
-    'authenticated',
-    'assessment-other-user@example.invalid',
-    '',
-    now(),
-    '{}'::jsonb,
-    '{"full_name":"Assessment Other User"}'::jsonb,
-    now(),
-    now()
-  ),
   (
     '$TEST_ADMIN_USER_ID',
     '00000000-0000-0000-0000-000000000000',
@@ -894,6 +899,44 @@ if ! jq -e '.pre_test.status == "completed" and (.answers | length) == 1 and (.p
   exit 1
 fi
 
+# The stranger must have a different, real authenticated session. Even on a
+# completed pre-test, the RPC must not return the owner's stored score.
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/other-session.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "$(jq -nc --arg password "$OTHER_PASSWORD" \
+    '{email:"assessment-other-user@example.invalid",password:$password}')")"
+unset OTHER_PASSWORD
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e --arg other "$TEST_OTHER_USER_ID" --arg owner "$TEST_USER_ID" \
+     '.user.id == $other and .user.id != $owner and
+      (.access_token | type) == "string" and (.access_token | length) > 0' \
+     "$TMP_DIR/other-session.json" >/dev/null; then
+  echo "Could not obtain the local assessment stranger's distinct Auth session (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+OTHER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/other-session.json")"
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/other-rpc-response.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header "Authorization: Bearer $OTHER_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data "{\"_pre_test_id\":\"$TEST_OWNERSHIP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
+unset OTHER_TOKEN
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e '. == {"error":"Unauthorized"}' \
+     "$TMP_DIR/other-rpc-response.json" >/dev/null 2>&1; then
+  echo "Stranger HTTP assessment replay did not return only Unauthorized (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
+  echo "Stranger HTTP assessment replay changed the assessment, answers, or owner profile" >&2
+  exit 1
+fi
+
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/anon-rpc-response.json" --write-out '%{http_code}' \
   --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
@@ -1191,4 +1234,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent submit_assessment, anonymous and owner HTTP replay, and direct table RLS tests passed."
+echo "Concurrent submit_assessment, anonymous, stranger and owner HTTP replay, and direct table RLS tests passed."
