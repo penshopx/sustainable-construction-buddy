@@ -33,5 +33,9 @@ jobs:
       - name: Start local Supabase and apply migrations
         run: supabase start
 
+      - name: Configure local API for anonymous RPC check
+        run: |
+          supabase status -o json | jq -r '"TEST_SUPABASE_URL=\(.API_URL)\nTEST_SUPABASE_ANON_KEY=\(.ANON_KEY)"' >> "$GITHUB_ENV"
+
       - name: Test duplicate submits and competing pre-tests
         run: bash scripts/test-submit-assessment-concurrency.sh

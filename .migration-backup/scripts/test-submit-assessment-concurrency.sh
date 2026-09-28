@@ -3,6 +3,12 @@ set -euo pipefail
 
 DATABASE_URL="${TEST_DATABASE_URL:-${DATABASE_URL:-postgresql://postgres:postgres@127.0.0.1:54322/postgres}}"
 PSQL=(psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1)
+TEST_SUPABASE_URL="${TEST_SUPABASE_URL:-http://127.0.0.1:54321}"
+TEST_SUPABASE_ANON_KEY="${TEST_SUPABASE_ANON_KEY:?Set TEST_SUPABASE_ANON_KEY to the local Supabase anon key}"
+case "$TEST_SUPABASE_URL" in
+  http://127.0.0.1:*|http://localhost:*) ;;
+  *) echo "Assessment HTTP fixture requires a local Supabase API URL" >&2; exit 1 ;;
+esac
 TMP_DIR="$(mktemp -d)"
 
 TEST_USER_ID="00000000-0000-4000-8000-000000000161"
@@ -816,6 +822,56 @@ END;
 COMMIT;
 SQL
 
+# Exercise the local PostgREST gateway as well as the database role. An API key
+# identifies the project, but without an Authorization header this request has
+# no user session. Never point this fixture test at the deployed Supabase URL.
+assessment_http_state() {
+  "${PSQL[@]}" -Atq <<SQL
+SELECT jsonb_build_object(
+  'pre_test', (SELECT to_jsonb(pt) FROM public.pre_tests pt
+               WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID'),
+  'answers', (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
+              FROM public.pre_test_answers a
+              WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID'),
+  'profile', (SELECT to_jsonb(p) FROM public.profiles p
+              WHERE p.user_id = '$TEST_USER_ID')
+)::text;
+SQL
+}
+
+BEFORE_HTTP_STATE="$(assessment_http_state)"
+if ! jq -e '.pre_test.status == "completed" and (.answers | length) == 1 and (.profile | type) == "object"' \
+  >/dev/null <<<"$BEFORE_HTTP_STATE"; then
+  echo "Anonymous HTTP replay fixture is not a completed assessment with an answer and owner profile" >&2
+  exit 1
+fi
+
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/anon-rpc-response.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "{\"_pre_test_id\":\"$TEST_OWNERSHIP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
+
+# A successful RPC may return the completed assessment's original score even
+# if the caller's proposed answer differs. Reject that case, not only writes.
+case "$HTTP_STATUS" in
+  401|403|404) ;;
+  *) echo "Anonymous HTTP assessment replay was not rejected (HTTP $HTTP_STATUS)" >&2; exit 1 ;;
+esac
+if ! jq -e '
+  type == "object" and (.code == "42501" or .code == "PGRST202")
+  and (has("score") | not) and (has("level") | not)
+  and (has("correct") | not) and (has("total") | not)
+' "$TMP_DIR/anon-rpc-response.json" >/dev/null 2>&1; then
+  echo "Anonymous HTTP assessment replay returned an unexpected response or exposed a result" >&2
+  exit 1
+fi
+if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
+  echo "Anonymous HTTP assessment replay changed the assessment, answers, or owner profile" >&2
+  exit 1
+fi
+
 # Exercise table policies as an actual authenticated database role, not as the
 # postgres connection used to seed fixtures (which bypasses RLS). Keep this in
 # the same transaction so a failed assertion rolls back every test write.
@@ -979,4 +1035,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent submit_assessment and direct table RLS tests passed."
+echo "Concurrent submit_assessment, anonymous HTTP replay, and direct table RLS tests passed."
