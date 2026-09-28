@@ -745,4 +745,143 @@ END;
 \$\$;
 SQL
 
-echo "Concurrent submit_assessment tests passed."
+# Exercise table policies as an actual authenticated database role, not as the
+# postgres connection used to seed fixtures (which bypasses RLS). Keep this in
+# the same transaction so a failed assertion rolls back every test write.
+"${PSQL[@]}" >/dev/null <<SQL
+BEGIN;
+CREATE TEMP TABLE assessment_rls_before AS
+SELECT
+  (SELECT to_jsonb(pt) FROM public.pre_tests pt
+   WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID') AS pre_test,
+  (SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM public.pre_test_answers a
+   WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') AS answers;
+
+DO \$\$
+BEGIN
+  IF (SELECT pre_test->>'status' IS DISTINCT FROM 'completed'
+             OR jsonb_array_length(answers) IS DISTINCT FROM 1
+      FROM assessment_rls_before) THEN
+    RAISE EXCEPTION 'RLS fixture must contain a completed pre-test and its answer';
+  END IF;
+END;
+\$\$;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '$TEST_USER_ID', true);
+SELECT set_config('request.jwt.claim.role', 'authenticated', true);
+DO \$\$
+DECLARE
+  affected integer;
+BEGIN
+  IF (SELECT count(*) FROM public.pre_tests
+      WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID') <> 1
+     OR (SELECT count(*) FROM public.pre_test_answers
+         WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') <> 1 THEN
+    RAISE EXCEPTION 'Owner cannot read their own completed assessment and answer';
+  END IF;
+
+  UPDATE public.pre_tests SET total_questions = total_questions
+  WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  GET DIAGNOSTICS affected = ROW_COUNT;
+  IF affected <> 1 THEN
+    RAISE EXCEPTION 'Owner cannot update their own pre-test';
+  END IF;
+
+  INSERT INTO public.pre_tests (id, user_id, total_questions)
+  VALUES ('00000000-0000-4000-8000-000000000173', '$TEST_USER_ID', 1);
+  INSERT INTO public.pre_test_answers (id, pre_test_id, question_id, selected_answer)
+  VALUES ('00000000-0000-4000-8000-000000000174',
+          '00000000-0000-4000-8000-000000000173', '$TEST_QUESTION_ID', 1);
+  IF (SELECT count(*) FROM public.pre_test_answers
+      WHERE id = '00000000-0000-4000-8000-000000000174') <> 1 THEN
+    RAISE EXCEPTION 'Owner cannot create and read their own answer';
+  END IF;
+END;
+\$\$;
+
+SELECT set_config('request.jwt.claim.sub', '$TEST_OTHER_USER_ID', true);
+DO \$\$
+DECLARE
+  affected integer;
+BEGIN
+  IF (SELECT count(*) FROM public.pre_tests
+      WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID') <> 0
+     OR (SELECT count(*) FROM public.pre_test_answers
+         WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') <> 0 THEN
+    RAISE EXCEPTION 'Another user can read the owner''s assessment or answer';
+  END IF;
+
+  BEGIN
+    UPDATE public.pre_tests SET score = -1
+    WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    IF affected <> 0 THEN
+      RAISE EXCEPTION 'Another user updated the owner''s pre-test';
+    END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
+    UPDATE public.pre_test_answers SET selected_answer = 0
+    WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    IF affected <> 0 THEN
+      RAISE EXCEPTION 'Another user updated the owner''s answer';
+    END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
+    DELETE FROM public.pre_test_answers
+    WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    IF affected <> 0 THEN
+      RAISE EXCEPTION 'Another user deleted the owner''s answer';
+    END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
+    DELETE FROM public.pre_tests WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+    GET DIAGNOSTICS affected = ROW_COUNT;
+    IF affected <> 0 THEN
+      RAISE EXCEPTION 'Another user deleted the owner''s pre-test';
+    END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
+    INSERT INTO public.pre_tests (id, user_id, total_questions)
+    VALUES ('00000000-0000-4000-8000-000000000171', '$TEST_USER_ID', 1);
+    RAISE EXCEPTION 'Another user created a pre-test for the owner';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  BEGIN
+    INSERT INTO public.pre_test_answers (id, pre_test_id, question_id, selected_answer)
+    VALUES ('00000000-0000-4000-8000-000000000172',
+            '$TEST_OWNERSHIP_PRE_TEST_ID', '$TEST_QUESTION_ID', 0);
+    RAISE EXCEPTION 'Another user created an answer on the owner''s pre-test';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+END;
+\$\$;
+
+RESET ROLE;
+DO \$\$
+BEGIN
+  IF (SELECT to_jsonb(pt) FROM public.pre_tests pt
+      WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID')
+     IS DISTINCT FROM (SELECT pre_test FROM assessment_rls_before)
+     OR (SELECT jsonb_agg(to_jsonb(a) ORDER BY a.id) FROM public.pre_test_answers a
+         WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID')
+        IS DISTINCT FROM (SELECT answers FROM assessment_rls_before) THEN
+    RAISE EXCEPTION 'Direct table access changed the owner''s assessment or answer';
+  END IF;
+END;
+\$\$;
+ROLLBACK;
+SQL
+
+echo "Concurrent submit_assessment and direct table RLS tests passed."
