@@ -16,6 +16,7 @@ const sensitiveValues = [
   '{"identity":"probe-user@example.test","payload":"private-probe-payload"}',
   "probe-user@example.test",
   "https://provider.example.test/recommendations",
+  "privileged-service-key-value-123",
 ];
 
 async function createFakeNpm(t) {
@@ -29,13 +30,17 @@ async function createFakeNpm(t) {
     `#!/bin/sh
 printf '%s\\n' "$*" >> "$PUBLISH_TRACE_FILE"
 if [ "$1" = "exec" ] && [ "$FAKE_PUBLISH_SCENARIO" = "deployment-failure" ]; then
+  printf '%s\\n' "deployment stdout diagnostic" "$FAKE_STDOUT_DETAIL"
   printf '%s\\n' "$FAKE_FAILURE_DETAIL" >&2
   exit 17
 fi
 if [ "$1" = "run" ] && [ "$FAKE_PUBLISH_SCENARIO" = "probe-failure" ]; then
+  printf '%s\\n' "probe stdout diagnostic" "$FAKE_STDOUT_DETAIL"
   printf '%s\\n' "$FAKE_FAILURE_DETAIL" >&2
   exit 23
 fi
+printf '%s\\n' "successful child output should stay hidden"
+printf '%s\\n' "successful child stderr should stay hidden" >&2
 exit 0
 `,
     "utf8",
@@ -45,7 +50,7 @@ exit 0
   return { directory, npmPath, tracePath };
 }
 
-function runPublisher({ npmPath, tracePath, scenario }) {
+function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "" }) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [publisherPath], {
       cwd: rootDir,
@@ -54,8 +59,14 @@ function runPublisher({ npmPath, tracePath, scenario }) {
         PATH: `${path.dirname(npmPath)}${path.delimiter}${process.env.PATH ?? ""}`,
         PUBLISH_TRACE_FILE: tracePath,
         FAKE_PUBLISH_SCENARIO: scenario,
-        FAKE_FAILURE_DETAIL: sensitiveValues.join(" "),
+        FAKE_FAILURE_DETAIL: detail,
+        FAKE_STDOUT_DETAIL: stdoutDetail,
         SUPABASE_PROJECT_REF: projectRef,
+        PUBLISH_TEST_SECRET: sensitiveValues[0],
+        PUBLISH_TEST_TOKEN: sensitiveValues[1],
+        PUBLISH_TEST_PASSWORD: sensitiveValues[2],
+        PUBLISH_TEST_CREDENTIAL: sensitiveValues[3],
+        PUBLISH_TEST_API_KEY: sensitiveValues[4],
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -95,7 +106,7 @@ function readTomlSection(source, sectionName) {
   return sectionLines.join("\n");
 }
 
-function assertSanitizedOutput(result) {
+function assertSanitizedOutput(result, expectedStep, exitCode) {
   assert.notEqual(result.status, 0);
   assert.equal(result.signal, null);
   const output = result.stdout + result.stderr;
@@ -103,11 +114,15 @@ function assertSanitizedOutput(result) {
     assert.equal(output.includes(value), false, `publisher output contains sensitive value: ${value}`);
   }
   assert.equal(output.includes(projectRef), false);
-  assert.deepEqual(JSON.parse(result.stderr), {
-    status: "failed",
-    step: result.expectedStep,
-    reason: "competency_insight_publication_not_verified",
-  });
+  const failure = JSON.parse(result.stderr);
+  assert.equal(failure.status, "failed");
+  assert.equal(failure.step, expectedStep);
+  assert.equal(failure.reason, "competency_insight_publication_not_verified");
+  assert.equal(failure.diagnostics.exitCode, exitCode);
+  assert.match(failure.diagnostics.stderr, /AssertionError: published function did not respond/);
+  assert.match(failure.diagnostics.stderr, /\[REDACTED\]/);
+  assert.match(failure.diagnostics.stdout, /stdout diagnostic/);
+  assert.match(failure.diagnostics.stdout, /\[REDACTED\]/);
   assert.equal(result.stdout, "");
 }
 
@@ -164,10 +179,14 @@ test("live probe runs only after a successful deployment", async (t) => {
 
 test("deployment failure stops before the live probe and stays sanitized", async (t) => {
   const fakeNpm = await createFakeNpm(t);
-  const result = await runPublisher({ ...fakeNpm, scenario: "deployment-failure" });
-  result.expectedStep = "deployment";
+  const result = await runPublisher({
+    ...fakeNpm,
+    scenario: "deployment-failure",
+    detail: `AssertionError: published function did not respond ${sensitiveValues.join(" ")} ${projectRef}`,
+    stdoutDetail: `Bearer ${sensitiveValues[4]} ${sensitiveValues[0]}`,
+  });
 
-  assertSanitizedOutput(result);
+  assertSanitizedOutput(result, "deployment", 17);
   assert.deepEqual(await readTrace(fakeNpm.tracePath), [
     `exec --yes -- supabase functions deploy competency-insight --project-ref ${projectRef} --use-api`,
   ]);
@@ -175,12 +194,40 @@ test("deployment failure stops before the live probe and stays sanitized", async
 
 test("live probe failure fails publication and stays sanitized", async (t) => {
   const fakeNpm = await createFakeNpm(t);
-  const result = await runPublisher({ ...fakeNpm, scenario: "probe-failure" });
-  result.expectedStep = "live_probe";
+  const result = await runPublisher({
+    ...fakeNpm,
+    scenario: "probe-failure",
+    detail: `AssertionError: published function did not respond ${sensitiveValues.join(" ")} ${projectRef}`,
+    stdoutDetail: `authorization: ${sensitiveValues[4]} ${sensitiveValues[0]}`,
+  });
 
-  assertSanitizedOutput(result);
+  assertSanitizedOutput(result, "live_probe", 23);
   assert.deepEqual(await readTrace(fakeNpm.tracePath), [
     `exec --yes -- supabase functions deploy competency-insight --project-ref ${projectRef} --use-api`,
     "run --silent test:insight:live",
   ]);
+});
+
+test("long failure output preserves final details without leaking a secret across the capture cutoff", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const result = await runPublisher({
+    ...fakeNpm,
+    scenario: "probe-failure",
+    detail: `${"x".repeat(18_000)}${sensitiveValues[4]}${"y".repeat(16_380)}\nAssertionError: published function did not respond`,
+    stdoutDetail: sensitiveValues[4].repeat(2_000),
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.equal(result.stdout, "");
+  const output = result.stderr;
+  for (const value of sensitiveValues) {
+    assert.equal(output.includes(value), false);
+  }
+  assert.equal(output.includes("service-key-value-123"), false);
+  const { diagnostics } = JSON.parse(output);
+  assert.equal(diagnostics.exitCode, 23);
+  assert.match(diagnostics.stderr, /^\[earlier output truncated\]/);
+  assert.match(diagnostics.stderr, /AssertionError: published function did not respond$/);
+  assert.ok(Buffer.byteLength(diagnostics.stderr) < 17 * 1024);
+  assert.ok(Buffer.byteLength(diagnostics.stdout) < 17 * 1024);
 });
