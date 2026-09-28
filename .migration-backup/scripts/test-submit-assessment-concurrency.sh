@@ -6,10 +6,14 @@ PSQL=(psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1)
 TEST_SUPABASE_URL="${TEST_SUPABASE_URL:-http://127.0.0.1:54321}"
 TEST_SUPABASE_ANON_KEY="${TEST_SUPABASE_ANON_KEY:?Set TEST_SUPABASE_ANON_KEY to the local Supabase anon key}"
 TEST_SUPABASE_SERVICE_ROLE_KEY="${TEST_SUPABASE_SERVICE_ROLE_KEY:?Set TEST_SUPABASE_SERVICE_ROLE_KEY to the local Supabase service role key}"
-case "$TEST_SUPABASE_URL" in
-  http://127.0.0.1:*|http://localhost:*) ;;
-  *) echo "Assessment HTTP fixture requires a local Supabase API URL" >&2; exit 1 ;;
-esac
+if [[ ! "$TEST_SUPABASE_URL" =~ ^http://(127\.0\.0\.1|localhost):[0-9]+/?$ ]]; then
+  echo "Assessment HTTP fixture requires a local Supabase API URL" >&2
+  exit 1
+fi
+if [[ ! "$DATABASE_URL" =~ ^postgres(ql)?://([^/@[:space:]]+@)?(127\.0\.0\.1|localhost):[0-9]+/[^[:space:]]+$ ]]; then
+  echo "Assessment fixture requires a local Supabase database URL" >&2
+  exit 1
+fi
 TMP_DIR="$(mktemp -d)"
 
 TEST_USER_ID="00000000-0000-4000-8000-000000000161"
@@ -899,6 +903,49 @@ if ! jq -e '.pre_test.status == "completed" and (.answers | length) == 1 and (.p
   exit 1
 fi
 
+# A project API key alone is not a user session. Request the completed owner's
+# row and answer through PostgREST without Authorization, so gateway behavior is
+# tested in addition to the direct anon-role SELECT above.
+assert_anon_table_hidden() {
+  local table="$1"
+  local filter="$2"
+  local status
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/anon-${table}-response.json" --write-out '%{http_code}' \
+    --request GET "${TEST_SUPABASE_URL%/}/rest/v1/${table}?${filter}" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY")"
+
+  case "$status" in
+    200)
+      if ! jq -e '. == []' "$TMP_DIR/anon-${table}-response.json" >/dev/null 2>&1; then
+        echo "Anonymous HTTP GET exposed rows from $table or returned an unexpected response" >&2
+        exit 1
+      fi
+      ;;
+    401|403|404)
+      if ! jq -e --arg owner "$TEST_USER_ID" --arg pre_test "$TEST_OWNERSHIP_PRE_TEST_ID" \
+        'type == "object" and (.code | type) == "string" and
+         (tostring | contains($owner) | not) and
+         (tostring | contains($pre_test) | not)' \
+        "$TMP_DIR/anon-${table}-response.json" >/dev/null 2>&1; then
+        echo "Anonymous HTTP GET for $table returned an unexpected denial or exposed fixture data (HTTP $status)" >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Anonymous HTTP GET for $table was not denied or empty (HTTP $status)" >&2
+      exit 1
+      ;;
+  esac
+}
+
+assert_anon_table_hidden pre_tests "id=eq.$TEST_OWNERSHIP_PRE_TEST_ID"
+assert_anon_table_hidden pre_test_answers "pre_test_id=eq.$TEST_OWNERSHIP_PRE_TEST_ID"
+if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
+  echo "Anonymous HTTP table reads changed the assessment, answers, or owner profile" >&2
+  exit 1
+fi
+
 # The stranger must have a different, real authenticated session. Even on a
 # completed pre-test, the RPC must not return the owner's stored score.
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
@@ -1234,4 +1281,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent submit_assessment, anonymous, stranger and owner HTTP replay, and direct table RLS tests passed."
+echo "Concurrent submit_assessment, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS tests passed."
