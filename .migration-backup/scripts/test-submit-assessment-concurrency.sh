@@ -781,10 +781,38 @@ SET LOCAL ROLE anon;
 SELECT set_config('request.jwt.claim.sub', '', true);
 SELECT set_config('request.jwt.claim.role', 'anon', true);
 DO \$\$
+DECLARE
+  visible_pre_tests integer := 0;
+  visible_answers integer := 0;
 BEGIN
   IF current_user IS DISTINCT FROM 'anon' OR auth.uid() IS NOT NULL THEN
     RAISE EXCEPTION 'Anonymous replay did not run without a user session';
   END IF;
+
+  -- A direct SELECT may be denied by table privileges or return no rows via RLS.
+  -- Either way, the completed owner's assessment and answer must stay hidden.
+  BEGIN
+    SELECT count(*) INTO visible_pre_tests
+    FROM public.pre_tests
+    WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  EXCEPTION WHEN insufficient_privilege THEN
+    visible_pre_tests := 0;
+  END;
+  IF visible_pre_tests <> 0 THEN
+    RAISE EXCEPTION 'Anonymous SELECT exposed the completed pre-test';
+  END IF;
+
+  BEGIN
+    SELECT count(*) INTO visible_answers
+    FROM public.pre_test_answers
+    WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  EXCEPTION WHEN insufficient_privilege THEN
+    visible_answers := 0;
+  END;
+  IF visible_answers <> 0 THEN
+    RAISE EXCEPTION 'Anonymous SELECT exposed the completed pre-test answer';
+  END IF;
+
   IF has_function_privilege(current_user, 'public.submit_assessment(uuid, jsonb)', 'EXECUTE') THEN
     RAISE EXCEPTION 'Anonymous role unexpectedly has EXECUTE on submit_assessment';
   END IF;
