@@ -55,7 +55,7 @@ test("desktop tetap menampilkan bagian lengkap tanpa tombol accordion", async ({
 });
 
 test("rute anggota, admin, dan alias mewajibkan login tanpa sesi", async ({ page }) => {
-  for (const path of ["/dashboard", "/assessment", "/siap-kompetensi", "/aspekindo-lms", "/ai-helpdesk", "/admin", "/admin/users"]) {
+  for (const path of ["/dashboard", "/assessment", "/siap-kompetensi", "/aspekindo-lms", "/ai-helpdesk", "/admin", "/admin/users", "/admin/akses", "/admin/permintaan"]) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/auth$/);
     await expect(page.getByRole("heading", { name: "Masuk ke Akun" })).toBeVisible();
@@ -75,6 +75,7 @@ const COURSE_ID = "00000000-0000-4000-8000-000000000031";
 const ASSESSMENT_ID = "00000000-0000-4000-8000-000000000032";
 const LESSON_ID = "00000000-0000-4000-8000-000000000037";
 const ENROLLMENT_ID = "00000000-0000-4000-8000-000000000038";
+const ADMIN_REQUEST_ID = "00000000-0000-4000-8000-000000000041";
 const assessmentQuestions = [
   {
     id: "00000000-0000-4000-8000-000000000033",
@@ -150,7 +151,7 @@ const emptyTables = new Set([
   "aspekindo_lms_sessions", "aspekindo_lms_lessons",
 ]);
 
-async function installAuthenticatedFixture(page, { asAdmin = false, assessment = null, lms = null } = {}) {
+async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin = false, assessment = null, lms = null } = {}) {
   const unexpectedRequests = [];
   await page.addInitScript(({ user, hostname }) => {
     localStorage.setItem(`sb-${hostname.split(".")[0]}-auth-token`, JSON.stringify({
@@ -197,9 +198,19 @@ async function installAuthenticatedFixture(page, { asAdmin = false, assessment =
     } else if (url.pathname === "/auth/v1/user") {
       data = member;
     } else if (url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
-      data = false;
+      data = asSuperAdmin;
     } else if (url.pathname === "/rest/v1/user_roles") {
-      data = asAdmin ? [{ role: "admin" }] : [];
+      data = asAdmin || asSuperAdmin ? [{ role: "admin" }] : [];
+    } else if (asSuperAdmin && url.pathname === "/rest/v1/rpc/list_admin_directory") {
+      data = [{
+        user_id: MEMBER_ID, email: member.email, full_name: "Anggota Uji",
+        company: "BUJK Uji", is_admin: false, is_super_admin: false,
+      }];
+    } else if (asSuperAdmin && url.pathname === "/rest/v1/admin_requests") {
+      data = [{
+        id: ADMIN_REQUEST_ID, user_id: MEMBER_ID, status: "pending",
+        requested_at: "2026-09-01T00:00:00.000Z",
+      }];
     } else if (url.pathname === "/functions/v1/competency-insight") {
       data = { source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" };
     } else if (url.pathname === "/rest/v1/aspekindo_lms_courses") {
@@ -390,4 +401,39 @@ test.describe("halaman admin dengan sesi tiruan", () => {
       await expect(page.getByRole("heading", { name: "Data Pengguna" })).toHaveCount(0);
     }
   });
+});
+
+test.describe("halaman khusus super-admin dengan sesi tiruan", () => {
+  const restrictedPages = [
+    { path: "/admin/akses", heading: "Kelola Akses Admin" },
+    { path: "/admin/permintaan", heading: "Permintaan Akses Admin" },
+  ];
+
+  test("super-admin dapat melihat isi kedua halaman", async ({ page }) => {
+    const unexpected = await installAuthenticatedFixture(page, { asSuperAdmin: true });
+
+    for (const { path, heading } of restrictedPages) {
+      await page.goto(path);
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+      await expect(page.getByRole("cell", { name: "Anggota Uji" })).toBeVisible();
+    }
+    expect(unexpected).toEqual([]);
+  });
+
+  for (const { role, options } of [
+    { role: "admin biasa", options: { asAdmin: true } },
+    { role: "anggota", options: {} },
+  ]) {
+    test(`${role} dialihkan dari kedua halaman tanpa melihat isinya`, async ({ page }) => {
+      const unexpected = await installAuthenticatedFixture(page, options);
+
+      for (const { path, heading } of restrictedPages) {
+        await page.goto(path);
+        await expect(page).toHaveURL(/\/dashboard$/);
+        await expect(page.getByRole("heading", { name: heading })).toHaveCount(0);
+      }
+      expect(unexpected).toEqual([]);
+    });
+  }
 });
