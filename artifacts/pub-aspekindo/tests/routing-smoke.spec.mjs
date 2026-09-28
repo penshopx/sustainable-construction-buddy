@@ -74,6 +74,7 @@ const MEMBER_ID = "00000000-0000-4000-8000-000000000030";
 const COURSE_ID = "00000000-0000-4000-8000-000000000031";
 const ASSESSMENT_ID = "00000000-0000-4000-8000-000000000032";
 const LESSON_ID = "00000000-0000-4000-8000-000000000037";
+const SECOND_LESSON_ID = "00000000-0000-4000-8000-000000000042";
 const ENROLLMENT_ID = "00000000-0000-4000-8000-000000000038";
 const ADMIN_REQUEST_ID = "00000000-0000-4000-8000-000000000041";
 const assessmentQuestions = [
@@ -122,6 +123,15 @@ const lesson = {
   sort_order: 1,
   status: "published",
 };
+const secondLesson = {
+  id: SECOND_LESSON_ID,
+  course_id: COURSE_ID,
+  title: "Memeriksa kesiapan dokumen",
+  content_markdown: "Lanjutkan dengan **pemeriksaan kelengkapan dokumen**.",
+  passing_score: 0,
+  sort_order: 2,
+  status: "published",
+};
 const material = {
   id: "00000000-0000-4000-8000-000000000039",
   lesson_id: LESSON_ID,
@@ -153,6 +163,7 @@ const emptyTables = new Set([
 
 async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin = false, assessment = null, lms = null } = {}) {
   const unexpectedRequests = [];
+  if (lms) lms.progress = [];
   await page.addInitScript(({ user, hostname }) => {
     localStorage.setItem(`sb-${hostname.split(".")[0]}-auth-token`, JSON.stringify({
       access_token: "test-only-access-token",
@@ -216,7 +227,7 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
     } else if (url.pathname === "/rest/v1/aspekindo_lms_courses") {
       data = url.searchParams.get("select") === "*" ? [course] : [{ id: COURSE_ID, title: course.title }];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lessons" && request.method() === "GET") {
-      data = [lesson];
+      data = [lesson, secondLesson];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_materials" && request.method() === "GET") {
       data = [material];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_enrollments" && request.method() === "GET") {
@@ -226,11 +237,26 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
         lms.enrolled = true;
         data = enrollment;
       }
+    } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lesson_progress" && request.method() === "GET") {
+      data = lms.progress;
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lesson_progress" && request.method() === "POST") {
       const progress = request.postDataJSON();
-      if (progress?.lesson_id === LESSON_ID && progress?.enrollment_id === ENROLLMENT_ID) {
+      if ([LESSON_ID, SECOND_LESSON_ID].includes(progress?.lesson_id) &&
+          progress?.enrollment_id === ENROLLMENT_ID && progress?.course_id === COURSE_ID &&
+          progress?.user_id === MEMBER_ID && progress?.status === "in_progress" &&
+          (progress.lesson_id === LESSON_ID || lms.progress.some((item) => item.lesson_id === LESSON_ID && item.status === "completed"))) {
         lms.startedLesson = progress;
-        data = [{ id: "00000000-0000-4000-8000-000000000040", ...progress }];
+        const saved = { id: progress.lesson_id === LESSON_ID ? "00000000-0000-4000-8000-000000000040" : "00000000-0000-4000-8000-000000000043", ...progress };
+        lms.progress = [...lms.progress.filter((item) => item.lesson_id !== progress.lesson_id), saved];
+        data = single ? saved : [saved];
+      }
+    } else if (lms && url.pathname === "/rest/v1/rpc/complete_aspekindo_lms_lesson" && request.method() === "POST") {
+      const lessonId = request.postDataJSON()?._lesson_id;
+      const current = lms.progress.find((item) => item.lesson_id === lessonId && item.status === "in_progress");
+      if (current && (lessonId === LESSON_ID ||
+          lessonId === SECOND_LESSON_ID && lms.progress.some((item) => item.lesson_id === LESSON_ID && item.status === "completed"))) {
+        data = { ...current, status: "completed", progress_percent: 100, completed_at: "2026-09-01T01:00:00.000Z" };
+        lms.progress = [...lms.progress.filter((item) => item.lesson_id !== lessonId), data];
       }
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_quiz_questions" && request.method() === "GET") {
       data = [];
@@ -513,6 +539,30 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await expect(page.getByText(material.title)).toBeVisible();
     await expect(page.getByText(material.content_markdown)).toBeVisible();
     await expect.poll(() => lms.startedLesson?.lesson_id).toBe(LESSON_ID);
+    expect(unexpected).toEqual([]);
+  });
+
+  test("pelajaran kedua terbuka dan dapat dibuka setelah pelajaran pertama selesai", async ({ page }) => {
+    const lms = { enrolled: true, startedLesson: null };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`);
+
+    const secondButton = page.getByRole("button", { name: new RegExp(secondLesson.title) });
+    await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
+    await expect(secondButton).toHaveClass(/cursor-not-allowed/);
+    await secondButton.click();
+    await expect(page.getByRole("heading", { name: secondLesson.title })).toHaveCount(0);
+    await expect.poll(() => lms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("in_progress");
+
+    await page.getByRole("button", { name: "Tandai pelajaran selesai" }).click();
+    await expect.poll(() => lms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("completed");
+    await expect(secondButton).not.toHaveClass(/cursor-not-allowed/);
+    await expect(page.getByText("Pelajaran ini sudah selesai")).toBeVisible();
+    await secondButton.click();
+
+    await expect(page.getByRole("heading", { name: secondLesson.title })).toBeVisible();
+    await expect(page.getByText("pemeriksaan kelengkapan dokumen", { exact: false })).toBeVisible();
+    await expect.poll(() => lms.progress.find((item) => item.lesson_id === SECOND_LESSON_ID)?.status).toBe("in_progress");
     expect(unexpected).toEqual([]);
   });
 });
