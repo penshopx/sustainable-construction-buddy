@@ -745,6 +745,77 @@ END;
 \$\$;
 SQL
 
+# An anonymous caller must not be able to replay a completed assessment.
+# Use the actual database role, not only a JWT claim on the postgres session,
+# so the test catches accidental EXECUTE grants as well as leaked results.
+"${PSQL[@]}" >/dev/null <<SQL
+BEGIN;
+CREATE TEMP TABLE assessment_anon_before AS
+SELECT
+  (SELECT to_jsonb(pt) FROM public.pre_tests pt
+   WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID') AS pre_test,
+  (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
+   FROM public.pre_test_answers a
+   WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') AS answers,
+  (SELECT to_jsonb(p) FROM public.profiles p
+   WHERE p.user_id = '$TEST_USER_ID') AS profile;
+
+DO \$\$
+BEGIN
+  IF (SELECT pre_test->>'status' IS DISTINCT FROM 'completed'
+             OR jsonb_array_length(answers) IS DISTINCT FROM 1
+             OR profile IS NULL
+      FROM assessment_anon_before) THEN
+    RAISE EXCEPTION 'Anonymous replay fixture must have a completed assessment, answer and profile';
+  END IF;
+END;
+\$\$;
+
+SET LOCAL ROLE anon;
+SELECT set_config('request.jwt.claim.sub', '', true);
+SELECT set_config('request.jwt.claim.role', 'anon', true);
+DO \$\$
+BEGIN
+  IF current_user IS DISTINCT FROM 'anon' OR auth.uid() IS NOT NULL THEN
+    RAISE EXCEPTION 'Anonymous replay did not run without a user session';
+  END IF;
+  IF has_function_privilege(current_user, 'public.submit_assessment(uuid, jsonb)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Anonymous role unexpectedly has EXECUTE on submit_assessment';
+  END IF;
+
+  BEGIN
+    PERFORM public.submit_assessment(
+      '$TEST_OWNERSHIP_PRE_TEST_ID',
+      jsonb_build_array(jsonb_build_object(
+        'question_id', '$TEST_QUESTION_ID',
+        'selected_answer', 0
+      ))
+    );
+    RAISE EXCEPTION 'Anonymous caller executed submit_assessment on a completed assessment';
+  EXCEPTION WHEN insufficient_privilege THEN
+    NULL; -- Expected: anon has no EXECUTE privilege on submit_assessment.
+  END;
+END;
+\$\$;
+RESET ROLE;
+
+DO \$\$
+BEGIN
+  IF (SELECT (SELECT to_jsonb(pt) FROM public.pre_tests pt
+              WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID') IS DISTINCT FROM pre_test
+             OR (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
+                 FROM public.pre_test_answers a
+                 WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') IS DISTINCT FROM answers
+             OR (SELECT to_jsonb(p) FROM public.profiles p
+                 WHERE p.user_id = '$TEST_USER_ID') IS DISTINCT FROM profile
+      FROM assessment_anon_before) THEN
+    RAISE EXCEPTION 'Anonymous replay changed the completed assessment, answers, or owner profile';
+  END IF;
+END;
+\$\$;
+COMMIT;
+SQL
+
 # Exercise table policies as an actual authenticated database role, not as the
 # postgres connection used to seed fixtures (which bypasses RLS). Keep this in
 # the same transaction so a failed assertion rolls back every test write.
