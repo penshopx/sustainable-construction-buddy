@@ -163,8 +163,10 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const [pastTestsLoading, setPastTestsLoading] = useState(false);
   const [checkingAnswer, setCheckingAnswer] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [deadlineAt, setDeadlineAt] = useState<number | null>(null);
   const [timedOut, setTimedOut] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutSubmissionRef = useRef(false);
   const submitGuardRef = useRef(createAssessmentSubmitGuard());
   const [draftOwner, setDraftOwner] = useState<string | null>(null);
   const [recoveryState, setRecoveryState] = useState<"checking" | "ready" | "error">("checking");
@@ -213,8 +215,11 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       setAnswers(draft.answers);
       setAnswerResults(draft.answerResults);
       setCurrentQ(draft.currentQ);
-      setTimeLeft(draft.timeLeft);
+      const restoredDeadline = draft.deadlineAt ?? Date.now() + draft.timeLeft * 1000;
+      setDeadlineAt(restoredDeadline);
+      setTimeLeft(Math.max(0, Math.ceil((restoredDeadline - Date.now()) / 1000)));
       setTimedOut(draft.timedOut);
+      timeoutSubmissionRef.current = draft.timedOut;
       setShowExplanation(false);
       setDraftOwner(user.id);
       setPhase(draft.phase);
@@ -228,14 +233,14 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         (phase !== "test" && phase !== "review") || !questions.length) return;
     const draft: AssessmentDraft = {
       version: 1, preTestId, questions, answers, answerResults,
-      currentQ, phase, timeLeft, timedOut,
+      currentQ, phase, timeLeft, deadlineAt: deadlineAt ?? undefined, timedOut,
     };
     try {
       localStorage.setItem(assessmentDraftKey(user.id), JSON.stringify(draft));
     } catch {
       toast.error("Draf assessment tidak dapat disimpan di browser ini.");
     }
-  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, timeLeft, timedOut]);
+  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, timeLeft, deadlineAt, timedOut]);
 
   const fetchPastTests = useCallback(async () => {
     if (!user) return;
@@ -263,22 +268,22 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     fetchPastTests();
   }, [fetchPastTests, result]);
 
-  // Timer countdown
+  // The interval refreshes the display; elapsed time is always calculated from
+  // the fixed deadline, including after a background tab is throttled.
   useEffect(() => {
-    if (phase === "test" && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft(prev => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => { if (timerRef.current) clearInterval(timerRef.current); };
-    }
-    return undefined;
-  }, [phase, timeLeft]);
+    if ((phase !== "test" && phase !== "review") || deadlineAt === null || timedOut) return;
+    const update = () => setTimeLeft(Math.max(0, Math.ceil((deadlineAt - Date.now()) / 1000)));
+    update();
+    timerRef.current = setInterval(update, 1000);
+    document.addEventListener("visibilitychange", update);
+    window.addEventListener("focus", update);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = null;
+      document.removeEventListener("visibilitychange", update);
+      window.removeEventListener("focus", update);
+    };
+  }, [phase, deadlineAt, timedOut]);
 
   const startTest = async () => {
     if (!user || recoveryState !== "ready") return;
@@ -324,11 +329,12 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
 
     // Write before switching screens so a refresh immediately after starting
     // still has the original question order and pre-test identifier.
+    const deadline = Date.now() + selected.length * 90 * 1000;
     try {
       localStorage.setItem(assessmentDraftKey(user.id), JSON.stringify({
         version: 1, preTestId: preTest.id, questions: selected,
         answers: {}, answerResults: {}, currentQ: 0, phase: "test",
-        timeLeft: selected.length * 90, timedOut: false,
+        timeLeft: selected.length * 90, deadlineAt: deadline, timedOut: false,
       } satisfies AssessmentDraft));
     } catch {
       toast.error("Draf assessment tidak dapat disimpan di browser ini.");
@@ -341,7 +347,9 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     setCurrentQ(0);
     setPhase("test");
     setShowExplanation(false);
+    timeoutSubmissionRef.current = false;
     setTimedOut(false);
+    setDeadlineAt(deadline);
     setTimeLeft(selected.length * 90); // 90 seconds per question
     setLoading(false);
   };
@@ -392,7 +400,6 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
 
   const submitTest = useCallback(async () => {
     return submitGuardRef.current(async () => {
-      if (timerRef.current) clearInterval(timerRef.current);
       setLoading(true);
 
       try {
@@ -433,13 +440,15 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
 
   // Auto-submit when timer runs out
   useEffect(() => {
-    if (phase === "test" && timeLeft === 0 && questions.length > 0) {
+    if ((phase === "test" || phase === "review") && timeLeft === 0 &&
+        deadlineAt !== null && questions.length > 0 && !timeoutSubmissionRef.current) {
+      timeoutSubmissionRef.current = true;
       setTimedOut(true);
       setPhase("review");
       toast.warning("Waktu habis! Assessment akan di-submit otomatis.");
       void submitTest();
     }
-  }, [phase, questions.length, submitTest, timeLeft]);
+  }, [phase, questions.length, submitTest, timeLeft, deadlineAt]);
 
   // Domain breakdown for result
   const getDomainBreakdown = () => {

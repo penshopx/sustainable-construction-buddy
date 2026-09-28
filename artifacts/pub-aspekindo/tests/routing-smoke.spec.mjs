@@ -98,6 +98,14 @@ const assessmentQuestions = [
     created_at: "2026-09-01T00:00:00.000Z",
   },
 ];
+
+async function advanceAssessmentClock(page, milliseconds) {
+  await page.evaluate((elapsed) => {
+    const previousNow = Date.now;
+    Date.now = () => previousNow() + elapsed;
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, milliseconds);
+}
 const member = {
   id: MEMBER_ID,
   aud: "authenticated",
@@ -533,13 +541,6 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     test(`waktu habis: ${scenario} dikirim dan hasil sesuai jumlah soal`, async ({ page }) => {
       const assessment = { started: null, checks: [], submissions: [], submitted: false };
       const unexpected = await installAuthenticatedFixture(page, { assessment });
-      // Accelerate only the assessment's one-second countdown; keep animation
-      // frames and network timing real so the result view can finish entering.
-      await page.addInitScript(() => {
-        const originalSetInterval = window.setInterval.bind(window);
-        window.setInterval = ((handler, delay, ...args) =>
-          originalSetInterval(handler, delay === 1000 ? 5 : delay, ...args));
-      });
       await page.goto("/assessment");
       await page.getByRole("button", { name: "Mulai Assessment" }).click();
       await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
@@ -552,7 +553,8 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
         await expect(page.getByRole("button", { name: "Selanjutnya" })).toBeDisabled();
       }
 
-      await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible({ timeout: 15_000 });
+      await advanceAssessmentClock(page, 181_000);
+      await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
       await expect(page.getByText(`Skor: ${expectedScore}`)).toBeVisible();
       await expect(page.getByText(`${answerFirst ? 1 : 0} dari 2 jawaban benar`)).toBeVisible();
       expect(assessment.submissions).toEqual([{
@@ -574,17 +576,13 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       successfulSubmissions: 0, failFirstSubmit: true,
     };
     const unexpected = await installAuthenticatedFixture(page, { assessment });
-    await page.addInitScript(() => {
-      const originalSetInterval = window.setInterval.bind(window);
-      window.setInterval = ((handler, delay, ...args) =>
-        originalSetInterval(handler, delay === 1000 ? 5 : delay, ...args));
-    });
     await page.goto("/assessment");
     await page.getByRole("button", { name: "Mulai Assessment" }).click();
     await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
     await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
     await expect(page.getByText("Penjelasan soal uji.")).toBeVisible();
 
+    await advanceAssessmentClock(page, 181_000);
     await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("Gagal mengirim assessment.")).toBeVisible();
     await expect(page.getByRole("status")).toContainText("Soal yang belum dijawab dihitung salah");
@@ -598,6 +596,50 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     expect(assessment.submissions[0]).toEqual(assessment.submissions[1]);
     expect(assessment.submissions[1]._answers.map(({ selected_answer }) => selected_answer)).toEqual([0, -1]);
     expect(assessment.successfulSubmissions).toBe(1);
+    expect(unexpected).toEqual([]);
+  });
+
+  test("batas waktu tetap berjalan saat review dan hanya mengirim sekali", async ({ page }) => {
+    const assessment = { started: null, checks: [], submissions: [], submitted: false };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    await page.goto("/assessment");
+    await page.getByRole("button", { name: "Mulai Assessment" }).click();
+    await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+    await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+    await page.getByRole("button", { name: "Selanjutnya" }).click();
+    await page.getByRole("button", { name: /Periksa kesiapan/ }).click();
+    await page.getByRole("button", { name: "Review Jawaban" }).click();
+    await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+
+    await advanceAssessmentClock(page, 181_000);
+    await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+    expect(assessment.submissions).toEqual([{
+      _pre_test_id: ASSESSMENT_ID,
+      _answers: assessmentQuestions.map((q, i) => ({ question_id: q.id, selected_answer: i })),
+    }]);
+    expect(unexpected).toEqual([]);
+  });
+
+  test("tab yang ditinggalkan tidak mendapat tambahan waktu dari interval tertunda", async ({ page }) => {
+    const assessment = { started: null, checks: [], submissions: [], submitted: false };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    // Simulate a throttled background tab: the countdown interval won't fire
+    // before we return, but visibilitychange must reconcile with wall time.
+    await page.addInitScript(() => {
+      const originalSetInterval = window.setInterval.bind(window);
+      window.setInterval = ((handler, delay, ...args) =>
+        originalSetInterval(handler, delay === 1000 ? 600_000 : delay, ...args));
+    });
+    await page.goto("/assessment");
+    await page.getByRole("button", { name: "Mulai Assessment" }).click();
+    await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+    await expect(page.getByText("3:00")).toBeVisible();
+    await advanceAssessmentClock(page, 30_000);
+    await expect(page.getByText("2:30")).toBeVisible();
+    await advanceAssessmentClock(page, 151_000);
+    await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+    expect(assessment.submissions).toHaveLength(1);
+    expect(assessment.submissions[0]._answers.map(({ selected_answer }) => selected_answer)).toEqual([-1, -1]);
     expect(unexpected).toEqual([]);
   });
 

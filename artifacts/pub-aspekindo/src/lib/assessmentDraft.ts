@@ -7,6 +7,8 @@ export interface AssessmentDraft {
   currentQ: number;
   phase: "test" | "review";
   timeLeft: number;
+  // Older drafts have no deadline; restore them using their last saved remaining time.
+  deadlineAt?: number;
   timedOut: boolean;
 }
 
@@ -23,6 +25,7 @@ export function parseAssessmentDraft(raw: string): AssessmentDraft | null {
         (draft.currentQ as number) >= draft.questions.length ||
         !Number.isInteger(draft.timeLeft) || (draft.timeLeft as number) < 0 ||
         (draft.timeLeft as number) > draft.questions.length * 90 ||
+         (draft.deadlineAt !== undefined && (!Number.isFinite(draft.deadlineAt) || (draft.deadlineAt as number) <= 0)) ||
         typeof draft.timedOut !== "boolean" ||
         (draft.phase !== "test" && draft.phase !== "review") ||
         !draft.answers || typeof draft.answers !== "object" || Array.isArray(draft.answers) ||
