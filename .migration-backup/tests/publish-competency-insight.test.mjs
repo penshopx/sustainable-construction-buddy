@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -102,6 +102,7 @@ async function isolatedPublisher(t, config) {
     path.join(directory, "scripts", "subprocess-diagnostics.mjs"),
     await readFile(path.join(rootDir, "scripts", "subprocess-diagnostics.mjs")),
   );
+  await symlink(path.join(rootDir, "node_modules"), path.join(directory, "node_modules"), "dir");
   if (config !== undefined) {
     await mkdir(path.join(directory, "supabase"));
     await writeFile(path.join(directory, "supabase", "config.toml"), config);
@@ -215,8 +216,11 @@ test("invalid, duplicate, nested, and damaged project configuration never starts
     'project_id = "invalid-ref"',
     `project_id = "${projectRef}"\nproject_id = "zyxwvutsrqponmlkjihg"`,
     `[other]\nproject_id = "${projectRef}"`,
+    `[other.subsection]\nproject_id = "${projectRef}"`,
     `project_id = "${projectRef}"\nnot valid toml`,
     `project_id = "${projectRef}`,
+    `project_id = "${projectRef}"\n[other]\nsecret = "${sensitiveValues[0]}"\ninvalid =`,
+    `project_id = "${projectRef}"\n[other]\nsecret = "${sensitiveValues[0]}"\nsecret = "duplicate"`,
   ]) {
     const fakeNpm = await createFakeNpm(t);
     const scriptPath = await isolatedPublisher(t, config);
@@ -224,6 +228,14 @@ test("invalid, duplicate, nested, and damaged project configuration never starts
     assertConfigurationFailure(result, "config_invalid", "Invalid supabase/config.toml; expected one valid project_id");
     await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
   }
+});
+
+test("a nested project_id cannot override or supply the deployment destination", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `[other]\nproject_id = "${projectRef}"\nsecret = "${sensitiveValues[0]}"\n`);
+  const result = await runPublisher({ ...fakeNpm, scriptPath, override: null });
+  assertConfigurationFailure(result, "config_invalid", "Invalid supabase/config.toml; expected one valid project_id");
+  await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
 });
 
 test("an override cannot redirect deployment to another project", async (t) => {
@@ -242,7 +254,7 @@ test("an override cannot redirect deployment to another project", async (t) => {
 
 test("a valid config deploys to its project without an override", async (t) => {
   const fakeNpm = await createFakeNpm(t);
-  const scriptPath = await isolatedPublisher(t, `# Publication destination\nproject_id = '${projectRef}' # confirmed\n`);
+  const scriptPath = await isolatedPublisher(t, `# Publication destination\nproject_id = '${projectRef}' # confirmed\n[api]\nenabled = true\n`);
   const result = await runPublisher({ ...fakeNpm, scriptPath, override: null });
   assert.equal(result.status, 0);
   assert.deepEqual(await readTrace(fakeNpm.tracePath), [

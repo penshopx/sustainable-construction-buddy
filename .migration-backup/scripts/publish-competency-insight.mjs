@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import TOML from "@iarna/toml";
 import { captureOutput, safeDiagnostic } from "./subprocess-diagnostics.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -15,6 +16,21 @@ class PublishStepError extends Error {
   }
 }
 
+function invalidConfig() {
+  return new PublishStepError("configuration", {
+    code: "config_invalid",
+    message: "Invalid supabase/config.toml; expected one valid project_id",
+  });
+}
+
+function hasNestedProjectId(value) {
+  if (value === null || typeof value !== "object") return false;
+  return Object.values(value).some((child) =>
+    child !== null && typeof child === "object" &&
+    (Object.hasOwn(child, "project_id") || hasNestedProjectId(child))
+  );
+}
+
 async function readProjectRef() {
   const configPath = path.join(rootDir, "supabase", "config.toml");
   let config;
@@ -26,27 +42,25 @@ async function readProjectRef() {
       message: "Cannot read supabase/config.toml",
     });
   }
-  // This publication gate expects a minimal config with one top-level
-  // project_id. Do not guess a destination from a partial or malformed file.
-  const entries = config.split(/\r?\n/).filter((line) => line.trim() && !line.trim().startsWith("#"));
-  const projectEntries = entries.filter((line) => /^\s*project_id(?:\s|=)/.test(line));
-  if (projectEntries.length === 0) {
+  let parsed;
+  try {
+    parsed = TOML.parse(config);
+  } catch {
+    // Parser errors can contain source text. Never include them in diagnostics.
+    throw invalidConfig();
+  }
+  if (!Object.hasOwn(parsed, "project_id")) {
+    if (hasNestedProjectId(parsed)) throw invalidConfig();
     throw new PublishStepError("configuration", {
       code: "project_id_missing",
       message: "Missing project_id in supabase/config.toml",
     });
   }
-  const match = entries.length === 1 &&
-    projectEntries.length === 1 &&
-    projectEntries[0].match(/^\s*project_id\s*=\s*(["'])([a-z0-9]{20})\1\s*(?:#.*)?$/);
-  if (!match) {
-    throw new PublishStepError("configuration", {
-      code: "config_invalid",
-      message: "Invalid supabase/config.toml; expected one valid project_id",
-    });
+  if (typeof parsed.project_id !== "string" || !/^[a-z0-9]{20}$/.test(parsed.project_id)) {
+    throw invalidConfig();
   }
 
-  const projectRef = match[2];
+  const projectRef = parsed.project_id;
   const override = process.env.SUPABASE_PROJECT_REF;
   if (override !== undefined && !/^[a-z0-9]{20}$/.test(override)) {
     throw new PublishStepError("configuration", {
