@@ -176,7 +176,7 @@ const emptyTables = new Set([
   "aspekindo_lms_sessions", "aspekindo_lms_lessons",
 ]);
 
-async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin = false, assessment = null, lms = null } = {}) {
+async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, lms = null } = {}) {
   const unexpectedRequests = [];
   if (lms) lms.progress = [];
   await page.addInitScript(({ user, hostname }) => {
@@ -223,6 +223,11 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       unexpectedRequests.push(`${request.method()} ${url.hostname}${url.pathname}`);
     } else if (url.pathname === "/auth/v1/user") {
       data = member;
+    } else if (roleCheck && url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
+      roleCheck.requests++;
+      await roleCheck.waitForRelease;
+      await route.fulfill(roleCheck.response);
+      return;
     } else if (url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
       data = asSuperAdmin;
     } else if (url.pathname === "/rest/v1/user_roles") {
@@ -672,5 +677,40 @@ test.describe("halaman khusus super-admin dengan sesi tiruan", () => {
       }
       expect(unexpected).toEqual([]);
     });
+  }
+
+  for (const { scenario, response } of [
+    {
+      scenario: "RPC mengembalikan error",
+      response: {
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "XX000", message: "Role lookup unavailable" }),
+      },
+    },
+    {
+      scenario: "RPC mengembalikan hasil tak valid",
+      response: { status: 200, contentType: "application/json", body: JSON.stringify("true") },
+    },
+  ]) {
+    for (const { path, heading } of restrictedPages) {
+      test(`${scenario} tidak membuka ${path} dan mengalihkan ke dashboard`, async ({ page }) => {
+        const roleCheck = { response, requests: 0 };
+        roleCheck.waitForRelease = new Promise((resolve) => { roleCheck.release = resolve; });
+        const unexpected = await installAuthenticatedFixture(page, { asAdmin: true, roleCheck });
+
+        try {
+          await page.goto(path, { waitUntil: "domcontentloaded" });
+          await expect.poll(() => roleCheck.requests).toBeGreaterThan(0);
+          await expect(page.getByRole("heading", { name: heading })).toHaveCount(0);
+          roleCheck.release();
+          await expect(page).toHaveURL(/\/dashboard$/);
+          await expect(page.getByRole("heading", { name: heading })).toHaveCount(0);
+          expect(unexpected).toEqual([]);
+        } finally {
+          roleCheck.release();
+        }
+      });
+    }
   }
 });
