@@ -274,6 +274,14 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       data = { source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" };
     } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "POST") {
       lms.signRequests.push({ path: url.pathname, body: request.postDataJSON() });
+      if (lms.failFirstSign && lms.signRequests.length === 1) {
+        await route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: JSON.stringify({ statusCode: "500", error: "StorageError", message: "Gagal membuat tautan sementara" }),
+        });
+        return;
+      }
       data = { signedURL: `/object/sign/aspekindo-learning/${VIDEO_STORAGE_PATH}?token=video-test-only` };
     } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "GET" &&
                url.searchParams.get("token") === "video-test-only") {
@@ -738,6 +746,34 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await expect(video).toHaveAttribute("controls", "");
       await expect.poll(() => lms.videoRequests).toContain(VIDEO_SIGNED_URL);
       expect(lms.signRequests).toEqual([{ path: VIDEO_SIGN_PATH, body: { expiresIn: 1800 } }]);
+      expect(unexpected).toEqual([]);
+    } finally {
+      lms.releaseVideoResponse?.();
+    }
+  });
+
+  test("anggota dapat memuat ulang video setelah pembuatan tautan privat gagal", async ({ page }) => {
+    const lms = { enrolled: true, video: true, failFirstSign: true, signRequests: [], videoRequests: [] };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    try {
+      await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByText(videoMaterial.title)).toBeVisible();
+      await expect(page.getByText("Video belum dapat diputar")).toBeVisible();
+      const reload = page.getByRole("button", { name: "Muat ulang video" });
+      await expect(reload).toBeVisible();
+      await expect(page.locator("video source")).toHaveCount(0);
+      expect(lms.signRequests).toEqual([{ path: VIDEO_SIGN_PATH, body: { expiresIn: 1800 } }]);
+      expect(lms.videoRequests).toEqual([]);
+
+      await reload.click();
+      const video = page.locator("video").filter({ has: page.locator("source[type='video/mp4']") });
+      await expect(video).toBeVisible();
+      await expect(video.locator("source")).toHaveAttribute("src", VIDEO_SIGNED_URL);
+      await expect.poll(() => lms.videoRequests).toContain(VIDEO_SIGNED_URL);
+      expect(lms.signRequests).toEqual([
+        { path: VIDEO_SIGN_PATH, body: { expiresIn: 1800 } },
+        { path: VIDEO_SIGN_PATH, body: { expiresIn: 1800 } },
+      ]);
       expect(unexpected).toEqual([]);
     } finally {
       lms.releaseVideoResponse?.();
