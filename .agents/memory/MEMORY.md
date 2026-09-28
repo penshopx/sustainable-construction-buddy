@@ -5,3 +5,4 @@
 - [Jam palsu dan animasi browser](playwright-clock-animation.md) — percepatan jam penuh dapat menahan transisi animasi; gunakan interval terbatas untuk pengujian timer beranimasi.
 - [Tipe plugin Vite di pnpm](vite-peer-types.md) — versi Vite sama dapat menghasilkan tipe tidak cocok bila peer opsionalnya berbeda antar artefak.
 - [Uji proyek lama di luar workspace](legacy-test-dependencies.md) — pengujian skrip migrasi memerlukan dependensi sendiri; paket workspace utama tidak otomatis tersedia.
+- [Status workflow dan port aktif](workflow-port-state.md) — status failed bisa berasal dari start ganda meski preview masih sehat; periksa port dan proxy sebelum memperbaiki aplikasi.

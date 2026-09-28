@@ -740,10 +740,12 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
       await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
       await expect(page.getByText(videoMaterial.title)).toBeVisible();
+      await expect(page.locator("video source")).toHaveCount(0);
+      expect(lms.signRequests).toEqual([]);
+      await page.getByRole("button", { name: "Putar video" }).click();
       const video = page.locator("video").filter({ has: page.locator("source[type='video/mp4']") });
       await expect(video).toBeVisible();
       await expect(video.locator("source")).toHaveAttribute("src", VIDEO_SIGNED_URL);
-      await expect(video).toHaveAttribute("controls", "");
       await expect.poll(() => lms.videoRequests).toContain(VIDEO_SIGNED_URL);
       expect(lms.signRequests).toEqual([{ path: VIDEO_SIGN_PATH, body: { expiresIn: 1800 } }]);
       expect(unexpected).toEqual([]);
@@ -758,6 +760,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     try {
       await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
       await expect(page.getByText(videoMaterial.title)).toBeVisible();
+      await page.getByRole("button", { name: "Putar video" }).click();
       await expect(page.getByText("Video belum dapat diputar")).toBeVisible();
       const reload = page.getByRole("button", { name: "Muat ulang video" });
       await expect(reload).toBeVisible();
