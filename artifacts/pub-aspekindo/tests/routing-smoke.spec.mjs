@@ -205,9 +205,9 @@ const emptyTables = new Set([
   "aspekindo_lms_sessions", "aspekindo_lms_lessons",
 ]);
 
-async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, lms = null } = {}) {
+async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, lms = null, preserveLmsState = false } = {}) {
   const unexpectedRequests = [];
-  if (lms) {
+  if (lms && !preserveLmsState) {
     lms.progress = [];
     lms.attempts = [];
     lms.completionRequests = [];
@@ -886,6 +886,45 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await expect(page.getByText("pemeriksaan kelengkapan dokumen", { exact: false })).toBeVisible();
     await expect.poll(() => lms.progress.find((item) => item.lesson_id === SECOND_LESSON_ID)?.status).toBe("in_progress");
     expect(unexpected).toEqual([]);
+  });
+
+  test("pelajaran kedua tetap terbuka pada perangkat baru dari progres anggota yang tersimpan", async ({ page, browser }) => {
+    const lms = { enrolled: true, startedLesson: null };
+    const firstUnexpected = await installAuthenticatedFixture(page, { lms });
+    await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`);
+    await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
+    await expect.poll(() => lms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("in_progress");
+    await page.getByRole("button", { name: "Tandai pelajaran selesai" }).click();
+    await expect.poll(() => lms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("completed");
+    expect(firstUnexpected).toEqual([]);
+
+    const otherContext = await browser.newContext();
+    try {
+      expect(await otherContext.storageState()).toEqual({ cookies: [], origins: [] });
+      const otherPage = await otherContext.newPage();
+      const secondUnexpected = await installAuthenticatedFixture(otherPage, { lms, preserveLmsState: true });
+      const loadedProgress = otherPage.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return url.hostname === SUPABASE_HOST &&
+          url.pathname === "/rest/v1/aspekindo_lms_lesson_progress" &&
+          response.request().method() === "GET";
+      });
+      await otherPage.goto(page.url());
+      expect(await (await loadedProgress).json()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ lesson_id: LESSON_ID, status: "completed" }),
+      ]));
+      await expect(otherPage.getByRole("heading", { name: course.title, level: 1 })).toBeVisible();
+      const secondButton = otherPage.getByRole("button", { name: new RegExp(secondLesson.title) });
+      await expect(secondButton).not.toHaveClass(/cursor-not-allowed/);
+      await secondButton.click();
+      await expect(otherPage.getByRole("heading", { name: secondLesson.title })).toBeVisible();
+      await expect(otherPage.getByText("pemeriksaan kelengkapan dokumen", { exact: false })).toBeVisible();
+      await expect.poll(() => lms.progress.find((item) => item.lesson_id === SECOND_LESSON_ID)?.status).toBe("in_progress");
+      expect(lms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("completed");
+      expect(secondUnexpected).toEqual([]);
+    } finally {
+      await otherContext.close();
+    }
   });
 
   test("kuis gagal menahan penyelesaian dan pelajaran berikutnya sampai percobaan lulus", async ({ page }) => {
