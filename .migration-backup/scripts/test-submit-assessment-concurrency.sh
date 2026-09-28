@@ -844,12 +844,25 @@ SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 DO \$\$
 DECLARE
   affected integer;
+  visible_pre_test public.pre_tests%ROWTYPE;
+  visible_answer public.pre_test_answers%ROWTYPE;
 BEGIN
-  IF (SELECT count(*) FROM public.pre_tests
-      WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID') <> 1
-     OR (SELECT count(*) FROM public.pre_test_answers
-         WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') <> 1 THEN
-    RAISE EXCEPTION 'Owner cannot read their own completed assessment and answer';
+  IF current_user IS DISTINCT FROM 'authenticated'
+     OR auth.uid() IS DISTINCT FROM '$TEST_USER_ID'::uuid THEN
+    RAISE EXCEPTION 'Owner table reads did not use the authenticated owner role and JWT';
+  END IF;
+
+  SELECT * INTO STRICT visible_pre_test FROM public.pre_tests
+  WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  SELECT * INTO STRICT visible_answer FROM public.pre_test_answers
+  WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  IF visible_pre_test.user_id IS DISTINCT FROM '$TEST_USER_ID'::uuid
+     OR visible_pre_test.status IS DISTINCT FROM 'completed'
+     OR visible_pre_test.score IS DISTINCT FROM 100
+     OR visible_pre_test.determined_level IS DISTINCT FROM 'Utama'
+     OR visible_answer.selected_answer IS DISTINCT FROM 1
+     OR visible_answer.is_correct IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'Owner cannot read the saved completed result and answer directly';
   END IF;
 
   UPDATE public.pre_tests SET total_questions = total_questions
@@ -876,11 +889,22 @@ DO \$\$
 DECLARE
   affected integer;
 BEGIN
-  IF (SELECT count(*) FROM public.pre_tests
-      WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID') <> 0
-     OR (SELECT count(*) FROM public.pre_test_answers
-         WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') <> 0 THEN
-    RAISE EXCEPTION 'Another user can read the owner''s assessment or answer';
+  IF current_user IS DISTINCT FROM 'authenticated'
+     OR auth.uid() IS DISTINCT FROM '$TEST_OTHER_USER_ID'::uuid THEN
+    RAISE EXCEPTION 'Stranger table reads did not use the authenticated stranger role and JWT';
+  END IF;
+
+  -- Check both lookup-by-ID and a direct table scan; neither may expose
+  -- the completed result or its answer to a different authenticated user.
+  IF EXISTS (SELECT 1 FROM public.pre_tests
+             WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID')
+     OR EXISTS (SELECT 1 FROM public.pre_test_answers
+                WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID')
+     OR (SELECT count(*) FILTER (WHERE user_id = '$TEST_USER_ID'::uuid)
+         FROM public.pre_tests) <> 0
+     OR (SELECT count(*) FILTER (WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID'::uuid)
+         FROM public.pre_test_answers) <> 0 THEN
+    RAISE EXCEPTION 'Another user can SELECT the owner''s completed result or answer directly';
   END IF;
 
   BEGIN
