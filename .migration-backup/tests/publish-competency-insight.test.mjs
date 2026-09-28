@@ -10,7 +10,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const publisherPath = path.join(rootDir, "scripts", "publish-competency-insight.mjs");
 const packageJsonPath = path.join(rootDir, "package.json");
 const replitConfigPath = path.join(rootDir, ".replit");
-const projectRef = "publication-gate-test-ref";
+const projectRef = "abcdefghijklmnopqrst";
 const sensitiveValues = [
   "publication-gate-secret",
   '{"identity":"probe-user@example.test","payload":"private-probe-payload"}',
@@ -50,7 +50,7 @@ exit 0
   return { directory, npmPath, tracePath };
 }
 
-function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath }) {
+function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath, override = projectRef }) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [scriptPath], {
       cwd: rootDir,
@@ -61,7 +61,7 @@ function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail 
         FAKE_PUBLISH_SCENARIO: scenario,
         FAKE_FAILURE_DETAIL: detail,
         FAKE_STDOUT_DETAIL: stdoutDetail,
-        SUPABASE_PROJECT_REF: projectRef,
+        ...(override === null ? { SUPABASE_PROJECT_REF: undefined } : { SUPABASE_PROJECT_REF: override }),
         PUBLISH_TEST_SECRET: sensitiveValues[0],
         PUBLISH_TEST_TOKEN: sensitiveValues[1],
         PUBLISH_TEST_PASSWORD: sensitiveValues[2],
@@ -210,9 +210,51 @@ test("missing project_id fails before deployment without showing configuration c
   await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
 });
 
+test("invalid, duplicate, nested, and damaged project configuration never starts deployment", async (t) => {
+  for (const config of [
+    'project_id = "invalid-ref"',
+    `project_id = "${projectRef}"\nproject_id = "zyxwvutsrqponmlkjihg"`,
+    `[other]\nproject_id = "${projectRef}"`,
+    `project_id = "${projectRef}"\nnot valid toml`,
+    `project_id = "${projectRef}`,
+  ]) {
+    const fakeNpm = await createFakeNpm(t);
+    const scriptPath = await isolatedPublisher(t, config);
+    const result = await runPublisher({ ...fakeNpm, scriptPath });
+    assertConfigurationFailure(result, "config_invalid", "Invalid supabase/config.toml; expected one valid project_id");
+    await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+  }
+});
+
+test("an override cannot redirect deployment to another project", async (t) => {
+  for (const override of ["zyxwvutsrqponmlkjihg", "not-a-valid-project-ref", ""]) {
+    const fakeNpm = await createFakeNpm(t);
+    const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+    const result = await runPublisher({ ...fakeNpm, scriptPath, override });
+    if (override === "zyxwvutsrqponmlkjihg") {
+      assertConfigurationFailure(result, "project_ref_mismatch", "SUPABASE_PROJECT_REF does not match supabase/config.toml");
+    } else {
+      assertConfigurationFailure(result, "project_ref_invalid", "SUPABASE_PROJECT_REF must be a valid project reference");
+    }
+    await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+  }
+});
+
+test("a valid config deploys to its project without an override", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `# Publication destination\nproject_id = '${projectRef}' # confirmed\n`);
+  const result = await runPublisher({ ...fakeNpm, scriptPath, override: null });
+  assert.equal(result.status, 0);
+  assert.deepEqual(await readTrace(fakeNpm.tracePath), [
+    `exec --yes -- supabase functions deploy competency-insight --project-ref ${projectRef} --use-api`,
+    "run --silent test:insight:live",
+  ]);
+});
+
 test("live probe runs only after a successful deployment", async (t) => {
   const fakeNpm = await createFakeNpm(t);
-  const result = await runPublisher({ ...fakeNpm, scenario: "success" });
+  const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+  const result = await runPublisher({ ...fakeNpm, scriptPath, scenario: "success" });
 
   assert.equal(result.status, 0);
   assert.equal(result.stderr, "");
@@ -230,8 +272,10 @@ test("live probe runs only after a successful deployment", async (t) => {
 
 test("deployment failure stops before the live probe and stays sanitized", async (t) => {
   const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
   const result = await runPublisher({
     ...fakeNpm,
+    scriptPath,
     scenario: "deployment-failure",
     detail: `AssertionError: published function did not respond ${sensitiveValues.join(" ")} ${projectRef}`,
     stdoutDetail: `Bearer ${sensitiveValues[4]} ${sensitiveValues[0]}`,
@@ -245,8 +289,10 @@ test("deployment failure stops before the live probe and stays sanitized", async
 
 test("live probe failure fails publication and stays sanitized", async (t) => {
   const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
   const result = await runPublisher({
     ...fakeNpm,
+    scriptPath,
     scenario: "probe-failure",
     detail: `AssertionError: published function did not respond ${sensitiveValues.join(" ")} ${projectRef}`,
     stdoutDetail: `authorization: ${sensitiveValues[4]} ${sensitiveValues[0]}`,
@@ -261,8 +307,10 @@ test("live probe failure fails publication and stays sanitized", async (t) => {
 
 test("long failure output preserves final details without leaking a secret across the capture cutoff", async (t) => {
   const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
   const result = await runPublisher({
     ...fakeNpm,
+    scriptPath,
     scenario: "probe-failure",
     detail: `${"x".repeat(18_000)}${sensitiveValues[4]}${"y".repeat(16_380)}\nAssertionError: published function did not respond`,
     stdoutDetail: sensitiveValues[4].repeat(2_000),

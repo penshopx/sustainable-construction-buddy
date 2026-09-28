@@ -26,12 +26,41 @@ async function readProjectRef() {
       message: "Cannot read supabase/config.toml",
     });
   }
-  const match = config.match(/^\s*project_id\s*=\s*["']([^"']+)["']\s*$/m);
-  if (!match) throw new PublishStepError("configuration", {
-    code: "project_id_missing",
-    message: "Missing project_id in supabase/config.toml",
-  });
-  return process.env.SUPABASE_PROJECT_REF || match[1];
+  // This publication gate expects a minimal config with one top-level
+  // project_id. Do not guess a destination from a partial or malformed file.
+  const entries = config.split(/\r?\n/).filter((line) => line.trim() && !line.trim().startsWith("#"));
+  const projectEntries = entries.filter((line) => /^\s*project_id(?:\s|=)/.test(line));
+  if (projectEntries.length === 0) {
+    throw new PublishStepError("configuration", {
+      code: "project_id_missing",
+      message: "Missing project_id in supabase/config.toml",
+    });
+  }
+  const match = entries.length === 1 &&
+    projectEntries.length === 1 &&
+    projectEntries[0].match(/^\s*project_id\s*=\s*(["'])([a-z0-9]{20})\1\s*(?:#.*)?$/);
+  if (!match) {
+    throw new PublishStepError("configuration", {
+      code: "config_invalid",
+      message: "Invalid supabase/config.toml; expected one valid project_id",
+    });
+  }
+
+  const projectRef = match[2];
+  const override = process.env.SUPABASE_PROJECT_REF;
+  if (override !== undefined && !/^[a-z0-9]{20}$/.test(override)) {
+    throw new PublishStepError("configuration", {
+      code: "project_ref_invalid",
+      message: "SUPABASE_PROJECT_REF must be a valid project reference",
+    });
+  }
+  if (override !== undefined && override !== projectRef) {
+    throw new PublishStepError("configuration", {
+      code: "project_ref_mismatch",
+      message: "SUPABASE_PROJECT_REF does not match supabase/config.toml",
+    });
+  }
+  return projectRef;
 }
 
 function runQuiet(command, args, step) {
