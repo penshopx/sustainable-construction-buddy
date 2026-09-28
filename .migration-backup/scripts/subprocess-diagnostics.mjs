@@ -1,4 +1,5 @@
 const maxDiagnosticBytes = 16 * 1024;
+const diagnosticUrlPattern = /(?:https?|postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|cockroachdb):\/\/[^\s"'<>]+/gi;
 const sensitiveValues = Object.entries(process.env)
   .filter(([name, value]) =>
     (/(?:SECRET|TOKEN|PASSWORD|PASSWD|KEY|CREDENTIAL|DATABASE_URL|AUTHORIZATION)/i.test(name) ||
@@ -54,15 +55,16 @@ export function safeDiagnostic({ text, truncated }) {
   }
   output = output
     .replace(/(Bearer\s+)[^\s"']+/gi, "$1[REDACTED]")
-    .replace(/((?:password|token|secret|api[_-]?key|authorization)\s*[:=]\s*["']?)[^\s"',}&#]+/gi, "$1[REDACTED]")
-    .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, "$1[REDACTED]@");
+    .replace(/((?:password|token|secret|api[_-]?key|authorization)\s*[:=]\s*["']?)[^\s"',}&#]+/gi, "$1[REDACTED]");
   // A child process may print a URL with a credential not present in our environment.
   // Preserve the URL and harmless parameters so the failure remains actionable.
-  output = output.replace(/https?:\/\/[^\s"'<>]+/gi, (url) =>
-    url.replace(
-      /([?&#](?:access[_-]?token|refresh[_-]?token|id[_-]?token|api[_-]?key|password|passwd|secret|client[_-]?secret|authorization|auth[_-]?code|code)=)[^&#\s"'<>]*/gi,
-      "$1[REDACTED]",
-    ));
+  output = output.replace(diagnosticUrlPattern, (url) =>
+    url
+      .replace(/^([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+:[^\s/@]+@/i, "$1[REDACTED]@")
+      .replace(
+        /([?&#](?:access[_-]?token|refresh[_-]?token|id[_-]?token|api[_-]?key|password|passwd|secret|client[_-]?secret|authorization|auth[_-]?code|code)=)[^&#\s"'<>]*/gi,
+        "$1[REDACTED]",
+      ));
   const bytes = Buffer.from(output);
   if (bytes.length > maxDiagnosticBytes) {
     output = bytes.subarray(-maxDiagnosticBytes).toString("utf8");

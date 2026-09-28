@@ -9,7 +9,11 @@ import test from "node:test";
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(rootDir, "scripts", "validate-competency-insight.mjs");
 const terminalUrl = "https://terminal-user:terminal-password-789@diagnostics.example.test/check?mode=debug&code=one-time-code-789";
-const terminalDetail = `\x1b[31m${terminalUrl}\x1b[0m \x1b]0;hidden-terminal-title\x07\x01\x08\x7f\x9b AssertionError: terminal diagnostic retained`;
+const databaseUrls = [
+  "postgres://db-user:db-password-789@db.example.test:5432/insight",
+  "mongodb+srv://mongo-user:mongo-password-789@cluster.example.test/insight",
+];
+const terminalDetail = `\x1b[31m${terminalUrl}\x1b[0m ${databaseUrls.join(" ")} \x1b]0;hidden-terminal-title\x07\x01\x08\x7f\x9b AssertionError: terminal diagnostic retained`;
 
 async function createFakeNpm(t) {
   const directory = await mkdtemp(path.join(tmpdir(), "validate-competency-insight-"));
@@ -182,10 +186,12 @@ test("contract subprocess strips URL credentials and terminal controls from JSON
   assert.equal(failure.diagnostics.exitCode, 17);
   for (const diagnostic of [failure.diagnostics.stdout, failure.diagnostics.stderr]) {
     assert.match(diagnostic, /https:\/\/\[REDACTED\]@diagnostics\.example\.test\/check\?mode=debug&code=\[REDACTED\]/);
+    assert.match(diagnostic, /postgres:\/\/\[REDACTED\]@db\.example\.test:5432\/insight/);
+    assert.match(diagnostic, /mongodb\+srv:\/\/\[REDACTED\]@cluster\.example\.test\/insight/);
     assert.match(diagnostic, /AssertionError: terminal diagnostic retained/);
     assert.doesNotMatch(diagnostic, /[\x00-\x09\x0b-\x1f\x7f-\x9f]/);
   }
-  for (const secret of ["terminal-user", "terminal-password-789", "one-time-code-789", "hidden-terminal-title"]) {
+  for (const secret of ["terminal-user", "terminal-password-789", "one-time-code-789", "db-user", "db-password-789", "mongo-user", "mongo-password-789", "hidden-terminal-title"]) {
     assert.equal(result.stderr.includes(secret), false, `${secret} must not appear in the JSON log`);
   }
   assert.deepEqual(await readTrace(fakeNpm.tracePath), ["run --silent test:insight"]);
