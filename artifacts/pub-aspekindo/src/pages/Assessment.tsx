@@ -14,6 +14,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import type { LucideIcon } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { assessmentLevel, formatAssessmentDate } from "@/lib/competencyFallbacks";
+import { assessmentDraftKey, parseAssessmentDraft, type AssessmentDraft } from "@/lib/assessmentDraft";
 
 interface Question {
   id: string;
@@ -165,6 +166,76 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const [timedOut, setTimedOut] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitGuardRef = useRef(createAssessmentSubmitGuard());
+  const [draftOwner, setDraftOwner] = useState<string | null>(null);
+  const [recoveryState, setRecoveryState] = useState<"checking" | "ready" | "error">("checking");
+  const [recoveryAttempt, setRecoveryAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    let active = true;
+    const key = assessmentDraftKey(user.id);
+    let stored: string | null;
+    try {
+      stored = localStorage.getItem(key);
+    } catch {
+      setRecoveryState("ready");
+      return;
+    }
+    if (!stored) {
+      setRecoveryState("ready");
+      return;
+    }
+    const draft = parseAssessmentDraft(stored);
+    if (!draft) {
+      localStorage.removeItem(key);
+      setRecoveryState("ready");
+      return;
+    }
+    setRecoveryState("checking");
+    void (async () => {
+      const { data, error } = await supabase.from("pre_tests")
+        .select("id, status")
+        .eq("id", draft.preTestId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!active) return;
+      if (error) {
+        setRecoveryState("error");
+        return;
+      }
+      if (!data || data.status !== "in_progress") {
+        localStorage.removeItem(key);
+        setRecoveryState("ready");
+        return;
+      }
+      setQuestions(draft.questions);
+      setPreTestId(draft.preTestId);
+      setAnswers(draft.answers);
+      setAnswerResults(draft.answerResults);
+      setCurrentQ(draft.currentQ);
+      setTimeLeft(draft.timeLeft);
+      setTimedOut(draft.timedOut);
+      setShowExplanation(false);
+      setDraftOwner(user.id);
+      setPhase(draft.phase);
+      setRecoveryState("ready");
+    })();
+    return () => { active = false; };
+  }, [user?.id, recoveryAttempt]);
+
+  useEffect(() => {
+    if (!user || draftOwner !== user.id || !preTestId ||
+        (phase !== "test" && phase !== "review") || !questions.length) return;
+    const draft: AssessmentDraft = {
+      version: 1, preTestId, questions, answers, answerResults,
+      currentQ, phase, timeLeft, timedOut,
+    };
+    try {
+      localStorage.setItem(assessmentDraftKey(user.id), JSON.stringify(draft));
+    } catch {
+      toast.error("Draf assessment tidak dapat disimpan di browser ini.");
+    }
+  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, timeLeft, timedOut]);
 
   const fetchPastTests = useCallback(async () => {
     if (!user) return;
@@ -210,6 +281,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   }, [phase, timeLeft]);
 
   const startTest = async () => {
+    if (!user || recoveryState !== "ready") return;
     setLoading(true);
     const [{ data: allQuestions }, { data: domains }] = await Promise.all([
       supabase.rpc("get_questions_safe"),
@@ -240,7 +312,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
 
     const { data: preTest, error } = await supabase
       .from("pre_tests")
-      .insert({ user_id: user!.id, total_questions: selected.length })
+      .insert({ user_id: user.id, total_questions: selected.length, status: "in_progress" })
       .select()
       .single();
 
@@ -250,8 +322,20 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       return;
     }
 
+    // Write before switching screens so a refresh immediately after starting
+    // still has the original question order and pre-test identifier.
+    try {
+      localStorage.setItem(assessmentDraftKey(user.id), JSON.stringify({
+        version: 1, preTestId: preTest.id, questions: selected,
+        answers: {}, answerResults: {}, currentQ: 0, phase: "test",
+        timeLeft: selected.length * 90, timedOut: false,
+      } satisfies AssessmentDraft));
+    } catch {
+      toast.error("Draf assessment tidak dapat disimpan di browser ini.");
+    }
     setQuestions(selected);
     setPreTestId(preTest.id);
+    setDraftOwner(user.id);
     setAnswers({});
     setAnswerResults({});
     setCurrentQ(0);
@@ -333,6 +417,10 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
           return;
         }
 
+        if (user) {
+          try { localStorage.removeItem(assessmentDraftKey(user.id)); } catch { /* Storage may be unavailable. */ }
+        }
+        setDraftOwner(null);
         await refreshProfile();
 
         setResult(outcome.result);
@@ -341,7 +429,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         setLoading(false);
       }
     });
-  }, [answers, preTestId, questions, refreshProfile]);
+  }, [answers, preTestId, questions, refreshProfile, user]);
 
   // Auto-submit when timer runs out
   useEffect(() => {
@@ -406,12 +494,20 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
             </div>
 
             <div className="text-center">
+              {recoveryState === "error" && (
+                <div role="alert" className="mb-4 text-sm text-destructive">
+                  Draf assessment belum dapat diperiksa. Periksa koneksi Anda, lalu coba lagi.
+                  <button type="button" className="ml-2 underline" onClick={() => setRecoveryAttempt((n) => n + 1)}>
+                    Coba Lagi
+                  </button>
+                </div>
+              )}
               <button
                 onClick={startTest}
-                disabled={loading}
+                disabled={loading || recoveryState !== "ready"}
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-gradient-amber text-accent-foreground font-semibold font-heading shadow-amber hover:brightness-110 transition-all disabled:opacity-50"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                {loading || recoveryState === "checking" ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                   <>Mulai Assessment <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>

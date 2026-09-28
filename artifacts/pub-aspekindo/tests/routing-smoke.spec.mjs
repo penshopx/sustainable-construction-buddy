@@ -299,13 +299,21 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
         { id: assessmentQuestions[1].domain_id, name: "Manajemen" },
       ];
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "POST") {
+      assessment.starts = (assessment.starts ?? 0) + 1;
       assessment.started = request.postDataJSON();
       data = { id: ASSESSMENT_ID, ...assessment.started, status: "in_progress" };
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "GET") {
-      data = assessment.submitted ? [{
-        id: ASSESSMENT_ID, user_id: MEMBER_ID, status: "completed",
-        score: assessment.result.score, determined_level: assessment.result.level, completed_at: "2026-09-01T01:00:00.000Z",
-      }] : [];
+      if (url.searchParams.has("id")) {
+        assessment.recoveryChecks = (assessment.recoveryChecks ?? 0) + 1;
+        data = assessment.started ? [{
+          id: ASSESSMENT_ID, user_id: MEMBER_ID, status: assessment.submitted ? "completed" : "in_progress",
+        }] : [];
+      } else {
+        data = assessment.submitted ? [{
+          id: ASSESSMENT_ID, user_id: MEMBER_ID, status: "completed",
+          score: assessment.result.score, determined_level: assessment.result.level, completed_at: "2026-09-01T01:00:00.000Z",
+        }] : [];
+      }
     } else if (assessment && url.pathname === "/rest/v1/rpc/check_question_answer" && request.method() === "POST") {
       const answer = request.postDataJSON();
       assessment.checks.push(answer);
@@ -397,7 +405,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await expect(page.getByText("Skor: 50")).toBeVisible();
     await expect(page.getByText("Level Kompetensi Anda:")).toBeVisible();
     await expect(page.getByText("1 dari 2 jawaban benar")).toBeVisible();
-    expect(assessment.started).toEqual({ user_id: MEMBER_ID, total_questions: 2 });
+    expect(assessment.started).toEqual({ user_id: MEMBER_ID, total_questions: 2, status: "in_progress" });
     expect(assessment.checks).toEqual([
       { _question_id: assessmentQuestions[0].id, _selected_answer: 0 },
       { _question_id: assessmentQuestions[1].id, _selected_answer: 0 },
@@ -456,6 +464,65 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       },
     ]);
     expect(assessment.successfulSubmissions).toBe(1);
+    expect(unexpected).toEqual([]);
+  });
+
+  test("draf assessment dipulihkan pada soal dan review tanpa membuat pre-test baru", async ({ page }) => {
+    const assessment = { started: null, checks: [], submissions: [], submitted: false };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    await page.goto("/assessment");
+    await page.getByRole("button", { name: "Mulai Assessment" }).click();
+    await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+    await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+    await expect(page.getByText("Penjelasan soal uji.")).toBeVisible();
+    await page.getByRole("button", { name: "Selanjutnya" }).click();
+    await expect(page.getByRole("heading", { name: assessmentQuestions[1].question_text })).toBeVisible();
+    await page.reload();
+
+    await expect(page.getByRole("heading", { name: assessmentQuestions[1].question_text })).toBeVisible();
+    await expect(page.getByText("Soal 2/2")).toBeVisible();
+    await page.getByRole("button", { name: "Sebelumnya" }).click();
+    await expect(page.getByRole("button", { name: /Dokumen legalitas/ })).toBeDisabled();
+    await page.getByRole("button", { name: "Selanjutnya" }).click();
+    await page.getByRole("button", { name: /Periksa kesiapan/ }).click();
+    await expect(page.getByText("Penjelasan soal uji.")).toBeVisible();
+    await page.getByRole("button", { name: "Review Jawaban" }).click();
+    await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+    await page.reload();
+
+    await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Selesai & Lihat Hasil" })).toBeEnabled();
+    await page.getByRole("button", { name: "Selesai & Lihat Hasil" }).click();
+    await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+    expect(assessment.starts).toBe(1);
+    expect(assessment.recoveryChecks).toBe(2);
+    expect(assessment.submissions).toEqual([{
+      _pre_test_id: ASSESSMENT_ID,
+      _answers: assessmentQuestions.map((q, i) => ({ question_id: q.id, selected_answer: i })),
+    }]);
+    await expect.poll(() => page.evaluate((id) =>
+      localStorage.getItem(`pub_assessment_draft_v1:${id}`), MEMBER_ID)).toBeNull();
+    await page.reload();
+    await expect(page.getByRole("button", { name: "Mulai Assessment" })).toBeEnabled();
+    expect(assessment.starts).toBe(1);
+    expect(unexpected).toEqual([]);
+  });
+
+  test("draf lama yang sudah selesai tidak dipulihkan", async ({ page }) => {
+    const assessment = { started: { user_id: MEMBER_ID, total_questions: 2 }, submitted: true,
+      result: { score: 50, level: "Pemula" }, checks: [] };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    await page.addInitScript(({ id, question }) => {
+      localStorage.setItem(`pub_assessment_draft_v1:${id}`, JSON.stringify({
+        version: 1, preTestId: "00000000-0000-4000-8000-000000000032",
+        questions: [question], answers: {}, answerResults: {},
+        currentQ: 0, phase: "test", timeLeft: 90, timedOut: false,
+      }));
+    }, { id: MEMBER_ID, question: assessmentQuestions[0] });
+    await page.goto("/assessment");
+    await expect(page.getByRole("button", { name: "Mulai Assessment" })).toBeEnabled();
+    await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toHaveCount(0);
+    expect(assessment.recoveryChecks).toBe(1);
     expect(unexpected).toEqual([]);
   });
 
