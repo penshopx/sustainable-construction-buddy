@@ -27,9 +27,20 @@ class PublishStepError extends Error {
 
 async function readProjectRef() {
   const configPath = path.join(rootDir, "supabase", "config.toml");
-  const config = await readFile(configPath, "utf8");
+  let config;
+  try {
+    config = await readFile(configPath, "utf8");
+  } catch {
+    throw new PublishStepError("configuration", {
+      code: "config_unreadable",
+      message: "Cannot read supabase/config.toml",
+    });
+  }
   const match = config.match(/^\s*project_id\s*=\s*["']([^"']+)["']\s*$/m);
-  if (!match) throw new PublishStepError("configuration");
+  if (!match) throw new PublishStepError("configuration", {
+    code: "project_id_missing",
+    message: "Missing project_id in supabase/config.toml",
+  });
   return process.env.SUPABASE_PROJECT_REF || match[1];
 }
 

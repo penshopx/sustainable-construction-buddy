@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,9 +50,9 @@ exit 0
   return { directory, npmPath, tracePath };
 }
 
-function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "" }) {
+function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath }) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [publisherPath], {
+    const child = spawn(process.execPath, [scriptPath], {
       cwd: rootDir,
       env: {
         ...process.env,
@@ -90,6 +90,35 @@ function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail 
 async function readTrace(tracePath) {
   const trace = await readFile(tracePath, "utf8");
   return trace.trim().split("\n").filter(Boolean);
+}
+
+async function isolatedPublisher(t, config) {
+  const directory = await mkdtemp(path.join(tmpdir(), "publish-config-test-"));
+  t.after(() => rm(directory, { recursive: true, force: true }));
+  await mkdir(path.join(directory, "scripts"));
+  const scriptPath = path.join(directory, "scripts", "publish-competency-insight.mjs");
+  await writeFile(scriptPath, await readFile(publisherPath));
+  if (config !== undefined) {
+    await mkdir(path.join(directory, "supabase"));
+    await writeFile(path.join(directory, "supabase", "config.toml"), config);
+  }
+  return scriptPath;
+}
+
+function assertConfigurationFailure(result, code, message) {
+  assert.equal(result.status, 1);
+  assert.equal(result.signal, null);
+  assert.equal(result.stdout, "");
+  const output = result.stderr;
+  for (const value of [...sensitiveValues, projectRef]) {
+    assert.equal(output.includes(value), false, "configuration error must not expose sensitive values");
+  }
+  assert.deepEqual(JSON.parse(output), {
+    status: "failed",
+    step: "configuration",
+    reason: "competency_insight_publication_not_verified",
+    diagnostics: { code, message },
+  });
 }
 
 function readTomlSection(source, sectionName) {
@@ -157,6 +186,24 @@ test("release configuration keeps the insight publication gate", async () => {
     ["npm run test:insight:validate", "npm run build", "npm run publish:insight"],
     "the release script must run validation and propagate the insight publication result",
   );
+});
+
+test("unreadable configuration fails before deployment with a safe diagnosis", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t);
+  const result = await runPublisher({ ...fakeNpm, scriptPath });
+
+  assertConfigurationFailure(result, "config_unreadable", "Cannot read supabase/config.toml");
+  await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+});
+
+test("missing project_id fails before deployment without showing configuration contents", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `other_setting = "${sensitiveValues[0]}"\n# ${sensitiveValues[4]}\n`);
+  const result = await runPublisher({ ...fakeNpm, scriptPath });
+
+  assertConfigurationFailure(result, "project_id_missing", "Missing project_id in supabase/config.toml");
+  await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
 });
 
 test("live probe runs only after a successful deployment", async (t) => {
