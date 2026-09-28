@@ -14,6 +14,19 @@ export interface AssessmentDraft {
 
 export const assessmentDraftKey = (userId: string) => `pub_assessment_draft_v1:${userId}`;
 
+export function resolveServerAssessmentDraft(value: unknown): AssessmentDraft | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.preTestId !== "string" || typeof record.startedAt !== "string" ||
+      !Number.isInteger(record.totalQuestions)) return null;
+  const startedAt = Date.parse(record.startedAt);
+  if (!Number.isFinite(startedAt)) return null;
+  const draft = parseAssessmentDraft(JSON.stringify(record.draft));
+  if (!draft || draft.preTestId !== record.preTestId || draft.questions.length !== record.totalQuestions) return null;
+  // The start timestamp belongs to the server, not to either device's draft.
+  return { ...draft, deadlineAt: startedAt + draft.questions.length * 90_000 };
+}
+
 export function parseAssessmentDraft(raw: string): AssessmentDraft | null {
   try {
     const value: unknown = JSON.parse(raw);

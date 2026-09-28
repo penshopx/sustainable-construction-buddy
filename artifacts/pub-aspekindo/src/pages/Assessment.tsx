@@ -12,9 +12,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import type { LucideIcon } from "lucide-react";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Json, Tables } from "@/integrations/supabase/types";
 import { assessmentLevel, formatAssessmentDate } from "@/lib/competencyFallbacks";
-import { assessmentDraftKey, parseAssessmentDraft, type AssessmentDraft } from "@/lib/assessmentDraft";
+import { assessmentDraftKey, parseAssessmentDraft, resolveServerAssessmentDraft, type AssessmentDraft } from "@/lib/assessmentDraft";
 
 interface Question {
   id: string;
@@ -87,6 +87,7 @@ export const createAssessmentSubmitGuard = () => {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+const draftJson = (draft: AssessmentDraft): Json => JSON.parse(JSON.stringify(draft)) as Json;
 const isAssessmentQuestion = (value: unknown): value is AssessmentRpcQuestion =>
   isRecord(value) && typeof value.id === "string" && typeof value.question_text === "string" &&
   Array.isArray(value.options) && value.options.every((option) => typeof option === "string") &&
@@ -171,51 +172,87 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const [draftOwner, setDraftOwner] = useState<string | null>(null);
   const [recoveryState, setRecoveryState] = useState<"checking" | "ready" | "error">("checking");
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
+  const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     if (!user) return;
     let active = true;
     const key = assessmentDraftKey(user.id);
-    let stored: string | null;
-    try {
-      stored = localStorage.getItem(key);
-    } catch {
-      setRecoveryState("ready");
-      return;
-    }
-    if (!stored) {
-      setRecoveryState("ready");
-      return;
-    }
-    const draft = parseAssessmentDraft(stored);
-    if (!draft) {
-      localStorage.removeItem(key);
-      setRecoveryState("ready");
-      return;
-    }
     setRecoveryState("checking");
     void (async () => {
-      const { data, error } = await supabase.from("pre_tests")
-        .select("id, status")
-        .eq("id", draft.preTestId)
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data: remote, error: remoteError } = await supabase.rpc("get_active_assessment_draft");
       if (!active) return;
-      if (error) {
+      if (remoteError) {
         setRecoveryState("error");
         return;
       }
-      if (!data || data.status !== "in_progress") {
-        localStorage.removeItem(key);
+      let draft = remote ? resolveServerAssessmentDraft(remote) : null;
+      if (remote && !draft) {
+        setRecoveryState("error");
+        return;
+      }
+      if (draft) {
+        // A failed write on this browser may contain an answer not yet on the server.
+        let stored: string | null = null;
+        try { stored = localStorage.getItem(key); } catch { /* No browser storage. */ }
+        const pending = stored ? parseAssessmentDraft(stored) : null;
+        if (pending?.preTestId === draft.preTestId &&
+            pending.questions.map((q) => q.id).join(",") === draft.questions.map((q) => q.id).join(",")) {
+          const missingAnswers = Object.keys(pending.answers).filter((id) => draft!.answers[id] === undefined);
+          if (missingAnswers.length) {
+            const merged: AssessmentDraft = {
+              ...draft,
+              answers: { ...pending.answers, ...draft.answers },
+              answerResults: { ...pending.answerResults, ...draft.answerResults },
+              currentQ: Math.max(pending.currentQ, draft.currentQ),
+              phase: pending.phase === "review" ? "review" : draft.phase,
+              timedOut: pending.timedOut || draft.timedOut,
+            };
+            const { error } = await supabase.rpc("save_assessment_draft", {
+              _pre_test_id: draft.preTestId, _draft: draftJson(merged),
+            });
+            if (!active) return;
+            if (error) { setRecoveryState("error"); return; }
+            draft = merged;
+          }
+        }
+      }
+      if (!draft) {
+        // Migrate a browser-only draft once, after verifying its owner and status.
+        let stored: string | null = null;
+        try { stored = localStorage.getItem(key); } catch { /* No browser storage. */ }
+        const legacy = stored ? parseAssessmentDraft(stored) : null;
+        if (legacy) {
+          const { data: row, error } = await supabase.from("pre_tests")
+            .select("id, status, started_at, total_questions")
+            .eq("id", legacy.preTestId).eq("user_id", user.id).maybeSingle();
+          if (!active) return;
+          if (error) { setRecoveryState("error"); return; }
+          if (row?.status === "in_progress" && row.total_questions === legacy.questions.length) {
+            draft = resolveServerAssessmentDraft({
+              preTestId: row.id, startedAt: row.started_at, totalQuestions: row.total_questions, draft: legacy,
+            });
+            if (draft) {
+              const { error: saveError } = await supabase.rpc("save_assessment_draft", {
+                _pre_test_id: row.id, _draft: draftJson(draft),
+              });
+              if (!active) return;
+              if (saveError) { setRecoveryState("error"); return; }
+            }
+          }
+        }
+      }
+      if (!draft) {
         setRecoveryState("ready");
         return;
       }
+      try { localStorage.removeItem(key); } catch { /* No browser storage. */ }
       setQuestions(draft.questions);
       setPreTestId(draft.preTestId);
       setAnswers(draft.answers);
       setAnswerResults(draft.answerResults);
       setCurrentQ(draft.currentQ);
-      const restoredDeadline = draft.deadlineAt ?? Date.now() + draft.timeLeft * 1000;
+      const restoredDeadline = draft.deadlineAt!;
       setDeadlineAt(restoredDeadline);
       setTimeLeft(Math.max(0, Math.ceil((restoredDeadline - Date.now()) / 1000)));
       setTimedOut(draft.timedOut);
@@ -235,12 +272,23 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       version: 1, preTestId, questions, answers, answerResults,
       currentQ, phase, timeLeft, deadlineAt: deadlineAt ?? undefined, timedOut,
     };
-    try {
-      localStorage.setItem(assessmentDraftKey(user.id), JSON.stringify(draft));
-    } catch {
-      toast.error("Draf assessment tidak dapat disimpan di browser ini.");
-    }
-  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, timeLeft, deadlineAt, timedOut]);
+    const ownerId = user.id;
+    saveQueueRef.current = saveQueueRef.current.catch(() => undefined).then(async () => {
+      const { error } = await supabase.rpc("save_assessment_draft", { _pre_test_id: preTestId, _draft: draftJson(draft) });
+      if (error) {
+        // Preserve the unsaved snapshot until it can be migrated on the next visit.
+        try { localStorage.setItem(assessmentDraftKey(ownerId), JSON.stringify(draft)); } catch { /* Unavailable. */ }
+        toast.error("Progres belum tersimpan di server. Periksa koneksi Anda.");
+      } else {
+        // Do not retain a stale local fallback after the server accepts the draft.
+        try {
+          const key = assessmentDraftKey(ownerId);
+          const pending = localStorage.getItem(key);
+          if (pending && parseAssessmentDraft(pending)?.preTestId === preTestId) localStorage.removeItem(key);
+        } catch { /* Unavailable. */ }
+      }
+    });
+  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, deadlineAt, timedOut]);
 
   const fetchPastTests = useCallback(async () => {
     if (!user) return;
@@ -315,32 +363,28 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       selected.push(...shuffled.slice(0, 4));
     });
 
-    const { data: preTest, error } = await supabase
-      .from("pre_tests")
-      .insert({ user_id: user.id, total_questions: selected.length, status: "in_progress" })
-      .select()
-      .single();
-
-    if (error) {
+    if (!selected.length) {
+      toast.error("Soal assessment tidak valid.");
+      setLoading(false);
+      return;
+    }
+    const initialDraft: AssessmentDraft = {
+      version: 1, preTestId: "pending", questions: selected,
+      answers: {}, answerResults: {}, currentQ: 0, phase: "test",
+      timeLeft: selected.length * 90, timedOut: false,
+    };
+    const { data: started, error } = await supabase.rpc("start_assessment_draft", { _draft: draftJson(initialDraft) });
+    if (error || !started || typeof started !== "object" || Array.isArray(started) ||
+        typeof started.preTestId !== "string" || typeof started.startedAt !== "string" ||
+        !Number.isFinite(Date.parse(started.startedAt))) {
       toast.error("Gagal memulai assessment.");
       setLoading(false);
       return;
     }
 
-    // Write before switching screens so a refresh immediately after starting
-    // still has the original question order and pre-test identifier.
-    const deadline = Date.now() + selected.length * 90 * 1000;
-    try {
-      localStorage.setItem(assessmentDraftKey(user.id), JSON.stringify({
-        version: 1, preTestId: preTest.id, questions: selected,
-        answers: {}, answerResults: {}, currentQ: 0, phase: "test",
-        timeLeft: selected.length * 90, deadlineAt: deadline, timedOut: false,
-      } satisfies AssessmentDraft));
-    } catch {
-      toast.error("Draf assessment tidak dapat disimpan di browser ini.");
-    }
+    const deadline = Date.parse(started.startedAt) + selected.length * 90 * 1000;
     setQuestions(selected);
-    setPreTestId(preTest.id);
+    setPreTestId(started.preTestId);
     setDraftOwner(user.id);
     setAnswers({});
     setAnswerResults({});

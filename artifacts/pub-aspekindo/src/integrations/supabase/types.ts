@@ -3864,6 +3864,18 @@ export type Database = {
         Args: { _question_id: string; _selected_answer: number }
         Returns: Json
       }
+      get_active_assessment_draft: {
+        Args: never
+        Returns: Json
+      }
+      save_assessment_draft: {
+        Args: { _pre_test_id: string; _draft: Json }
+        Returns: undefined
+      }
+      start_assessment_draft: {
+        Args: { _draft: Json }
+        Returns: Json
+      }
       get_questions_safe: {
         Args: never
         Returns: {
