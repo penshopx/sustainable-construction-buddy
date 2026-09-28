@@ -13,6 +13,7 @@ TMP_DIR="$(mktemp -d)"
 
 TEST_USER_ID="00000000-0000-4000-8000-000000000161"
 TEST_OTHER_USER_ID="00000000-0000-4000-8000-000000000169"
+TEST_ADMIN_USER_ID="00000000-0000-4000-8000-000000000175"
 TEST_DOMAIN_ID="00000000-0000-4000-8000-000000000162"
 TEST_QUESTION_ID="00000000-0000-4000-8000-000000000163"
 TEST_PRE_TEST_ID="00000000-0000-4000-8000-000000000164"
@@ -27,7 +28,7 @@ cleanup() {
 DROP TRIGGER IF EXISTS submit_assessment_concurrency_audit_trigger ON public.pre_tests;
 DROP FUNCTION IF EXISTS public.record_submit_assessment_completion();
 DROP TABLE IF EXISTS public.submit_assessment_concurrency_audit;
-DELETE FROM auth.users WHERE id IN ('$TEST_USER_ID', '$TEST_OTHER_USER_ID');
+DELETE FROM auth.users WHERE id IN ('$TEST_USER_ID', '$TEST_OTHER_USER_ID', '$TEST_ADMIN_USER_ID');
 DELETE FROM public.competency_domains WHERE id = '$TEST_DOMAIN_ID';
 SQL
   rm -rf "$TMP_DIR"
@@ -67,6 +68,19 @@ VALUES
     now(),
     '{}'::jsonb,
     '{"full_name":"Assessment Other User"}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '$TEST_ADMIN_USER_ID',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'assessment-admin@example.invalid',
+    '',
+    now(),
+    '{}'::jsonb,
+    '{"full_name":"Assessment Admin"}'::jsonb,
     now(),
     now()
   );
@@ -905,6 +919,20 @@ fi
 # the same transaction so a failed assertion rolls back every test write.
 "${PSQL[@]}" >/dev/null <<SQL
 BEGIN;
+-- Admins may see members' summary results, but only their own per-question
+-- answers. Give every identity its own assessment to test both sides of RLS.
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('$TEST_ADMIN_USER_ID', 'admin');
+INSERT INTO public.pre_tests (id, user_id, total_questions, status, score)
+VALUES
+  ('00000000-0000-4000-8000-000000000176', '$TEST_ADMIN_USER_ID', 1, 'completed', 50),
+  ('00000000-0000-4000-8000-000000000178', '$TEST_OTHER_USER_ID', 1, 'completed', 25);
+INSERT INTO public.pre_test_answers (id, pre_test_id, question_id, selected_answer)
+VALUES
+  ('00000000-0000-4000-8000-000000000177',
+   '00000000-0000-4000-8000-000000000176', '$TEST_QUESTION_ID', 1),
+  ('00000000-0000-4000-8000-000000000179',
+   '00000000-0000-4000-8000-000000000178', '$TEST_QUESTION_ID', 0);
 CREATE TEMP TABLE assessment_rls_before AS
 SELECT
   (SELECT to_jsonb(pt) FROM public.pre_tests pt
@@ -984,11 +1012,24 @@ BEGIN
              WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID')
      OR EXISTS (SELECT 1 FROM public.pre_test_answers
                 WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID')
+      OR EXISTS (SELECT 1 FROM public.pre_tests
+                 WHERE id = '00000000-0000-4000-8000-000000000176')
+      OR EXISTS (SELECT 1 FROM public.pre_test_answers
+                 WHERE pre_test_id = '00000000-0000-4000-8000-000000000176')
      OR (SELECT count(*) FILTER (WHERE user_id = '$TEST_USER_ID'::uuid)
          FROM public.pre_tests) <> 0
      OR (SELECT count(*) FILTER (WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID'::uuid)
          FROM public.pre_test_answers) <> 0 THEN
     RAISE EXCEPTION 'Another user can SELECT the owner''s completed result or answer directly';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.pre_tests
+                 WHERE id = '00000000-0000-4000-8000-000000000178'
+                   AND user_id = '$TEST_OTHER_USER_ID' AND score = 25)
+     OR NOT EXISTS (SELECT 1 FROM public.pre_test_answers
+                    WHERE id = '00000000-0000-4000-8000-000000000179'
+                      AND selected_answer = 0) THEN
+    RAISE EXCEPTION 'Non-admin cannot read their own result and answer';
   END IF;
 
   BEGIN
@@ -1044,6 +1085,50 @@ BEGIN
     RAISE EXCEPTION 'Another user created an answer on the owner''s pre-test';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
+END;
+\$\$;
+
+-- The real authenticated DB role uses the admin identity from user_roles,
+-- not an admin JWT claim or a postgres connection that bypasses RLS.
+SELECT set_config('request.jwt.claim.sub', '$TEST_ADMIN_USER_ID', true);
+DO \$\$
+DECLARE
+  member_result public.pre_tests%ROWTYPE;
+  other_result public.pre_tests%ROWTYPE;
+  own_answer public.pre_test_answers%ROWTYPE;
+BEGIN
+  IF current_user IS DISTINCT FROM 'authenticated'
+     OR auth.uid() IS DISTINCT FROM '$TEST_ADMIN_USER_ID'::uuid
+     OR NOT public.has_role(auth.uid(), 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'Admin SELECT did not run as an authenticated admin';
+  END IF;
+
+  SELECT * INTO STRICT member_result FROM public.pre_tests
+  WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  SELECT * INTO STRICT other_result FROM public.pre_tests
+  WHERE id = '00000000-0000-4000-8000-000000000178';
+  IF member_result.user_id IS DISTINCT FROM '$TEST_USER_ID'::uuid
+     OR member_result.status IS DISTINCT FROM 'completed'
+     OR member_result.score IS DISTINCT FROM 100
+     OR other_result.user_id IS DISTINCT FROM '$TEST_OTHER_USER_ID'::uuid
+     OR other_result.score IS DISTINCT FROM 25 THEN
+    RAISE EXCEPTION 'Admin cannot read members'' completed assessment results';
+  END IF;
+
+  SELECT * INTO STRICT own_answer FROM public.pre_test_answers
+  WHERE id = '00000000-0000-4000-8000-000000000177';
+  IF own_answer.pre_test_id IS DISTINCT FROM '00000000-0000-4000-8000-000000000176'::uuid THEN
+    RAISE EXCEPTION 'Admin cannot read their own answer';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.pre_test_answers
+             WHERE pre_test_id IN ('$TEST_OWNERSHIP_PRE_TEST_ID'::uuid,
+                                   '00000000-0000-4000-8000-000000000178'::uuid))
+     OR (SELECT count(*) FILTER (
+           WHERE pre_test_id IN ('$TEST_OWNERSHIP_PRE_TEST_ID'::uuid,
+                                 '00000000-0000-4000-8000-000000000178'::uuid))
+         FROM public.pre_test_answers) <> 0 THEN
+    RAISE EXCEPTION 'Admin can read a member''s per-question answers';
+  END IF;
 END;
 \$\$;
 
