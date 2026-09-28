@@ -344,6 +344,12 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
         lms.progress = [...lms.progress.filter((item) => item.lesson_id !== lessonId), data];
       }
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_quiz_questions" && request.method() === "GET") {
+      lms.questionRequests = (lms.questionRequests ?? 0) + 1;
+      if (lms.waitForQuestions) await lms.waitForQuestions;
+      if (lms.failQuestions) {
+        await route.fulfill({ status: 400, contentType: "application/json", body: '{"message":"Soal kuis tidak tersedia"}' });
+        return;
+      }
       data = lms.quiz && url.searchParams.get("lesson_id") === `eq.${LESSON_ID}` ? quizQuestions : [];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_quiz_attempts" && request.method() === "GET") {
       data = lms.attempts.filter((attempt) =>
@@ -923,6 +929,58 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await secondButton.click();
     await expect(page.getByRole("heading", { name: secondLesson.title })).toBeVisible();
     await expect.poll(() => lms.progress.find((item) => item.lesson_id === SECOND_LESSON_ID)?.status).toBe("in_progress");
+    expect(unexpected).toEqual([]);
+  });
+
+  test("pelajaran wajib kuis tidak dapat diselesaikan selama soal masih dimuat", async ({ page }) => {
+    let releaseQuestions;
+    const lms = {
+      enrolled: true, quiz: true,
+      waitForQuestions: new Promise((resolve) => { releaseQuestions = resolve; }),
+    };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    try {
+      await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`);
+      await expect.poll(() => lms.questionRequests).toBeGreaterThan(0);
+      await expect(page.getByText("Menyiapkan kuis...")).toBeVisible();
+      await expect(page.getByRole("button", { name: "Tandai pelajaran selesai" })).toBeDisabled();
+      expect(lms.completionRequests).toEqual([]);
+      releaseQuestions();
+      await expect(page.getByRole("heading", { name: "Kuis pelajaran" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Tandai pelajaran selesai" })).toBeDisabled();
+      expect(unexpected).toEqual([]);
+    } finally {
+      releaseQuestions();
+    }
+  });
+
+  test("kegagalan memuat soal terlihat dan anggota dapat mencoba lagi", async ({ page }) => {
+    const lms = { enrolled: true, quiz: true, failQuestions: true };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`);
+    const completeButton = page.getByRole("button", { name: "Tandai pelajaran selesai" });
+    await expect(page.getByRole("alert").filter({ hasText: "Soal kuis belum dapat dimuat." })).toBeVisible();
+    await expect(completeButton).toBeDisabled();
+    expect(lms.completionRequests).toEqual([]);
+
+    lms.failQuestions = false;
+    await page.getByRole("button", { name: "Coba muat ulang soal" }).click();
+    await expect(page.getByRole("heading", { name: "Kuis pelajaran" })).toBeVisible();
+    await expect(completeButton).toBeDisabled();
+    expect(lms.questionRequests).toBe(2);
+    expect(unexpected).toEqual([]);
+  });
+
+  test("soal kosong tidak membuka penyelesaian pelajaran wajib kuis", async ({ page }) => {
+    const lms = { enrolled: true, quiz: true };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    await page.route(`**/rest/v1/aspekindo_lms_quiz_questions?*`, async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+    });
+    await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`);
+    await expect(page.getByRole("alert").filter({ hasText: "Soal kuis belum dapat dimuat." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Tandai pelajaran selesai" })).toBeDisabled();
+    expect(lms.completionRequests).toEqual([]);
     expect(unexpected).toEqual([]);
   });
 });

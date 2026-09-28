@@ -216,6 +216,7 @@ export function useAspekindoLmsQuizQuestions(lessonId: string | undefined) {
   return useQuery({
     queryKey: ["aspekindo-lms", "quiz-questions", lessonId],
     enabled: Boolean(lessonId),
+    retry: false,
     queryFn: async () => {
       if (!lessonId) return [] as QuizQuestion[];
       const { data, error } = await supabase
