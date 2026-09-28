@@ -33,6 +33,8 @@ const SUPABASE_HOST = "ci-playwright.supabase.co";
 const MEMBER_ID = "00000000-0000-4000-8000-000000000030";
 const COURSE_ID = "00000000-0000-4000-8000-000000000031";
 const ASSESSMENT_ID = "00000000-0000-4000-8000-000000000032";
+const LESSON_ID = "00000000-0000-4000-8000-000000000037";
+const ENROLLMENT_ID = "00000000-0000-4000-8000-000000000038";
 const assessmentQuestions = [
   {
     id: "00000000-0000-4000-8000-000000000033",
@@ -70,6 +72,31 @@ const course = {
   agenda_id: null,
   created_at: "2026-09-01T00:00:00.000Z",
 };
+const lesson = {
+  id: LESSON_ID,
+  course_id: COURSE_ID,
+  title: "Mengenal dokumen BUJK",
+  content_markdown: "Siapkan **dokumen legalitas BUJK** sebelum memulai proses.",
+  passing_score: 0,
+  sort_order: 1,
+  status: "published",
+};
+const material = {
+  id: "00000000-0000-4000-8000-000000000039",
+  lesson_id: LESSON_ID,
+  title: "Daftar periksa dokumen",
+  material_type: "text",
+  content_markdown: "Periksa akta dan izin usaha.",
+  external_url: null,
+  sort_order: 1,
+};
+const enrollment = {
+  id: ENROLLMENT_ID,
+  course_id: COURSE_ID,
+  user_id: MEMBER_ID,
+  status: "enrolled",
+  enrolled_at: "2026-09-01T00:00:00.000Z",
+};
 
 const emptyTables = new Set([
   "notifications", "pre_tests", "aspekindo_members",
@@ -83,7 +110,7 @@ const emptyTables = new Set([
   "aspekindo_lms_sessions", "aspekindo_lms_lessons",
 ]);
 
-async function installAuthenticatedFixture(page, { asAdmin = false, assessment = null } = {}) {
+async function installAuthenticatedFixture(page, { asAdmin = false, assessment = null, lms = null } = {}) {
   const unexpectedRequests = [];
   await page.addInitScript(({ user, hostname }) => {
     localStorage.setItem(`sb-${hostname.split(".")[0]}-auth-token`, JSON.stringify({
@@ -96,6 +123,25 @@ async function installAuthenticatedFixture(page, { asAdmin = false, assessment =
     }));
     localStorage.setItem("pub_onboarding_done", "1");
   }, { user: member, hostname: SUPABASE_HOST });
+
+  // Only local, read-only application assets may pass through. All data calls
+  // (including a changed API host) must be fulfilled by this fixture or fail.
+  await page.route("**/*", async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.hostname === "127.0.0.1" && request.method() === "GET" &&
+        ["document", "script", "stylesheet", "image", "font", "manifest"].includes(request.resourceType()) &&
+        !url.pathname.startsWith("/api/") && !url.pathname.startsWith("/rest/")) {
+      await route.continue();
+      return;
+    }
+    if (url.hostname === "fonts.googleapis.com" && request.method() === "GET") {
+      await route.fulfill({ status: 200, contentType: "text/css", body: "" });
+      return;
+    }
+    unexpectedRequests.push(`${request.method()} ${url.hostname}${url.pathname}`);
+    await route.fulfill({ status: 503, contentType: "application/json", body: '{"message":"Unexpected test request"}' });
+  });
 
   // Intercept every Supabase HTTP call, including unexpected ones; never let a
   // test request escape to a live project if the build configuration changes.
@@ -118,6 +164,25 @@ async function installAuthenticatedFixture(page, { asAdmin = false, assessment =
       data = { source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" };
     } else if (url.pathname === "/rest/v1/aspekindo_lms_courses") {
       data = url.searchParams.get("select") === "*" ? [course] : [{ id: COURSE_ID, title: course.title }];
+    } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lessons" && request.method() === "GET") {
+      data = [lesson];
+    } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_materials" && request.method() === "GET") {
+      data = [material];
+    } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_enrollments" && request.method() === "GET") {
+      data = lms.enrolled ? [enrollment] : [];
+    } else if (lms && url.pathname === "/rest/v1/rpc/enroll_aspekindo_lms_course" && request.method() === "POST") {
+      if (request.postDataJSON()?._course_id === COURSE_ID) {
+        lms.enrolled = true;
+        data = enrollment;
+      }
+    } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lesson_progress" && request.method() === "POST") {
+      const progress = request.postDataJSON();
+      if (progress?.lesson_id === LESSON_ID && progress?.enrollment_id === ENROLLMENT_ID) {
+        lms.startedLesson = progress;
+        data = [{ id: "00000000-0000-4000-8000-000000000040", ...progress }];
+      }
+    } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_quiz_questions" && request.method() === "GET") {
+      data = [];
     } else if (assessment && url.pathname === "/rest/v1/rpc/get_questions_safe" && request.method() === "POST") {
       data = assessmentQuestions;
     } else if (assessment && url.pathname === "/rest/v1/competency_domains" && request.method() === "GET") {
@@ -234,6 +299,27 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await expect(page).toHaveURL(/\/aspekindo-lms$/);
     await expect(page.getByRole("heading", { name: "Katalog pembelajaran ASPEKINDO" })).toBeVisible();
     await expect(page.getByRole("heading", { name: course.title })).toBeVisible();
+    expect(unexpected).toEqual([]);
+  });
+
+  test("anggota membuka materi pelajaran setelah memilih dan mendaftar kursus dari katalog", async ({ page }) => {
+    const lms = { enrolled: false, startedLesson: null };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    await page.goto("/aspekindo-lms");
+    await expect(page.getByRole("heading", { name: course.title })).toBeVisible();
+    await page.getByRole("link", { name: "Daftar" }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/aspekindo-lms/kursus/${COURSE_ID}$`));
+    await expect(page.getByRole("heading", { name: course.title, level: 1 })).toBeVisible();
+    await expect(page.getByText("Daftar kursus untuk membuka materi dan kuis.")).toBeVisible();
+    await page.getByRole("button", { name: "Daftar kursus" }).click();
+
+    await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
+    await expect(page.getByText("dokumen legalitas BUJK", { exact: false })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Materi pendukung" })).toBeVisible();
+    await expect(page.getByText(material.title)).toBeVisible();
+    await expect(page.getByText(material.content_markdown)).toBeVisible();
+    await expect.poll(() => lms.startedLesson?.lesson_id).toBe(LESSON_ID);
     expect(unexpected).toEqual([]);
   });
 });
