@@ -9,3 +9,4 @@
 - [Privasi draf assessment](assessment-draft-privacy.md) — simpan jawaban sementara di ruang khusus pemilik, bukan kolom hasil pre-test yang bisa dibaca peran admin.
 - [Logout di perangkat bersama](assessment-shared-device-logout.md) — utamakan penghapusan semua cadangan draf lokal saat logout, termasuk penulisan tertunda, walau progres offline bisa hilang.
 - [Drift migrasi Supabase](supabase-migration-drift.md) — migrasi dalam repositori belum tentu pernah diterapkan ke database hosted; periksa definisi fungsi aktif sebelum membungkusnya.
+- [Uji RPC LMS terisolasi](lms-rpc-isolated-tests.md) — skema PostgreSQL minimal menguji fungsi asli tanpa data hosted, tetapi bukan pengganti uji skema Supabase lengkap.
