@@ -101,9 +101,14 @@ const assessmentQuestions = [
 
 async function advanceAssessmentClock(page, milliseconds) {
   await page.evaluate((elapsed) => {
-    const previousNow = Date.now;
-    Date.now = () => previousNow() + elapsed;
+    window.__assessmentElapsed = (window.__assessmentElapsed ?? 0) + elapsed;
+    const originalNow = window.__assessmentOriginalNow ?? performance.now.bind(performance);
+    window.__assessmentOriginalNow = originalNow;
+    Object.defineProperty(performance, "now", {
+      configurable: true, value: () => originalNow() + window.__assessmentElapsed,
+    });
     document.dispatchEvent(new Event("visibilitychange"));
+    Object.defineProperty(performance, "now", { configurable: true, value: originalNow });
   }, milliseconds);
 }
 const member = {
@@ -218,6 +223,15 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
     }));
     localStorage.setItem("pub_onboarding_done", "1");
   }, { user: member, hostname: SUPABASE_HOST });
+  if (assessment) {
+    // Reconcile the countdown via visibilitychange; keep animation frames on
+    // real time instead of fast-forwarding the browser's animation clock.
+    await page.addInitScript(() => {
+      const originalSetInterval = window.setInterval.bind(window);
+      window.setInterval = ((handler, delay, ...args) =>
+        originalSetInterval(handler, delay === 1000 ? 600_000 : delay, ...args));
+    });
+  }
 
   // Only local, read-only application assets may pass through. All data calls
   // (including a changed API host) must be fulfilled by this fixture or fail.
@@ -359,6 +373,18 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
         { id: assessmentQuestions[0].domain_id, name: "Legalitas" },
         { id: assessmentQuestions[1].domain_id, name: "Manajemen" },
       ];
+    } else if (assessment && url.pathname === "/rest/v1/rpc/get_active_assessment_draft") {
+      data = null;
+    } else if (assessment && url.pathname === "/rest/v1/rpc/start_assessment_draft") {
+      assessment.starts = (assessment.starts ?? 0) + 1;
+      assessment.started = { user_id: MEMBER_ID, total_questions: assessmentQuestions.length, status: "in_progress" };
+      const now = Date.now();
+      assessment.deadlineAt = new Date(now + 180_000).toISOString();
+      data = { preTestId: ASSESSMENT_ID, serverNow: new Date(now).toISOString(), deadlineAt: assessment.deadlineAt };
+    } else if (assessment && url.pathname === "/rest/v1/rpc/save_assessment_draft") {
+      data = true;
+    } else if (assessment && url.pathname === "/rest/v1/rpc/get_assessment_time") {
+      data = { serverNow: new Date().toISOString(), deadlineAt: assessment.deadlineAt };
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "POST") {
       assessment.starts = (assessment.starts ?? 0) + 1;
       assessment.started = request.postDataJSON();
@@ -640,6 +666,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
   }
 
   test("pengiriman saat waktu habis dapat dicoba lagi tanpa menjawab ulang", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const assessment = {
       started: null, checks: [], submissions: [], submitted: false,
       successfulSubmissions: 0, failFirstSubmit: true,
@@ -654,7 +681,9 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await advanceAssessmentClock(page, 181_000);
     await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("Gagal mengirim assessment.")).toBeVisible();
-    await expect(page.getByRole("status")).toContainText("Soal yang belum dijawab dihitung salah");
+    await expect(page.getByText("Sisa waktu: 0:00")).toBeVisible();
+    await expect(page.getByText("Waktu hampir habis. Segera kirim jawaban Anda.")).toHaveCount(0);
+    await expect(page.getByRole("status")).toContainText("soal lain dihitung salah");
     await expect(page.getByRole("button", { name: "Kembali ke Soal" })).toBeDisabled();
     const retry = page.getByRole("button", { name: "Selesai & Lihat Hasil" });
     await expect(retry).toBeEnabled();
@@ -669,6 +698,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
   });
 
   test("batas waktu tetap berjalan saat review dan hanya mengirim sekali", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const assessment = { started: null, checks: [], submissions: [], submitted: false };
     const unexpected = await installAuthenticatedFixture(page, { assessment });
     await page.goto("/assessment");
@@ -679,9 +709,19 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await page.getByRole("button", { name: /Periksa kesiapan/ }).click();
     await page.getByRole("button", { name: "Review Jawaban" }).click();
     await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+    const countdown = page.getByText(/^Sisa waktu: \d:\d\d$/);
+    await expect(countdown).toBeVisible();
+    await expect(page.getByText("Waktu hampir habis. Segera kirim jawaban Anda.")).toHaveCount(0);
+    await advanceAssessmentClock(page, 30_000);
+    await expect(countdown).toHaveText(/Sisa waktu: 2:[12]\d/);
+    await advanceAssessmentClock(page, 121_000);
+    await expect(countdown).toHaveText(/Sisa waktu: 0:[12]\d/);
+    await expect(countdown.locator("..")).toHaveClass(/text-destructive/);
+    await expect(page.getByRole("status").filter({ hasText: "Waktu hampir habis" })).toBeVisible();
 
-    await advanceAssessmentClock(page, 181_000);
+    await advanceAssessmentClock(page, 30_000);
     await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+    await expect(countdown).toHaveCount(0);
     expect(assessment.submissions).toEqual([{
       _pre_test_id: ASSESSMENT_ID,
       _answers: assessmentQuestions.map((q, i) => ({ question_id: q.id, selected_answer: i })),
@@ -702,9 +742,9 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await page.goto("/assessment");
     await page.getByRole("button", { name: "Mulai Assessment" }).click();
     await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
-    await expect(page.getByText("3:00")).toBeVisible();
+    await expect(page.getByText("Sisa waktu: 3:00")).toBeVisible();
     await advanceAssessmentClock(page, 30_000);
-    await expect(page.getByText("2:30")).toBeVisible();
+    await expect(page.getByText("Sisa waktu: 2:30")).toBeVisible();
     await advanceAssessmentClock(page, 151_000);
     await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
     expect(assessment.submissions).toHaveLength(1);

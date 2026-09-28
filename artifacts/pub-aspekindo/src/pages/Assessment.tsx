@@ -531,6 +531,14 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const q = questions[currentQ];
   const progress = questions.length > 0 ? ((currentQ + 1) / questions.length) * 100 : 0;
   const timerWarning = timeLeft > 0 && timeLeft <= 60;
+  const countdown = (
+    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-heading font-semibold ${
+      timerWarning ? "bg-destructive/10 text-destructive animate-pulse" : "bg-muted text-muted-foreground"
+    }`}>
+      <Timer className="w-3.5 h-3.5" aria-hidden="true" />
+      <span>Sisa waktu: {formatTime(timeLeft)}</span>
+    </div>
+  );
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -634,12 +642,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-heading text-pub-amber font-semibold uppercase">{q.domain_name}</span>
                 <div className="flex items-center gap-3">
-                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-heading font-semibold ${
-                    timerWarning ? "bg-destructive/10 text-destructive animate-pulse" : "bg-muted text-muted-foreground"
-                  }`}>
-                    <Timer className="w-3.5 h-3.5" />
-                    {formatTime(timeLeft)}
-                  </div>
+                  {countdown}
                   <span className="text-xs text-muted-foreground font-body">Soal {currentQ + 1}/{questions.length}</span>
                 </div>
               </div>
@@ -723,8 +726,16 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         {/* REVIEW */}
         {phase === "review" && (
           <motion.div key="review" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
-            <h2 className="text-2xl font-bold font-heading text-foreground mb-6">Review Jawaban</h2>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-2xl font-bold font-heading text-foreground">Review Jawaban</h2>
+              {countdown}
+            </div>
             {deadlineAt !== null && <p className="mb-3 text-xs text-muted-foreground">Batas waktu server: {new Date(deadlineAt).toLocaleString("id-ID")}</p>}
+            {timerWarning && !timedOut && (
+              <p className="mb-3 text-sm font-semibold text-destructive" role="status">
+                Waktu hampir habis. Segera kirim jawaban Anda.
+              </p>
+            )}
             {timedOut && (
               <p className="mb-6 text-sm text-muted-foreground" role="status">
                 Waktu habis. Hanya jawaban yang tersimpan di server sebelum batas waktu yang dinilai; soal lain dihitung salah. Jika pengiriman gagal, pilih Selesai &amp; Lihat Hasil untuk mencoba lagi.
