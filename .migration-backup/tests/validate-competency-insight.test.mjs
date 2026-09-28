@@ -14,6 +14,23 @@ const databaseUrls = [
   "mongodb+srv://mongo-user:mongo-password-789@cluster.example.test/insight",
 ];
 const terminalDetail = `\x1b[31m${terminalUrl}\x1b[0m ${databaseUrls.join(" ")} \x1b]0;hidden-terminal-title\x07\x01\x08\x7f\x9b AssertionError: terminal diagnostic retained`;
+const cutoffUrl = "https://cutoff-user:cutoff-password-789@cutoff.example.test/check";
+const cutoffIndex = cutoffUrl.indexOf("password") + 4;
+const validationOverlap = Math.max(...[
+  "sensitive-test-value-123",
+  "privileged-service-key-value-123",
+  "validation-project-ref-123",
+].map((value) => Buffer.byteLength(value)));
+
+function cutoffDetail(assertion) {
+  const captureBytes = 16 * 1024 + validationOverlap;
+  const padding = captureBytes - (cutoffUrl.length - cutoffIndex) - assertion.length - 2;
+  assert.ok(padding > 0);
+  const detail = `${cutoffUrl}${"x".repeat(padding)} ${assertion}`;
+  // The fake subprocess adds one newline. The retained tail begins inside "password".
+  assert.equal(Buffer.byteLength(`${detail}\n`) - captureBytes, cutoffIndex);
+  return detail;
+}
 
 async function createFakeNpm(t) {
   const directory = await mkdtemp(path.join(tmpdir(), "validate-competency-insight-"));
@@ -38,6 +55,11 @@ fi
 if [ "$FAKE_VALIDATION_SCENARIO" = "terminal-url-failure" ] && [ "$*" = "run --silent test:insight" ]; then
   printf '%s\\n' "$FAKE_TERMINAL_DETAIL" >&2
   printf '%s\\n' "stdout diagnostic $FAKE_TERMINAL_DETAIL"
+  exit 17
+fi
+if [ "$FAKE_VALIDATION_SCENARIO" = "url-cutoff-failure" ] && [ "$*" = "run --silent test:insight" ]; then
+  printf '%s\\n' "$FAKE_CUTOFF_URL_DETAIL" >&2
+  printf '%s\\n' "$FAKE_CUTOFF_URL_DETAIL"
   exit 17
 fi
 if [ "$FAKE_VALIDATION_SCENARIO" = "long-failure" ] && [ "$*" = "run --silent test:insight" ]; then
@@ -91,6 +113,7 @@ function runValidator({ npmPath, tracePath, scenario }) {
         VALIDATION_TRACE_FILE: tracePath,
         FAKE_VALIDATION_SCENARIO: scenario,
         FAKE_TERMINAL_DETAIL: terminalDetail,
+        FAKE_CUTOFF_URL_DETAIL: cutoffDetail("AssertionError: final contract assertion"),
         VALIDATION_TEST_SECRET: "sensitive-test-value-123",
         SUPABASE_SERVICE_ROLE_KEY: "privileged-service-key-value-123",
         SUPABASE_PROJECT_REF: "validation-project-ref-123",
@@ -193,6 +216,25 @@ test("contract subprocess strips URL credentials and terminal controls from JSON
   }
   for (const secret of ["terminal-user", "terminal-password-789", "one-time-code-789", "db-user", "db-password-789", "mongo-user", "mongo-password-789", "hidden-terminal-title"]) {
     assert.equal(result.stderr.includes(secret), false, `${secret} must not appear in the JSON log`);
+  }
+  assert.deepEqual(await readTrace(fakeNpm.tracePath), ["run --silent test:insight"]);
+});
+
+test("contract failure drops URL password fragments when capture starts inside a subprocess-only URL", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const result = await runValidator({ ...fakeNpm, scenario: "url-cutoff-failure" });
+
+  assert.notEqual(result.status, 0);
+  assert.equal(result.stdout, "");
+  const failure = JSON.parse(result.stderr);
+  assert.equal(failure.step, "contract");
+  assert.equal(failure.diagnostics.exitCode, 17);
+  for (const diagnostic of [failure.diagnostics.stdout, failure.diagnostics.stderr]) {
+    assert.match(diagnostic, /^\[earlier output truncated\]/);
+    assert.match(diagnostic, /AssertionError: final contract assertion$/);
+  }
+  for (const fragment of ["cutoff-user", "cutoff-password-789", "word-789@", "cutoff.example.test"]) {
+    assert.equal(result.stderr.includes(fragment), false, `${fragment} must not appear in the JSON log`);
   }
   assert.deepEqual(await readTrace(fakeNpm.tracePath), ["run --silent test:insight"]);
 });

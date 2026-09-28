@@ -25,6 +25,19 @@ const databaseUrls = [
   "redis://cache-user:cache-password-789@cache.example.test:6379/0",
 ];
 const terminalDetail = `\x1b[31m${terminalUrl}\x1b[0m ${databaseUrls.join(" ")} \x1b]0;hidden-terminal-title\x07\x01\x08\x7f\x9b AssertionError: published function did not respond`;
+const cutoffUrl = "https://cutoff-user:cutoff-password-789@cutoff.example.test/check";
+const cutoffIndex = cutoffUrl.indexOf("password") + 4;
+const publicationOverlap = Math.max(...[...sensitiveValues, projectRef].map((value) => Buffer.byteLength(value)));
+
+function cutoffDetail(assertion) {
+  const captureBytes = 16 * 1024 + publicationOverlap;
+  const padding = captureBytes - (cutoffUrl.length - cutoffIndex) - assertion.length - 2;
+  assert.ok(padding > 0);
+  const detail = `${cutoffUrl}${"x".repeat(padding)} ${assertion}`;
+  // The fake subprocess adds one newline. The retained tail begins inside "password".
+  assert.equal(Buffer.byteLength(`${detail}\n`) - captureBytes, cutoffIndex);
+  return detail;
+}
 
 async function createFakeNpm(t) {
   const directory = await mkdtemp(path.join(tmpdir(), "publish-competency-insight-"));
@@ -57,12 +70,12 @@ exit 0
   return { directory, npmPath, tracePath };
 }
 
-function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath, override = projectRef }) {
+function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath, override = projectRef, isolatedEnvironment = false }) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [scriptPath], {
       cwd: rootDir,
       env: {
-        ...process.env,
+        ...(!isolatedEnvironment ? process.env : {}),
         PATH: `${path.dirname(npmPath)}${path.delimiter}${process.env.PATH ?? ""}`,
         PUBLISH_TRACE_FILE: tracePath,
         FAKE_PUBLISH_SCENARIO: scenario,
@@ -371,6 +384,38 @@ test("deployment and probe subprocesses strip URL credentials and terminal contr
     }
     for (const secret of ["terminal-user", "terminal-password-789", "one-time-code-789", "db-user", "db-password-789", "cache-user", "cache-password-789", "hidden-terminal-title"]) {
       assert.equal(result.stderr.includes(secret), false, `${secret} must not appear in the JSON log`);
+    }
+  }
+});
+
+test("deployment and probe failures drop URL password fragments at the capture cutoff", async (t) => {
+  const detail = cutoffDetail("AssertionError: final publication assertion");
+  for (const [scenario, step, exitCode] of [
+    ["deployment-failure", "deployment", 17],
+    ["probe-failure", "live_probe", 23],
+  ]) {
+    const fakeNpm = await createFakeNpm(t);
+    const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+    const result = await runPublisher({
+      ...fakeNpm,
+      scriptPath,
+      scenario,
+      detail,
+      stdoutDetail: detail,
+      isolatedEnvironment: true,
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.equal(result.stdout, "");
+    const failure = JSON.parse(result.stderr);
+    assert.equal(failure.step, step);
+    assert.equal(failure.diagnostics.exitCode, exitCode);
+    for (const diagnostic of [failure.diagnostics.stdout, failure.diagnostics.stderr]) {
+      assert.match(diagnostic, /^\[earlier output truncated\]/);
+      assert.match(diagnostic, /AssertionError: final publication assertion$/);
+    }
+    for (const fragment of ["cutoff-user", "cutoff-password-789", "word-789@", "cutoff.example.test"]) {
+      assert.equal(result.stderr.includes(fragment), false, `${fragment} must not appear in the JSON log`);
     }
   }
 });
