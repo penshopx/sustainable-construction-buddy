@@ -12,7 +12,27 @@ export interface AssessmentDraft {
   timedOut: boolean;
 }
 
-export const assessmentDraftKey = (userId: string) => `pub_assessment_draft_v1:${userId}`;
+const assessmentDraftPrefix = "pub_assessment_draft_v1:";
+let draftStorageEpoch = 0;
+
+export const assessmentDraftKey = (userId: string) => `${assessmentDraftPrefix}${userId}`;
+
+// Invalidate writes queued by the previous session before touching storage.
+export function clearLocalAssessmentDrafts(storage: Storage): void {
+  draftStorageEpoch++;
+  for (let i = storage.length - 1; i >= 0; i--) {
+    const key = storage.key(i);
+    if (key?.startsWith(assessmentDraftPrefix)) storage.removeItem(key);
+  }
+}
+
+export function assessmentDraftStorageEpoch(): number {
+  return draftStorageEpoch;
+}
+
+export function saveLocalAssessmentDraft(storage: Storage, ownerId: string, draft: AssessmentDraft, epoch: number): void {
+  if (epoch === draftStorageEpoch) storage.setItem(assessmentDraftKey(ownerId), JSON.stringify(draft));
+}
 
 export function resolveServerAssessmentDraft(value: unknown): AssessmentDraft | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;

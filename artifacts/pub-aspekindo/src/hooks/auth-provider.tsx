@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
+import { clearLocalAssessmentDrafts } from "@/lib/assessmentDraft";
 import { AuthContext, type Profile } from "./useAuth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -29,7 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (event === "SIGNED_OUT") {
+          try { clearLocalAssessmentDrafts(localStorage); } catch { /* Storage is unavailable. */ }
+        }
         profileRequestId.current += 1;
         setSession(session);
         setUser(session?.user ?? null);
@@ -78,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Purge before the auth request so an interrupted logout cannot leave answers behind.
+    try { clearLocalAssessmentDrafts(localStorage); } catch { /* Storage is unavailable. */ }
     await supabase.auth.signOut();
     setProfile(null);
   };

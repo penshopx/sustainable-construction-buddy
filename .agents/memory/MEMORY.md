@@ -7,3 +7,4 @@
 - [Uji proyek lama di luar workspace](legacy-test-dependencies.md) — pengujian skrip migrasi memerlukan dependensi sendiri; paket workspace utama tidak otomatis tersedia.
 - [Status workflow dan port aktif](workflow-port-state.md) — status failed bisa berasal dari start ganda meski preview masih sehat; periksa port dan proxy sebelum memperbaiki aplikasi.
 - [Privasi draf assessment](assessment-draft-privacy.md) — simpan jawaban sementara di ruang khusus pemilik, bukan kolom hasil pre-test yang bisa dibaca peran admin.
+- [Logout di perangkat bersama](assessment-shared-device-logout.md) — utamakan penghapusan semua cadangan draf lokal saat logout, termasuk penulisan tertunda, walau progres offline bisa hilang.

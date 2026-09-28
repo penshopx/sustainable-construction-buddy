@@ -14,7 +14,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import type { LucideIcon } from "lucide-react";
 import type { Json, Tables } from "@/integrations/supabase/types";
 import { assessmentLevel, formatAssessmentDate } from "@/lib/competencyFallbacks";
-import { assessmentDraftKey, parseAssessmentDraft, resolveServerAssessmentDraft, type AssessmentDraft } from "@/lib/assessmentDraft";
+import { assessmentDraftKey, assessmentDraftStorageEpoch, parseAssessmentDraft, resolveServerAssessmentDraft, saveLocalAssessmentDraft, type AssessmentDraft } from "@/lib/assessmentDraft";
 
 interface Question {
   id: string;
@@ -273,13 +273,17 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       currentQ, phase, timeLeft, deadlineAt: deadlineAt ?? undefined, timedOut,
     };
     const ownerId = user.id;
+    const storageEpoch = assessmentDraftStorageEpoch();
     saveQueueRef.current = saveQueueRef.current.catch(() => undefined).then(async () => {
+      if (storageEpoch !== assessmentDraftStorageEpoch()) return;
       const { error } = await supabase.rpc("save_assessment_draft", { _pre_test_id: preTestId, _draft: draftJson(draft) });
       if (error) {
         // Preserve the unsaved snapshot until it can be migrated on the next visit.
-        try { localStorage.setItem(assessmentDraftKey(ownerId), JSON.stringify(draft)); } catch { /* Unavailable. */ }
-        toast.error("Progres belum tersimpan di server. Periksa koneksi Anda.");
-      } else {
+        if (storageEpoch === assessmentDraftStorageEpoch()) {
+          try { saveLocalAssessmentDraft(localStorage, ownerId, draft, storageEpoch); } catch { /* Unavailable. */ }
+          toast.error("Progres belum tersimpan di server. Periksa koneksi Anda.");
+        }
+      } else if (storageEpoch === assessmentDraftStorageEpoch()) {
         // Do not retain a stale local fallback after the server accepts the draft.
         try {
           const key = assessmentDraftKey(ownerId);

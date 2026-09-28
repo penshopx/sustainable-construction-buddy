@@ -249,6 +249,8 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
 
     if (url.hostname !== SUPABASE_HOST) {
       unexpectedRequests.push(`${request.method()} ${url.hostname}${url.pathname}`);
+    } else if (url.pathname === "/auth/v1/logout" && request.method() === "POST") {
+      data = {};
     } else if (url.pathname === "/auth/v1/user") {
       data = member;
     } else if (roleCheck && url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
@@ -429,6 +431,22 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
 }
 
 test.describe("halaman anggota dengan sesi tiruan", () => {
+  test("logout membersihkan jawaban assessment dari browser bersama", async ({ page }) => {
+    await installAuthenticatedFixture(page);
+    await page.goto("/dashboard");
+    await expect(page.getByRole("button", { name: /Keluar/ })).toBeVisible();
+    await page.evaluate((ownerId) => {
+      localStorage.setItem(`pub_assessment_draft_v1:${ownerId}`, JSON.stringify({ answers: { soal: 1 }, questions: ["Rahasia"] }));
+      localStorage.setItem("pub_assessment_draft_v1:anggota-sebelumnya", JSON.stringify({ answers: { soal: 0 } }));
+    }, MEMBER_ID);
+    await page.getByRole("button", { name: /Keluar/ }).click();
+    await expect(page).toHaveURL(/\/auth$/);
+    expect(await page.evaluate(() => ({
+      drafts: Object.keys(localStorage).filter((key) => key.startsWith("pub_assessment_draft_v1:")),
+      onboarding: localStorage.getItem("pub_onboarding_done"),
+    }))).toEqual({ drafts: [], onboarding: "1" });
+  });
+
   test("assessment menampilkan formulir awal dan riwayat", async ({ page }) => {
     const unexpected = await installAuthenticatedFixture(page);
     await page.goto("/assessment");

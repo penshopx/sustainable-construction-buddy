@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { assessmentDraftKey, resolveServerAssessmentDraft, type AssessmentDraft } from "./assessmentDraft.ts";
+import { assessmentDraftKey, assessmentDraftStorageEpoch, clearLocalAssessmentDrafts, resolveServerAssessmentDraft, saveLocalAssessmentDraft, type AssessmentDraft } from "./assessmentDraft.ts";
 
 const draft: AssessmentDraft = {
   version: 1, preTestId: "test-owner-1",
@@ -25,4 +25,25 @@ test("tolak draf server dengan id atau jumlah soal yang tidak cocok", () => {
 
 test("draf browser lama tetap dikunci berdasarkan anggota", () => {
   assert.notEqual(assessmentDraftKey("owner"), assessmentDraftKey("other"));
+});
+
+test("logout menghapus semua draf anggota tanpa menghapus data browser lain atau menghidupkan penulisan lama", () => {
+  const items = new Map<string, string>([
+    [assessmentDraftKey("owner"), JSON.stringify(draft)],
+    [assessmentDraftKey("previous"), JSON.stringify(draft)],
+    ["pub_onboarding_done", "1"],
+  ]);
+  const storage = {
+    get length() { return items.size; },
+    key: (index: number) => [...items.keys()][index] ?? null,
+    removeItem: (key: string) => { items.delete(key); },
+    setItem: (key: string, value: string) => { items.set(key, value); },
+  } as Storage;
+  const oldEpoch = assessmentDraftStorageEpoch();
+  clearLocalAssessmentDrafts(storage);
+  assert.deepEqual([...items], [["pub_onboarding_done", "1"]]);
+  saveLocalAssessmentDraft(storage, "owner", draft, oldEpoch);
+  assert.equal(items.has(assessmentDraftKey("owner")), false);
+  saveLocalAssessmentDraft(storage, "owner", draft, assessmentDraftStorageEpoch());
+  assert.equal(items.has(assessmentDraftKey("owner")), true);
 });
