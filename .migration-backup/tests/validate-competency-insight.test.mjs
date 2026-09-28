@@ -21,7 +21,7 @@ async function createFakeNpm(t) {
 printf '%s\\n' "$*" >> "$VALIDATION_TRACE_FILE"
 if [ "$FAKE_VALIDATION_SCENARIO" = "publication-failure" ] && [ "$*" = "run --silent test:insight:publish" ]; then
   printf '%s\\n' "not ok 1 - publication gate assertion" "AssertionError: expected published function" >&2
-  printf '%s\\n' "token=$VALIDATION_TEST_SECRET" "Bearer $VALIDATION_TEST_SECRET" >&2
+  printf '%s\\n' "token=$VALIDATION_TEST_SECRET" "Bearer $VALIDATION_TEST_SECRET" "project=$SUPABASE_PROJECT_REF" >&2
   printf '%s\\n' "publication stdout diagnostic" "secret: $VALIDATION_TEST_SECRET"
   exit 23
 fi
@@ -33,8 +33,10 @@ if [ "$FAKE_VALIDATION_SCENARIO" = "long-failure" ] && [ "$*" = "run --silent te
   count=0
   while [ "$count" -lt 1000 ]; do
     printf '%s\\n' "repeated diagnostic line with lots of output" >&2
+    printf '%s\\n' "repeated stdout diagnostic with lots of output"
     count=$((count + 1))
   done
+  printf '%s\\n' "stdout final useful detail"
   printf '%s\\n' "AssertionError: final useful detail" >&2
   exit 17
 fi
@@ -79,6 +81,7 @@ function runValidator({ npmPath, tracePath, scenario }) {
         FAKE_VALIDATION_SCENARIO: scenario,
         VALIDATION_TEST_SECRET: "sensitive-test-value-123",
         SUPABASE_SERVICE_ROLE_KEY: "privileged-service-key-value-123",
+        SUPABASE_PROJECT_REF: "validation-project-ref-123",
       },
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -139,6 +142,7 @@ test("publication failure includes bounded, sanitized subprocess diagnostics", a
   assert.match(failure.diagnostics.stdout, /\[REDACTED\]/);
   assert.match(failure.diagnostics.stderr, /\[REDACTED\]/);
   assert.equal(result.stderr.includes("sensitive-test-value-123"), false);
+  assert.equal(result.stderr.includes("validation-project-ref-123"), false);
   assert.deepEqual(await readTrace(fakeNpm.tracePath), [
     "run --silent test:insight",
     "run --silent test:insight:publish",
@@ -168,6 +172,9 @@ test("long failures keep the final assertion without flooding logs", async (t) =
   assert.match(diagnostics.stderr, /^\[earlier output truncated\]/);
   assert.match(diagnostics.stderr, /AssertionError: final useful detail$/);
   assert.ok(Buffer.byteLength(diagnostics.stderr) < 17 * 1024);
+  assert.match(diagnostics.stdout, /^\[earlier output truncated\]/);
+  assert.match(diagnostics.stdout, /stdout final useful detail$/);
+  assert.ok(Buffer.byteLength(diagnostics.stdout) < 17 * 1024);
 });
 
 test("a service role key in plain assertion output is redacted", async (t) => {

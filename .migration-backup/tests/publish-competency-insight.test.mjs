@@ -98,6 +98,10 @@ async function isolatedPublisher(t, config) {
   await mkdir(path.join(directory, "scripts"));
   const scriptPath = path.join(directory, "scripts", "publish-competency-insight.mjs");
   await writeFile(scriptPath, await readFile(publisherPath));
+  await writeFile(
+    path.join(directory, "scripts", "subprocess-diagnostics.mjs"),
+    await readFile(path.join(rootDir, "scripts", "subprocess-diagnostics.mjs")),
+  );
   if (config !== undefined) {
     await mkdir(path.join(directory, "supabase"));
     await writeFile(path.join(directory, "supabase", "config.toml"), config);
