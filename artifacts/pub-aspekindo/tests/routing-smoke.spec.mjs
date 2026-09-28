@@ -77,6 +77,9 @@ const LESSON_ID = "00000000-0000-4000-8000-000000000037";
 const SECOND_LESSON_ID = "00000000-0000-4000-8000-000000000042";
 const ENROLLMENT_ID = "00000000-0000-4000-8000-000000000038";
 const ADMIN_REQUEST_ID = "00000000-0000-4000-8000-000000000041";
+const VIDEO_STORAGE_PATH = "kursus-uji/video-pengenalan.mp4";
+const VIDEO_SIGN_PATH = `/storage/v1/object/sign/aspekindo-learning/${VIDEO_STORAGE_PATH}`;
+const VIDEO_SIGNED_URL = `https://${SUPABASE_HOST}${VIDEO_SIGN_PATH}?token=video-test-only`;
 const assessmentQuestions = [
   {
     id: "00000000-0000-4000-8000-000000000033",
@@ -140,6 +143,18 @@ const material = {
   content_markdown: "Periksa akta dan izin usaha.",
   external_url: null,
   sort_order: 1,
+};
+const videoMaterial = {
+  id: "00000000-0000-4000-8000-000000000044",
+  lesson_id: LESSON_ID,
+  title: "Video pengenalan BUJK",
+  material_type: "video",
+  content_markdown: null,
+  external_url: null,
+  storage_path: VIDEO_STORAGE_PATH,
+  mime_type: "video/mp4",
+  file_size_bytes: 1024 * 1024,
+  sort_order: 2,
 };
 const enrollment = {
   id: ENROLLMENT_ID,
@@ -224,12 +239,23 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       }];
     } else if (url.pathname === "/functions/v1/competency-insight") {
       data = { source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" };
+    } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "POST") {
+      lms.signRequests.push({ path: url.pathname, body: request.postDataJSON() });
+      data = { signedURL: `/object/sign/aspekindo-learning/${VIDEO_STORAGE_PATH}?token=video-test-only` };
+    } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "GET" &&
+               url.searchParams.get("token") === "video-test-only") {
+      lms.videoRequests.push(request.url());
+      // Keep the simulated media request pending until the DOM assertion; no real
+      // video bytes or storage service are needed to check source assignment.
+      await new Promise((resolve) => { lms.releaseVideoResponse = resolve; });
+      await route.fulfill({ status: 200, contentType: "video/mp4", body: "" });
+      return;
     } else if (url.pathname === "/rest/v1/aspekindo_lms_courses") {
       data = url.searchParams.get("select") === "*" ? [course] : [{ id: COURSE_ID, title: course.title }];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lessons" && request.method() === "GET") {
       data = [lesson, secondLesson];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_materials" && request.method() === "GET") {
-      data = [material];
+      data = lms.video ? [material, videoMaterial] : [material];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_enrollments" && request.method() === "GET") {
       data = lms.enrolled ? [enrollment] : [];
     } else if (lms && url.pathname === "/rest/v1/rpc/enroll_aspekindo_lms_course" && request.method() === "POST") {
@@ -540,6 +566,25 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await expect(page.getByText(material.content_markdown)).toBeVisible();
     await expect.poll(() => lms.startedLesson?.lesson_id).toBe(LESSON_ID);
     expect(unexpected).toEqual([]);
+  });
+
+  test("anggota terdaftar menerima URL bertanda tangan untuk video privat tanpa mengambil berkas nyata", async ({ page }) => {
+    const lms = { enrolled: true, video: true, signRequests: [], videoRequests: [] };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    try {
+      await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
+      await expect(page.getByText(videoMaterial.title)).toBeVisible();
+      const video = page.locator("video").filter({ has: page.locator("source[type='video/mp4']") });
+      await expect(video).toBeVisible();
+      await expect(video.locator("source")).toHaveAttribute("src", VIDEO_SIGNED_URL);
+      await expect(video).toHaveAttribute("controls", "");
+      await expect.poll(() => lms.videoRequests).toContain(VIDEO_SIGNED_URL);
+      expect(lms.signRequests).toEqual([{ path: VIDEO_SIGN_PATH, body: { expiresIn: 1800 } }]);
+      expect(unexpected).toEqual([]);
+    } finally {
+      lms.releaseVideoResponse?.();
+    }
   });
 
   test("pelajaran kedua terbuka dan dapat dibuka setelah pelajaran pertama selesai", async ({ page }) => {
