@@ -129,5 +129,5 @@ jobs:
       - name: Install Chromium for routing smoke test
         run: pnpm --filter @workspace/pub-aspekindo exec playwright install --with-deps chromium
 
-      - name: Smoke test public and authenticated member routes
+      - name: Smoke test public routes and member assessment through results
         run: pnpm --filter @workspace/pub-aspekindo run test:routing
