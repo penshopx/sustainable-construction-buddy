@@ -2,4 +2,5 @@
 - [Prioritas hasil assessment](assessment-profile-precedence.md) — profil mengikuti assessment selesai yang dimulai paling baru, bukan transaksi yang commit paling akhir.
 - [Diagnostik subproses terbatas](bounded-subprocess-diagnostics.md) — samarkan kredensial sebelum memotong output akhir; sisakan overlap untuk nilai yang melintasi batas.
 - [Playwright di Nix](playwright-nix.md) — browser unduhan dapat gagal memuat pustaka native meski instalasinya berhasil; bedakan lingkungan lokal dari CI Ubuntu.
+- [Jam palsu dan animasi browser](playwright-clock-animation.md) — percepatan jam penuh dapat menahan transisi animasi; gunakan interval terbatas untuk pengujian timer beranimasi.
 - [Tipe plugin Vite di pnpm](vite-peer-types.md) — versi Vite sama dapat menghasilkan tipe tidak cocok bila peer opsionalnya berbeda antar artefak.

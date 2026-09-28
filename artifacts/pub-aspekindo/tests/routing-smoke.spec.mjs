@@ -247,7 +247,7 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "GET") {
       data = assessment.submitted ? [{
         id: ASSESSMENT_ID, user_id: MEMBER_ID, status: "completed",
-        score: 50, determined_level: "Pemula", completed_at: "2026-09-01T01:00:00.000Z",
+        score: assessment.result.score, determined_level: assessment.result.level, completed_at: "2026-09-01T01:00:00.000Z",
       }] : [];
     } else if (assessment && url.pathname === "/rest/v1/rpc/check_question_answer" && request.method() === "POST") {
       const answer = request.postDataJSON();
@@ -271,7 +271,17 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       }
       assessment.successfulSubmissions = (assessment.successfulSubmissions ?? 0) + 1;
       assessment.submitted = true;
-      data = { score: 50, level: "Pemula", correct: 1, total: 2 };
+      const answers = assessment.submission?._answers;
+      if (assessment.submission?._pre_test_id === ASSESSMENT_ID &&
+          Array.isArray(answers) && answers.length === assessmentQuestions.length &&
+          answers.every((answer, index) => answer.question_id === assessmentQuestions[index].id &&
+            Number.isInteger(answer.selected_answer) &&
+            answer.selected_answer >= -1 && answer.selected_answer < assessmentQuestions[index].options.length)) {
+        const correct = answers.filter((answer, index) => answer.selected_answer === index).length;
+        const score = Math.round(correct / assessmentQuestions.length * 100);
+        assessment.result = { score, level: "Pemula", correct, total: assessmentQuestions.length };
+        data = assessment.result;
+      }
     } else if (url.pathname.startsWith("/rest/v1/") && emptyTables.has(endpoint)) {
       data = [];
     } else if (url.pathname === "/rest/v1/profiles") {
@@ -388,6 +398,81 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
         _answers: assessmentQuestions.map((q) => ({ question_id: q.id, selected_answer: 0 })),
       },
     ]);
+    expect(assessment.successfulSubmissions).toBe(1);
+    expect(unexpected).toEqual([]);
+  });
+
+  for (const { scenario, answerFirst, expectedScore } of [
+    { scenario: "sebagian dijawab", answerFirst: true, expectedScore: 50 },
+    { scenario: "tidak ada jawaban", answerFirst: false, expectedScore: 0 },
+  ]) {
+    test(`waktu habis: ${scenario} dikirim dan hasil sesuai jumlah soal`, async ({ page }) => {
+      const assessment = { started: null, checks: [], submissions: [], submitted: false };
+      const unexpected = await installAuthenticatedFixture(page, { assessment });
+      // Accelerate only the assessment's one-second countdown; keep animation
+      // frames and network timing real so the result view can finish entering.
+      await page.addInitScript(() => {
+        const originalSetInterval = window.setInterval.bind(window);
+        window.setInterval = ((handler, delay, ...args) =>
+          originalSetInterval(handler, delay === 1000 ? 5 : delay, ...args));
+      });
+      await page.goto("/assessment");
+      await page.getByRole("button", { name: "Mulai Assessment" }).click();
+      await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+
+      if (answerFirst) {
+        await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+        await expect(page.getByText("Penjelasan soal uji.")).toBeVisible();
+        await expect(page.getByRole("button", { name: "Selanjutnya" })).toBeEnabled();
+      } else {
+        await expect(page.getByRole("button", { name: "Selanjutnya" })).toBeDisabled();
+      }
+
+      await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByText(`Skor: ${expectedScore}`)).toBeVisible();
+      await expect(page.getByText(`${answerFirst ? 1 : 0} dari 2 jawaban benar`)).toBeVisible();
+      expect(assessment.submissions).toEqual([{
+        _pre_test_id: ASSESSMENT_ID,
+        _answers: [
+          { question_id: assessmentQuestions[0].id, selected_answer: answerFirst ? 0 : -1 },
+          { question_id: assessmentQuestions[1].id, selected_answer: -1 },
+        ],
+      }]);
+      expect(assessment.checks).toHaveLength(answerFirst ? 1 : 0);
+      expect(assessment.successfulSubmissions).toBe(1);
+      expect(unexpected).toEqual([]);
+    });
+  }
+
+  test("pengiriman saat waktu habis dapat dicoba lagi tanpa menjawab ulang", async ({ page }) => {
+    const assessment = {
+      started: null, checks: [], submissions: [], submitted: false,
+      successfulSubmissions: 0, failFirstSubmit: true,
+    };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    await page.addInitScript(() => {
+      const originalSetInterval = window.setInterval.bind(window);
+      window.setInterval = ((handler, delay, ...args) =>
+        originalSetInterval(handler, delay === 1000 ? 5 : delay, ...args));
+    });
+    await page.goto("/assessment");
+    await page.getByRole("button", { name: "Mulai Assessment" }).click();
+    await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+    await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+    await expect(page.getByText("Penjelasan soal uji.")).toBeVisible();
+
+    await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Gagal mengirim assessment.")).toBeVisible();
+    await expect(page.getByRole("status")).toContainText("Soal yang belum dijawab dihitung salah");
+    await expect(page.getByRole("button", { name: "Kembali ke Soal" })).toBeDisabled();
+    const retry = page.getByRole("button", { name: "Selesai & Lihat Hasil" });
+    await expect(retry).toBeEnabled();
+    await retry.click();
+    await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+    await expect(page.getByText("Skor: 50")).toBeVisible();
+    expect(assessment.submissions).toHaveLength(2);
+    expect(assessment.submissions[0]).toEqual(assessment.submissions[1]);
+    expect(assessment.submissions[1]._answers.map(({ selected_answer }) => selected_answer)).toEqual([0, -1]);
     expect(assessment.successfulSubmissions).toBe(1);
     expect(unexpected).toEqual([]);
   });

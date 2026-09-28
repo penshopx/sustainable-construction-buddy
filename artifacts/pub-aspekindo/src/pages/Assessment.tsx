@@ -162,6 +162,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const [pastTestsLoading, setPastTestsLoading] = useState(false);
   const [checkingAnswer, setCheckingAnswer] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [timedOut, setTimedOut] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const submitGuardRef = useRef(createAssessmentSubmitGuard());
 
@@ -198,8 +199,6 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         setTimeLeft(prev => {
           if (prev <= 1) {
             clearInterval(timerRef.current!);
-            toast.warning("Waktu habis! Assessment akan di-submit otomatis.");
-            // Auto-submit will be handled by effect below
             return 0;
           }
           return prev - 1;
@@ -258,6 +257,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     setCurrentQ(0);
     setPhase("test");
     setShowExplanation(false);
+    setTimedOut(false);
     setTimeLeft(selected.length * 90); // 90 seconds per question
     setLoading(false);
   };
@@ -345,10 +345,13 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
 
   // Auto-submit when timer runs out
   useEffect(() => {
-    if (phase === "test" && timeLeft === 0 && questions.length > 0 && Object.keys(answers).length > 0) {
-      submitTest();
+    if (phase === "test" && timeLeft === 0 && questions.length > 0) {
+      setTimedOut(true);
+      setPhase("review");
+      toast.warning("Waktu habis! Assessment akan di-submit otomatis.");
+      void submitTest();
     }
-  }, [answers, phase, questions.length, submitTest, timeLeft]);
+  }, [phase, questions.length, submitTest, timeLeft]);
 
   // Domain breakdown for result
   const getDomainBreakdown = () => {
@@ -555,6 +558,11 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         {phase === "review" && (
           <motion.div key="review" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
             <h2 className="text-2xl font-bold font-heading text-foreground mb-6">Review Jawaban</h2>
+            {timedOut && (
+              <p className="mb-6 text-sm text-muted-foreground" role="status">
+                Waktu habis. Soal yang belum dijawab dihitung salah. Jika pengiriman gagal, pilih Selesai &amp; Lihat Hasil untuk mencoba lagi.
+              </p>
+            )}
             <div className="grid grid-cols-6 md:grid-cols-8 gap-2 mb-8">
               {questions.map((q, i) => {
                 const answered = answers[q.id] !== undefined;
@@ -563,6 +571,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
                   <button
                     key={q.id}
                     onClick={() => { setCurrentQ(i); setPhase("test"); }}
+                    disabled={timedOut}
                     className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-heading font-bold transition-colors ${
                       !answered ? "bg-muted text-muted-foreground" :
                       isCorrect ? "bg-pub-emerald/20 text-pub-emerald" : "bg-destructive/20 text-destructive"
@@ -577,13 +586,14 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
             <div className="flex gap-4">
               <button
                 onClick={() => { setCurrentQ(0); setPhase("test"); }}
+                disabled={timedOut}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-border text-foreground font-heading font-medium hover:bg-muted transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" /> Kembali ke Soal
               </button>
               <button
                 onClick={submitTest}
-                disabled={loading || Object.keys(answers).length < questions.length}
+                disabled={loading || (!timedOut && Object.keys(answers).length < questions.length)}
                 className="inline-flex items-center gap-2 px-8 py-2.5 rounded-lg bg-gradient-amber text-accent-foreground font-heading font-semibold shadow-amber hover:brightness-110 transition-all disabled:opacity-50"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
