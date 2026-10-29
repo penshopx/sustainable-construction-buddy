@@ -43,7 +43,22 @@ import type {
   SchemeReferenceBank,
   SmapPilotDocuments,
   SmapPilotInput,
-  SmapPilotResult
+  SmapPilotResult,
+  UploadVaultDocumentParams,
+  UploadVaultExternalDocumentParams,
+  VaultAnswer,
+  VaultAssistant,
+  VaultAssistantInput,
+  VaultConnectionCreated,
+  VaultConnectionInput,
+  VaultDocument,
+  VaultDocumentMetadata,
+  VaultDocumentUpdate,
+  VaultFolder,
+  VaultFolderInput,
+  VaultProfile,
+  VaultQuestionInput,
+  VaultWorkspace
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -72,6 +87,1253 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetVaultExternalProfileUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/external/profile`
+}
+
+/**
+ * @summary Read profile with profile:read permission
+ */
+export const getVaultExternalProfile = async ( options?: Parameters<typeof customFetch>[1]): Promise<VaultProfile> => {
+
+  return customFetch<VaultProfile>(getGetVaultExternalProfileUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVaultExternalProfileQueryKey = () => {
+    return [
+    `/api/ruang-simpan/external/profile`
+    ] as const;
+    }
+
+
+export const getGetVaultExternalProfileQueryOptions = <TData = Awaited<ReturnType<typeof getVaultExternalProfile>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVaultExternalProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVaultExternalProfileQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVaultExternalProfile>>> = ({ signal }) => getVaultExternalProfile({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVaultExternalProfile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVaultExternalProfileQueryResult = NonNullable<Awaited<ReturnType<typeof getVaultExternalProfile>>>
+export type GetVaultExternalProfileQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read profile with profile:read permission
+ */
+
+export function useGetVaultExternalProfile<TData = Awaited<ReturnType<typeof getVaultExternalProfile>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVaultExternalProfile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVaultExternalProfileQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateVaultExternalProfileUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/external/profile`
+}
+
+/**
+ * @summary Update profile with profile:write and matching version
+ */
+export const updateVaultExternalProfile = async (vaultProfile: VaultProfile, options?: Parameters<typeof customFetch>[1]): Promise<VaultProfile> => {
+
+  return customFetch<VaultProfile>(getUpdateVaultExternalProfileUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultProfile)
+  }
+);}
+
+
+
+
+
+export const getUpdateVaultExternalProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVaultExternalProfile>>, TError,{data: BodyType<VaultProfile>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateVaultExternalProfile>>, TError,{data: BodyType<VaultProfile>}, TContext> => {
+
+const mutationKey = ['updateVaultExternalProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateVaultExternalProfile>>, {data: BodyType<VaultProfile>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateVaultExternalProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateVaultExternalProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateVaultExternalProfile>>>
+    export type UpdateVaultExternalProfileMutationBody = BodyType<VaultProfile>
+    export type UpdateVaultExternalProfileMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update profile with profile:write and matching version
+ */
+export const useUpdateVaultExternalProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVaultExternalProfile>>, TError,{data: BodyType<VaultProfile>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateVaultExternalProfile>>,
+        TError,
+        {data: BodyType<VaultProfile>},
+        TContext
+      > => {
+      return useMutation(getUpdateVaultExternalProfileMutationOptions(options));
+    }
+
+export const getListVaultExternalDocumentsUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/external/documents`
+}
+
+/**
+ * @summary Only explicitly selected document metadata; requires documents:read
+ */
+export const listVaultExternalDocuments = async ( options?: Parameters<typeof customFetch>[1]): Promise<VaultDocumentMetadata[]> => {
+
+  return customFetch<VaultDocumentMetadata[]>(getListVaultExternalDocumentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVaultExternalDocumentsQueryKey = () => {
+    return [
+    `/api/ruang-simpan/external/documents`
+    ] as const;
+    }
+
+
+export const getListVaultExternalDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listVaultExternalDocuments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVaultExternalDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVaultExternalDocumentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVaultExternalDocuments>>> = ({ signal }) => listVaultExternalDocuments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listVaultExternalDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListVaultExternalDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof listVaultExternalDocuments>>>
+export type ListVaultExternalDocumentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Only explicitly selected document metadata; requires documents:read
+ */
+
+export function useListVaultExternalDocuments<TData = Awaited<ReturnType<typeof listVaultExternalDocuments>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVaultExternalDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListVaultExternalDocumentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUploadVaultExternalDocumentUrl = (params: UploadVaultExternalDocumentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/ruang-simpan/external/documents?${stringifiedParams}` : `/api/ruang-simpan/external/documents`
+}
+
+/**
+ * @summary Upload only into selected folders; requires documents:upload
+ */
+export const uploadVaultExternalDocument = async (uploadVaultExternalDocumentBody: Blob,
+    params: UploadVaultExternalDocumentParams, options?: Parameters<typeof customFetch>[1]): Promise<VaultDocument> => {
+
+  return customFetch<VaultDocument>(getUploadVaultExternalDocumentUrl(params),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream', ...options?.headers },
+    body: uploadVaultExternalDocumentBody
+  }
+);}
+
+
+
+
+
+export const getUploadVaultExternalDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadVaultExternalDocument>>, TError,{data: BodyType<Blob>;params: UploadVaultExternalDocumentParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadVaultExternalDocument>>, TError,{data: BodyType<Blob>;params: UploadVaultExternalDocumentParams}, TContext> => {
+
+const mutationKey = ['uploadVaultExternalDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadVaultExternalDocument>>, {data: BodyType<Blob>;params: UploadVaultExternalDocumentParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  uploadVaultExternalDocument(data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadVaultExternalDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof uploadVaultExternalDocument>>>
+    export type UploadVaultExternalDocumentMutationBody = BodyType<Blob>
+    export type UploadVaultExternalDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Upload only into selected folders; requires documents:upload
+ */
+export const useUploadVaultExternalDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadVaultExternalDocument>>, TError,{data: BodyType<Blob>;params: UploadVaultExternalDocumentParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadVaultExternalDocument>>,
+        TError,
+        {data: BodyType<Blob>;params: UploadVaultExternalDocumentParams},
+        TContext
+      > => {
+      return useMutation(getUploadVaultExternalDocumentMutationOptions(options));
+    }
+
+export const getDownloadVaultExternalDocumentUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/external/documents/${id}/download`
+}
+
+/**
+ * @summary Download selected document with documents:read permission
+ */
+export const downloadVaultExternalDocument = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadVaultExternalDocumentUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadVaultExternalDocumentQueryKey = (id: string,) => {
+    return [
+    `/api/ruang-simpan/external/documents/${id}/download`
+    ] as const;
+    }
+
+
+export const getDownloadVaultExternalDocumentQueryOptions = <TData = Awaited<ReturnType<typeof downloadVaultExternalDocument>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadVaultExternalDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadVaultExternalDocumentQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadVaultExternalDocument>>> = ({ signal }) => downloadVaultExternalDocument(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadVaultExternalDocument>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadVaultExternalDocumentQueryResult = NonNullable<Awaited<ReturnType<typeof downloadVaultExternalDocument>>>
+export type DownloadVaultExternalDocumentQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download selected document with documents:read permission
+ */
+
+export function useDownloadVaultExternalDocument<TData = Awaited<ReturnType<typeof downloadVaultExternalDocument>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadVaultExternalDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadVaultExternalDocumentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetVaultWorkspaceUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/workspace`
+}
+
+export const getVaultWorkspace = async ( options?: Parameters<typeof customFetch>[1]): Promise<VaultWorkspace> => {
+
+  return customFetch<VaultWorkspace>(getGetVaultWorkspaceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVaultWorkspaceQueryKey = () => {
+    return [
+    `/api/ruang-simpan/workspace`
+    ] as const;
+    }
+
+
+export const getGetVaultWorkspaceQueryOptions = <TData = Awaited<ReturnType<typeof getVaultWorkspace>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVaultWorkspace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVaultWorkspaceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVaultWorkspace>>> = ({ signal }) => getVaultWorkspace({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVaultWorkspace>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVaultWorkspaceQueryResult = NonNullable<Awaited<ReturnType<typeof getVaultWorkspace>>>
+export type GetVaultWorkspaceQueryError = ErrorType<unknown>
+
+
+
+export function useGetVaultWorkspace<TData = Awaited<ReturnType<typeof getVaultWorkspace>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVaultWorkspace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVaultWorkspaceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateVaultFolderUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/folders`
+}
+
+export const createVaultFolder = async (vaultFolderInput: VaultFolderInput, options?: Parameters<typeof customFetch>[1]): Promise<VaultFolder> => {
+
+  return customFetch<VaultFolder>(getCreateVaultFolderUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultFolderInput)
+  }
+);}
+
+
+
+
+
+export const getCreateVaultFolderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVaultFolder>>, TError,{data: BodyType<VaultFolderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createVaultFolder>>, TError,{data: BodyType<VaultFolderInput>}, TContext> => {
+
+const mutationKey = ['createVaultFolder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createVaultFolder>>, {data: BodyType<VaultFolderInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createVaultFolder(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateVaultFolderMutationResult = NonNullable<Awaited<ReturnType<typeof createVaultFolder>>>
+    export type CreateVaultFolderMutationBody = BodyType<VaultFolderInput>
+    export type CreateVaultFolderMutationError = ErrorType<unknown>
+
+    export const useCreateVaultFolder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVaultFolder>>, TError,{data: BodyType<VaultFolderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createVaultFolder>>,
+        TError,
+        {data: BodyType<VaultFolderInput>},
+        TContext
+      > => {
+      return useMutation(getCreateVaultFolderMutationOptions(options));
+    }
+
+export const getDeleteVaultFolderUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/folders/${id}`
+}
+
+export const deleteVaultFolder = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteVaultFolderUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteVaultFolderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVaultFolder>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteVaultFolder>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteVaultFolder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteVaultFolder>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteVaultFolder(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteVaultFolderMutationResult = NonNullable<Awaited<ReturnType<typeof deleteVaultFolder>>>
+
+    export type DeleteVaultFolderMutationError = ErrorType<unknown>
+
+    export const useDeleteVaultFolder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVaultFolder>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteVaultFolder>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteVaultFolderMutationOptions(options));
+    }
+
+export const getUpdateVaultProfileUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/profile`
+}
+
+export const updateVaultProfile = async (vaultProfile: VaultProfile, options?: Parameters<typeof customFetch>[1]): Promise<VaultProfile> => {
+
+  return customFetch<VaultProfile>(getUpdateVaultProfileUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultProfile)
+  }
+);}
+
+
+
+
+
+export const getUpdateVaultProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVaultProfile>>, TError,{data: BodyType<VaultProfile>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateVaultProfile>>, TError,{data: BodyType<VaultProfile>}, TContext> => {
+
+const mutationKey = ['updateVaultProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateVaultProfile>>, {data: BodyType<VaultProfile>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateVaultProfile(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateVaultProfileMutationResult = NonNullable<Awaited<ReturnType<typeof updateVaultProfile>>>
+    export type UpdateVaultProfileMutationBody = BodyType<VaultProfile>
+    export type UpdateVaultProfileMutationError = ErrorType<unknown>
+
+    export const useUpdateVaultProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVaultProfile>>, TError,{data: BodyType<VaultProfile>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateVaultProfile>>,
+        TError,
+        {data: BodyType<VaultProfile>},
+        TContext
+      > => {
+      return useMutation(getUpdateVaultProfileMutationOptions(options));
+    }
+
+export const getUploadVaultDocumentUrl = (params: UploadVaultDocumentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/ruang-simpan/documents?${stringifiedParams}` : `/api/ruang-simpan/documents`
+}
+
+export const uploadVaultDocument = async (uploadVaultDocumentBody: Blob,
+    params: UploadVaultDocumentParams, options?: Parameters<typeof customFetch>[1]): Promise<VaultDocument> => {
+
+  return customFetch<VaultDocument>(getUploadVaultDocumentUrl(params),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream', ...options?.headers },
+    body: uploadVaultDocumentBody
+  }
+);}
+
+
+
+
+
+export const getUploadVaultDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadVaultDocument>>, TError,{data: BodyType<Blob>;params: UploadVaultDocumentParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadVaultDocument>>, TError,{data: BodyType<Blob>;params: UploadVaultDocumentParams}, TContext> => {
+
+const mutationKey = ['uploadVaultDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadVaultDocument>>, {data: BodyType<Blob>;params: UploadVaultDocumentParams}> = (props) => {
+          const {data,params} = props ?? {};
+
+          return  uploadVaultDocument(data,params,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadVaultDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof uploadVaultDocument>>>
+    export type UploadVaultDocumentMutationBody = BodyType<Blob>
+    export type UploadVaultDocumentMutationError = ErrorType<unknown>
+
+    export const useUploadVaultDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadVaultDocument>>, TError,{data: BodyType<Blob>;params: UploadVaultDocumentParams}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadVaultDocument>>,
+        TError,
+        {data: BodyType<Blob>;params: UploadVaultDocumentParams},
+        TContext
+      > => {
+      return useMutation(getUploadVaultDocumentMutationOptions(options));
+    }
+
+export const getUpdateVaultDocumentUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/documents/${id}`
+}
+
+export const updateVaultDocument = async (id: string,
+    vaultDocumentUpdate: VaultDocumentUpdate, options?: Parameters<typeof customFetch>[1]): Promise<VaultDocument> => {
+
+  return customFetch<VaultDocument>(getUpdateVaultDocumentUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultDocumentUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateVaultDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVaultDocument>>, TError,{id: string;data: BodyType<VaultDocumentUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateVaultDocument>>, TError,{id: string;data: BodyType<VaultDocumentUpdate>}, TContext> => {
+
+const mutationKey = ['updateVaultDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateVaultDocument>>, {id: string;data: BodyType<VaultDocumentUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateVaultDocument(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateVaultDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof updateVaultDocument>>>
+    export type UpdateVaultDocumentMutationBody = BodyType<VaultDocumentUpdate>
+    export type UpdateVaultDocumentMutationError = ErrorType<unknown>
+
+    export const useUpdateVaultDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVaultDocument>>, TError,{id: string;data: BodyType<VaultDocumentUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateVaultDocument>>,
+        TError,
+        {id: string;data: BodyType<VaultDocumentUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateVaultDocumentMutationOptions(options));
+    }
+
+export const getDeleteVaultDocumentUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/documents/${id}`
+}
+
+export const deleteVaultDocument = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteVaultDocumentUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteVaultDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVaultDocument>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteVaultDocument>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteVaultDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteVaultDocument>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteVaultDocument(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteVaultDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteVaultDocument>>>
+
+    export type DeleteVaultDocumentMutationError = ErrorType<unknown>
+
+    export const useDeleteVaultDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVaultDocument>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteVaultDocument>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteVaultDocumentMutationOptions(options));
+    }
+
+export const getDownloadVaultDocumentUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/documents/${id}/download`
+}
+
+export const downloadVaultDocument = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadVaultDocumentUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadVaultDocumentQueryKey = (id: string,) => {
+    return [
+    `/api/ruang-simpan/documents/${id}/download`
+    ] as const;
+    }
+
+
+export const getDownloadVaultDocumentQueryOptions = <TData = Awaited<ReturnType<typeof downloadVaultDocument>>, TError = ErrorType<unknown>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadVaultDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadVaultDocumentQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadVaultDocument>>> = ({ signal }) => downloadVaultDocument(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadVaultDocument>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadVaultDocumentQueryResult = NonNullable<Awaited<ReturnType<typeof downloadVaultDocument>>>
+export type DownloadVaultDocumentQueryError = ErrorType<unknown>
+
+
+
+export function useDownloadVaultDocument<TData = Awaited<ReturnType<typeof downloadVaultDocument>>, TError = ErrorType<unknown>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadVaultDocument>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadVaultDocumentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAskVaultQuestionUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/questions`
+}
+
+export const askVaultQuestion = async (vaultQuestionInput: VaultQuestionInput, options?: Parameters<typeof customFetch>[1]): Promise<VaultAnswer> => {
+
+  return customFetch<VaultAnswer>(getAskVaultQuestionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultQuestionInput)
+  }
+);}
+
+
+
+
+
+export const getAskVaultQuestionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askVaultQuestion>>, TError,{data: BodyType<VaultQuestionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof askVaultQuestion>>, TError,{data: BodyType<VaultQuestionInput>}, TContext> => {
+
+const mutationKey = ['askVaultQuestion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof askVaultQuestion>>, {data: BodyType<VaultQuestionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  askVaultQuestion(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AskVaultQuestionMutationResult = NonNullable<Awaited<ReturnType<typeof askVaultQuestion>>>
+    export type AskVaultQuestionMutationBody = BodyType<VaultQuestionInput>
+    export type AskVaultQuestionMutationError = ErrorType<unknown>
+
+    export const useAskVaultQuestion = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askVaultQuestion>>, TError,{data: BodyType<VaultQuestionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof askVaultQuestion>>,
+        TError,
+        {data: BodyType<VaultQuestionInput>},
+        TContext
+      > => {
+      return useMutation(getAskVaultQuestionMutationOptions(options));
+    }
+
+export const getCreateVaultAssistantUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/assistants`
+}
+
+export const createVaultAssistant = async (vaultAssistantInput: VaultAssistantInput, options?: Parameters<typeof customFetch>[1]): Promise<VaultAssistant> => {
+
+  return customFetch<VaultAssistant>(getCreateVaultAssistantUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultAssistantInput)
+  }
+);}
+
+
+
+
+
+export const getCreateVaultAssistantMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVaultAssistant>>, TError,{data: BodyType<VaultAssistantInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createVaultAssistant>>, TError,{data: BodyType<VaultAssistantInput>}, TContext> => {
+
+const mutationKey = ['createVaultAssistant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createVaultAssistant>>, {data: BodyType<VaultAssistantInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createVaultAssistant(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateVaultAssistantMutationResult = NonNullable<Awaited<ReturnType<typeof createVaultAssistant>>>
+    export type CreateVaultAssistantMutationBody = BodyType<VaultAssistantInput>
+    export type CreateVaultAssistantMutationError = ErrorType<unknown>
+
+    export const useCreateVaultAssistant = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVaultAssistant>>, TError,{data: BodyType<VaultAssistantInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createVaultAssistant>>,
+        TError,
+        {data: BodyType<VaultAssistantInput>},
+        TContext
+      > => {
+      return useMutation(getCreateVaultAssistantMutationOptions(options));
+    }
+
+export const getDeleteVaultAssistantUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/assistants/${id}`
+}
+
+export const deleteVaultAssistant = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteVaultAssistantUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteVaultAssistantMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVaultAssistant>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteVaultAssistant>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteVaultAssistant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteVaultAssistant>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteVaultAssistant(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteVaultAssistantMutationResult = NonNullable<Awaited<ReturnType<typeof deleteVaultAssistant>>>
+
+    export type DeleteVaultAssistantMutationError = ErrorType<unknown>
+
+    export const useDeleteVaultAssistant = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteVaultAssistant>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteVaultAssistant>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteVaultAssistantMutationOptions(options));
+    }
+
+export const getCreateVaultConnectionUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/connections`
+}
+
+export const createVaultConnection = async (vaultConnectionInput: VaultConnectionInput, options?: Parameters<typeof customFetch>[1]): Promise<VaultConnectionCreated> => {
+
+  return customFetch<VaultConnectionCreated>(getCreateVaultConnectionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultConnectionInput)
+  }
+);}
+
+
+
+
+
+export const getCreateVaultConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVaultConnection>>, TError,{data: BodyType<VaultConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createVaultConnection>>, TError,{data: BodyType<VaultConnectionInput>}, TContext> => {
+
+const mutationKey = ['createVaultConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createVaultConnection>>, {data: BodyType<VaultConnectionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createVaultConnection(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateVaultConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof createVaultConnection>>>
+    export type CreateVaultConnectionMutationBody = BodyType<VaultConnectionInput>
+    export type CreateVaultConnectionMutationError = ErrorType<unknown>
+
+    export const useCreateVaultConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createVaultConnection>>, TError,{data: BodyType<VaultConnectionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createVaultConnection>>,
+        TError,
+        {data: BodyType<VaultConnectionInput>},
+        TContext
+      > => {
+      return useMutation(getCreateVaultConnectionMutationOptions(options));
+    }
+
+export const getRevokeVaultConnectionUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/connections/${id}`
+}
+
+export const revokeVaultConnection = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRevokeVaultConnectionUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRevokeVaultConnectionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeVaultConnection>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeVaultConnection>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['revokeVaultConnection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeVaultConnection>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  revokeVaultConnection(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeVaultConnectionMutationResult = NonNullable<Awaited<ReturnType<typeof revokeVaultConnection>>>
+
+    export type RevokeVaultConnectionMutationError = ErrorType<unknown>
+
+    export const useRevokeVaultConnection = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeVaultConnection>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeVaultConnection>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getRevokeVaultConnectionMutationOptions(options));
+    }
 
 export const getRunHermesBg001ChatUrl = () => {
 

@@ -118,6 +118,15 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+  await esbuild({
+    entryPoints: [path.resolve(artifactDir, "src/lib/vault-extractor.ts")],
+    outfile: path.resolve(distDir, "vault-extractor.cjs"),
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    external: ["pdf-parse", "mammoth", "xlsx"],
+    logLevel: "info",
+  });
 }
 
 buildAll().catch((err) => {

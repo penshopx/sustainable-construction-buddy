@@ -9,6 +9,394 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Read profile with profile:read permission
+ */
+export const getVaultExternalProfileResponseNameMax = 200;
+
+export const getVaultExternalProfileResponseNibMax = 40;
+
+export const getVaultExternalProfileResponseAddressMax = 1000;
+
+export const getVaultExternalProfileResponseVersionMin = 0;
+
+
+
+export const GetVaultExternalProfileResponse = zod.object({
+  "name": zod.string().max(getVaultExternalProfileResponseNameMax),
+  "nib": zod.string().max(getVaultExternalProfileResponseNibMax),
+  "address": zod.string().max(getVaultExternalProfileResponseAddressMax),
+  "version": zod.number().int().min(getVaultExternalProfileResponseVersionMin)
+})
+
+
+/**
+ * @summary Update profile with profile:write and matching version
+ */
+export const updateVaultExternalProfileBodyNameMax = 200;
+
+export const updateVaultExternalProfileBodyNibMax = 40;
+
+export const updateVaultExternalProfileBodyAddressMax = 1000;
+
+export const updateVaultExternalProfileBodyVersionMin = 0;
+
+
+
+export const UpdateVaultExternalProfileBody = zod.object({
+  "name": zod.string().max(updateVaultExternalProfileBodyNameMax),
+  "nib": zod.string().max(updateVaultExternalProfileBodyNibMax),
+  "address": zod.string().max(updateVaultExternalProfileBodyAddressMax),
+  "version": zod.number().int().min(updateVaultExternalProfileBodyVersionMin)
+})
+
+export const updateVaultExternalProfileResponseNameMax = 200;
+
+export const updateVaultExternalProfileResponseNibMax = 40;
+
+export const updateVaultExternalProfileResponseAddressMax = 1000;
+
+export const updateVaultExternalProfileResponseVersionMin = 0;
+
+
+
+export const UpdateVaultExternalProfileResponse = zod.object({
+  "name": zod.string().max(updateVaultExternalProfileResponseNameMax),
+  "nib": zod.string().max(updateVaultExternalProfileResponseNibMax),
+  "address": zod.string().max(updateVaultExternalProfileResponseAddressMax),
+  "version": zod.number().int().min(updateVaultExternalProfileResponseVersionMin)
+})
+
+
+/**
+ * @summary Only explicitly selected document metadata; requires documents:read
+ */
+export const ListVaultExternalDocumentsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "folderId": zod.string(),
+  "size": zod.number().int(),
+  "type": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['ready', 'stored', 'failed']),
+  "starred": zod.boolean()
+})
+export const ListVaultExternalDocumentsResponse = zod.array(ListVaultExternalDocumentsResponseItem)
+
+
+/**
+ * @summary Upload only into selected folders; requires documents:upload
+ */
+export const UploadVaultExternalDocumentQueryParams = zod.object({
+  "name": zod.coerce.string(),
+  "folderId": zod.coerce.string()
+})
+
+export const UploadVaultExternalDocumentResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "folderId": zod.string(),
+  "size": zod.number().int(),
+  "type": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['ready', 'stored', 'failed']),
+  "starred": zod.boolean(),
+  "text": zod.string()
+})
+
+
+/**
+ * @summary Download selected document with documents:read permission
+ */
+export const DownloadVaultExternalDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DownloadVaultExternalDocumentResponse = zod.unknown()
+
+
+export const getVaultWorkspaceResponseProfileNameMax = 200;
+
+export const getVaultWorkspaceResponseProfileNibMax = 40;
+
+export const getVaultWorkspaceResponseProfileAddressMax = 1000;
+
+export const getVaultWorkspaceResponseProfileVersionMin = 0;
+
+export const getVaultWorkspaceResponseAssistantsItemOneNameMax = 100;
+
+export const getVaultWorkspaceResponseAssistantsItemOneInstructionsMax = 2000;
+
+export const getVaultWorkspaceResponseConnectionsItemOneNameMax = 100;
+
+
+
+
+export const GetVaultWorkspaceResponse = zod.object({
+  "folders": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "count": zod.number().int()
+})),
+  "documents": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "folderId": zod.string(),
+  "size": zod.number().int(),
+  "type": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['ready', 'stored', 'failed']),
+  "starred": zod.boolean(),
+  "text": zod.string()
+})),
+  "profile": zod.object({
+  "name": zod.string().max(getVaultWorkspaceResponseProfileNameMax),
+  "nib": zod.string().max(getVaultWorkspaceResponseProfileNibMax),
+  "address": zod.string().max(getVaultWorkspaceResponseProfileAddressMax),
+  "version": zod.number().int().min(getVaultWorkspaceResponseProfileVersionMin)
+}),
+  "assistants": zod.array(zod.object({
+  "name": zod.string().min(1).max(getVaultWorkspaceResponseAssistantsItemOneNameMax),
+  "instructions": zod.string().max(getVaultWorkspaceResponseAssistantsItemOneInstructionsMax),
+  "documentIds": zod.array(zod.string())
+}).and(zod.object({
+  "id": zod.string()
+}))),
+  "connections": zod.array(zod.object({
+  "name": zod.string().min(1).max(getVaultWorkspaceResponseConnectionsItemOneNameMax),
+  "scopes": zod.array(zod.enum(['profile:read', 'profile:write', 'documents:read', 'documents:upload'])).min(1),
+  "documentIds": zod.array(zod.string()),
+  "folderIds": zod.array(zod.string())
+}).and(zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "expiresAt": zod.string(),
+  "revoked": zod.boolean()
+}))),
+  "activities": zod.array(zod.object({
+  "id": zod.string(),
+  "action": zod.string(),
+  "createdAt": zod.string()
+})),
+  "usedBytes": zod.number().int(),
+  "limitBytes": zod.number().int()
+})
+
+
+export const createVaultFolderBodyNameMax = 80;
+
+
+
+export const CreateVaultFolderBody = zod.object({
+  "name": zod.string().min(1).max(createVaultFolderBodyNameMax)
+})
+
+export const CreateVaultFolderResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "count": zod.number().int()
+})
+
+
+export const DeleteVaultFolderParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteVaultFolderResponse = zod.void()
+
+
+export const updateVaultProfileBodyNameMax = 200;
+
+export const updateVaultProfileBodyNibMax = 40;
+
+export const updateVaultProfileBodyAddressMax = 1000;
+
+export const updateVaultProfileBodyVersionMin = 0;
+
+
+
+export const UpdateVaultProfileBody = zod.object({
+  "name": zod.string().max(updateVaultProfileBodyNameMax),
+  "nib": zod.string().max(updateVaultProfileBodyNibMax),
+  "address": zod.string().max(updateVaultProfileBodyAddressMax),
+  "version": zod.number().int().min(updateVaultProfileBodyVersionMin)
+})
+
+export const updateVaultProfileResponseNameMax = 200;
+
+export const updateVaultProfileResponseNibMax = 40;
+
+export const updateVaultProfileResponseAddressMax = 1000;
+
+export const updateVaultProfileResponseVersionMin = 0;
+
+
+
+export const UpdateVaultProfileResponse = zod.object({
+  "name": zod.string().max(updateVaultProfileResponseNameMax),
+  "nib": zod.string().max(updateVaultProfileResponseNibMax),
+  "address": zod.string().max(updateVaultProfileResponseAddressMax),
+  "version": zod.number().int().min(updateVaultProfileResponseVersionMin)
+})
+
+
+export const UploadVaultDocumentQueryParams = zod.object({
+  "name": zod.coerce.string(),
+  "folderId": zod.coerce.string()
+})
+
+export const UploadVaultDocumentResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "folderId": zod.string(),
+  "size": zod.number().int(),
+  "type": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['ready', 'stored', 'failed']),
+  "starred": zod.boolean(),
+  "text": zod.string()
+})
+
+
+export const UpdateVaultDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateVaultDocumentBodyNameMax = 200;
+
+
+
+export const UpdateVaultDocumentBody = zod.object({
+  "name": zod.string().min(1).max(updateVaultDocumentBodyNameMax).optional(),
+  "folderId": zod.string().optional(),
+  "starred": zod.boolean().optional()
+})
+
+export const UpdateVaultDocumentResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "folderId": zod.string(),
+  "size": zod.number().int(),
+  "type": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['ready', 'stored', 'failed']),
+  "starred": zod.boolean(),
+  "text": zod.string()
+})
+
+
+export const DeleteVaultDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteVaultDocumentResponse = zod.void()
+
+
+export const DownloadVaultDocumentParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DownloadVaultDocumentResponse = zod.unknown()
+
+
+export const askVaultQuestionBodyQuestionMin = 3;
+export const askVaultQuestionBodyQuestionMax = 2000;
+
+export const askVaultQuestionBodyDocumentIdsMax = 10;
+
+
+
+export const AskVaultQuestionBody = zod.object({
+  "question": zod.string().min(askVaultQuestionBodyQuestionMin).max(askVaultQuestionBodyQuestionMax),
+  "consent": zod.literal(true),
+  "assistantId": zod.string().optional(),
+  "documentIds": zod.array(zod.string()).max(askVaultQuestionBodyDocumentIdsMax).optional()
+})
+
+export const AskVaultQuestionResponse = zod.object({
+  "answer": zod.string(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quote": zod.string()
+}))
+})
+
+
+export const createVaultAssistantBodyNameMax = 100;
+
+export const createVaultAssistantBodyInstructionsMax = 2000;
+
+
+
+export const CreateVaultAssistantBody = zod.object({
+  "name": zod.string().min(1).max(createVaultAssistantBodyNameMax),
+  "instructions": zod.string().max(createVaultAssistantBodyInstructionsMax),
+  "documentIds": zod.array(zod.string())
+})
+
+export const createVaultAssistantResponseOneNameMax = 100;
+
+export const createVaultAssistantResponseOneInstructionsMax = 2000;
+
+
+
+export const CreateVaultAssistantResponse = zod.object({
+  "name": zod.string().min(1).max(createVaultAssistantResponseOneNameMax),
+  "instructions": zod.string().max(createVaultAssistantResponseOneInstructionsMax),
+  "documentIds": zod.array(zod.string())
+}).and(zod.object({
+  "id": zod.string()
+}))
+
+
+export const DeleteVaultAssistantParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteVaultAssistantResponse = zod.void()
+
+
+export const createVaultConnectionBodyNameMax = 100;
+
+
+
+
+export const CreateVaultConnectionBody = zod.object({
+  "name": zod.string().min(1).max(createVaultConnectionBodyNameMax),
+  "scopes": zod.array(zod.enum(['profile:read', 'profile:write', 'documents:read', 'documents:upload'])).min(1),
+  "documentIds": zod.array(zod.string()),
+  "folderIds": zod.array(zod.string())
+})
+
+export const createVaultConnectionResponseConnectionOneNameMax = 100;
+
+
+
+
+export const CreateVaultConnectionResponse = zod.object({
+  "connection": zod.object({
+  "name": zod.string().min(1).max(createVaultConnectionResponseConnectionOneNameMax),
+  "scopes": zod.array(zod.enum(['profile:read', 'profile:write', 'documents:read', 'documents:upload'])).min(1),
+  "documentIds": zod.array(zod.string()),
+  "folderIds": zod.array(zod.string())
+}).and(zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "expiresAt": zod.string(),
+  "revoked": zod.boolean()
+})),
+  "token": zod.string()
+})
+
+
+export const RevokeVaultConnectionParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const RevokeVaultConnectionResponse = zod.void()
+
+
+/**
  * @summary Preview-only BG001 chat via real Hermes and server-configured Claude
  */
 export const runHermesBg001ChatBodyQuestionMin = 5;

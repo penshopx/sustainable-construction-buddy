@@ -5,6 +5,171 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type VaultDocumentMetadataStatus = typeof VaultDocumentMetadataStatus[keyof typeof VaultDocumentMetadataStatus];
+
+
+export const VaultDocumentMetadataStatus = {
+  ready: 'ready',
+  stored: 'stored',
+  failed: 'failed',
+} as const;
+
+export interface VaultDocumentMetadata {
+  id: string;
+  name: string;
+  folderId: string;
+  size: number;
+  type: string;
+  createdAt: string;
+  status: VaultDocumentMetadataStatus;
+  starred: boolean;
+}
+
+export interface VaultFolderInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name: string;
+}
+
+export interface VaultFolder {
+  id: string;
+  name: string;
+  count: number;
+}
+
+export interface VaultProfile {
+  /** @maxLength 200 */
+  name: string;
+  /** @maxLength 40 */
+  nib: string;
+  /** @maxLength 1000 */
+  address: string;
+  /** @minimum 0 */
+  version: number;
+}
+
+export type VaultDocumentStatus = typeof VaultDocumentStatus[keyof typeof VaultDocumentStatus];
+
+
+export const VaultDocumentStatus = {
+  ready: 'ready',
+  stored: 'stored',
+  failed: 'failed',
+} as const;
+
+export interface VaultDocument {
+  id: string;
+  name: string;
+  folderId: string;
+  size: number;
+  type: string;
+  createdAt: string;
+  status: VaultDocumentStatus;
+  starred: boolean;
+  text: string;
+}
+
+export interface VaultDocumentUpdate {
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name?: string;
+  folderId?: string;
+  starred?: boolean;
+}
+
+export interface VaultAssistantInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  /** @maxLength 2000 */
+  instructions: string;
+  documentIds: string[];
+}
+
+export type VaultAssistant = VaultAssistantInput & {
+  id: string;
+};
+
+export interface VaultQuestionInput {
+  /**
+     * @minLength 3
+     * @maxLength 2000
+     */
+  question: string;
+  consent: true;
+  assistantId?: string;
+  /** @maxItems 10 */
+  documentIds?: string[];
+}
+
+export interface VaultSource {
+  id: string;
+  name: string;
+  quote: string;
+}
+
+export interface VaultAnswer {
+  answer: string;
+  sources: VaultSource[];
+}
+
+export type VaultConnectionInputScopesItem = typeof VaultConnectionInputScopesItem[keyof typeof VaultConnectionInputScopesItem];
+
+
+export const VaultConnectionInputScopesItem = {
+  'profile:read': 'profile:read',
+  'profile:write': 'profile:write',
+  'documents:read': 'documents:read',
+  'documents:upload': 'documents:upload',
+} as const;
+
+export interface VaultConnectionInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  /** @minItems 1 */
+  scopes: VaultConnectionInputScopesItem[];
+  documentIds: string[];
+  folderIds: string[];
+}
+
+export type VaultConnection = VaultConnectionInput & {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  revoked: boolean;
+};
+
+export interface VaultConnectionCreated {
+  connection: VaultConnection;
+  token: string;
+}
+
+export interface VaultActivity {
+  id: string;
+  action: string;
+  createdAt: string;
+}
+
+export interface VaultWorkspace {
+  folders: VaultFolder[];
+  documents: VaultDocument[];
+  profile: VaultProfile;
+  assistants: VaultAssistant[];
+  connections: VaultConnection[];
+  activities: VaultActivity[];
+  usedBytes: number;
+  limitBytes: number;
+}
+
 export type OperatorPilotInputOperation = typeof OperatorPilotInputOperation[keyof typeof OperatorPilotInputOperation];
 
 
@@ -646,4 +811,14 @@ export type ChatUnavailableResponse = ChatError;
  * Upstream request timed out
  */
 export type ChatTimeoutResponse = ChatError;
+
+export type UploadVaultExternalDocumentParams = {
+name: string;
+folderId: string;
+};
+
+export type UploadVaultDocumentParams = {
+name: string;
+folderId: string;
+};
 

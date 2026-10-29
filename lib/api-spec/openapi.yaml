@@ -13,6 +13,244 @@ tags:
   - name: chat
     description: Public helpdesk and capability-link chatbots
 paths:
+  /ruang-simpan/external/profile:
+    get:
+      operationId: getVaultExternalProfile
+      tags: [vault-external]
+      security: [{ vaultToken: [] }]
+      summary: Read profile with profile:read permission
+      responses:
+        "200":
+          description: Official company profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultProfile" }
+    put:
+      operationId: updateVaultExternalProfile
+      tags: [vault-external]
+      security: [{ vaultToken: [] }]
+      summary: Update profile with profile:write and matching version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultProfile" }
+      responses:
+        "200":
+          description: Saved profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultProfile" }
+  /ruang-simpan/external/documents:
+    get:
+      operationId: listVaultExternalDocuments
+      tags: [vault-external]
+      security: [{ vaultToken: [] }]
+      summary: Only explicitly selected document metadata; requires documents:read
+      responses:
+        "200":
+          description: Selected metadata without private extracted text
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/VaultDocumentMetadata" }
+    post:
+      operationId: uploadVaultExternalDocument
+      tags: [vault-external]
+      security: [{ vaultToken: [] }]
+      summary: Upload only into selected folders; requires documents:upload
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string } }
+        - { name: folderId, in: query, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Stored private file
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultDocument" }
+  /ruang-simpan/external/documents/{id}/download:
+    get:
+      operationId: downloadVaultExternalDocument
+      tags: [vault-external]
+      security: [{ vaultToken: [] }]
+      summary: Download selected document with documents:read permission
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Private attachment
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /ruang-simpan/workspace:
+    get:
+      operationId: getVaultWorkspace
+      tags: [vault]
+      responses:
+        "200":
+          description: Private workspace for signed-in user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultWorkspace" }
+  /ruang-simpan/folders:
+    post:
+      operationId: createVaultFolder
+      tags: [vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultFolderInput" }
+      responses:
+        "200":
+          description: Created folder
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultFolder" }
+  /ruang-simpan/folders/{id}:
+    delete:
+      operationId: deleteVaultFolder
+      tags: [vault]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted empty folder }
+  /ruang-simpan/profile:
+    put:
+      operationId: updateVaultProfile
+      tags: [vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultProfile" }
+      responses:
+        "200":
+          description: Saved profile; stale version returns 409
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultProfile" }
+  /ruang-simpan/documents:
+    post:
+      operationId: uploadVaultDocument
+      tags: [vault]
+      parameters:
+        - { name: name, in: query, required: true, schema: { type: string } }
+        - { name: folderId, in: query, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Uploaded private document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultDocument" }
+  /ruang-simpan/documents/{id}:
+    patch:
+      operationId: updateVaultDocument
+      tags: [vault]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultDocumentUpdate" }
+      responses:
+        "200":
+          description: Updated document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultDocument" }
+    delete:
+      operationId: deleteVaultDocument
+      tags: [vault]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Permanently removed }
+  /ruang-simpan/documents/{id}/download:
+    get:
+      operationId: downloadVaultDocument
+      tags: [vault]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Private attachment
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+  /ruang-simpan/questions:
+    post:
+      operationId: askVaultQuestion
+      tags: [vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultQuestionInput" }
+      responses:
+        "200":
+          description: Grounded answer with cited sources
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultAnswer" }
+  /ruang-simpan/assistants:
+    post:
+      operationId: createVaultAssistant
+      tags: [vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultAssistantInput" }
+      responses:
+        "200":
+          description: Saved assistant
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultAssistant" }
+  /ruang-simpan/assistants/{id}:
+    delete:
+      operationId: deleteVaultAssistant
+      tags: [vault]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted assistant }
+  /ruang-simpan/connections:
+    post:
+      operationId: createVaultConnection
+      tags: [vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultConnectionInput" }
+      responses:
+        "200":
+          description: Token shown only once
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultConnectionCreated" }
+  /ruang-simpan/connections/{id}:
+    delete:
+      operationId: revokeVaultConnection
+      tags: [vault]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Revoked access }
   /operator/hermes/bg001-chat:
     post:
       operationId: runHermesBg001Chat
@@ -383,6 +621,10 @@ components:
         type: string
         pattern: "^[A-Za-z0-9_-]{8,80}$"
   securitySchemes:
+    vaultToken:
+      type: http
+      scheme: bearer
+      description: Server-only scoped app token, valid 90 days unless revoked
     memberBearer:
       type: http
       scheme: bearer
@@ -428,6 +670,138 @@ components:
           schema:
             $ref: "#/components/schemas/ChatError"
   schemas:
+    VaultDocumentMetadata:
+      type: object
+      required: [id, name, folderId, size, type, createdAt, status, starred]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        folderId: { type: string }
+        size: { type: integer }
+        type: { type: string }
+        createdAt: { type: string }
+        status: { type: string, enum: [ready, stored, failed] }
+        starred: { type: boolean }
+    VaultFolderInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+    VaultFolder:
+      type: object
+      required: [id, name, count]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        count: { type: integer }
+    VaultProfile:
+      type: object
+      required: [name, nib, address, version]
+      properties:
+        name: { type: string, maxLength: 200 }
+        nib: { type: string, maxLength: 40 }
+        address: { type: string, maxLength: 1000 }
+        version: { type: integer, minimum: 0 }
+    VaultDocument:
+      type: object
+      required: [id, name, folderId, size, type, createdAt, status, starred, text]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        folderId: { type: string }
+        size: { type: integer }
+        type: { type: string }
+        createdAt: { type: string }
+        status: { type: string, enum: [ready, stored, failed] }
+        starred: { type: boolean }
+        text: { type: string }
+    VaultDocumentUpdate:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        folderId: { type: string }
+        starred: { type: boolean }
+    VaultAssistantInput:
+      type: object
+      required: [name, instructions, documentIds]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        instructions: { type: string, maxLength: 2000 }
+        documentIds: { type: array, items: { type: string } }
+    VaultAssistant:
+      allOf:
+        - { $ref: "#/components/schemas/VaultAssistantInput" }
+        - type: object
+          required: [id]
+          properties:
+            id: { type: string }
+    VaultQuestionInput:
+      type: object
+      required: [question, consent]
+      properties:
+        question: { type: string, minLength: 3, maxLength: 2000 }
+        consent: { type: boolean, enum: [true] }
+        assistantId: { type: string }
+        documentIds: { type: array, maxItems: 10, items: { type: string } }
+    VaultSource:
+      type: object
+      required: [id, name, quote]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        quote: { type: string }
+    VaultAnswer:
+      type: object
+      required: [answer, sources]
+      properties:
+        answer: { type: string }
+        sources: { type: array, items: { $ref: "#/components/schemas/VaultSource" } }
+    VaultConnectionInput:
+      type: object
+      required: [name, scopes, documentIds, folderIds]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        scopes:
+          type: array
+          minItems: 1
+          items: { type: string, enum: [profile:read, profile:write, documents:read, documents:upload] }
+        documentIds: { type: array, items: { type: string } }
+        folderIds: { type: array, items: { type: string } }
+    VaultConnection:
+      allOf:
+        - { $ref: "#/components/schemas/VaultConnectionInput" }
+        - type: object
+          required: [id, createdAt, expiresAt, revoked]
+          properties:
+            id: { type: string }
+            createdAt: { type: string }
+            expiresAt: { type: string }
+            revoked: { type: boolean }
+    VaultConnectionCreated:
+      type: object
+      required: [connection, token]
+      properties:
+        connection: { $ref: "#/components/schemas/VaultConnection" }
+        token: { type: string }
+    VaultActivity:
+      type: object
+      required: [id, action, createdAt]
+      properties:
+        id: { type: string }
+        action: { type: string }
+        createdAt: { type: string }
+    VaultWorkspace:
+      type: object
+      required: [folders, documents, profile, assistants, connections, activities, usedBytes, limitBytes]
+      properties:
+        folders: { type: array, items: { $ref: "#/components/schemas/VaultFolder" } }
+        documents: { type: array, items: { $ref: "#/components/schemas/VaultDocument" } }
+        profile: { $ref: "#/components/schemas/VaultProfile" }
+        assistants: { type: array, items: { $ref: "#/components/schemas/VaultAssistant" } }
+        connections: { type: array, items: { $ref: "#/components/schemas/VaultConnection" } }
+        activities: { type: array, items: { $ref: "#/components/schemas/VaultActivity" } }
+        usedBytes: { type: integer }
+        limitBytes: { type: integer }
     OperatorPilotInput:
       type: object
       additionalProperties: false
