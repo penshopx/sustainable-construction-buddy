@@ -20,4 +20,4 @@
 - [Bukti kutipan knowledge base](knowledge-citation-evidence.md) — ID dokumen yang benar belum membuktikan halaman relevan; uji teks bukti setelah pemangkasan konteks.
 - [Harness bukan Hermes](harness-terminology.md) — “Harnes” sebagai colokan/penghubung berarti lapisan harness; jangan otomatis menafsirkannya sebagai Hermes AI.
 - [Tujuan rilis produksi](production-release-target.md) — ref disahkan pemilik untuk konfigurasi produksi; izin tersebut bukan izin publikasi.
-- [Pemisahan Ruang Simpan](ruang-simpan-product-scope.md) — produk mandiri, bukan modul PUB ASPEKINDO; infrastruktur bersama tidak menyatukan akun atau data.
+- [Ruang Simpan sebagai acuan PUB](ruang-simpan-product-scope.md) — sumber kebenaran utama untuk PUB ASPEKINDO, bukan produk terpisah; tidak terintegrasi ke Gustafta.

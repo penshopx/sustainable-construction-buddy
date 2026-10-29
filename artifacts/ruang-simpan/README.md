@@ -1,8 +1,13 @@
 # Ruang Simpan
 
-Aplikasi mandiri di `/ruang-simpan/`. Produk ini tidak mengganti atau memakai
-akun anggota PUB ASPEKINDO. Infrastruktur API bersama dipakai melalui namespace
-`/api/ruang-simpan`; akun Clerk dan metadata ruang kerja terpisah dari Supabase PUB.
+Ruang Simpan di `/ruang-simpan/` diarahkan menjadi sumber kebenaran utama
+bagi PUB ASPEKINDO, bukan produk terpisah dari PUB. Gustafta hanya referensi
+fitur dan tampilan: tidak ada integrasi atau pertukaran data dengannya.
+
+Implementasi awal masih memakai login Clerk dan metadata ruang kerja terpisah
+dari Supabase PUB. Penyatuan akun dan aliran data ke PUB belum diterapkan;
+jangan menganggap kedua akun sudah terhubung atau memindahkan kepemilikan
+dokumen secara otomatis.
 
 ## Fitur aktif
 

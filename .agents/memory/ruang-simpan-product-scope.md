@@ -1,10 +1,10 @@
 ---
-name: Pemisahan produk Ruang Simpan
-description: Batas produk mandiri Ruang Simpan terhadap PUB ASPEKINDO.
+name: Ruang Simpan sebagai acuan PUB
+description: Hubungan Ruang Simpan dengan PUB ASPEKINDO dan batas terhadap Gustafta.
 ---
 
-Ruang Simpan adalah aplikasi terpisah, bukan modul PUB ASPEKINDO.
+Ruang Simpan menjadi sumber kebenaran utama bagi aplikasi PUB ASPEKINDO, bukan produk yang terpisah dari PUB. Ruang Simpan tidak terintegrasi dengan aplikasi Gustafta.
 
-**Why:** Pengguna memilih “Buat aplikasi terpisah” ketika diberi pilihan lokasi fitur. Identitas anggota dan dokumen bisnis jangan digabung tanpa persetujuan baru.
+**Why:** Pengguna mengoreksi penafsiran awal “aplikasi terpisah”: yang dimaksud bukan terpisah dari PUB, melainkan tidak terintegrasi dengan Gustafta.
 
-**How to apply:** Pertahankan merek serta batas kepemilikan datanya sendiri. Memakai infrastruktur bersama bukan izin untuk menghubungkan data atau akun kedua produk secara otomatis.
+**How to apply:** Arahkan integrasi ke PUB, bukan Gustafta. URL Gustafta hanya referensi. Pastikan cakupan data otoritatif sebelum mengganti sumber data PUB; penyatuan akses tidak boleh membuka dokumen lintas pemilik atau memindahkan kepemilikan otomatis.
