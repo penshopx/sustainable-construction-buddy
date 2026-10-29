@@ -1,5 +1,25 @@
 const maxDiagnosticBytes = 16 * 1024;
 const diagnosticUrlPattern = /(?:https?|postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|cockroachdb):\/\/[^\s"'<>]+/gi;
+// Normalize parameter names only; leave the useful URL structure and values intact.
+const sensitiveUrlParameters = new Set([
+  "token", "accesstoken", "refreshtoken", "idtoken", "signedtoken", "jwt",
+  "apikey", "password", "passwd", "secret", "clientsecret", "authorization",
+  "authcode", "code", "signature", "sig",
+  "xamzsignature", "xamzcredential", "xamzsecuritytoken",
+  "xgoogsignature", "xgoogcredential", "googleaccessid", "awsaccesskeyid",
+  "policy", "keypairid",
+]);
+
+function redactUrlParameter(match, prefix, name, value) {
+  let normalizedName;
+  try {
+    normalizedName = decodeURIComponent(name).replace(/[_-]/g, "").toLowerCase();
+  } catch {
+    // Malformed names cannot be classified safely.
+    return `${prefix}${name}=[REDACTED]`;
+  }
+  return `${prefix}${name}=${sensitiveUrlParameters.has(normalizedName) ? "[REDACTED]" : value}`;
+}
 const sensitiveValues = Object.entries(process.env)
   .filter(([name, value]) =>
     (/(?:SECRET|TOKEN|PASSWORD|PASSWD|KEY|CREDENTIAL|DATABASE_URL|AUTHORIZATION)/i.test(name) ||
@@ -62,8 +82,8 @@ export function safeDiagnostic({ text, truncated }) {
     url
       .replace(/^([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+:[^\s/@]+@/i, "$1[REDACTED]@")
       .replace(
-        /([?&#](?:access[_-]?token|refresh[_-]?token|id[_-]?token|api[_-]?key|password|passwd|secret|client[_-]?secret|authorization|auth[_-]?code|code)=)[^&#\s"'<>]*/gi,
-        "$1[REDACTED]",
+        /([?&#])([^=&#\s"'<>]+)=([^&#\s"'<>]*)/g,
+        redactUrlParameter,
       ));
   const bytes = Buffer.from(output);
   if (bytes.length > maxDiagnosticBytes) {

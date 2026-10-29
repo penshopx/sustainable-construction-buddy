@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import test from "node:test";
+import { signedUrlDetail, assertSignedUrlDiagnostics } from "./signed-url-diagnostics-fixtures.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publisherPath = path.join(rootDir, "scripts", "publish-competency-insight.mjs");
@@ -477,4 +478,23 @@ test("long failure output preserves final details without leaking a secret acros
   assert.match(diagnostics.stderr, /AssertionError: published function did not respond$/);
   assert.ok(Buffer.byteLength(diagnostics.stderr) < 17 * 1024);
   assert.ok(Buffer.byteLength(diagnostics.stdout) < 17 * 1024);
+});
+
+test("deployment and probe redact signed URL parameters in short and truncated JSON diagnostics", async (t) => {
+  for (const [scenario, step, exitCode] of [
+    ["deployment-failure", "deployment", 17],
+    ["probe-failure", "live_probe", 23],
+  ]) {
+    for (const truncated of [false, true]) {
+      const fakeNpm = await createFakeNpm(t);
+      const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+      const detail = signedUrlDetail(truncated, publicationOverlap);
+      const result = await runPublisher({
+        ...fakeNpm, scriptPath, scenario, detail, stdoutDetail: detail,
+      });
+      const failure = assertSignedUrlDiagnostics(result, truncated);
+      assert.equal(failure.step, step);
+      assert.equal(failure.diagnostics.exitCode, exitCode);
+    }
+  }
 });

@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import test from "node:test";
+import { signedUrlDetail, assertSignedUrlDiagnostics } from "./signed-url-diagnostics-fixtures.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(rootDir, "scripts", "validate-competency-insight.mjs");
@@ -104,7 +105,7 @@ exit 0
   return { directory, npmPath, tracePath };
 }
 
-function runValidator({ npmPath, tracePath, scenario }) {
+function runValidator({ npmPath, tracePath, scenario, detail = terminalDetail }) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [validatorPath], {
       cwd: rootDir,
@@ -112,7 +113,7 @@ function runValidator({ npmPath, tracePath, scenario }) {
         PATH: `${path.dirname(npmPath)}${path.delimiter}${process.env.PATH ?? ""}`,
         VALIDATION_TRACE_FILE: tracePath,
         FAKE_VALIDATION_SCENARIO: scenario,
-        FAKE_TERMINAL_DETAIL: terminalDetail,
+        FAKE_TERMINAL_DETAIL: detail,
         FAKE_CUTOFF_URL_DETAIL: cutoffDetail("AssertionError: final contract assertion"),
         VALIDATION_TEST_SECRET: "sensitive-test-value-123",
         SUPABASE_SERVICE_ROLE_KEY: "privileged-service-key-value-123",
@@ -237,6 +238,21 @@ test("contract failure drops URL password fragments when capture starts inside a
     assert.equal(result.stderr.includes(fragment), false, `${fragment} must not appear in the JSON log`);
   }
   assert.deepEqual(await readTrace(fakeNpm.tracePath), ["run --silent test:insight"]);
+});
+
+test("validator redacts signed URL parameters in short and truncated JSON diagnostics", async (t) => {
+  for (const truncated of [false, true]) {
+    const fakeNpm = await createFakeNpm(t);
+    const result = await runValidator({
+      ...fakeNpm,
+      scenario: "terminal-url-failure",
+      detail: signedUrlDetail(truncated, validationOverlap),
+    });
+    const failure = assertSignedUrlDiagnostics(result, truncated);
+    assert.equal(failure.step, "contract");
+    assert.equal(failure.diagnostics.exitCode, 17);
+    assert.deepEqual(await readTrace(fakeNpm.tracePath), ["run --silent test:insight"]);
+  }
 });
 
 test("long failures keep the final assertion without flooding logs", async (t) => {
