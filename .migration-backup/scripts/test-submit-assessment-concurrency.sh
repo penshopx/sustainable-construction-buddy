@@ -85,26 +85,24 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
 fi
 TEST_OTHER_USER_ID="$(jq -r '.id' "$TMP_DIR/other-created.json")"
 
-"${PSQL[@]}" >/dev/null <<SQL
-INSERT INTO auth.users (
-  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
-)
-VALUES
-  (
-    '$TEST_ADMIN_USER_ID',
-    '00000000-0000-0000-0000-000000000000',
-    'authenticated',
-    'authenticated',
-    'assessment-admin@example.invalid',
-    '',
-    now(),
-    '{}'::jsonb,
-    '{"full_name":"Assessment Admin"}'::jsonb,
-    now(),
-    now()
-  );
+# The admin also needs a real Auth identity for the HTTP replay check.
+ADMIN_PASSWORD="$(openssl rand -hex 24)"
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/admin-created.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/admin/users" \
+  --header "apikey: $TEST_SUPABASE_SERVICE_ROLE_KEY" \
+  --header "Authorization: Bearer $TEST_SUPABASE_SERVICE_ROLE_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "$(jq -nc --arg password "$ADMIN_PASSWORD" \
+    '{email:"assessment-admin@example.invalid",password:$password,email_confirm:true}')")"
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e '.id | strings | test("^[0-9a-fA-F-]{36}$")' "$TMP_DIR/admin-created.json" >/dev/null; then
+  echo "Could not create the local assessment admin through Auth (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+TEST_ADMIN_USER_ID="$(jq -r '.id' "$TMP_DIR/admin-created.json")"
 
+"${PSQL[@]}" >/dev/null <<SQL
 INSERT INTO public.competency_domains (id, name)
 VALUES ('$TEST_DOMAIN_ID', 'Assessment concurrency test');
 
@@ -1084,6 +1082,10 @@ if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
   exit 1
 fi
 
+# Summary access for an admin must not imply permission to replay the owner's RPC.
+source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
+test_admin_http_replay
+
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/anon-rpc-response.json" --write-out '%{http_code}' \
   --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
@@ -1413,4 +1415,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS including admin revocation tests passed."
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, and direct table RLS including admin revocation tests passed."
