@@ -50,7 +50,9 @@ export default function PublicChatbotPage() {
 
       setStatus("loading");
       try {
-        const response = await fetch(`/api/public-chatbots/${encodeURIComponent(token)}`);
+        const response = await fetch(`/api/public-chatbots/${encodeURIComponent(token)}`, {
+          signal: AbortSignal.timeout(12_000),
+        });
         if (response.status === 410) {
           throw Object.assign(new Error("Chatbot ini sudah tidak aktif atau link-nya sudah dicabut."), { code: "inactive" });
         }
@@ -96,7 +98,8 @@ export default function PublicChatbotPage() {
       const response = await fetch(`/api/public-chatbots/${encodeURIComponent(token)}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages }),
+        body: JSON.stringify({ messages: nextMessages.slice(-10).map((message) => ({ ...message, content: message.content.slice(0, 4000) })) }),
+        signal: AbortSignal.timeout(35_000),
       });
       const data = await response.json().catch(() => null) as { reply?: unknown; error?: unknown } | null;
       const reply = data?.reply;
@@ -205,6 +208,7 @@ export default function PublicChatbotPage() {
             <form onSubmit={sendMessage} className="flex gap-2">
               <Input
                 value={input}
+                maxLength={4000}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Ketik pertanyaan Anda..."
                 disabled={isSending}

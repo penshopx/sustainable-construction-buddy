@@ -229,14 +229,18 @@ async function askAI(messages: { role: string; content: string }[]): Promise<str
     const res = await fetch("/api/helpdesk", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages: messages.slice(-10).map((m) => ({ ...m, content: m.content.slice(0, 4000) })) }),
+      signal: AbortSignal.timeout(35_000),
     });
-    if (!res.ok) return FALLBACK_MSG;
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      return typeof error?.error === "string" ? error.error : `Layanan AI belum tersedia. ${FALLBACK_MSG}`;
+    }
     const data = await res.json();
-    if (!data?.reply) return FALLBACK_MSG;
+    if (typeof data?.reply !== "string" || !data.reply.trim()) return `Layanan AI belum memberikan jawaban. ${FALLBACK_MSG}`;
     return data.reply;
   } catch {
-    return FALLBACK_MSG;
+    return `Layanan AI belum dapat dihubungi. ${FALLBACK_MSG}`;
   }
 }
 
@@ -533,6 +537,7 @@ export default function FloatingChatbot({ variant = "dashboard", initialOpen = f
                       type="text"
                       placeholder="Ketik pertanyaan Anda..."
                       value={chatInput}
+                      maxLength={4000}
                       onChange={(e) => setChatInput(e.target.value)}
                       onKeyDown={handleKeyDown}
                       className="flex-1 px-3 py-2 text-xs rounded-xl bg-muted border border-border text-foreground placeholder:text-muted-foreground font-body focus:outline-none focus:ring-1 focus:ring-pub-sky resize-none"

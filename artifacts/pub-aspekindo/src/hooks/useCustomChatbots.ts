@@ -62,7 +62,7 @@ export function useCustomChatbots(filterMode?: string) {
   const createChatbot = useCallback(async (formData: ChatbotFormData) => {
     if (!user) return null;
 
-    const shareToken = crypto.randomUUID().slice(0, 12);
+    const shareToken = crypto.randomUUID().replace(/-/g, "");
 
     const { data, error } = await supabase
       .from("custom_chatbots")

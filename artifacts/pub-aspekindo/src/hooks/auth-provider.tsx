@@ -11,15 +11,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const profileRequestId = useRef(0);
+  const currentIdentity = useRef<string | null>(null);
+  const mounted = useRef(false);
 
   const fetchProfile = async (userId: string) => {
+    if (!mounted.current || currentIdentity.current !== userId) return;
     const requestId = ++profileRequestId.current;
     const { data } = await supabase
       .from("profiles")
       .select("*")
       .eq("user_id", userId)
       .single();
-    if (requestId === profileRequestId.current) {
+    if (mounted.current && currentIdentity.current === userId && requestId === profileRequestId.current) {
       setProfile(data ?? null);
     }
   };
@@ -29,12 +32,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    mounted.current = true;
+    let active = true;
+    let authEventVersion = 0;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!active) return;
+        authEventVersion += 1;
         if (event === "SIGNED_OUT") {
           try { clearLocalAssessmentDrafts(localStorage); } catch { /* Storage is unavailable. */ }
         }
         profileRequestId.current += 1;
+        currentIdentity.current = session?.user.id ?? null;
         setSession(session);
         setUser(session?.user ?? null);
         setProfile(null);
@@ -45,23 +54,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
+    const restoreVersion = authEventVersion;
     void supabase.auth.getSession()
       .then(({ data: { session } }) => {
+        if (!active || restoreVersion !== authEventVersion) return;
         profileRequestId.current += 1;
+        currentIdentity.current = session?.user.id ?? null;
         setSession(session);
         setUser(session?.user ?? null);
         setProfile(null);
         if (session?.user) void fetchProfile(session.user.id);
       })
-      .catch((error: unknown) => {
-        console.error("Gagal memulihkan sesi autentikasi:", error);
+      .catch(() => {
+        if (!active || restoreVersion !== authEventVersion) return;
+        console.error("Gagal memulihkan sesi autentikasi.");
+        currentIdentity.current = null;
         setSession(null);
         setUser(null);
         setProfile(null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (active && restoreVersion === authEventVersion) setLoading(false); });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted.current = false;
+      active = false;
+      currentIdentity.current = null;
+      profileRequestId.current += 1;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {

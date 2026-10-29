@@ -75,6 +75,27 @@ The publisher refuses to deploy if the release ref is missing, invalid, or
 different from the TOML `project_id`. Do not derive this release setting from
 the TOML file.
 
+The release owner must confirm the production destination and authorize setting
+`SUPABASE_PROJECT_REF` in the **production** environment. This environment
+setting is managed independently of the Supabase TOML file; development/shared
+values are not substituted by the publisher. Changing the production destination
+requires a fresh owner confirmation. Configuration approval is not approval to
+publish.
+
+To validate the configuration without publishing, run this in the release
+environment (where `SUPABASE_PROJECT_REF` is already set):
+
+```sh
+npm run check:release-config
+```
+
+This uses the same ref checks as the publisher, but does not run Supabase CLI,
+deploy, or the live probe. A successful result says `deployment: "not_started"`;
+it is not proof of a production publication. Wrong, invalid, or missing refs
+still return a non-zero exit status. Unknown CLI flags are rejected rather than
+falling through to deployment. Configuration checks require no production
+credentials; automated publication-gate tests use isolated synthetic credentials.
+
 The release runs the standard insight validator, TypeScript check, and
 frontend build, then invokes `npm run publish:insight`. The standard validator
 covers the local contract tests and publication gate. That publisher deploys

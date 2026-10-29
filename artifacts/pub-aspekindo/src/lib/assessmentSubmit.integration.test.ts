@@ -19,6 +19,7 @@ test.before(async () => {
   process.env.BASE_PATH ||= "/";
   server = await createServer({
     configFile: new URL("../../vite.config.ts", import.meta.url).pathname,
+    optimizeDeps: { noDiscovery: true, include: [] },
     server: { middlewareMode: true },
     appType: "custom",
   });

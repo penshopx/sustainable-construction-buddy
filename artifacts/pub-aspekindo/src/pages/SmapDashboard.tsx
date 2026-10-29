@@ -5,6 +5,7 @@ import SuratPernyataanTab from "@/components/smap/SuratPernyataanTab";
 import SertifikatIsoTab from "@/components/smap/SertifikatIsoTab";
 import PendidikanAntikorupsiTab from "@/components/smap/PendidikanAntikorupsiTab";
 import PancekAssessment from "@/pages/PancekAssessment";
+import SmapPilotPanel from "@/components/smap/SmapPilotPanel";
 
 export default function SmapDashboard() {
   const [tab, setTab] = useState("pancek");
@@ -25,6 +26,9 @@ export default function SmapDashboard() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="flex flex-wrap h-auto gap-1">
+          {import.meta.env.DEV && <TabsTrigger value="pilot" className="gap-2 text-xs sm:text-sm">
+            <ShieldCheck className="w-4 h-4" /> Pilot AI baca-saja
+          </TabsTrigger>}
           <TabsTrigger value="pancek" className="gap-2 text-xs sm:text-sm">
             <ShieldAlert className="w-4 h-4" /> PANCEK KPK
           </TabsTrigger>
@@ -38,6 +42,10 @@ export default function SmapDashboard() {
             <GraduationCap className="w-4 h-4" /> Pendidikan Anti Korupsi
           </TabsTrigger>
         </TabsList>
+
+        {import.meta.env.DEV && <TabsContent value="pilot" className="mt-6">
+          <SmapPilotPanel />
+        </TabsContent>}
 
         <TabsContent value="pancek" className="mt-6">
           <PancekAssessment />

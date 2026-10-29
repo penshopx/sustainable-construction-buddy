@@ -6,21 +6,48 @@
  * OpenAPI spec version: 0.1.0
  */
 import {
+  useMutation,
   useQuery
 } from '@tanstack/react-query';
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult
 } from '@tanstack/react-query';
 
 import type {
-  HealthStatus
+  ChatBadRequestResponse,
+  ChatError,
+  ChatInput,
+  ChatNotFoundResponse,
+  ChatRateLimitedResponse,
+  ChatReply,
+  ChatTimeoutResponse,
+  ChatUnavailableResponse,
+  HealthStatus,
+  HelpdeskInput,
+  HermesBg001ChatInput,
+  HermesBg001ChatResult,
+  HermesLocalCheckInput,
+  HermesLocalCheckResult,
+  HermesSchemeLocalCheckResult,
+  OperatorPilotErrorResponse,
+  OperatorPilotInput,
+  OperatorPilotJob,
+  OperatorPilotSubmission,
+  PublicChatbot,
+  SchemeReferenceBank,
+  SmapPilotDocuments,
+  SmapPilotInput,
+  SmapPilotResult
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
-import type { ErrorType } from '../custom-fetch';
+import type { ErrorType , BodyType } from '../custom-fetch';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -45,6 +72,586 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getRunHermesBg001ChatUrl = () => {
+
+
+
+
+  return `/api/operator/hermes/bg001-chat`
+}
+
+/**
+ * @summary Preview-only BG001 chat via real Hermes and server-configured Claude
+ */
+export const runHermesBg001Chat = async (hermesBg001ChatInput: HermesBg001ChatInput, options?: Parameters<typeof customFetch>[1]): Promise<HermesBg001ChatResult> => {
+
+  return customFetch<HermesBg001ChatResult>(getRunHermesBg001ChatUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(hermesBg001ChatInput)
+  }
+);}
+
+
+
+
+
+export const getRunHermesBg001ChatMutationOptions = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runHermesBg001Chat>>, TError,{data: BodyType<HermesBg001ChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runHermesBg001Chat>>, TError,{data: BodyType<HermesBg001ChatInput>}, TContext> => {
+
+const mutationKey = ['runHermesBg001Chat'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runHermesBg001Chat>>, {data: BodyType<HermesBg001ChatInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runHermesBg001Chat(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunHermesBg001ChatMutationResult = NonNullable<Awaited<ReturnType<typeof runHermesBg001Chat>>>
+    export type RunHermesBg001ChatMutationBody = BodyType<HermesBg001ChatInput>
+    export type RunHermesBg001ChatMutationError = ErrorType<OperatorPilotErrorResponse>
+
+    /**
+ * @summary Preview-only BG001 chat via real Hermes and server-configured Claude
+ */
+export const useRunHermesBg001Chat = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runHermesBg001Chat>>, TError,{data: BodyType<HermesBg001ChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runHermesBg001Chat>>,
+        TError,
+        {data: BodyType<HermesBg001ChatInput>},
+        TContext
+      > => {
+      return useMutation(getRunHermesBg001ChatMutationOptions(options));
+    }
+
+export const getRunHermesBg001CheckUrl = () => {
+
+
+
+
+  return `/api/operator/hermes/bg001-check`
+}
+
+/**
+ * @summary Preview-only real Hermes with uploaded BG001 references and a local response fixture
+ */
+export const runHermesBg001Check = async (hermesLocalCheckInput: HermesLocalCheckInput, options?: Parameters<typeof customFetch>[1]): Promise<HermesSchemeLocalCheckResult> => {
+
+  return customFetch<HermesSchemeLocalCheckResult>(getRunHermesBg001CheckUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(hermesLocalCheckInput)
+  }
+);}
+
+
+
+
+
+export const getRunHermesBg001CheckMutationOptions = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runHermesBg001Check>>, TError,{data: BodyType<HermesLocalCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runHermesBg001Check>>, TError,{data: BodyType<HermesLocalCheckInput>}, TContext> => {
+
+const mutationKey = ['runHermesBg001Check'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runHermesBg001Check>>, {data: BodyType<HermesLocalCheckInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runHermesBg001Check(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunHermesBg001CheckMutationResult = NonNullable<Awaited<ReturnType<typeof runHermesBg001Check>>>
+    export type RunHermesBg001CheckMutationBody = BodyType<HermesLocalCheckInput>
+    export type RunHermesBg001CheckMutationError = ErrorType<OperatorPilotErrorResponse>
+
+    /**
+ * @summary Preview-only real Hermes with uploaded BG001 references and a local response fixture
+ */
+export const useRunHermesBg001Check = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runHermesBg001Check>>, TError,{data: BodyType<HermesLocalCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runHermesBg001Check>>,
+        TError,
+        {data: BodyType<HermesLocalCheckInput>},
+        TContext
+      > => {
+      return useMutation(getRunHermesBg001CheckMutationOptions(options));
+    }
+
+export const getRunHermesLocalCheckUrl = () => {
+
+
+
+
+  return `/api/operator/hermes/local-check`
+}
+
+/**
+ * @summary Preview-only real Hermes worker with synthetic data and a local mock provider
+ */
+export const runHermesLocalCheck = async (hermesLocalCheckInput: HermesLocalCheckInput, options?: Parameters<typeof customFetch>[1]): Promise<HermesLocalCheckResult> => {
+
+  return customFetch<HermesLocalCheckResult>(getRunHermesLocalCheckUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(hermesLocalCheckInput)
+  }
+);}
+
+
+
+
+
+export const getRunHermesLocalCheckMutationOptions = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runHermesLocalCheck>>, TError,{data: BodyType<HermesLocalCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runHermesLocalCheck>>, TError,{data: BodyType<HermesLocalCheckInput>}, TContext> => {
+
+const mutationKey = ['runHermesLocalCheck'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runHermesLocalCheck>>, {data: BodyType<HermesLocalCheckInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  runHermesLocalCheck(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunHermesLocalCheckMutationResult = NonNullable<Awaited<ReturnType<typeof runHermesLocalCheck>>>
+    export type RunHermesLocalCheckMutationBody = BodyType<HermesLocalCheckInput>
+    export type RunHermesLocalCheckMutationError = ErrorType<OperatorPilotErrorResponse>
+
+    /**
+ * @summary Preview-only real Hermes worker with synthetic data and a local mock provider
+ */
+export const useRunHermesLocalCheck = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runHermesLocalCheck>>, TError,{data: BodyType<HermesLocalCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runHermesLocalCheck>>,
+        TError,
+        {data: BodyType<HermesLocalCheckInput>},
+        TContext
+      > => {
+      return useMutation(getRunHermesLocalCheckMutationOptions(options));
+    }
+
+export const getCreateOperatorPilotJobUrl = () => {
+
+
+
+
+  return `/api/operator/pilot/jobs`
+}
+
+/**
+ * @summary Super-admin-only preview simulation; no AI or member data
+ */
+export const createOperatorPilotJob = async (operatorPilotInput: OperatorPilotInput, options?: Parameters<typeof customFetch>[1]): Promise<OperatorPilotSubmission> => {
+
+  return customFetch<OperatorPilotSubmission>(getCreateOperatorPilotJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(operatorPilotInput)
+  }
+);}
+
+
+
+
+
+export const getCreateOperatorPilotJobMutationOptions = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOperatorPilotJob>>, TError,{data: BodyType<OperatorPilotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOperatorPilotJob>>, TError,{data: BodyType<OperatorPilotInput>}, TContext> => {
+
+const mutationKey = ['createOperatorPilotJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOperatorPilotJob>>, {data: BodyType<OperatorPilotInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOperatorPilotJob(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOperatorPilotJobMutationResult = NonNullable<Awaited<ReturnType<typeof createOperatorPilotJob>>>
+    export type CreateOperatorPilotJobMutationBody = BodyType<OperatorPilotInput>
+    export type CreateOperatorPilotJobMutationError = ErrorType<OperatorPilotErrorResponse>
+
+    /**
+ * @summary Super-admin-only preview simulation; no AI or member data
+ */
+export const useCreateOperatorPilotJob = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOperatorPilotJob>>, TError,{data: BodyType<OperatorPilotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createOperatorPilotJob>>,
+        TError,
+        {data: BodyType<OperatorPilotInput>},
+        TContext
+      > => {
+      return useMutation(getCreateOperatorPilotJobMutationOptions(options));
+    }
+
+export const getGetOperatorPilotJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/api/operator/pilot/jobs/${jobId}`
+}
+
+/**
+ * @summary Reverify super-admin access and return only the caller's simulation
+ */
+export const getOperatorPilotJob = async (jobId: string, options?: Parameters<typeof customFetch>[1]): Promise<OperatorPilotJob> => {
+
+  return customFetch<OperatorPilotJob>(getGetOperatorPilotJobUrl(jobId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOperatorPilotJobQueryKey = (jobId: string,) => {
+    return [
+    `/api/operator/pilot/jobs/${jobId}`
+    ] as const;
+    }
+
+
+export const getGetOperatorPilotJobQueryOptions = <TData = Awaited<ReturnType<typeof getOperatorPilotJob>>, TError = ErrorType<OperatorPilotErrorResponse>>(jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOperatorPilotJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOperatorPilotJobQueryKey(jobId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOperatorPilotJob>>> = ({ signal }) => getOperatorPilotJob(jobId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: jobId !== null && jobId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOperatorPilotJob>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetOperatorPilotJobQueryResult = NonNullable<Awaited<ReturnType<typeof getOperatorPilotJob>>>
+export type GetOperatorPilotJobQueryError = ErrorType<OperatorPilotErrorResponse>
+
+
+/**
+ * @summary Reverify super-admin access and return only the caller's simulation
+ */
+
+export function useGetOperatorPilotJob<TData = Awaited<ReturnType<typeof getOperatorPilotJob>>, TError = ErrorType<OperatorPilotErrorResponse>>(
+ jobId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getOperatorPilotJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetOperatorPilotJobQueryOptions(jobId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCancelOperatorPilotJobUrl = (jobId: string,) => {
+
+
+
+
+  return `/api/operator/pilot/jobs/${jobId}/cancel`
+}
+
+/**
+ * @summary Reverify super-admin access before cancelling an owned simulation
+ */
+export const cancelOperatorPilotJob = async (jobId: string, options?: Parameters<typeof customFetch>[1]): Promise<OperatorPilotJob> => {
+
+  return customFetch<OperatorPilotJob>(getCancelOperatorPilotJobUrl(jobId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCancelOperatorPilotJobMutationOptions = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelOperatorPilotJob>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelOperatorPilotJob>>, TError,{jobId: string}, TContext> => {
+
+const mutationKey = ['cancelOperatorPilotJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelOperatorPilotJob>>, {jobId: string}> = (props) => {
+          const {jobId} = props ?? {};
+
+          return  cancelOperatorPilotJob(jobId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelOperatorPilotJobMutationResult = NonNullable<Awaited<ReturnType<typeof cancelOperatorPilotJob>>>
+
+    export type CancelOperatorPilotJobMutationError = ErrorType<OperatorPilotErrorResponse>
+
+    /**
+ * @summary Reverify super-admin access before cancelling an owned simulation
+ */
+export const useCancelOperatorPilotJob = <TError = ErrorType<OperatorPilotErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelOperatorPilotJob>>, TError,{jobId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelOperatorPilotJob>>,
+        TError,
+        {jobId: string},
+        TContext
+      > => {
+      return useMutation(getCancelOperatorPilotJobMutationOptions(options));
+    }
+
+export const getListSmapPilotDocumentsUrl = () => {
+
+
+
+
+  return `/api/smap/pilot/documents`
+}
+
+/**
+ * @summary Preview-only owner-scoped SMAP completeness indicators
+ */
+export const listSmapPilotDocuments = async ( options?: Parameters<typeof customFetch>[1]): Promise<SmapPilotDocuments> => {
+
+  return customFetch<SmapPilotDocuments>(getListSmapPilotDocumentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSmapPilotDocumentsQueryKey = () => {
+    return [
+    `/api/smap/pilot/documents`
+    ] as const;
+    }
+
+
+export const getListSmapPilotDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listSmapPilotDocuments>>, TError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSmapPilotDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSmapPilotDocumentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSmapPilotDocuments>>> = ({ signal }) => listSmapPilotDocuments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSmapPilotDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSmapPilotDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof listSmapPilotDocuments>>>
+export type ListSmapPilotDocumentsQueryError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse>
+
+
+/**
+ * @summary Preview-only owner-scoped SMAP completeness indicators
+ */
+
+export function useListSmapPilotDocuments<TData = Awaited<ReturnType<typeof listSmapPilotDocuments>>, TError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSmapPilotDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSmapPilotDocumentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAnalyzeSmapPilotUrl = () => {
+
+
+
+
+  return `/api/smap/pilot/analyze`
+}
+
+/**
+ * @summary Preview-only read-only Hermes analysis through Claude
+ */
+export const analyzeSmapPilot = async (smapPilotInput: SmapPilotInput, options?: Parameters<typeof customFetch>[1]): Promise<SmapPilotResult> => {
+
+  return customFetch<SmapPilotResult>(getAnalyzeSmapPilotUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(smapPilotInput)
+  }
+);}
+
+
+
+
+
+export const getAnalyzeSmapPilotMutationOptions = <TError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeSmapPilot>>, TError,{data: BodyType<SmapPilotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeSmapPilot>>, TError,{data: BodyType<SmapPilotInput>}, TContext> => {
+
+const mutationKey = ['analyzeSmapPilot'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeSmapPilot>>, {data: BodyType<SmapPilotInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  analyzeSmapPilot(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeSmapPilotMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeSmapPilot>>>
+    export type AnalyzeSmapPilotMutationBody = BodyType<SmapPilotInput>
+    export type AnalyzeSmapPilotMutationError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>
+
+    /**
+ * @summary Preview-only read-only Hermes analysis through Claude
+ */
+export const useAnalyzeSmapPilot = <TError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeSmapPilot>>, TError,{data: BodyType<SmapPilotInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeSmapPilot>>,
+        TError,
+        {data: BodyType<SmapPilotInput>},
+        TContext
+      > => {
+      return useMutation(getAnalyzeSmapPilotMutationOptions(options));
+    }
 
 export const getHealthCheckUrl = () => {
 
@@ -123,4 +730,303 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getGetSchemeReferencesUrl = () => {
+
+
+
+
+  return `/api/scheme-references`
+}
+
+/**
+ * @summary Read-only draft reference answers for authenticated members
+ */
+export const getSchemeReferences = async ( options?: Parameters<typeof customFetch>[1]): Promise<SchemeReferenceBank> => {
+
+  return customFetch<SchemeReferenceBank>(getGetSchemeReferencesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSchemeReferencesQueryKey = () => {
+    return [
+    `/api/scheme-references`
+    ] as const;
+    }
+
+
+export const getGetSchemeReferencesQueryOptions = <TData = Awaited<ReturnType<typeof getSchemeReferences>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSchemeReferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSchemeReferencesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSchemeReferences>>> = ({ signal }) => getSchemeReferences({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSchemeReferences>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSchemeReferencesQueryResult = NonNullable<Awaited<ReturnType<typeof getSchemeReferences>>>
+export type GetSchemeReferencesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read-only draft reference answers for authenticated members
+ */
+
+export function useGetSchemeReferences<TData = Awaited<ReturnType<typeof getSchemeReferences>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSchemeReferences>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSchemeReferencesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendHelpdeskMessageUrl = () => {
+
+
+
+
+  return `/api/helpdesk`
+}
+
+/**
+ * Requests without model settings use the public daily helpdesk. Explicit engine or expert settings require a valid Supabase member bearer token. No automatic model fallback.
+ * @summary Ask the public PUB application helpdesk
+ */
+export const sendHelpdeskMessage = async (helpdeskInput: HelpdeskInput, options?: Parameters<typeof customFetch>[1]): Promise<ChatReply> => {
+
+  return customFetch<ChatReply>(getSendHelpdeskMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(helpdeskInput)
+  }
+);}
+
+
+
+
+
+export const getSendHelpdeskMessageMutationOptions = <TError = ErrorType<ChatBadRequestResponse | ChatError | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendHelpdeskMessage>>, TError,{data: BodyType<HelpdeskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendHelpdeskMessage>>, TError,{data: BodyType<HelpdeskInput>}, TContext> => {
+
+const mutationKey = ['sendHelpdeskMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendHelpdeskMessage>>, {data: BodyType<HelpdeskInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendHelpdeskMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendHelpdeskMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendHelpdeskMessage>>>
+    export type SendHelpdeskMessageMutationBody = BodyType<HelpdeskInput>
+    export type SendHelpdeskMessageMutationError = ErrorType<ChatBadRequestResponse | ChatError | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>
+
+    /**
+ * @summary Ask the public PUB application helpdesk
+ */
+export const useSendHelpdeskMessage = <TError = ErrorType<ChatBadRequestResponse | ChatError | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendHelpdeskMessage>>, TError,{data: BodyType<HelpdeskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendHelpdeskMessage>>,
+        TError,
+        {data: BodyType<HelpdeskInput>},
+        TContext
+      > => {
+      return useMutation(getSendHelpdeskMessageMutationOptions(options));
+    }
+
+export const getGetPublicChatbotUrl = (token: string,) => {
+
+
+
+
+  return `/api/public-chatbots/${token}`
+}
+
+/**
+ * A share token grants access to this chatbot only, not owner data or linked private knowledge. is_public controls marketplace listing, not link sharing.
+ * @summary Read safe chatbot metadata using its sharing capability
+ */
+export const getPublicChatbot = async (token: string, options?: Parameters<typeof customFetch>[1]): Promise<PublicChatbot> => {
+
+  return customFetch<PublicChatbot>(getGetPublicChatbotUrl(token),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicChatbotQueryKey = (token: string,) => {
+    return [
+    `/api/public-chatbots/${token}`
+    ] as const;
+    }
+
+
+export const getGetPublicChatbotQueryOptions = <TData = Awaited<ReturnType<typeof getPublicChatbot>>, TError = ErrorType<ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>>(token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicChatbot>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicChatbotQueryKey(token);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicChatbot>>> = ({ signal }) => getPublicChatbot(token, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: token !== null && token !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicChatbot>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPublicChatbotQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicChatbot>>>
+export type GetPublicChatbotQueryError = ErrorType<ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>
+
+
+/**
+ * @summary Read safe chatbot metadata using its sharing capability
+ */
+
+export function useGetPublicChatbot<TData = Awaited<ReturnType<typeof getPublicChatbot>>, TError = ErrorType<ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>>(
+ token: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPublicChatbot>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPublicChatbotQueryOptions(token,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendPublicChatbotMessageUrl = (token: string,) => {
+
+
+
+
+  return `/api/public-chatbots/${token}/chat`
+}
+
+/**
+ * @summary Send a message to a chatbot shared by capability link
+ */
+export const sendPublicChatbotMessage = async (token: string,
+    chatInput: ChatInput, options?: Parameters<typeof customFetch>[1]): Promise<ChatReply> => {
+
+  return customFetch<ChatReply>(getSendPublicChatbotMessageUrl(token),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(chatInput)
+  }
+);}
+
+
+
+
+
+export const getSendPublicChatbotMessageMutationOptions = <TError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendPublicChatbotMessage>>, TError,{token: string;data: BodyType<ChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendPublicChatbotMessage>>, TError,{token: string;data: BodyType<ChatInput>}, TContext> => {
+
+const mutationKey = ['sendPublicChatbotMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendPublicChatbotMessage>>, {token: string;data: BodyType<ChatInput>}> = (props) => {
+          const {token,data} = props ?? {};
+
+          return  sendPublicChatbotMessage(token,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendPublicChatbotMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendPublicChatbotMessage>>>
+    export type SendPublicChatbotMessageMutationBody = BodyType<ChatInput>
+    export type SendPublicChatbotMessageMutationError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>
+
+    /**
+ * @summary Send a message to a chatbot shared by capability link
+ */
+export const useSendPublicChatbotMessage = <TError = ErrorType<ChatBadRequestResponse | ChatNotFoundResponse | ChatRateLimitedResponse | ChatUnavailableResponse | ChatTimeoutResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendPublicChatbotMessage>>, TError,{token: string;data: BodyType<ChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendPublicChatbotMessage>>,
+        TError,
+        {token: string;data: BodyType<ChatInput>},
+        TContext
+      > => {
+      return useMutation(getSendPublicChatbotMessageMutationOptions(options));
+    }
 

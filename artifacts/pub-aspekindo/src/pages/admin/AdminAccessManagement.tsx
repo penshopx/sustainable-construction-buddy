@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import OperatorPilotPanel from "@/components/admin/OperatorPilotPanel";
+import HermesLocalCheck from "@/components/admin/HermesLocalCheck";
 import { Loader2, Search, Shield, ShieldCheck, UserMinus, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -80,6 +82,8 @@ export default function AdminAccessManagement() {
 
   return (
     <div className="space-y-6">
+      {import.meta.env.DEV && <OperatorPilotPanel />}
+      {import.meta.env.DEV && <HermesLocalCheck />}
       <div className="overflow-hidden rounded-2xl bg-hero p-6 text-primary-foreground md:p-8">
         <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <div>

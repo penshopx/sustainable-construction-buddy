@@ -13,7 +13,7 @@ import { toast } from "@/components/ui/sonner-toast";
 
 export default function SuratPernyataanTab() {
   const { profile } = useAuth();
-  const { documents, loading, saveDocument, deleteDocument, uploadFile } = useSmapDocuments("surat_pernyataan");
+  const { documents, loading, saveDocument, deleteDocument, uploadFile, openFile } = useSmapDocuments("surat_pernyataan");
   const [editing, setEditing] = useState<Partial<SmapDocument> | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -154,6 +154,7 @@ export default function SuratPernyataanTab() {
                 <p className="text-xs text-muted-foreground mt-0.5">{new Date(doc.created_at).toLocaleDateString("id-ID")}</p>
               </div>
               <div className="flex gap-1.5">
+                  {doc.file_url && <Button variant="outline" size="sm" onClick={() => void openFile(doc)}>Lihat berkas</Button>}
                 <Button variant="ghost" size="sm" onClick={() => setEditing(doc)}>Edit</Button>
                 {doc.status === "draft" && (
                   <Button variant="ghost" size="sm" className="text-destructive" onClick={() => deleteDocument(doc.id)}>

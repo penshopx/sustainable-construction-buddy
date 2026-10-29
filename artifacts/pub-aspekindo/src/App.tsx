@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import AccountQueryProvider from "@/components/AccountQueryProvider";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/auth-provider";
 import Index from "./pages/Index";
@@ -83,8 +83,6 @@ const AdminAspekindoLmsCourses = lazy(() => import("./pages/admin/AdminAspekindo
 const PublicCourseLanding = lazy(() => import("./pages/PublicCourseLanding"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 
-const queryClient = new QueryClient();
-
 function PageLoading() {
   return (
     <div className="flex min-h-[40vh] items-center justify-center bg-background px-4 text-muted-foreground">
@@ -97,14 +95,12 @@ function PageLoading() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+  <AuthProvider>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
+      <AccountQueryProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter
-          basename={import.meta.env.BASE_URL}
-        >
           <Suspense fallback={<PageLoading />}>
             <Routes>
             <Route path="/" element={<Index />} />
@@ -185,10 +181,10 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
-        </BrowserRouter>
       </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+      </AccountQueryProvider>
+    </BrowserRouter>
+  </AuthProvider>
 );
 
 export default App;

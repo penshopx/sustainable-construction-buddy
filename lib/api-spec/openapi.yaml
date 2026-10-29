@@ -10,7 +10,247 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: chat
+    description: Public helpdesk and capability-link chatbots
 paths:
+  /operator/hermes/bg001-chat:
+    post:
+      operationId: runHermesBg001Chat
+      tags: [operator]
+      summary: Preview-only BG001 chat via real Hermes and server-configured Claude
+      security: [{ memberBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/HermesBg001ChatInput" }
+      responses:
+        "200":
+          description: AI draft with checked citation identifiers, not an official decision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HermesBg001ChatResult" }
+        "400":
+          $ref: "#/components/responses/OperatorPilotError"
+        "401":
+          $ref: "#/components/responses/OperatorPilotError"
+        "402":
+          $ref: "#/components/responses/OperatorPilotError"
+        "403":
+          $ref: "#/components/responses/OperatorPilotError"
+        "404":
+          $ref: "#/components/responses/OperatorPilotError"
+        "429":
+          $ref: "#/components/responses/OperatorPilotError"
+        "503":
+          $ref: "#/components/responses/OperatorPilotError"
+        "504":
+          $ref: "#/components/responses/OperatorPilotError"
+  /operator/hermes/bg001-check:
+    post:
+      operationId: runHermesBg001Check
+      tags: [operator]
+      summary: Preview-only real Hermes with uploaded BG001 references and a local response fixture
+      security: [{ memberBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HermesLocalCheckInput"
+      responses:
+        "200":
+          description: BG001 context verified in the real worker; not an AI-generated answer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HermesSchemeLocalCheckResult"
+        "400":
+          $ref: "#/components/responses/OperatorPilotError"
+        "401":
+          $ref: "#/components/responses/OperatorPilotError"
+        "403":
+          $ref: "#/components/responses/OperatorPilotError"
+        "404":
+          $ref: "#/components/responses/OperatorPilotError"
+        "429":
+          $ref: "#/components/responses/OperatorPilotError"
+        "503":
+          $ref: "#/components/responses/OperatorPilotError"
+        "504":
+          $ref: "#/components/responses/OperatorPilotError"
+  /operator/hermes/local-check:
+    post:
+      operationId: runHermesLocalCheck
+      tags: [operator]
+      summary: Preview-only real Hermes worker with synthetic data and a local mock provider
+      security: [{ memberBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HermesLocalCheckInput"
+      responses:
+        "200":
+          description: One real Hermes iteration completed without an external model request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HermesLocalCheckResult"
+        "400":
+          $ref: "#/components/responses/OperatorPilotError"
+        "401":
+          $ref: "#/components/responses/OperatorPilotError"
+        "403":
+          $ref: "#/components/responses/OperatorPilotError"
+        "404":
+          $ref: "#/components/responses/OperatorPilotError"
+        "429":
+          $ref: "#/components/responses/OperatorPilotError"
+        "503":
+          $ref: "#/components/responses/OperatorPilotError"
+        "504":
+          $ref: "#/components/responses/OperatorPilotError"
+  /operator/pilot/jobs:
+    post:
+      operationId: createOperatorPilotJob
+      tags: [operator]
+      summary: Super-admin-only preview simulation; no AI or member data
+      security: [{ memberBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OperatorPilotInput"
+      responses:
+        "200":
+          description: New or deduplicated simulation job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperatorPilotSubmission"
+        "400":
+          $ref: "#/components/responses/OperatorPilotError"
+        "401":
+          $ref: "#/components/responses/OperatorPilotError"
+        "403":
+          $ref: "#/components/responses/OperatorPilotError"
+        "404":
+          $ref: "#/components/responses/OperatorPilotError"
+        "409":
+          $ref: "#/components/responses/OperatorPilotError"
+        "429":
+          $ref: "#/components/responses/OperatorPilotError"
+        "503":
+          $ref: "#/components/responses/OperatorPilotError"
+  /operator/pilot/jobs/{jobId}:
+    get:
+      operationId: getOperatorPilotJob
+      tags: [operator]
+      summary: Reverify super-admin access and return only the caller's simulation
+      security: [{ memberBearer: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OperatorJobId"
+      responses:
+        "200":
+          description: Current synthetic job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperatorPilotJob"
+        "400":
+          $ref: "#/components/responses/OperatorPilotError"
+        "401":
+          $ref: "#/components/responses/OperatorPilotError"
+        "403":
+          $ref: "#/components/responses/OperatorPilotError"
+        "404":
+          $ref: "#/components/responses/OperatorPilotError"
+        "429":
+          $ref: "#/components/responses/OperatorPilotError"
+        "503":
+          $ref: "#/components/responses/OperatorPilotError"
+  /operator/pilot/jobs/{jobId}/cancel:
+    post:
+      operationId: cancelOperatorPilotJob
+      tags: [operator]
+      summary: Reverify super-admin access before cancelling an owned simulation
+      security: [{ memberBearer: [] }]
+      parameters:
+        - $ref: "#/components/parameters/OperatorJobId"
+      responses:
+        "200":
+          description: Cancelled or already terminal synthetic job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperatorPilotJob"
+        "400":
+          $ref: "#/components/responses/OperatorPilotError"
+        "401":
+          $ref: "#/components/responses/OperatorPilotError"
+        "403":
+          $ref: "#/components/responses/OperatorPilotError"
+        "404":
+          $ref: "#/components/responses/OperatorPilotError"
+        "429":
+          $ref: "#/components/responses/OperatorPilotError"
+        "503":
+          $ref: "#/components/responses/OperatorPilotError"
+  /smap/pilot/documents:
+    get:
+      operationId: listSmapPilotDocuments
+      tags: [chat]
+      summary: Preview-only owner-scoped SMAP completeness indicators
+      security: [{ memberBearer: [] }]
+      responses:
+        "200":
+          description: Up to 50 owner records; no field values or file URLs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmapPilotDocuments"
+        "401":
+          $ref: "#/components/responses/ChatBadRequest"
+        "404":
+          $ref: "#/components/responses/ChatNotFound"
+        "429":
+          $ref: "#/components/responses/ChatRateLimited"
+        "503":
+          $ref: "#/components/responses/ChatUnavailable"
+  /smap/pilot/analyze:
+    post:
+      operationId: analyzeSmapPilot
+      tags: [chat]
+      summary: Preview-only read-only Hermes analysis through Claude
+      security: [{ memberBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SmapPilotInput"
+      responses:
+        "200":
+          description: Ephemeral draft based only on completeness indicators
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SmapPilotResult"
+        "400":
+          $ref: "#/components/responses/ChatBadRequest"
+        "401":
+          $ref: "#/components/responses/ChatBadRequest"
+        "404":
+          $ref: "#/components/responses/ChatNotFound"
+        "429":
+          $ref: "#/components/responses/ChatRateLimited"
+        "503":
+          $ref: "#/components/responses/ChatUnavailable"
+        "504":
+          $ref: "#/components/responses/ChatTimeout"
   /healthz:
     get:
       operationId: healthCheck
@@ -24,8 +264,494 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /scheme-references:
+    get:
+      operationId: getSchemeReferences
+      tags: [chat]
+      summary: Read-only draft reference answers for authenticated members
+      security: [{ memberBearer: [] }]
+      responses:
+        "200":
+          description: Draft reference bank, not AI output
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SchemeReferenceBank"
+        "401":
+          description: Member authentication required
+        "503":
+          description: Reference bank temporarily unavailable
+  /helpdesk:
+    post:
+      operationId: sendHelpdeskMessage
+      tags: [chat]
+      summary: Ask the public PUB application helpdesk
+      description: Requests without model settings use the public daily helpdesk. Explicit engine or expert settings require a valid Supabase member bearer token. No automatic model fallback.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HelpdeskInput"
+      responses:
+        "200":
+          description: AI reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatReply"
+        "400":
+          $ref: "#/components/responses/ChatBadRequest"
+        "401":
+          description: Login required or session invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatError"
+        "429":
+          $ref: "#/components/responses/ChatRateLimited"
+        "503":
+          $ref: "#/components/responses/ChatUnavailable"
+        "504":
+          $ref: "#/components/responses/ChatTimeout"
+  /public-chatbots/{token}:
+    get:
+      operationId: getPublicChatbot
+      tags: [chat]
+      summary: Read safe chatbot metadata using its sharing capability
+      description: A share token grants access to this chatbot only, not owner data or linked private knowledge. is_public controls marketplace listing, not link sharing.
+      parameters:
+        - $ref: "#/components/parameters/ChatbotToken"
+      responses:
+        "200":
+          description: Public presentation fields only
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicChatbot"
+        "404":
+          $ref: "#/components/responses/ChatNotFound"
+        "429":
+          $ref: "#/components/responses/ChatRateLimited"
+        "503":
+          $ref: "#/components/responses/ChatUnavailable"
+        "504":
+          $ref: "#/components/responses/ChatTimeout"
+    parameters: []
+  /public-chatbots/{token}/chat:
+    post:
+      operationId: sendPublicChatbotMessage
+      tags: [chat]
+      summary: Send a message to a chatbot shared by capability link
+      parameters:
+        - $ref: "#/components/parameters/ChatbotToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatInput"
+      responses:
+        "200":
+          description: AI reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatReply"
+        "400":
+          $ref: "#/components/responses/ChatBadRequest"
+        "404":
+          $ref: "#/components/responses/ChatNotFound"
+        "429":
+          $ref: "#/components/responses/ChatRateLimited"
+        "503":
+          $ref: "#/components/responses/ChatUnavailable"
+        "504":
+          $ref: "#/components/responses/ChatTimeout"
 components:
+  parameters:
+    OperatorJobId:
+      name: jobId
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ChatbotToken:
+      name: token
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9_-]{8,80}$"
+  securitySchemes:
+    memberBearer:
+      type: http
+      scheme: bearer
+  responses:
+    OperatorPilotError:
+      description: Preview disabled, invalid request, access denied or verification unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ChatError"
+    ChatBadRequest:
+      description: Invalid chat messages
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ChatError"
+    ChatNotFound:
+      description: Invalid, missing, deleted, or revoked share link
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ChatError"
+    ChatRateLimited:
+      description: Request or concurrency limit exceeded; retry after the Retry-After interval
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ChatError"
+    ChatUnavailable:
+      description: Chat configuration or upstream service unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ChatError"
+    ChatTimeout:
+      description: Upstream request timed out
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ChatError"
   schemas:
+    OperatorPilotInput:
+      type: object
+      additionalProperties: false
+      required: [requestId, operation]
+      properties:
+        requestId: { type: string, format: uuid }
+        operation: { type: string, enum: [service_health] }
+        scenario: { type: string, enum: [success, failure, hang] }
+    OperatorPilotSimulation:
+      type: object
+      required: [mode, openclaw, hermes]
+      properties:
+        mode: { type: string, enum: [synthetic-only] }
+        openclaw: { type: string, enum: [simulated] }
+        hermes: { type: string, enum: [simulated] }
+    OperatorPilotJob:
+      type: object
+      required: [id, requestId, operation, state, mode, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        requestId: { type: string, format: uuid }
+        operation: { type: string, enum: [service_health] }
+        state: { type: string, enum: [queued, running, completed, failed, cancelled, timed_out] }
+        mode: { type: string, enum: [synthetic-only] }
+        createdAt: { type: integer, minimum: 0 }
+        startedAt: { type: integer, minimum: 0 }
+        finishedAt: { type: integer, minimum: 0 }
+        code: { type: string, enum: [synthetic_failure, deadline_exceeded, cancelled] }
+        result:
+          $ref: "#/components/schemas/OperatorPilotSimulation"
+    OperatorPilotSubmission:
+      type: object
+      required: [job, reused]
+      properties:
+        job:
+          $ref: "#/components/schemas/OperatorPilotJob"
+        reused: { type: boolean }
+    SmapPilotCheck:
+      type: object
+      required: [name, complete]
+      properties:
+        name: { type: string }
+        complete: { type: boolean }
+    SmapPilotDocument:
+      type: object
+      required: [id, type, checks]
+      properties:
+        id: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        type:
+          type: string
+          enum: [surat_pernyataan, sertifikat_iso, pendidikan_antikorupsi]
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/SmapPilotCheck"
+    SmapPilotDocuments:
+      type: object
+      required: [documents]
+      properties:
+        documents:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/SmapPilotDocument"
+    SmapPilotInput:
+      type: object
+      additionalProperties: false
+      required: [documentIds, consent]
+      properties:
+        documentIds:
+          type: array
+          minItems: 1
+          maxItems: 5
+          uniqueItems: true
+          items: { type: string, format: uuid }
+        consent:
+          type: string
+          enum: [smap-presence-v1]
+    SmapPilotResult:
+      type: object
+      required: [analysis, model, documentCount, runtime, dataScope]
+      properties:
+        analysis: { type: string, minLength: 1, maxLength: 12000 }
+        model: { type: string }
+        documentCount: { type: integer, minimum: 1, maximum: 5 }
+        runtime: { type: string, enum: [hermes] }
+        dataScope: { type: string, enum: [presence-only] }
+    ChatMessage:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    ChatInput:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+    HermesBg001ChatInput:
+      type: object
+      additionalProperties: false
+      required: [consent, question]
+      properties:
+        consent: { type: boolean, enum: [true] }
+        question: { type: string, minLength: 5, maxLength: 1000 }
+    HermesBg001ChatResult:
+      type: object
+      required: [status, runtime, provider, schemeCode, dataScope, toolCount, externalModelRequests, contextVerified, model, answer, insufficientEvidence, elapsedMs, sources]
+      properties:
+        status: { type: string, enum: [completed] }
+        runtime: { type: string, enum: [hermes] }
+        provider: { type: string, enum: [openrouter-claude] }
+        schemeCode: { type: string, enum: [BG001] }
+        dataScope: { type: string, enum: [question-and-public-references] }
+        toolCount: { type: integer, enum: [0] }
+        externalModelRequests: { type: integer, enum: [1] }
+        contextVerified: { type: boolean, enum: [true] }
+        model: { type: string }
+        answer: { type: string, minLength: 1, maxLength: 10000 }
+        insufficientEvidence: { type: boolean }
+        elapsedMs: { type: integer, minimum: 0 }
+        sources:
+          type: array
+          maxItems: 3
+          items: { $ref: "#/components/schemas/HermesSchemeEvidence" }
+    HermesSchemeEvidence:
+      type: object
+      required: [id, title, page, quote]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        page: { type: integer, minimum: 1 }
+        quote: { type: string }
+    HermesSchemeLocalCheckResult:
+      type: object
+      required: [status, runtime, provider, dataScope, toolCount, localProviderRequests, externalModelRequests, documentCount, elapsedMs, fixtureReply, schemeCode, contextVerified, citationsVerified, question, sources]
+      properties:
+        status: { type: string, enum: [completed] }
+        runtime: { type: string, enum: [hermes] }
+        provider: { type: string, enum: [local-mock] }
+        dataScope: { type: string, enum: [uploaded-reference-only] }
+        toolCount: { type: integer, enum: [0] }
+        localProviderRequests: { type: integer, enum: [1] }
+        externalModelRequests: { type: integer, enum: [0] }
+        documentCount: { type: integer, enum: [3] }
+        elapsedMs: { type: integer, minimum: 0 }
+        fixtureReply: { type: string }
+        schemeCode: { type: string, enum: [BG001] }
+        contextVerified: { type: boolean, enum: [true] }
+        citationsVerified: { type: boolean, enum: [true] }
+        question: { type: string }
+        sources:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items: { $ref: "#/components/schemas/HermesSchemeEvidence" }
+    HermesLocalCheckInput:
+      type: object
+      additionalProperties: false
+      required: [consent]
+      properties:
+        consent: { type: boolean, enum: [true] }
+    HermesLocalCheckResult:
+      type: object
+      required: [status, runtime, provider, dataScope, toolCount, localProviderRequests, externalModelRequests, documentCount, elapsedMs, fixtureReply]
+      properties:
+        status: { type: string, enum: [completed] }
+        runtime: { type: string, enum: [hermes] }
+        provider: { type: string, enum: [local-mock] }
+        dataScope: { type: string, enum: [synthetic-only] }
+        toolCount: { type: integer, enum: [0] }
+        localProviderRequests: { type: integer, enum: [1] }
+        externalModelRequests: { type: integer, enum: [0] }
+        documentCount: { type: integer, enum: [1] }
+        elapsedMs: { type: integer, minimum: 0 }
+        fixtureReply: { type: string }
+    SchemeReferenceProfile:
+      type: object
+      required: [code, family, title]
+      properties:
+        code: { type: string }
+        family: { type: string }
+        title: { type: string }
+    SchemeReferenceEvidence:
+      type: object
+      required: [kind, id, title, quote]
+      properties:
+        kind: { type: string, enum: [pdf, text, application_policy] }
+        id: { type: string }
+        title: { type: string }
+        quote: { type: string }
+        page: { type: integer, minimum: 1 }
+        lineStart: { type: integer, minimum: 1 }
+        lineEnd: { type: integer, minimum: 1 }
+    SchemeReferenceCase:
+      type: object
+      required: [id, kind, code, family, category, appliesTo, question, answer, clarificationQuestions, requiredPoints, forbiddenClaims, evidenceIds]
+      properties:
+        id: { type: string }
+        kind: { type: string, enum: [reference, boundary, application_policy] }
+        code: { type: string }
+        family: { type: string }
+        category: { type: string }
+        appliesTo:
+          type: array
+          items: { type: string }
+        question: { type: string }
+        answer: { type: string }
+        clarificationQuestions:
+          type: array
+          items: { type: string }
+        requiredPoints:
+          type: array
+          items: { type: string }
+        forbiddenClaims:
+          type: array
+          items: { type: string }
+        evidenceIds:
+          type: array
+          items: { type: string }
+    SchemeReferenceCounts:
+      type: object
+      required: [profiles, cases, evidence]
+      properties:
+        profiles: { type: integer }
+        cases: { type: integer }
+        evidence: { type: integer }
+    SchemeReferenceBank:
+      type: object
+      required: [status, usedForAiReplies, scope, reviewGuidance, profiles, counts, cases, evidence]
+      properties:
+        status: { type: string, enum: [draft_reference_answers] }
+        usedForAiReplies: { type: boolean, enum: [false] }
+        scope: { type: string }
+        reviewGuidance: { type: string }
+        profiles:
+          type: array
+          items: { $ref: "#/components/schemas/SchemeReferenceProfile" }
+        counts:
+          $ref: "#/components/schemas/SchemeReferenceCounts"
+        cases:
+          type: array
+          items: { $ref: "#/components/schemas/SchemeReferenceCase" }
+        evidence:
+          type: object
+          additionalProperties: { $ref: "#/components/schemas/SchemeReferenceEvidence" }
+    ChatReply:
+      type: object
+      required: [reply]
+      properties:
+        reply:
+          type: string
+          minLength: 1
+          maxLength: 32512
+        engine:
+          $ref: "#/components/schemas/ChatEngine"
+        model:
+          type: string
+        scheme_code:
+          type: string
+    ChatEngine:
+      type: string
+      enum: [claude, gpt, deepseek, nvidia, gemini]
+    HelpdeskInput:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        engine:
+          $ref: "#/components/schemas/ChatEngine"
+        mode:
+          type: string
+          enum: [pembelajaran, profesi, proyek]
+        custom_persona:
+          type: string
+          maxLength: 6000
+        scheme_code:
+          type: string
+          pattern: "^[A-Z]{2}[0-9]{3}$"
+        audience:
+          type: string
+          enum: [bujk, peninjau, asesor, lsbu]
+        explanation_depth:
+          type: string
+          enum: [dasar, praktis, rinci]
+    ChatError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    PublicChatbot:
+      type: object
+      required: [id, name, description, avatar_url, mode, welcome_message]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        avatar_url:
+          type: string
+        mode:
+          type: string
+        welcome_message:
+          type: string
     HealthStatus:
       type: object
       properties:

@@ -23,6 +23,7 @@
     "test:insight:live": "node scripts/verify-competency-insight.mjs",
     "validate:insight": "npm run test:insight:validate",
     "publish:insight": "node scripts/publish-competency-insight.mjs",
+    "check:release-config": "node scripts/publish-competency-insight.mjs --check-config",
     "test:rate-limit": "node --test tests/public-chat-rate-limit.test.cjs",
     "test:assessment:concurrency": "bash scripts/test-submit-assessment-concurrency.sh",
     "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium && PLAYWRIGHT_BROWSERS_PATH=0 playwright test",

@@ -9,11 +9,416 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Preview-only BG001 chat via real Hermes and server-configured Claude
+ */
+export const runHermesBg001ChatBodyQuestionMin = 5;
+export const runHermesBg001ChatBodyQuestionMax = 1000;
+
+
+
+export const RunHermesBg001ChatBody = zod.object({
+  "consent": zod.literal(true),
+  "question": zod.string().min(runHermesBg001ChatBodyQuestionMin).max(runHermesBg001ChatBodyQuestionMax)
+})
+
+export const runHermesBg001ChatResponseAnswerMax = 10000;
+
+export const runHermesBg001ChatResponseElapsedMsMin = 0;
+
+
+export const runHermesBg001ChatResponseSourcesMax = 3;
+
+
+
+export const RunHermesBg001ChatResponse = zod.object({
+  "status": zod.enum(['completed']),
+  "runtime": zod.enum(['hermes']),
+  "provider": zod.enum(['openrouter-claude']),
+  "schemeCode": zod.enum(['BG001']),
+  "dataScope": zod.enum(['question-and-public-references']),
+  "toolCount": zod.literal(0),
+  "externalModelRequests": zod.literal(1),
+  "contextVerified": zod.literal(true),
+  "model": zod.string(),
+  "answer": zod.string().min(1).max(runHermesBg001ChatResponseAnswerMax),
+  "insufficientEvidence": zod.boolean(),
+  "elapsedMs": zod.number().int().min(runHermesBg001ChatResponseElapsedMsMin),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "page": zod.number().int().min(1),
+  "quote": zod.string()
+})).max(runHermesBg001ChatResponseSourcesMax)
+})
+
+
+/**
+ * @summary Preview-only real Hermes with uploaded BG001 references and a local response fixture
+ */
+export const RunHermesBg001CheckBody = zod.object({
+  "consent": zod.literal(true)
+})
+
+export const runHermesBg001CheckResponseElapsedMsMin = 0;
+
+
+export const runHermesBg001CheckResponseSourcesMin = 3;
+export const runHermesBg001CheckResponseSourcesMax = 3;
+
+
+
+export const RunHermesBg001CheckResponse = zod.object({
+  "status": zod.enum(['completed']),
+  "runtime": zod.enum(['hermes']),
+  "provider": zod.enum(['local-mock']),
+  "dataScope": zod.enum(['uploaded-reference-only']),
+  "toolCount": zod.literal(0),
+  "localProviderRequests": zod.literal(1),
+  "externalModelRequests": zod.literal(0),
+  "documentCount": zod.literal(3),
+  "elapsedMs": zod.number().int().min(runHermesBg001CheckResponseElapsedMsMin),
+  "fixtureReply": zod.string(),
+  "schemeCode": zod.enum(['BG001']),
+  "contextVerified": zod.literal(true),
+  "citationsVerified": zod.literal(true),
+  "question": zod.string(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "page": zod.number().int().min(1),
+  "quote": zod.string()
+})).min(runHermesBg001CheckResponseSourcesMin).max(runHermesBg001CheckResponseSourcesMax)
+})
+
+
+/**
+ * @summary Preview-only real Hermes worker with synthetic data and a local mock provider
+ */
+export const RunHermesLocalCheckBody = zod.object({
+  "consent": zod.literal(true)
+})
+
+export const runHermesLocalCheckResponseElapsedMsMin = 0;
+
+
+
+export const RunHermesLocalCheckResponse = zod.object({
+  "status": zod.enum(['completed']),
+  "runtime": zod.enum(['hermes']),
+  "provider": zod.enum(['local-mock']),
+  "dataScope": zod.enum(['synthetic-only']),
+  "toolCount": zod.literal(0),
+  "localProviderRequests": zod.literal(1),
+  "externalModelRequests": zod.literal(0),
+  "documentCount": zod.literal(1),
+  "elapsedMs": zod.number().int().min(runHermesLocalCheckResponseElapsedMsMin),
+  "fixtureReply": zod.string()
+})
+
+
+/**
+ * @summary Super-admin-only preview simulation; no AI or member data
+ */
+export const CreateOperatorPilotJobBody = zod.object({
+  "requestId": zod.string().uuid(),
+  "operation": zod.enum(['service_health']),
+  "scenario": zod.enum(['success', 'failure', 'hang']).optional()
+})
+
+export const createOperatorPilotJobResponseJobCreatedAtMin = 0;
+
+export const createOperatorPilotJobResponseJobStartedAtMin = 0;
+
+export const createOperatorPilotJobResponseJobFinishedAtMin = 0;
+
+
+
+export const CreateOperatorPilotJobResponse = zod.object({
+  "job": zod.object({
+  "id": zod.string().uuid(),
+  "requestId": zod.string().uuid(),
+  "operation": zod.enum(['service_health']),
+  "state": zod.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'timed_out']),
+  "mode": zod.enum(['synthetic-only']),
+  "createdAt": zod.number().int().min(createOperatorPilotJobResponseJobCreatedAtMin),
+  "startedAt": zod.number().int().min(createOperatorPilotJobResponseJobStartedAtMin).optional(),
+  "finishedAt": zod.number().int().min(createOperatorPilotJobResponseJobFinishedAtMin).optional(),
+  "code": zod.enum(['synthetic_failure', 'deadline_exceeded', 'cancelled']).optional(),
+  "result": zod.object({
+  "mode": zod.enum(['synthetic-only']),
+  "openclaw": zod.enum(['simulated']),
+  "hermes": zod.enum(['simulated'])
+}).optional()
+}),
+  "reused": zod.boolean()
+})
+
+
+/**
+ * @summary Reverify super-admin access and return only the caller's simulation
+ */
+export const GetOperatorPilotJobParams = zod.object({
+  "jobId": zod.coerce.string().uuid()
+})
+
+export const getOperatorPilotJobResponseCreatedAtMin = 0;
+
+export const getOperatorPilotJobResponseStartedAtMin = 0;
+
+export const getOperatorPilotJobResponseFinishedAtMin = 0;
+
+
+
+export const GetOperatorPilotJobResponse = zod.object({
+  "id": zod.string().uuid(),
+  "requestId": zod.string().uuid(),
+  "operation": zod.enum(['service_health']),
+  "state": zod.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'timed_out']),
+  "mode": zod.enum(['synthetic-only']),
+  "createdAt": zod.number().int().min(getOperatorPilotJobResponseCreatedAtMin),
+  "startedAt": zod.number().int().min(getOperatorPilotJobResponseStartedAtMin).optional(),
+  "finishedAt": zod.number().int().min(getOperatorPilotJobResponseFinishedAtMin).optional(),
+  "code": zod.enum(['synthetic_failure', 'deadline_exceeded', 'cancelled']).optional(),
+  "result": zod.object({
+  "mode": zod.enum(['synthetic-only']),
+  "openclaw": zod.enum(['simulated']),
+  "hermes": zod.enum(['simulated'])
+}).optional()
+})
+
+
+/**
+ * @summary Reverify super-admin access before cancelling an owned simulation
+ */
+export const CancelOperatorPilotJobParams = zod.object({
+  "jobId": zod.coerce.string().uuid()
+})
+
+export const cancelOperatorPilotJobResponseCreatedAtMin = 0;
+
+export const cancelOperatorPilotJobResponseStartedAtMin = 0;
+
+export const cancelOperatorPilotJobResponseFinishedAtMin = 0;
+
+
+
+export const CancelOperatorPilotJobResponse = zod.object({
+  "id": zod.string().uuid(),
+  "requestId": zod.string().uuid(),
+  "operation": zod.enum(['service_health']),
+  "state": zod.enum(['queued', 'running', 'completed', 'failed', 'cancelled', 'timed_out']),
+  "mode": zod.enum(['synthetic-only']),
+  "createdAt": zod.number().int().min(cancelOperatorPilotJobResponseCreatedAtMin),
+  "startedAt": zod.number().int().min(cancelOperatorPilotJobResponseStartedAtMin).optional(),
+  "finishedAt": zod.number().int().min(cancelOperatorPilotJobResponseFinishedAtMin).optional(),
+  "code": zod.enum(['synthetic_failure', 'deadline_exceeded', 'cancelled']).optional(),
+  "result": zod.object({
+  "mode": zod.enum(['synthetic-only']),
+  "openclaw": zod.enum(['simulated']),
+  "hermes": zod.enum(['simulated'])
+}).optional()
+})
+
+
+/**
+ * @summary Preview-only owner-scoped SMAP completeness indicators
+ */
+export const listSmapPilotDocumentsResponseDocumentsMax = 50;
+
+
+
+export const ListSmapPilotDocumentsResponse = zod.object({
+  "documents": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "createdAt": zod.coerce.date().optional(),
+  "type": zod.enum(['surat_pernyataan', 'sertifikat_iso', 'pendidikan_antikorupsi']),
+  "checks": zod.array(zod.object({
+  "name": zod.string(),
+  "complete": zod.boolean()
+}))
+})).max(listSmapPilotDocumentsResponseDocumentsMax)
+})
+
+
+/**
+ * @summary Preview-only read-only Hermes analysis through Claude
+ */
+export const analyzeSmapPilotBodyDocumentIdsMax = 5;
+
+
+
+export const AnalyzeSmapPilotBody = zod.object({
+  "documentIds": zod.array(zod.string().uuid()).min(1).max(analyzeSmapPilotBodyDocumentIdsMax),
+  "consent": zod.enum(['smap-presence-v1'])
+})
+
+export const analyzeSmapPilotResponseAnalysisMax = 12000;
+
+export const analyzeSmapPilotResponseDocumentCountMax = 5;
+
+
+
+export const AnalyzeSmapPilotResponse = zod.object({
+  "analysis": zod.string().min(1).max(analyzeSmapPilotResponseAnalysisMax),
+  "model": zod.string(),
+  "documentCount": zod.number().int().min(1).max(analyzeSmapPilotResponseDocumentCountMax),
+  "runtime": zod.enum(['hermes']),
+  "dataScope": zod.enum(['presence-only'])
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
   "status": zod.string()
+})
+
+
+/**
+ * @summary Read-only draft reference answers for authenticated members
+ */
+
+
+
+
+
+export const GetSchemeReferencesResponse = zod.object({
+  "status": zod.enum(['draft_reference_answers']),
+  "usedForAiReplies": zod.literal(false),
+  "scope": zod.string(),
+  "reviewGuidance": zod.string(),
+  "profiles": zod.array(zod.object({
+  "code": zod.string(),
+  "family": zod.string(),
+  "title": zod.string()
+})),
+  "counts": zod.object({
+  "profiles": zod.number().int(),
+  "cases": zod.number().int(),
+  "evidence": zod.number().int()
+}),
+  "cases": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.enum(['reference', 'boundary', 'application_policy']),
+  "code": zod.string(),
+  "family": zod.string(),
+  "category": zod.string(),
+  "appliesTo": zod.array(zod.string()),
+  "question": zod.string(),
+  "answer": zod.string(),
+  "clarificationQuestions": zod.array(zod.string()),
+  "requiredPoints": zod.array(zod.string()),
+  "forbiddenClaims": zod.array(zod.string()),
+  "evidenceIds": zod.array(zod.string())
+})),
+  "evidence": zod.record(zod.string(), zod.object({
+  "kind": zod.enum(['pdf', 'text', 'application_policy']),
+  "id": zod.string(),
+  "title": zod.string(),
+  "quote": zod.string(),
+  "page": zod.number().int().min(1).optional(),
+  "lineStart": zod.number().int().min(1).optional(),
+  "lineEnd": zod.number().int().min(1).optional()
+}))
+})
+
+
+/**
+ * Requests without model settings use the public daily helpdesk. Explicit engine or expert settings require a valid Supabase member bearer token. No automatic model fallback.
+ * @summary Ask the public PUB application helpdesk
+ */
+export const sendHelpdeskMessageBodyMessagesItemContentMax = 4000;
+
+export const sendHelpdeskMessageBodyMessagesMax = 10;
+
+export const sendHelpdeskMessageBodyCustomPersonaMax = 6000;
+
+export const sendHelpdeskMessageBodySchemeCodeRegExp = new RegExp('^[A-Z]{2}[0-9]{3}$');
+
+
+export const SendHelpdeskMessageBody = zod.object({
+  "messages": zod.array(zod.object({
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string().min(1).max(sendHelpdeskMessageBodyMessagesItemContentMax)
+})).min(1).max(sendHelpdeskMessageBodyMessagesMax),
+  "engine": zod.enum(['claude', 'gpt', 'deepseek', 'nvidia', 'gemini']).optional(),
+  "mode": zod.enum(['pembelajaran', 'profesi', 'proyek']).optional(),
+  "custom_persona": zod.string().max(sendHelpdeskMessageBodyCustomPersonaMax).optional(),
+  "scheme_code": zod.string().regex(sendHelpdeskMessageBodySchemeCodeRegExp).optional(),
+  "audience": zod.enum(['bujk', 'peninjau', 'asesor', 'lsbu']).optional(),
+  "explanation_depth": zod.enum(['dasar', 'praktis', 'rinci']).optional()
+})
+
+export const sendHelpdeskMessageResponseReplyMax = 32512;
+
+
+
+export const SendHelpdeskMessageResponse = zod.object({
+  "reply": zod.string().min(1).max(sendHelpdeskMessageResponseReplyMax),
+  "engine": zod.enum(['claude', 'gpt', 'deepseek', 'nvidia', 'gemini']).optional(),
+  "model": zod.string().optional(),
+  "scheme_code": zod.string().optional()
+})
+
+
+/**
+ * A share token grants access to this chatbot only, not owner data or linked private knowledge. is_public controls marketplace listing, not link sharing.
+ * @summary Read safe chatbot metadata using its sharing capability
+ */
+export const getPublicChatbotPathTokenRegExp = new RegExp('^[A-Za-z0-9_-]{8,80}$');
+
+
+export const GetPublicChatbotParams = zod.object({
+  "token": zod.coerce.string().regex(getPublicChatbotPathTokenRegExp)
+})
+
+
+
+
+export const GetPublicChatbotResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string().min(1),
+  "description": zod.string(),
+  "avatar_url": zod.string(),
+  "mode": zod.string(),
+  "welcome_message": zod.string()
+})
+
+
+/**
+ * @summary Send a message to a chatbot shared by capability link
+ */
+export const sendPublicChatbotMessagePathTokenRegExp = new RegExp('^[A-Za-z0-9_-]{8,80}$');
+
+
+export const SendPublicChatbotMessageParams = zod.object({
+  "token": zod.coerce.string().regex(sendPublicChatbotMessagePathTokenRegExp)
+})
+
+export const sendPublicChatbotMessageBodyMessagesItemContentMax = 4000;
+
+export const sendPublicChatbotMessageBodyMessagesMax = 10;
+
+
+
+export const SendPublicChatbotMessageBody = zod.object({
+  "messages": zod.array(zod.object({
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string().min(1).max(sendPublicChatbotMessageBodyMessagesItemContentMax)
+})).min(1).max(sendPublicChatbotMessageBodyMessagesMax)
+})
+
+export const sendPublicChatbotMessageResponseReplyMax = 32512;
+
+
+
+export const SendPublicChatbotMessageResponse = zod.object({
+  "reply": zod.string().min(1).max(sendPublicChatbotMessageResponseReplyMax),
+  "engine": zod.enum(['claude', 'gpt', 'deepseek', 'nvidia', 'gemini']).optional(),
+  "model": zod.string().optional(),
+  "scheme_code": zod.string().optional()
 })
 
 

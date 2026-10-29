@@ -1,4 +1,10 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import SchemeChatControls from "@/components/chatbot/SchemeChatControls";
+import { SCHEME_CATALOG, SCHEME_ACTIONS, visibleConversationTitle, type SchemeProfile } from "@/lib/schemeChat";
+import SharedKnowledgeBase from "@/components/chatbot/SharedKnowledgeBase";
+import SchemeReferencePanel from "@/components/chatbot/SchemeReferencePanel";
+import HermesBg001Chat from "@/components/chatbot/HermesBg001Chat";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import { Bot, Send, Loader2, Trash2, Sparkles, Plus, MessageSquare, ChevronLeft, Search, X, GraduationCap, Briefcase, FolderKanban, Brain, Store } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +21,8 @@ import { ChatbotBuilderWizard } from "@/components/chatbot/ChatbotBuilderWizard"
 import { ChatbotCard } from "@/components/chatbot/ChatbotCard";
 import { ChatbotMarketplace } from "@/components/chatbot/ChatbotMarketplace";
 import { useSearchParams } from "react-router-dom";
+import type { ChatEngine } from "@workspace/api-client-react";
+import { CHAT_ENGINES } from "@/lib/chatEngines";
 
 export type PakarMode = "pembelajaran" | "profesi" | "proyek";
 
@@ -64,44 +72,69 @@ const PAKAR_MODES = [
 ];
 
 export default function HelpdeskAI() {
+  return import.meta.env.DEV ? <PreviewHelpdeskAI /> :
+    <HelpdeskContent isSuperAdmin={false} superAdminLoading={false} />;
+}
+
+function PreviewHelpdeskAI() {
+  const { isSuperAdmin, loading } = useSuperAdmin();
+  return <HelpdeskContent isSuperAdmin={isSuperAdmin} superAdminLoading={loading} />;
+}
+
+function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: boolean; superAdminLoading: boolean }) {
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
   const [searchParams] = useSearchParams();
 
   const [activeMode, setActiveMode] = useState<PakarMode>("pembelajaran");
+  const [engine, setEngine] = useState<ChatEngine>("claude");
+  const [schemeProfile, setSchemeProfile] = useState<SchemeProfile>();
   const [activeCustomBot, setActiveCustomBot] = useState<CustomChatbot | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
 
   const { chatbots, publicBots, loading: loadingBots, createChatbot, deleteChatbot, getChatbotByShareToken } = useCustomChatbots();
+  const restoreSchemeProfile = useCallback((profile?: SchemeProfile) => {
+    setSchemeProfile(profile);
+    setActiveCustomBot(null);
+    if (profile) setActiveMode("profesi");
+  }, []);
+  useEffect(() => { setSchemeProfile(undefined); }, [user?.id]);
 
   const {
     conversations, activeConversationId, messages, isLoading, loadingConversations,
-    sendMessage: sendMsg, selectConversation, startNewConversation, deleteConversation,
-  } = useHelpdeskChat(activeMode, activeCustomBot?.persona, activeCustomBot?.id);
+    sendMessage: sendMsg, selectConversation, startNewConversation, deleteConversation, lastModel,
+  } = useHelpdeskChat(activeMode, activeCustomBot?.persona, activeCustomBot?.id, engine, schemeProfile, restoreSchemeProfile);
 
   const [input, setInput] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  const currentPakar = activeCustomBot
+  const currentPakar = schemeProfile
+    ? { name: `${schemeProfile.scheme_code} — ${SCHEME_CATALOG.find(row => row.code === schemeProfile.scheme_code)?.title ?? "Skema konstruksi"}`,
+        description: "Pendamping skema berdasarkan referensi unggahan", icon: Bot, color: "text-primary", bgColor: "bg-primary/10", suggestions: SCHEME_ACTIONS }
+    : activeCustomBot
     ? { name: activeCustomBot.name, description: activeCustomBot.description, icon: Bot, color: "text-primary", bgColor: "bg-primary/10", suggestions: [] as string[] }
     : PAKAR_MODES.find(m => m.id === activeMode)!;
 
   // Handle shared bot link
   useEffect(() => {
+    let cancelled = false;
     const botToken = searchParams.get("bot");
     if (botToken) {
       getChatbotByShareToken(botToken).then((bot) => {
-        if (bot) {
+        if (bot && !cancelled) {
+          startNewConversation();
+          setSchemeProfile(undefined);
           setActiveCustomBot(bot);
           setActiveMode(bot.mode as PakarMode);
           setActiveTab("chat");
         }
       });
     }
-  }, [searchParams, getChatbotByShareToken]);
+    return () => { cancelled = true; };
+  }, [searchParams, getChatbotByShareToken, startNewConversation]);
 
   const filteredConversations = searchQuery.trim()
     ? conversations.filter(c => c.title.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -115,6 +148,7 @@ export default function HelpdeskAI() {
   };
 
   const handleSelectCustomBot = (bot: CustomChatbot) => {
+    setSchemeProfile(undefined);
     setActiveCustomBot(bot);
     setActiveMode(bot.mode as PakarMode);
     startNewConversation();
@@ -146,7 +180,7 @@ export default function HelpdeskAI() {
           </div>
           <div>
             <h1 className="text-2xl font-bold font-heading text-foreground">Pakar Cerdas</h1>
-            <p className="text-sm text-muted-foreground">Asisten AI agentic dengan knowledge base RAG</p>
+            <p className="text-sm text-muted-foreground">Claude untuk analisis utama, pilihan model lain untuk chat harian</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -161,10 +195,12 @@ export default function HelpdeskAI() {
 
       {/* Tabs: Chat / My Bots / Marketplace */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="h-auto flex flex-wrap justify-start">
           <TabsTrigger value="chat">💬 Chat</TabsTrigger>
           <TabsTrigger value="my-bots">🤖 Bot Saya</TabsTrigger>
           <TabsTrigger value="marketplace">🏪 Marketplace</TabsTrigger>
+          <TabsTrigger value="references">Referensi Acuan</TabsTrigger>
+          {import.meta.env.DEV && isSuperAdmin && <TabsTrigger value="hermes-bg001">Hermes BG001</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="my-bots" className="mt-4">
@@ -194,7 +230,51 @@ export default function HelpdeskAI() {
           <ChatbotMarketplace bots={publicBots} loading={loadingBots} onSelect={handleSelectCustomBot} />
         </TabsContent>
 
+        {import.meta.env.DEV && <TabsContent value="hermes-bg001" className="mt-4">
+          <HermesBg001Chat access={superAdminLoading ? "checking" : isSuperAdmin ? "allowed" : "denied"} />
+        </TabsContent>}
+        <TabsContent value="references" className="mt-4">
+          <SchemeReferencePanel />
+        </TabsContent>
         <TabsContent value="chat" className="mt-4">
+          <SharedKnowledgeBase />
+          <p className="mb-3 text-xs text-muted-foreground">
+            Harness baca-saja: referensi sesuai skema → model pilihan → pemeriksaan jawaban.
+            Maksimum satu panggilan model per permintaan API; tanpa tindakan otomatis.
+            Pada chat skema, tautan kutipan diperiksa dan jawaban tanpa kutipan diberi peringatan.
+          </p>
+          <SchemeChatControls value={schemeProfile} disabled={isLoading} onAsk={sendMessage} onChange={profile => {
+            startNewConversation();
+            setInput("");
+            setActiveCustomBot(null);
+            setSchemeProfile(profile);
+            if (profile) setActiveMode("profesi");
+          }} />
+          <div className="mb-3 rounded-xl border border-border bg-card p-3 space-y-2">
+            <label htmlFor="chat-engine" className="text-sm font-medium block">Model AI</label>
+            <select
+              id="chat-engine"
+              value={engine}
+              disabled={isLoading}
+              onChange={event => {
+                const selected = CHAT_ENGINES.find(item => item.id === event.target.value);
+                if (!selected || selected.id === engine) return;
+                startNewConversation();
+                setInput("");
+                setEngine(selected.id);
+              }}
+              className="w-full sm:max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground disabled:opacity-50"
+            >
+              {CHAT_ENGINES.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Semua pilihan melalui OpenRouter, mengikuti tarif/kuota akun. Mengganti model memulai percakapan baru.
+              Riwayat yang dibuka kembali tidak otomatis dikirim ke model; hanya pesan baru yang dikirim.
+              Jangan sertakan rahasia atau dokumen sensitif tanpa izin.
+            </p>
+            <p className="text-xs text-muted-foreground">Batas akun: 20 permintaan/jam, termasuk maksimal 5 analisis Claude/jam. Tidak ada pergantian model otomatis.</p>
+            {lastModel && <p className="text-xs text-muted-foreground">Model jawaban terakhir: {lastModel}</p>}
+          </div>
           {/* Active custom bot indicator */}
           {activeCustomBot && (
             <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-primary/5 border border-primary/20">
@@ -213,7 +293,7 @@ export default function HelpdeskAI() {
           )}
 
           {/* Mode selector (hidden when custom bot active) */}
-          {!activeCustomBot && (
+          {!activeCustomBot && !schemeProfile && (
             <div className="flex gap-2 overflow-x-auto pb-1 mb-3">
               {PAKAR_MODES.map(mode => (
                 <button
@@ -232,7 +312,7 @@ export default function HelpdeskAI() {
             </div>
           )}
 
-          <div className="flex gap-3" style={{ height: "calc(100vh - 370px)" }}>
+          <div className="flex gap-3" style={{ height: "max(420px, calc(100vh - 500px))" }}>
             {/* Conversation sidebar */}
             <div className={`${showSidebar ? "flex" : "hidden"} md:flex flex-col w-full md:w-64 shrink-0 bg-card rounded-xl border border-border`}>
               <div className="p-3 border-b border-border">
@@ -267,7 +347,7 @@ export default function HelpdeskAI() {
                         key={conv.id}
                         conversation={conv}
                         isActive={conv.id === activeConversationId}
-                        onSelect={() => { selectConversation(conv.id); setShowSidebar(false); }}
+                        onSelect={() => { setInput(""); selectConversation(conv.id); setShowSidebar(false); }}
                         onDelete={() => deleteConversation(conv.id)}
                       />
                     ))}
@@ -361,7 +441,7 @@ export default function HelpdeskAI() {
                   onSubmit={e => { e.preventDefault(); sendMessage(input); setInput(""); setShowSidebar(false); }}
                   className="flex gap-2"
                 >
-                  <Input value={input} onChange={e => setInput(e.target.value)} placeholder="Ketik pertanyaan Anda..." disabled={isLoading} className="flex-1" />
+                  <Input value={input} onChange={e => setInput(e.target.value)} maxLength={4000} placeholder="Ketik pertanyaan Anda..." disabled={isLoading} className="flex-1" />
                   <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   </Button>
@@ -387,7 +467,8 @@ function ConversationItem({ conversation, isActive, onSelect, onDelete }: {
     >
       <MessageSquare className="w-4 h-4 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate text-foreground">{conversation.title || "Percakapan baru"}</p>
+        <p className="text-sm font-medium truncate text-foreground">{visibleConversationTitle(conversation.title) || "Percakapan baru"}</p>
+        {conversation.title.startsWith("[skema-v1:") && <p className="text-xs text-muted-foreground">{conversation.title.split(":").slice(1, 4).join(" · ").replace("]", "")}</p>}
         <p className="text-xs text-muted-foreground">
           {format(new Date(conversation.updated_at), "d MMM yyyy, HH:mm", { locale: localeId })}
         </p>

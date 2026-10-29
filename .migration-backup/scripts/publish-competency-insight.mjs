@@ -139,13 +139,30 @@ async function publishAndVerify() {
 }
 
 try {
-  await publishAndVerify();
-  console.log(JSON.stringify({
-    status: "passed",
-    function: functionName,
-    deployment: "active",
-    liveProbe: "passed",
-  }));
+  const args = process.argv.slice(2);
+  if (args.length && (args.length !== 1 || args[0] !== "--check-config")) {
+    throw new PublishStepError("configuration", {
+      code: "arguments_invalid",
+      message: "Expected no arguments or --check-config",
+    });
+  }
+  if (args[0] === "--check-config") {
+    await readProjectRef();
+    console.log(JSON.stringify({
+      status: "passed",
+      step: "configuration",
+      deployment: "not_started",
+      liveProbe: "not_run",
+    }));
+  } else {
+    await publishAndVerify();
+    console.log(JSON.stringify({
+      status: "passed",
+      function: functionName,
+      deployment: "active",
+      liveProbe: "passed",
+    }));
+  }
 } catch (error) {
   const step = error instanceof PublishStepError ? error.step : "configuration";
   console.error(JSON.stringify({

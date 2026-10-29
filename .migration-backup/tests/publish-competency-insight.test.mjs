@@ -70,9 +70,9 @@ exit 0
   return { directory, npmPath, tracePath };
 }
 
-function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath, override = projectRef, isolatedEnvironment = false }) {
+function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath, override = projectRef, isolatedEnvironment = true, args = [] }) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [scriptPath], {
+    const child = spawn(process.execPath, [scriptPath, ...args], {
       cwd: rootDir,
       env: {
         ...(!isolatedEnvironment ? process.env : {}),
@@ -299,6 +299,39 @@ test("a valid config deploys only to the matching release project", async (t) =>
     `exec --yes -- supabase functions deploy competency-insight --project-ref ${projectRef} --use-api`,
     "run --silent test:insight:live",
   ]);
+});
+
+test("configuration-only mode accepts matching refs without invoking deploy or live probe", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+  const result = await runPublisher({ ...fakeNpm, scriptPath, args: ["--check-config"] });
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, "");
+  assert.deepEqual(JSON.parse(result.stdout), {
+    status: "passed", step: "configuration", deployment: "not_started", liveProbe: "not_run",
+  });
+  await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+});
+
+test("configuration-only mode rejects wrong or missing release refs before any subprocess", async (t) => {
+  for (const override of [otherProjectRef, null]) {
+    const fakeNpm = await createFakeNpm(t);
+    const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+    const result = await runPublisher({ ...fakeNpm, scriptPath, override, args: ["--check-config"] });
+    assertConfigurationFailure(result, override === null ? "project_ref_missing" : "project_ref_mismatch",
+      override === null ? "SUPABASE_PROJECT_REF must be set in the release environment" :
+        "SUPABASE_PROJECT_REF does not match supabase/config.toml");
+    await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+  }
+});
+
+test("unknown or combined flags fail closed instead of accidentally deploying", async (t) => {
+  for (const args of [["--check-confg"], ["--check-config", "--deploy"]]) {
+    const fakeNpm = await createFakeNpm(t);
+    const result = await runPublisher({ ...fakeNpm, args });
+    assertConfigurationFailure(result, "arguments_invalid", "Expected no arguments or --check-config");
+    await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+  }
 });
 
 test("live probe runs only after a successful deployment", async (t) => {

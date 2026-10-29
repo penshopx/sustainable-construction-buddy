@@ -5,7 +5,645 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type OperatorPilotInputOperation = typeof OperatorPilotInputOperation[keyof typeof OperatorPilotInputOperation];
+
+
+export const OperatorPilotInputOperation = {
+  service_health: 'service_health',
+} as const;
+
+export type OperatorPilotInputScenario = typeof OperatorPilotInputScenario[keyof typeof OperatorPilotInputScenario];
+
+
+export const OperatorPilotInputScenario = {
+  success: 'success',
+  failure: 'failure',
+  hang: 'hang',
+} as const;
+
+export interface OperatorPilotInput {
+  requestId: string;
+  operation: OperatorPilotInputOperation;
+  scenario?: OperatorPilotInputScenario;
+}
+
+export type OperatorPilotSimulationMode = typeof OperatorPilotSimulationMode[keyof typeof OperatorPilotSimulationMode];
+
+
+export const OperatorPilotSimulationMode = {
+  'synthetic-only': 'synthetic-only',
+} as const;
+
+export type OperatorPilotSimulationOpenclaw = typeof OperatorPilotSimulationOpenclaw[keyof typeof OperatorPilotSimulationOpenclaw];
+
+
+export const OperatorPilotSimulationOpenclaw = {
+  simulated: 'simulated',
+} as const;
+
+export type OperatorPilotSimulationHermes = typeof OperatorPilotSimulationHermes[keyof typeof OperatorPilotSimulationHermes];
+
+
+export const OperatorPilotSimulationHermes = {
+  simulated: 'simulated',
+} as const;
+
+export interface OperatorPilotSimulation {
+  mode: OperatorPilotSimulationMode;
+  openclaw: OperatorPilotSimulationOpenclaw;
+  hermes: OperatorPilotSimulationHermes;
+}
+
+export type OperatorPilotJobOperation = typeof OperatorPilotJobOperation[keyof typeof OperatorPilotJobOperation];
+
+
+export const OperatorPilotJobOperation = {
+  service_health: 'service_health',
+} as const;
+
+export type OperatorPilotJobState = typeof OperatorPilotJobState[keyof typeof OperatorPilotJobState];
+
+
+export const OperatorPilotJobState = {
+  queued: 'queued',
+  running: 'running',
+  completed: 'completed',
+  failed: 'failed',
+  cancelled: 'cancelled',
+  timed_out: 'timed_out',
+} as const;
+
+export type OperatorPilotJobMode = typeof OperatorPilotJobMode[keyof typeof OperatorPilotJobMode];
+
+
+export const OperatorPilotJobMode = {
+  'synthetic-only': 'synthetic-only',
+} as const;
+
+export type OperatorPilotJobCode = typeof OperatorPilotJobCode[keyof typeof OperatorPilotJobCode];
+
+
+export const OperatorPilotJobCode = {
+  synthetic_failure: 'synthetic_failure',
+  deadline_exceeded: 'deadline_exceeded',
+  cancelled: 'cancelled',
+} as const;
+
+export interface OperatorPilotJob {
+  id: string;
+  requestId: string;
+  operation: OperatorPilotJobOperation;
+  state: OperatorPilotJobState;
+  mode: OperatorPilotJobMode;
+  /** @minimum 0 */
+  createdAt: number;
+  /** @minimum 0 */
+  startedAt?: number;
+  /** @minimum 0 */
+  finishedAt?: number;
+  code?: OperatorPilotJobCode;
+  result?: OperatorPilotSimulation;
+}
+
+export interface OperatorPilotSubmission {
+  job: OperatorPilotJob;
+  reused: boolean;
+}
+
+export interface SmapPilotCheck {
+  name: string;
+  complete: boolean;
+}
+
+export type SmapPilotDocumentType = typeof SmapPilotDocumentType[keyof typeof SmapPilotDocumentType];
+
+
+export const SmapPilotDocumentType = {
+  surat_pernyataan: 'surat_pernyataan',
+  sertifikat_iso: 'sertifikat_iso',
+  pendidikan_antikorupsi: 'pendidikan_antikorupsi',
+} as const;
+
+export interface SmapPilotDocument {
+  id: string;
+  createdAt?: string;
+  type: SmapPilotDocumentType;
+  checks: SmapPilotCheck[];
+}
+
+export interface SmapPilotDocuments {
+  /** @maxItems 50 */
+  documents: SmapPilotDocument[];
+}
+
+export type SmapPilotInputConsent = typeof SmapPilotInputConsent[keyof typeof SmapPilotInputConsent];
+
+
+export const SmapPilotInputConsent = {
+  'smap-presence-v1': 'smap-presence-v1',
+} as const;
+
+export interface SmapPilotInput {
+  /**
+     * @minItems 1
+     * @maxItems 5
+     */
+  documentIds: string[];
+  consent: SmapPilotInputConsent;
+}
+
+export type SmapPilotResultRuntime = typeof SmapPilotResultRuntime[keyof typeof SmapPilotResultRuntime];
+
+
+export const SmapPilotResultRuntime = {
+  hermes: 'hermes',
+} as const;
+
+export type SmapPilotResultDataScope = typeof SmapPilotResultDataScope[keyof typeof SmapPilotResultDataScope];
+
+
+export const SmapPilotResultDataScope = {
+  'presence-only': 'presence-only',
+} as const;
+
+export interface SmapPilotResult {
+  /**
+     * @minLength 1
+     * @maxLength 12000
+     */
+  analysis: string;
+  model: string;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  documentCount: number;
+  runtime: SmapPilotResultRuntime;
+  dataScope: SmapPilotResultDataScope;
+}
+
+export type ChatMessageRole = typeof ChatMessageRole[keyof typeof ChatMessageRole];
+
+
+export const ChatMessageRole = {
+  user: 'user',
+  assistant: 'assistant',
+} as const;
+
+export interface ChatMessage {
+  role: ChatMessageRole;
+  /**
+     * @minLength 1
+     * @maxLength 4000
+     */
+  content: string;
+}
+
+export interface ChatInput {
+  /**
+     * @minItems 1
+     * @maxItems 10
+     */
+  messages: ChatMessage[];
+}
+
+export interface HermesBg001ChatInput {
+  consent: true;
+  /**
+     * @minLength 5
+     * @maxLength 1000
+     */
+  question: string;
+}
+
+export type HermesBg001ChatResultStatus = typeof HermesBg001ChatResultStatus[keyof typeof HermesBg001ChatResultStatus];
+
+
+export const HermesBg001ChatResultStatus = {
+  completed: 'completed',
+} as const;
+
+export type HermesBg001ChatResultRuntime = typeof HermesBg001ChatResultRuntime[keyof typeof HermesBg001ChatResultRuntime];
+
+
+export const HermesBg001ChatResultRuntime = {
+  hermes: 'hermes',
+} as const;
+
+export type HermesBg001ChatResultProvider = typeof HermesBg001ChatResultProvider[keyof typeof HermesBg001ChatResultProvider];
+
+
+export const HermesBg001ChatResultProvider = {
+  'openrouter-claude': 'openrouter-claude',
+} as const;
+
+export type HermesBg001ChatResultSchemeCode = typeof HermesBg001ChatResultSchemeCode[keyof typeof HermesBg001ChatResultSchemeCode];
+
+
+export const HermesBg001ChatResultSchemeCode = {
+  BG001: 'BG001',
+} as const;
+
+export type HermesBg001ChatResultDataScope = typeof HermesBg001ChatResultDataScope[keyof typeof HermesBg001ChatResultDataScope];
+
+
+export const HermesBg001ChatResultDataScope = {
+  'question-and-public-references': 'question-and-public-references',
+} as const;
+
+export type HermesBg001ChatResultToolCount = typeof HermesBg001ChatResultToolCount[keyof typeof HermesBg001ChatResultToolCount];
+
+
+export const HermesBg001ChatResultToolCount = {
+  NUMBER_0: 0,
+} as const;
+
+export type HermesBg001ChatResultExternalModelRequests = typeof HermesBg001ChatResultExternalModelRequests[keyof typeof HermesBg001ChatResultExternalModelRequests];
+
+
+export const HermesBg001ChatResultExternalModelRequests = {
+  NUMBER_1: 1,
+} as const;
+
+export interface HermesSchemeEvidence {
+  id: string;
+  title: string;
+  /** @minimum 1 */
+  page: number;
+  quote: string;
+}
+
+export interface HermesBg001ChatResult {
+  status: HermesBg001ChatResultStatus;
+  runtime: HermesBg001ChatResultRuntime;
+  provider: HermesBg001ChatResultProvider;
+  schemeCode: HermesBg001ChatResultSchemeCode;
+  dataScope: HermesBg001ChatResultDataScope;
+  toolCount: HermesBg001ChatResultToolCount;
+  externalModelRequests: HermesBg001ChatResultExternalModelRequests;
+  contextVerified: true;
+  model: string;
+  /**
+     * @minLength 1
+     * @maxLength 10000
+     */
+  answer: string;
+  insufficientEvidence: boolean;
+  /** @minimum 0 */
+  elapsedMs: number;
+  /** @maxItems 3 */
+  sources: HermesSchemeEvidence[];
+}
+
+export type HermesSchemeLocalCheckResultStatus = typeof HermesSchemeLocalCheckResultStatus[keyof typeof HermesSchemeLocalCheckResultStatus];
+
+
+export const HermesSchemeLocalCheckResultStatus = {
+  completed: 'completed',
+} as const;
+
+export type HermesSchemeLocalCheckResultRuntime = typeof HermesSchemeLocalCheckResultRuntime[keyof typeof HermesSchemeLocalCheckResultRuntime];
+
+
+export const HermesSchemeLocalCheckResultRuntime = {
+  hermes: 'hermes',
+} as const;
+
+export type HermesSchemeLocalCheckResultProvider = typeof HermesSchemeLocalCheckResultProvider[keyof typeof HermesSchemeLocalCheckResultProvider];
+
+
+export const HermesSchemeLocalCheckResultProvider = {
+  'local-mock': 'local-mock',
+} as const;
+
+export type HermesSchemeLocalCheckResultDataScope = typeof HermesSchemeLocalCheckResultDataScope[keyof typeof HermesSchemeLocalCheckResultDataScope];
+
+
+export const HermesSchemeLocalCheckResultDataScope = {
+  'uploaded-reference-only': 'uploaded-reference-only',
+} as const;
+
+export type HermesSchemeLocalCheckResultToolCount = typeof HermesSchemeLocalCheckResultToolCount[keyof typeof HermesSchemeLocalCheckResultToolCount];
+
+
+export const HermesSchemeLocalCheckResultToolCount = {
+  NUMBER_0: 0,
+} as const;
+
+export type HermesSchemeLocalCheckResultLocalProviderRequests = typeof HermesSchemeLocalCheckResultLocalProviderRequests[keyof typeof HermesSchemeLocalCheckResultLocalProviderRequests];
+
+
+export const HermesSchemeLocalCheckResultLocalProviderRequests = {
+  NUMBER_1: 1,
+} as const;
+
+export type HermesSchemeLocalCheckResultExternalModelRequests = typeof HermesSchemeLocalCheckResultExternalModelRequests[keyof typeof HermesSchemeLocalCheckResultExternalModelRequests];
+
+
+export const HermesSchemeLocalCheckResultExternalModelRequests = {
+  NUMBER_0: 0,
+} as const;
+
+export type HermesSchemeLocalCheckResultDocumentCount = typeof HermesSchemeLocalCheckResultDocumentCount[keyof typeof HermesSchemeLocalCheckResultDocumentCount];
+
+
+export const HermesSchemeLocalCheckResultDocumentCount = {
+  NUMBER_3: 3,
+} as const;
+
+export type HermesSchemeLocalCheckResultSchemeCode = typeof HermesSchemeLocalCheckResultSchemeCode[keyof typeof HermesSchemeLocalCheckResultSchemeCode];
+
+
+export const HermesSchemeLocalCheckResultSchemeCode = {
+  BG001: 'BG001',
+} as const;
+
+export interface HermesSchemeLocalCheckResult {
+  status: HermesSchemeLocalCheckResultStatus;
+  runtime: HermesSchemeLocalCheckResultRuntime;
+  provider: HermesSchemeLocalCheckResultProvider;
+  dataScope: HermesSchemeLocalCheckResultDataScope;
+  toolCount: HermesSchemeLocalCheckResultToolCount;
+  localProviderRequests: HermesSchemeLocalCheckResultLocalProviderRequests;
+  externalModelRequests: HermesSchemeLocalCheckResultExternalModelRequests;
+  documentCount: HermesSchemeLocalCheckResultDocumentCount;
+  /** @minimum 0 */
+  elapsedMs: number;
+  fixtureReply: string;
+  schemeCode: HermesSchemeLocalCheckResultSchemeCode;
+  contextVerified: true;
+  citationsVerified: true;
+  question: string;
+  /**
+     * @minItems 3
+     * @maxItems 3
+     */
+  sources: HermesSchemeEvidence[];
+}
+
+export interface HermesLocalCheckInput {
+  consent: true;
+}
+
+export type HermesLocalCheckResultStatus = typeof HermesLocalCheckResultStatus[keyof typeof HermesLocalCheckResultStatus];
+
+
+export const HermesLocalCheckResultStatus = {
+  completed: 'completed',
+} as const;
+
+export type HermesLocalCheckResultRuntime = typeof HermesLocalCheckResultRuntime[keyof typeof HermesLocalCheckResultRuntime];
+
+
+export const HermesLocalCheckResultRuntime = {
+  hermes: 'hermes',
+} as const;
+
+export type HermesLocalCheckResultProvider = typeof HermesLocalCheckResultProvider[keyof typeof HermesLocalCheckResultProvider];
+
+
+export const HermesLocalCheckResultProvider = {
+  'local-mock': 'local-mock',
+} as const;
+
+export type HermesLocalCheckResultDataScope = typeof HermesLocalCheckResultDataScope[keyof typeof HermesLocalCheckResultDataScope];
+
+
+export const HermesLocalCheckResultDataScope = {
+  'synthetic-only': 'synthetic-only',
+} as const;
+
+export type HermesLocalCheckResultToolCount = typeof HermesLocalCheckResultToolCount[keyof typeof HermesLocalCheckResultToolCount];
+
+
+export const HermesLocalCheckResultToolCount = {
+  NUMBER_0: 0,
+} as const;
+
+export type HermesLocalCheckResultLocalProviderRequests = typeof HermesLocalCheckResultLocalProviderRequests[keyof typeof HermesLocalCheckResultLocalProviderRequests];
+
+
+export const HermesLocalCheckResultLocalProviderRequests = {
+  NUMBER_1: 1,
+} as const;
+
+export type HermesLocalCheckResultExternalModelRequests = typeof HermesLocalCheckResultExternalModelRequests[keyof typeof HermesLocalCheckResultExternalModelRequests];
+
+
+export const HermesLocalCheckResultExternalModelRequests = {
+  NUMBER_0: 0,
+} as const;
+
+export type HermesLocalCheckResultDocumentCount = typeof HermesLocalCheckResultDocumentCount[keyof typeof HermesLocalCheckResultDocumentCount];
+
+
+export const HermesLocalCheckResultDocumentCount = {
+  NUMBER_1: 1,
+} as const;
+
+export interface HermesLocalCheckResult {
+  status: HermesLocalCheckResultStatus;
+  runtime: HermesLocalCheckResultRuntime;
+  provider: HermesLocalCheckResultProvider;
+  dataScope: HermesLocalCheckResultDataScope;
+  toolCount: HermesLocalCheckResultToolCount;
+  localProviderRequests: HermesLocalCheckResultLocalProviderRequests;
+  externalModelRequests: HermesLocalCheckResultExternalModelRequests;
+  documentCount: HermesLocalCheckResultDocumentCount;
+  /** @minimum 0 */
+  elapsedMs: number;
+  fixtureReply: string;
+}
+
+export interface SchemeReferenceProfile {
+  code: string;
+  family: string;
+  title: string;
+}
+
+export type SchemeReferenceEvidenceKind = typeof SchemeReferenceEvidenceKind[keyof typeof SchemeReferenceEvidenceKind];
+
+
+export const SchemeReferenceEvidenceKind = {
+  pdf: 'pdf',
+  text: 'text',
+  application_policy: 'application_policy',
+} as const;
+
+export interface SchemeReferenceEvidence {
+  kind: SchemeReferenceEvidenceKind;
+  id: string;
+  title: string;
+  quote: string;
+  /** @minimum 1 */
+  page?: number;
+  /** @minimum 1 */
+  lineStart?: number;
+  /** @minimum 1 */
+  lineEnd?: number;
+}
+
+export type SchemeReferenceCaseKind = typeof SchemeReferenceCaseKind[keyof typeof SchemeReferenceCaseKind];
+
+
+export const SchemeReferenceCaseKind = {
+  reference: 'reference',
+  boundary: 'boundary',
+  application_policy: 'application_policy',
+} as const;
+
+export interface SchemeReferenceCase {
+  id: string;
+  kind: SchemeReferenceCaseKind;
+  code: string;
+  family: string;
+  category: string;
+  appliesTo: string[];
+  question: string;
+  answer: string;
+  clarificationQuestions: string[];
+  requiredPoints: string[];
+  forbiddenClaims: string[];
+  evidenceIds: string[];
+}
+
+export interface SchemeReferenceCounts {
+  profiles: number;
+  cases: number;
+  evidence: number;
+}
+
+export type SchemeReferenceBankStatus = typeof SchemeReferenceBankStatus[keyof typeof SchemeReferenceBankStatus];
+
+
+export const SchemeReferenceBankStatus = {
+  draft_reference_answers: 'draft_reference_answers',
+} as const;
+
+export type SchemeReferenceBankEvidence = {[key: string]: SchemeReferenceEvidence};
+
+export interface SchemeReferenceBank {
+  status: SchemeReferenceBankStatus;
+  usedForAiReplies: false;
+  scope: string;
+  reviewGuidance: string;
+  profiles: SchemeReferenceProfile[];
+  counts: SchemeReferenceCounts;
+  cases: SchemeReferenceCase[];
+  evidence: SchemeReferenceBankEvidence;
+}
+
+export type ChatEngine = typeof ChatEngine[keyof typeof ChatEngine];
+
+
+export const ChatEngine = {
+  claude: 'claude',
+  gpt: 'gpt',
+  deepseek: 'deepseek',
+  nvidia: 'nvidia',
+  gemini: 'gemini',
+} as const;
+
+export interface ChatReply {
+  /**
+     * @minLength 1
+     * @maxLength 32512
+     */
+  reply: string;
+  engine?: ChatEngine;
+  model?: string;
+  scheme_code?: string;
+}
+
+export type HelpdeskInputMode = typeof HelpdeskInputMode[keyof typeof HelpdeskInputMode];
+
+
+export const HelpdeskInputMode = {
+  pembelajaran: 'pembelajaran',
+  profesi: 'profesi',
+  proyek: 'proyek',
+} as const;
+
+export type HelpdeskInputAudience = typeof HelpdeskInputAudience[keyof typeof HelpdeskInputAudience];
+
+
+export const HelpdeskInputAudience = {
+  bujk: 'bujk',
+  peninjau: 'peninjau',
+  asesor: 'asesor',
+  lsbu: 'lsbu',
+} as const;
+
+export type HelpdeskInputExplanationDepth = typeof HelpdeskInputExplanationDepth[keyof typeof HelpdeskInputExplanationDepth];
+
+
+export const HelpdeskInputExplanationDepth = {
+  dasar: 'dasar',
+  praktis: 'praktis',
+  rinci: 'rinci',
+} as const;
+
+export interface HelpdeskInput {
+  /**
+     * @minItems 1
+     * @maxItems 10
+     */
+  messages: ChatMessage[];
+  engine?: ChatEngine;
+  mode?: HelpdeskInputMode;
+  /** @maxLength 6000 */
+  custom_persona?: string;
+  /** @pattern ^[A-Z]{2}[0-9]{3}$ */
+  scheme_code?: string;
+  audience?: HelpdeskInputAudience;
+  explanation_depth?: HelpdeskInputExplanationDepth;
+}
+
+export interface ChatError {
+  error: string;
+}
+
+export interface PublicChatbot {
+  id: string;
+  /** @minLength 1 */
+  name: string;
+  description: string;
+  avatar_url: string;
+  mode: string;
+  welcome_message: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
+
+/**
+ * Preview disabled, invalid request, access denied or verification unavailable
+ */
+export type OperatorPilotErrorResponse = ChatError;
+
+/**
+ * Invalid chat messages
+ */
+export type ChatBadRequestResponse = ChatError;
+
+/**
+ * Invalid, missing, deleted, or revoked share link
+ */
+export type ChatNotFoundResponse = ChatError;
+
+/**
+ * Request or concurrency limit exceeded; retry after the Retry-After interval
+ */
+export type ChatRateLimitedResponse = ChatError;
+
+/**
+ * Chat configuration or upstream service unavailable
+ */
+export type ChatUnavailableResponse = ChatError;
+
+/**
+ * Upstream request timed out
+ */
+export type ChatTimeoutResponse = ChatError;
 

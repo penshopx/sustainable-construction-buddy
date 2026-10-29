@@ -11,3 +11,12 @@
 - [Drift migrasi Supabase](supabase-migration-drift.md) — migrasi dalam repositori belum tentu pernah diterapkan ke database hosted; periksa definisi fungsi aktif sebelum membungkusnya.
 - [Uji RPC LMS terisolasi](lms-rpc-isolated-tests.md) — skema PostgreSQL minimal menguji fungsi asli tanpa data hosted, tetapi bukan pengganti uji skema Supabase lengkap.
 - [Pemulihan tautan video LMS](lms-video-recovery.md) — tautan kedaluwarsa tidak perlu mengganti sumber yang masih lancar; pulihkan hanya bila pemutaran benar-benar terhenti.
+- [Cakupan advisori SheetJS](sheetjs-advisory-scope.md) — rentang advisori npm dapat menandai rilis CDN yang sudah ditambal; verifikasi vendor, bukan menekan seluruh aturan.
+- [Arah model AI aplikasi](application-ai-direction.md) — Claude untuk otak utama; chat harian dapat memakai GPT, DeepSeek, model NVIDIA, atau Gemini.
+- [Distribusi runtime Hermes](hermes-runtime-packaging.md) — jangan mengasumsikan Hermes dapat dipasang sebagai SDK Python biasa; periksa distribusi resmi dan batas runtime.
+- [Privasi pilot agen](agent-pilot-privacy.md) — izin pilot hanya preview baca-saja; orkestrasi SDK tidak memberi izin meneruskan seluruh konteks atau kunci provider.
+- [Uji pilot terautentikasi](authenticated-pilot-checks.md) — gunakan hasil API dalam sesi operator; jangan samakan HTTP 200 atau batas waktu klien dengan hasil skenario.
+- [Tooling dokumen offline](offline-document-tooling.md) — pemasang alat Python dapat membuat scaffolding; pisahkan konversi dokumen dari runtime Node.
+- [Bukti kutipan knowledge base](knowledge-citation-evidence.md) — ID dokumen yang benar belum membuktikan halaman relevan; uji teks bukti setelah pemangkasan konteks.
+- [Harness bukan Hermes](harness-terminology.md) — “Harnes” sebagai colokan/penghubung berarti lapisan harness; jangan otomatis menafsirkannya sebagai Hermes AI.
+- [Tujuan rilis produksi](production-release-target.md) — ref disahkan pemilik untuk konfigurasi produksi; izin tersebut bukan izin publikasi.
