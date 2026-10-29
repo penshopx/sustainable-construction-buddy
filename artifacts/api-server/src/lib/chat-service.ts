@@ -165,7 +165,7 @@ export function createChatService(options: ChatServiceOptions = {}) {
         model,
         messages: [{ role: "system", content: chatSystemPrompt(bot) + context + evidence + (bot ? "" : vaultContext) }, ...messages],
         temperature: 0.3,
-        max_tokens: settings?.engine === "claude" ? 4096 : 2048,
+        max_tokens: settings?.engine === "claude" ? 1400 : 2048,
         stream: false,
         provider: { allow_fallbacks: false, data_collection: "deny" },
       }),
@@ -186,15 +186,19 @@ export function createChatService(options: ChatServiceOptions = {}) {
     if (typeof content !== "string" || !content.trim() || content.length > 32000) {
       throw new ChatServiceError(503, "ai_response_invalid", UNAVAILABLE);
     }
+    const truncated = (data as { choices?: { finish_reason?: unknown }[] } | null)?.choices?.[0]?.finish_reason === "length";
+    const answer = content.trim() + (truncated
+      ? "\n\n> Jawaban mencapai batas panjang dan mungkin belum lengkap. Tanyakan bagian yang lebih spesifik untuk melanjutkan."
+      : "");
     if (citations) {
       let count: number;
       try { count = checkCitationLinks(content, citations); }
       catch { throw new ChatServiceError(503, "ai_citation_invalid", "Jawaban memuat rujukan yang tidak sesuai konteks skema. Tidak ada pengiriman ulang otomatis."); }
-      return content.trim() + (count
+      return answer + (count
         ? "\n\n> Catatan harness: ID sumber dan halaman kutipan cocok dengan konteks yang diberikan; kebenaran seluruh kesimpulan AI tetap perlu ditinjau."
         : "\n\n> Catatan harness: jawaban belum memuat kutipan sumber dan halaman yang dapat diperiksa. Jangan gunakan sebagai keputusan sertifikasi.");
     }
-    return content.trim();
+    return answer;
       },
     });
     } catch (error) {

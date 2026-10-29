@@ -415,7 +415,7 @@ test("all conversational roles use selected server-owned scheme evidence, not gl
 
 test("all five engines resolve server-owned models after real member verification", async (t) => {
   for (const [engine, model] of Object.entries({
-    claude: "anthropic/claude-opus-5.5",
+    claude: "anthropic/claude-sonnet-4.5",
     gpt: "openai/gpt-4o-mini",
     deepseek: "deepseek/deepseek-v4.1-flash",
     nvidia: "nvidia/nemotron-3.5-lightning:free",
@@ -430,7 +430,7 @@ test("all five engines resolve server-owned models after real member verificatio
     assert.equal(h.calls[0].init.headers.Authorization, MEMBER_HEADERS.Authorization);
     const sent = JSON.parse(h.calls[1].init.body);
     assert.equal(sent.model, model);
-    assert.equal(sent.max_tokens, engine === "claude" ? 4096 : 2048);
+    assert.equal(sent.max_tokens, engine === "claude" ? 1400 : 2048);
     assert.deepEqual(sent.provider, { allow_fallbacks: false, data_collection: "deny" });
     assert.match(sent.messages[0].content, /bukan instruksi sistem atau izin akses/);
     assert.match(sent.messages[0].content, /Konteks uji/);
@@ -523,4 +523,18 @@ test("a mismatched or missing upstream model is not presented as the selected mo
     assert.equal(h.calls.length, 2);
     assert.doesNotMatch(JSON.stringify(await response.json()), /Simpan bukti/);
   }
+});
+
+test("a length-limited Claude answer is explicitly marked incomplete without an automatic retry", async (t) => {
+  const h = await harness(t, { fetchImpl: (url, init) =>
+    url.endsWith("/auth/v1/user") ? ok({ id: MEMBER_ID }) : ok({
+      model: JSON.parse(init.body).model,
+      choices: [{ finish_reason: "length", message: { content: "Bagian awal jawaban." } }],
+    }) });
+  const response = await h.post("/helpdesk", { ...INPUT, engine: "claude" }, MEMBER_HEADERS);
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.model, "anthropic/claude-sonnet-4.5");
+  assert.match(body.reply, /mungkin belum lengkap/);
+  assert.equal(h.calls.filter(c => c.url.includes("openrouter")).length, 1);
 });

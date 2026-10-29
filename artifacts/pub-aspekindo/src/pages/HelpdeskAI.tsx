@@ -274,7 +274,7 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
               Riwayat yang dibuka kembali tidak otomatis dikirim ke model; hanya pesan baru yang dikirim.
               Jangan sertakan rahasia atau dokumen sensitif tanpa izin.
             </p>
-            <p className="text-xs text-muted-foreground">Batas akun: 20 permintaan/jam, termasuk maksimal 5 analisis Claude/jam. Tidak ada pergantian model otomatis.</p>
+            <p className="text-xs text-muted-foreground">Batas akun: 20 permintaan/jam, termasuk maksimal 5 analisis Claude/jam. Jawaban Claude Sonnet dibatasi 1.400 token agar lebih hemat. Tidak ada pergantian model otomatis.</p>
             {lastModel && <p className="text-xs text-muted-foreground">Model jawaban terakhir: {lastModel}</p>}
           </div>
           {/* Active custom bot indicator */}

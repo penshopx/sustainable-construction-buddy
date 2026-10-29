@@ -9,6 +9,12 @@ Pengguna menyatakan: "otak aplikasi ini menggunakan claude.. selanjutnya untuk c
 
 **How to apply:** Gunakan pembagian tersebut ketika mendiskusikan atau merancang integrasi AI. Ini adalah arah produk, bukan bukti bahwa integrasinya sudah terpasang atau izin untuk menjalankan implementasi, mengirim data ke penyedia, maupun mengubah produksi.
 
+Pengguna menyetujui rekomendasi Claude Sonnet sebagai model utama PUB yang lebih hemat, tetap tanpa perpindahan model otomatis.
+
+**Why:** Pengguna menjawab “ikut rekomendasimu” setelah diberi pilihan mempertahankan Opus atau menggunakan Sonnet karena batas penggunaan OpenRouter.
+
+**How to apply:** Pertahankan Sonnet sebagai pilihan utama PUB kecuali pengguna mengubah arah. Kegagalan penyedia harus dilaporkan, bukan memicu perpindahan model diam-diam. Persetujuan ini bukan izin publikasi.
+
 Pengguna ingin membuat chatbot untuk masing-masing skema atau klasifikasi dan subklasifikasi usaha jasa konstruksi, menggunakan referensi yang sudah diunggah.
 
 **Why:** Pengguna menyatakan arah produk tersebut secara eksplisit.

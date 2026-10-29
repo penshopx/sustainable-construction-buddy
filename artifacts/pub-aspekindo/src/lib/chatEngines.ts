@@ -1,7 +1,7 @@
 import type { ChatEngine, ChatMessage } from "@workspace/api-client-react";
 
 export const CHAT_ENGINES: { id: ChatEngine; label: string }[] = [
-  { id: "claude", label: "Claude — analisis utama" },
+  { id: "claude", label: "Claude Sonnet — analisis utama" },
   { id: "gpt", label: "GPT — chat harian" },
   { id: "deepseek", label: "DeepSeek — chat harian" },
   { id: "nvidia", label: "NVIDIA Nemotron — opsi gratis sesuai kuota" },

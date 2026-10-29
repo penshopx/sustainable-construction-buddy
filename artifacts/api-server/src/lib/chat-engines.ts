@@ -3,7 +3,7 @@ import type { ChatEngine } from "@workspace/api-zod";
 // Only the server owns model IDs. Public callers cannot choose arbitrary models,
 // endpoints, API keys, or upstream routing/fallback policies.
 const ENGINES: Record<ChatEngine, { model: string; prefix: string; setting: string }> = {
-  claude: { model: "anthropic/claude-opus-5.5", prefix: "anthropic/claude-", setting: "AI_CLAUDE_MODEL" },
+  claude: { model: "anthropic/claude-sonnet-4.5", prefix: "anthropic/claude-", setting: "AI_CLAUDE_MODEL" },
   gpt: { model: "openai/gpt-4o-mini", prefix: "openai/gpt-", setting: "AI_GPT_MODEL" },
   deepseek: { model: "deepseek/deepseek-v4.1-flash", prefix: "deepseek/", setting: "AI_DEEPSEEK_MODEL" },
   nvidia: { model: "nvidia/nemotron-3.5-lightning:free", prefix: "nvidia/", setting: "AI_NVIDIA_MODEL" },
