@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ChatEngine } from './chatEngine';
+import type { VaultSource } from './vaultSource';
 
 export interface ChatReply {
+  vault_sources?: VaultSource[];
   /**
      * @minLength 1
      * @maxLength 32512

@@ -4,12 +4,14 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { clearLocalAssessmentDrafts } from "@/lib/assessmentDraft";
 import { AuthContext, type Profile } from "./useAuth";
+import { loadBusinessProfile } from "@/lib/ruang-simpan";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [businessProfileError, setBusinessProfileError] = useState("");
   const profileRequestId = useRef(0);
   const currentIdentity = useRef<string | null>(null);
   const mounted = useRef(false);
@@ -22,14 +24,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("*")
       .eq("user_id", userId)
       .single();
+    let company = "";
+    let companyError = "";
+    try { company = (await loadBusinessProfile()).name; }
+    catch { companyError = "Profil perusahaan Ruang Simpan belum dapat dimuat. Data lama tidak dipakai sebagai pengganti."; }
     if (mounted.current && currentIdentity.current === userId && requestId === profileRequestId.current) {
-      setProfile(data ?? null);
+      setProfile(data ? { ...data, company } : null);
+      setBusinessProfileError(companyError);
     }
   };
 
   const refreshProfile = async () => {
     if (user) await fetchProfile(user.id);
   };
+  useEffect(() => {
+    const refresh = () => { if (user && document.visibilityState === "visible") void fetchProfile(user.id); };
+    window.addEventListener("focus", refresh);
+    const timer = window.setInterval(refresh, 30_000);
+    return () => { window.removeEventListener("focus", refresh); window.clearInterval(timer); };
+  }, [user?.id]);
 
   useEffect(() => {
     mounted.current = true;
@@ -104,12 +117,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     // Purge before the auth request so an interrupted logout cannot leave answers behind.
     try { clearLocalAssessmentDrafts(localStorage); } catch { /* Storage is unavailable. */ }
-    await supabase.auth.signOut();
+    const cleared = await fetch("/api/ruang-simpan/session", { method: "DELETE", credentials: "same-origin" });
+    if (!cleared.ok) throw new Error("Sesi Ruang Simpan belum dapat ditutup. Coba keluar lagi.");
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     setProfile(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, profile, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, loading, profile, businessProfileError, signUp, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

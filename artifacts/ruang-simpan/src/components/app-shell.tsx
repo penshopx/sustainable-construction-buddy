@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useClerk, useUser } from '@clerk/react';
+import { usePubAuth } from '@/lib/pub-auth';
 import { useGetVaultWorkspace } from '@workspace/api-client-react';
 import { FolderOpen, Building2, Bot, History, LogOut } from 'lucide-react';
 import { formatBytes } from '@/lib/vault';
@@ -45,9 +45,9 @@ function Quota() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [loc] = useLocation();
-  const { signOut } = useClerk();
-  const { user } = useUser();
-  const name = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Akun';
+  const { signOut, session } = usePubAuth();
+  const fullName = session?.user.user_metadata?.full_name;
+  const name = (typeof fullName === 'string' && fullName) || session?.user.email || 'Akun PUB';
   const initials = name.split(/\s|@/).filter(Boolean).slice(0, 2).map((s) => s[0]?.toUpperCase()).join('');
 
   return (
@@ -56,7 +56,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link href="/user-portal" className="px-2 py-2" data-testid="link-home">
           <Brand />
         </Link>
-        <p className="px-2 mt-1 text-[11px] uppercase tracking-[0.2em] text-sidebar-foreground/60 font-mono-ui">Memori bisnis</p>
+        <a href="/dashboard" className="px-2 mt-2 block text-sm text-primary">← Kembali ke PUB ASPEKINDO</a>
+        <p className="px-2 mt-1 text-[11px] uppercase tracking-[0.2em] text-sidebar-foreground/60 font-mono-ui">Acuan data bisnis PUB</p>
         <nav className="mt-8 flex flex-col gap-1">
           {NAV.map((n) => {
             const active = loc === n.href;
@@ -87,7 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               type="button"
               aria-label="Keluar"
               data-testid="button-logout"
-              onClick={() => signOut({ redirectUrl: basePath || '/' })}
+              onClick={() => void signOut()}
               className="rounded-md p-2 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             >
               <LogOut className="h-4 w-4" />
@@ -98,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <header className="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/90 backdrop-blur px-4 py-3">
         <Brand />
-        <button type="button" data-testid="button-logout-mobile" onClick={() => signOut({ redirectUrl: basePath || '/' })} className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+        <button type="button" data-testid="button-logout-mobile" onClick={() => void signOut()} className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
           <LogOut className="h-4 w-4" /> Keluar
         </button>
       </header>

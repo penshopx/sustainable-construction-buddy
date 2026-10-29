@@ -17,19 +17,29 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [registrationMessage, setRegistrationMessage] = useState("");
-  const { signIn, signUp, user, loading: authLoading } = useAuth();
+  const { signIn, signUp, signOut, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedNext = searchParams.get("next");
+  const logoutRequested = searchParams.get("logout") === "1";
   const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
     ? requestedNext
     : "/dashboard";
 
   useEffect(() => {
+    if (logoutRequested) return;
     if (!authLoading && user) {
-      navigate(nextPath, { replace: true });
+      if (nextPath.startsWith("/ruang-simpan/")) window.location.replace(nextPath);
+      else navigate(nextPath, { replace: true });
     }
-  }, [authLoading, navigate, nextPath, user]);
+  }, [authLoading, navigate, nextPath, user, logoutRequested]);
+  useEffect(() => {
+    if (!logoutRequested || authLoading) return;
+    let active = true;
+    void signOut().then(() => { if (active) navigate("/auth", { replace: true }); })
+      .catch(() => { if (active) setAuthError("Logout gagal. Sesi mungkin masih aktif; coba kembali melalui menu Keluar PUB."); });
+    return () => { active = false; };
+  }, [logoutRequested, authLoading]);
 
   useEffect(() => {
     if (searchParams.get("confirmed") === "1") {
@@ -100,7 +110,8 @@ const Auth = () => {
         if (error) {
           showAuthError(error);
         } else if (session) {
-          navigate(nextPath);
+          if (nextPath.startsWith("/ruang-simpan/")) window.location.assign(nextPath);
+          else navigate(nextPath);
         } else {
           const message = "Sesi login belum terbentuk. Silakan coba masuk kembali.";
           setAuthError(message);
@@ -112,7 +123,8 @@ const Auth = () => {
           showAuthError(error);
         } else if (session) {
           toast.success("Registrasi berhasil!");
-          navigate(nextPath);
+          if (nextPath.startsWith("/ruang-simpan/")) window.location.assign(nextPath);
+          else navigate(nextPath);
         } else {
           const message = "Registrasi berhasil. Periksa email Anda untuk mengonfirmasi akun sebelum masuk.";
           setRegistrationMessage(message);

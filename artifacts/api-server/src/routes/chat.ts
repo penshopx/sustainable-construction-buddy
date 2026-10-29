@@ -97,8 +97,9 @@ export function createChatRouter(
       }
       await run(req, res, async signal => {
         const settings = isPublicBot ? undefined : SendHelpdeskMessageBody.parse(parsed.data);
-        if (settings?.engine || settings?.mode || settings?.custom_persona || settings?.scheme_code || settings?.audience || settings?.explanation_depth) {
-          const memberId = await service.requireMember(req.get("authorization"));
+        let memberId: string | undefined;
+        if (settings?.engine || settings?.mode || settings?.custom_persona || settings?.scheme_code || settings?.audience || settings?.explanation_depth || settings?.use_vault_context) {
+          memberId = await service.requireMember(req.get("authorization"));
           const wait = memberLimit(memberId, now()) ||
             (settings.engine === "claude" ? analysisLimit(memberId, now()) : 0);
           if (wait) {
@@ -109,10 +110,19 @@ export function createChatRouter(
         }
         // Resolve the capability again on every send; deleted/rotated links stop working.
         const bot = params?.success ? await service.findBot(params.data.token) : undefined;
-        const reply = await service.reply(messages, bot, settings, signal);
+        let vault;
+        if (!isPublicBot && settings?.use_vault_context && memberId) {
+          const [{ pubVaultContext }, { ensurePubWorkspace }] = await Promise.all([
+            import("../lib/vault-context"), import("../lib/vault-pub-auth"),
+          ]);
+          await ensurePubWorkspace(memberId, req.get("authorization")!);
+          vault = await pubVaultContext(memberId, messages.at(-1)!.content);
+        }
+        const reply = await service.reply(messages, bot, settings, signal, vault?.prompt);
         const schema = isPublicBot ? SendPublicChatbotMessageResponse : SendHelpdeskMessageResponse;
         res.json(schema.parse({
           reply,
+          ...(vault ? { vault_sources: vault.sources } : {}),
           ...(settings?.scheme_code ? { scheme_code: settings.scheme_code } : {}),
           ...(settings?.engine ? { engine: settings.engine, model: chatModel(settings.engine, options.env ?? process.env) } : {}),
         }));

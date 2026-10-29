@@ -12,6 +12,8 @@ import type { HelpdeskInputExplanationDepth } from './helpdeskInputExplanationDe
 import type { HelpdeskInputMode } from './helpdeskInputMode';
 
 export interface HelpdeskInput {
+  /** Explicit consent to send own business profile and document excerpts to external AI; never used by public shared bots. */
+  use_vault_context?: boolean;
   /**
      * @minItems 1
      * @maxItems 10

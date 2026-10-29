@@ -13,6 +13,54 @@ tags:
   - name: chat
     description: Public helpdesk and capability-link chatbots
 paths:
+  /ruang-simpan/company-names:
+    post:
+      operationId: resolveVaultCompanies
+      tags: [vault]
+      summary: Canonical company names, limited to profiles visible under existing PUB RLS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultCompanyLookup" }
+      responses:
+        "200":
+          description: Visible canonical names only; no private documents, NIB or addresses
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [companies]
+                properties:
+                  companies:
+                    type: array
+                    items:
+                      type: object
+                      required: [userId, name]
+                      properties:
+                        userId: { type: string }
+                        name: { type: string }
+  /ruang-simpan/session:
+    post:
+      operationId: openVaultPubSession
+      tags: [vault]
+      summary: Establish HttpOnly Ruang Simpan cookie with a verified PUB bearer token
+      responses:
+        "200":
+          description: Verified PUB identity
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [userId]
+                properties:
+                  userId: { type: string }
+    delete:
+      operationId: closeVaultPubSession
+      tags: [vault]
+      responses:
+        "204":
+          description: Browser session cookie cleared
   /ruang-simpan/external/profile:
     get:
       operationId: getVaultExternalProfile
@@ -670,6 +718,15 @@ components:
           schema:
             $ref: "#/components/schemas/ChatError"
   schemas:
+    VaultCompanyLookup:
+      type: object
+      required: [userIds]
+      properties:
+        userIds:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { type: string, format: uuid }
     VaultDocumentMetadata:
       type: object
       required: [id, name, folderId, size, type, createdAt, status, starred]
@@ -1063,6 +1120,9 @@ components:
       type: object
       required: [reply]
       properties:
+        vault_sources:
+          type: array
+          items: { $ref: "#/components/schemas/VaultSource" }
         reply:
           type: string
           minLength: 1
@@ -1080,6 +1140,9 @@ components:
       type: object
       required: [messages]
       properties:
+        use_vault_context:
+          type: boolean
+          description: Explicit consent to send own business profile and document excerpts to external AI; never used by public shared bots.
         messages:
           type: array
           minItems: 1

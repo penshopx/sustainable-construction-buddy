@@ -35,11 +35,13 @@ import type {
   HermesLocalCheckInput,
   HermesLocalCheckResult,
   HermesSchemeLocalCheckResult,
+  OpenVaultPubSession200,
   OperatorPilotErrorResponse,
   OperatorPilotInput,
   OperatorPilotJob,
   OperatorPilotSubmission,
   PublicChatbot,
+  ResolveVaultCompanies200,
   SchemeReferenceBank,
   SmapPilotDocuments,
   SmapPilotInput,
@@ -49,6 +51,7 @@ import type {
   VaultAnswer,
   VaultAssistant,
   VaultAssistantInput,
+  VaultCompanyLookup,
   VaultConnectionCreated,
   VaultConnectionInput,
   VaultDocument,
@@ -87,6 +90,213 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getResolveVaultCompaniesUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/company-names`
+}
+
+/**
+ * @summary Canonical company names, limited to profiles visible under existing PUB RLS
+ */
+export const resolveVaultCompanies = async (vaultCompanyLookup: VaultCompanyLookup, options?: Parameters<typeof customFetch>[1]): Promise<ResolveVaultCompanies200> => {
+
+  return customFetch<ResolveVaultCompanies200>(getResolveVaultCompaniesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultCompanyLookup)
+  }
+);}
+
+
+
+
+
+export const getResolveVaultCompaniesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveVaultCompanies>>, TError,{data: BodyType<VaultCompanyLookup>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveVaultCompanies>>, TError,{data: BodyType<VaultCompanyLookup>}, TContext> => {
+
+const mutationKey = ['resolveVaultCompanies'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveVaultCompanies>>, {data: BodyType<VaultCompanyLookup>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  resolveVaultCompanies(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveVaultCompaniesMutationResult = NonNullable<Awaited<ReturnType<typeof resolveVaultCompanies>>>
+    export type ResolveVaultCompaniesMutationBody = BodyType<VaultCompanyLookup>
+    export type ResolveVaultCompaniesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Canonical company names, limited to profiles visible under existing PUB RLS
+ */
+export const useResolveVaultCompanies = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveVaultCompanies>>, TError,{data: BodyType<VaultCompanyLookup>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveVaultCompanies>>,
+        TError,
+        {data: BodyType<VaultCompanyLookup>},
+        TContext
+      > => {
+      return useMutation(getResolveVaultCompaniesMutationOptions(options));
+    }
+
+export const getOpenVaultPubSessionUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/session`
+}
+
+/**
+ * @summary Establish HttpOnly Ruang Simpan cookie with a verified PUB bearer token
+ */
+export const openVaultPubSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<OpenVaultPubSession200> => {
+
+  return customFetch<OpenVaultPubSession200>(getOpenVaultPubSessionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getOpenVaultPubSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openVaultPubSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openVaultPubSession>>, TError,void, TContext> => {
+
+const mutationKey = ['openVaultPubSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openVaultPubSession>>, void> = () => {
+
+
+          return  openVaultPubSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenVaultPubSessionMutationResult = NonNullable<Awaited<ReturnType<typeof openVaultPubSession>>>
+
+    export type OpenVaultPubSessionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Establish HttpOnly Ruang Simpan cookie with a verified PUB bearer token
+ */
+export const useOpenVaultPubSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openVaultPubSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof openVaultPubSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getOpenVaultPubSessionMutationOptions(options));
+    }
+
+export const getCloseVaultPubSessionUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/session`
+}
+
+export const closeVaultPubSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getCloseVaultPubSessionUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getCloseVaultPubSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeVaultPubSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof closeVaultPubSession>>, TError,void, TContext> => {
+
+const mutationKey = ['closeVaultPubSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof closeVaultPubSession>>, void> = () => {
+
+
+          return  closeVaultPubSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CloseVaultPubSessionMutationResult = NonNullable<Awaited<ReturnType<typeof closeVaultPubSession>>>
+
+    export type CloseVaultPubSessionMutationError = ErrorType<unknown>
+
+    export const useCloseVaultPubSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof closeVaultPubSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof closeVaultPubSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getCloseVaultPubSessionMutationOptions(options));
+    }
 
 export const getGetVaultExternalProfileUrl = () => {
 

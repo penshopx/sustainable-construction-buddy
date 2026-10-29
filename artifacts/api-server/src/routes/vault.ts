@@ -1,9 +1,12 @@
 import { Router, raw, type Request, type Response, type NextFunction } from "express";
-import { getAuth } from "@clerk/express";
+import { vaultPubMiddleware, openPubSession, closePubSession } from "../lib/vault-pub-auth";
+import { pubAuthorization } from "../lib/vault-pub-auth";
+import { visibleCompanyNames } from "../lib/vault-company-names";
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   CreateVaultFolderBody, UpdateVaultProfileBody, UpdateVaultDocumentBody,
   CreateVaultAssistantBody, CreateVaultConnectionBody, AskVaultQuestionBody,
+  ResolveVaultCompaniesBody,
 } from "@workspace/api-zod";
 import { workspace, publicWorkspace, ownDocument, ownFolder, activity, fail, tokenHash, VaultError, QUOTA } from "../lib/vault-store";
 import { privateFile } from "../lib/vault-files";
@@ -11,18 +14,15 @@ import { vaultExternalRouter, uploadDocument, streamDocument } from "./vault-ext
 
 export const vaultRouter = Router();
 vaultRouter.use("/external", vaultExternalRouter);
-vaultRouter.use((req, res, next) => {
-  res.setHeader("Cache-Control", "no-store");
-  if (!getAuth(req).userId) { res.status(401).json({ error: "Masuk untuk membuka ruang simpan pribadi Anda." }); return; }
-  // Cookies identify the user; browsers must also be on the app's origin.
-  if (!["GET", "HEAD"].includes(req.method) && req.headers.origin) {
-    const host = (req.headers["x-forwarded-host"] as string)?.split(",")[0]?.trim() || req.headers.host;
-    try { if (new URL(req.headers.origin).host !== host) fail(403, "Asal permintaan tidak diizinkan."); }
-    catch (err) { return next(err instanceof VaultError ? err : new VaultError(403, "Asal permintaan tidak valid.")); }
-  }
-  next();
+vaultRouter.use((_req, res, next) => { res.setHeader("Cache-Control", "no-store"); next(); });
+vaultRouter.post("/session", openPubSession);
+vaultRouter.delete("/session", closePubSession);
+vaultRouter.use(vaultPubMiddleware);
+vaultRouter.post("/company-names", async (req, res) => {
+  const { userIds } = ResolveVaultCompaniesBody.parse(req.body);
+  res.json(await visibleCompanyNames(userIds, pubAuthorization(req)!));
 });
-const owner = (req: Request) => getAuth(req).userId!;
+const owner = (req: Request) => req.res!.locals.vaultOwner as string;
 const idParam = (req: Request) => String(req.params.id);
 vaultRouter.get("/workspace", async (req, res) => {
   res.json(await workspace(owner(req), state => publicWorkspace(state)));

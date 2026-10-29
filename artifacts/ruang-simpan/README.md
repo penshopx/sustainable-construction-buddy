@@ -4,14 +4,20 @@ Ruang Simpan di `/ruang-simpan/` diarahkan menjadi sumber kebenaran utama
 bagi PUB ASPEKINDO, bukan produk terpisah dari PUB. Gustafta hanya referensi
 fitur dan tampilan: tidak ada integrasi atau pertukaran data dengannya.
 
-Implementasi awal masih memakai login Clerk dan metadata ruang kerja terpisah
-dari Supabase PUB. Penyatuan akun dan aliran data ke PUB belum diterapkan;
-jangan menganggap kedua akun sudah terhubung atau memindahkan kepemilikan
-dokumen secara otomatis.
+Akses mengikuti sesi Supabase PUB yang sama, bukan akun Clerk kedua.
+Metadata ruang kerja diidentifikasi oleh ID anggota PUB; file tetap privat
+di App Storage. Data lama milik identitas Clerk tidak dihapus dan tidak
+dipindahkan otomatis ke akun PUB.
+
+Profil perusahaan ditulis di Ruang Simpan dan dibaca PUB melalui AuthProvider.
+Nama perusahaan lama PUB hanya diimpor sekali ketika ruang kerja pertama
+dibuka, bukan disinkronkan dua arah. AI PUB dapat memakai profil dan potongan
+dokumen dengan persetujuan eksplisit; chatbot publik tidak mendapat konteks privat.
+Nilai assessment dan progres pelajaran tetap dikelola PUB, di luar cakupan ini.
 
 ## Fitur aktif
 
-- Login/pendaftaran; setiap ruang kerja dimiliki oleh satu identitas Clerk.
+- Login PUB; setiap ruang kerja dimiliki oleh satu identitas anggota Supabase.
 - Unggah privat ke App Storage; folder, bintang, ganti nama, pindah, unduh, hapus.
 - Pencarian nama dan teks yang berhasil diekstrak; PDF, DOCX, XLSX, TXT, MD, CSV.
 - JPG/PNG disimpan tanpa OCR. PDF scan dapat berstatus tersimpan, bukan siap AI.

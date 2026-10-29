@@ -810,6 +810,10 @@ importers:
         version: 2.8.3
 
   artifacts/ruang-simpan:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.115.0
+        version: 2.115.0
     devDependencies:
       '@clerk/react':
         specifier: ^6.18.3

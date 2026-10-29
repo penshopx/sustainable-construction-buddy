@@ -88,6 +88,8 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
 
   const [activeMode, setActiveMode] = useState<PakarMode>("pembelajaran");
   const [engine, setEngine] = useState<ChatEngine>("claude");
+  const [useVaultContext, setUseVaultContext] = useState(false);
+  useEffect(() => { setUseVaultContext(false); }, [user?.id]);
   const [schemeProfile, setSchemeProfile] = useState<SchemeProfile>();
   const [activeCustomBot, setActiveCustomBot] = useState<CustomChatbot | null>(null);
   const [showWizard, setShowWizard] = useState(false);
@@ -104,7 +106,7 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
   const {
     conversations, activeConversationId, messages, isLoading, loadingConversations,
     sendMessage: sendMsg, selectConversation, startNewConversation, deleteConversation, lastModel,
-  } = useHelpdeskChat(activeMode, activeCustomBot?.persona, activeCustomBot?.id, engine, schemeProfile, restoreSchemeProfile);
+  } = useHelpdeskChat(activeMode, activeCustomBot?.persona, activeCustomBot?.id, engine, schemeProfile, restoreSchemeProfile, useVaultContext);
 
   const [input, setInput] = useState("");
   const [showSidebar, setShowSidebar] = useState(true);
@@ -276,6 +278,10 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
             {lastModel && <p className="text-xs text-muted-foreground">Model jawaban terakhir: {lastModel}</p>}
           </div>
           {/* Active custom bot indicator */}
+          <label className="flex gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+            <input type="checkbox" checked={useVaultContext} onChange={e => setUseVaultContext(e.target.checked)} disabled={isLoading} className="mt-1" />
+            <span>Gunakan acuan bisnis Ruang Simpan. Saya setuju profil perusahaan dan potongan dokumen saya dikirim ke layanan AI eksternal untuk menjawab pesan berikutnya. <a href="/ruang-simpan/" className="underline text-primary">Kelola sumber</a></span>
+          </label>
           {activeCustomBot && (
             <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-primary/5 border border-primary/20">
               <div className="w-6 h-6 rounded overflow-hidden">

@@ -5,6 +5,14 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface VaultCompanyLookup {
+  /**
+     * @minItems 1
+     * @maxItems 100
+     */
+  userIds: string[];
+}
+
 export type VaultDocumentMetadataStatus = typeof VaultDocumentMetadataStatus[keyof typeof VaultDocumentMetadataStatus];
 
 
@@ -710,6 +718,7 @@ export const ChatEngine = {
 } as const;
 
 export interface ChatReply {
+  vault_sources?: VaultSource[];
   /**
      * @minLength 1
      * @maxLength 32512
@@ -749,6 +758,8 @@ export const HelpdeskInputExplanationDepth = {
 } as const;
 
 export interface HelpdeskInput {
+  /** Explicit consent to send own business profile and document excerpts to external AI; never used by public shared bots. */
+  use_vault_context?: boolean;
   /**
      * @minItems 1
      * @maxItems 10
@@ -811,6 +822,19 @@ export type ChatUnavailableResponse = ChatError;
  * Upstream request timed out
  */
 export type ChatTimeoutResponse = ChatError;
+
+export type ResolveVaultCompanies200CompaniesItem = {
+  userId: string;
+  name: string;
+};
+
+export type ResolveVaultCompanies200 = {
+  companies: ResolveVaultCompanies200CompaniesItem[];
+};
+
+export type OpenVaultPubSession200 = {
+  userId: string;
+};
 
 export type UploadVaultExternalDocumentParams = {
 name: string;

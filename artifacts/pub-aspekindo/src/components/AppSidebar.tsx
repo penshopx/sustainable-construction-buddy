@@ -98,6 +98,7 @@ const learningSubItems = [
 
 // Komunitas & Bisnis group
 const communitySubItems = [
+  { title: "Ruang Simpan PUB", url: "/ruang-simpan/", icon: FolderKanban, fullPage: true },
   { title: "Pusat Informasi", url: "/informasi", icon: Newspaper },
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
@@ -140,7 +141,7 @@ const adminItems = [
   { title: "Panel Admin", url: "/admin", icon: Shield },
 ];
 
-type SidebarItem = { title: string; url: string; icon: LucideIcon; external?: boolean };
+type SidebarItem = { title: string; url: string; icon: LucideIcon; external?: boolean; fullPage?: boolean };
 
 function NavItem({ item, collapsed }: { item: SidebarItem; collapsed: boolean }) {
   return (
@@ -195,7 +196,11 @@ function CollapsibleGroup({
               {items.map((item) => (
                 <SidebarMenuSubItem key={item.title}>
                   <SidebarMenuSubButton asChild>
-                    {item.external ? (
+                    {item.fullPage ? (
+                      <a href={item.url} className="flex items-center rounded-md px-2 py-2 hover:bg-sidebar-accent/50">
+                        <item.icon className="mr-2 h-3.5 w-3.5" /><span>{item.title}</span>
+                      </a>
+                    ) : item.external ? (
                       <a
                         href={item.url}
                         target="_blank"

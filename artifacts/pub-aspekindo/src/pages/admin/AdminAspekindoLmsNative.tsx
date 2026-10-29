@@ -24,6 +24,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { canonicalCompanies } from "@/lib/ruang-simpan";
 import { uploadSupabaseObjectWithProgress, type UploadProgress } from "@/integrations/supabase/uploadWithProgress";
 import type { Json, Tables, TablesInsert } from "@/integrations/supabase/types";
 import { Badge } from "@/components/ui/badge";
@@ -345,7 +346,7 @@ export default function AdminAspekindoLmsNative() {
     setCompletions(completionResult.data ?? []);
     setAgendas(agendaResult.data ?? []);
     setActivities(activityResult.data ?? []);
-    setProfiles(profileResult.data ?? []);
+    setProfiles(await canonicalCompanies(profileResult.data ?? []));
     setLoading(false);
     setRefreshing(false);
   }, [toast]);

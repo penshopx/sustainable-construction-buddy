@@ -40,6 +40,10 @@ export function createChatService(options: ChatServiceOptions = {}) {
       if (authCheck && (response.status === 401 || response.status === 403)) {
         throw new ChatServiceError(401, "session_invalid", "Sesi tidak valid. Silakan login kembali.");
       }
+      if (response.status === 402 && url.startsWith("https://openrouter.ai/")) {
+        throw new ChatServiceError(503, "ai_credit_limit",
+          "Kredit atau batas penggunaan OpenRouter belum mencukupi untuk jawaban model yang dipilih. Tidak ada perpindahan model otomatis.");
+      }
       if (!response.ok) {
         // Do not read/log provider bodies: they may contain credentials or user data.
         throw new ChatServiceError(503, "upstream_unavailable", UNAVAILABLE);
@@ -127,7 +131,7 @@ export function createChatService(options: ChatServiceOptions = {}) {
     };
   }
 
-  async function reply(messages: ChatMessage[], bot?: SharedBot, settings?: Omit<HelpdeskInput, "messages">, signal?: AbortSignal): Promise<string> {
+  async function reply(messages: ChatMessage[], bot?: SharedBot, settings?: Omit<HelpdeskInput, "messages">, signal?: AbortSignal, vaultContext = ""): Promise<string> {
     if (!validSchemeSettings(settings)) throw new ChatServiceError(400, "scheme_invalid", "Pilih kode skema yang tersedia sebelum memilih peran atau gaya.");
     const key = env.OPENROUTER_API_KEY;
     if (!key) throw new ChatServiceError(503, "ai_config_missing", UNAVAILABLE);
@@ -159,7 +163,7 @@ export function createChatService(options: ChatServiceOptions = {}) {
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: "system", content: chatSystemPrompt(bot) + context + evidence }, ...messages],
+        messages: [{ role: "system", content: chatSystemPrompt(bot) + context + evidence + (bot ? "" : vaultContext) }, ...messages],
         temperature: 0.3,
         max_tokens: settings?.engine === "claude" ? 4096 : 2048,
         stream: false,

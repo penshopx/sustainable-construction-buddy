@@ -152,20 +152,12 @@ function DataCompletenessCard({ dataSources, loading }: { dataSources: DataSourc
 export default function ComplianceTracker() {
   const { reports, loading } = useLkutReports();
   const { assessments, loading: pancekLoading } = usePancekAssessment();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const latestLkut = reports?.[0];
   const currentYear = new Date().getFullYear();
   const latestPancek = assessments?.find(a => a.period_year === currentYear) || assessments?.[0];
 
-  // Fetch profile for company identity
-  const [profile, setProfile] = useState<{ company: string; full_name: string; bujk_qualification: string } | null>(null);
-  useEffect(() => {
-    if (!user) return;
-    supabase.from("profiles").select("company, full_name, bujk_qualification").eq("user_id", user.id).maybeSingle().then(({ data }) => {
-      if (data) setProfile(data);
-    });
-  }, [user]);
 
   // Fetch data source counts
   const [dsLoading, setDsLoading] = useState(true);

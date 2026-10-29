@@ -19,6 +19,7 @@ export function useHelpdeskChat(
   engine: ChatEngine = "claude",
   schemeProfile?: SchemeProfile,
   onProfileRestore?: (profile?: SchemeProfile) => void,
+  useVaultContext = false,
 ) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -155,8 +156,13 @@ export function useHelpdeskChat(
         messages: helpdeskContext(allMessages.slice(contextStart.current)),
         engine, mode, ...(customPersona ? { custom_persona: customPersona.slice(0, 6000) } : {}),
         ...(schemeProfile ?? {}),
+        use_vault_context: useVaultContext,
       }, { headers: { Authorization: `Bearer ${session.access_token}` }, signal: controller.signal });
       if (!active()) return;
+      if (result.reply?.trim() && result.vault_sources?.length) {
+        result.reply += "\n\n**Sumber konteks Ruang Simpan:**\n" +
+          result.vault_sources.map((s, i) => `[RS${i + 1}] ${s.name.replace(/[\r\n]/g, " ")}`).join("\n");
+      }
       if (!result.reply?.trim() || result.engine !== engine ||
         (schemeProfile && result.scheme_code !== schemeProfile.scheme_code)) {
         throw new HelpdeskError("Jawaban AI tidak valid. Tidak ada model pengganti yang dipanggil.");
@@ -183,7 +189,7 @@ export function useHelpdeskChat(
     } finally {
       if (active()) { pending.current = null; setIsLoading(false); }
     }
-  }, [messages, isLoading, user, activeConversationId, loadConversations, mode, customPersona, chatbotId, engine, schemeProfile]);
+  }, [messages, isLoading, user, activeConversationId, loadConversations, mode, customPersona, chatbotId, engine, schemeProfile, useVaultContext]);
 
   return { conversations, activeConversationId, messages, isLoading, loadingConversations,
     sendMessage, selectConversation, startNewConversation, deleteConversation, setMessages, lastModel };

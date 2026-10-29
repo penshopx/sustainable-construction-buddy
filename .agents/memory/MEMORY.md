@@ -21,3 +21,5 @@
 - [Harness bukan Hermes](harness-terminology.md) — “Harnes” sebagai colokan/penghubung berarti lapisan harness; jangan otomatis menafsirkannya sebagai Hermes AI.
 - [Tujuan rilis produksi](production-release-target.md) — ref disahkan pemilik untuk konfigurasi produksi; izin tersebut bukan izin publikasi.
 - [Ruang Simpan sebagai acuan PUB](ruang-simpan-product-scope.md) — sumber kebenaran utama untuk PUB ASPEKINDO, bukan produk terpisah; tidak terintegrasi ke Gustafta.
+- [Batas keluaran OpenRouter](openrouter-output-budget.md) — uji kecil dapat berhasil meski batas keluaran aplikasi ditolak 402; cocokkan model dan max_tokens saat diagnosis.
+- [Badan request Orval](orval-inline-body-exports.md) — pakai skema input bernama agar tipe badan inline tidak bertabrakan dengan validator Zod dalam barrel.

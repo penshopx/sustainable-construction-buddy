@@ -9,6 +9,36 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Canonical company names, limited to profiles visible under existing PUB RLS
+ */
+export const resolveVaultCompaniesBodyUserIdsMax = 100;
+
+
+
+export const ResolveVaultCompaniesBody = zod.object({
+  "userIds": zod.array(zod.string().uuid()).min(1).max(resolveVaultCompaniesBodyUserIdsMax)
+})
+
+export const ResolveVaultCompaniesResponse = zod.object({
+  "companies": zod.array(zod.object({
+  "userId": zod.string(),
+  "name": zod.string()
+}))
+})
+
+
+/**
+ * @summary Establish HttpOnly Ruang Simpan cookie with a verified PUB bearer token
+ */
+export const OpenVaultPubSessionResponse = zod.object({
+  "userId": zod.string()
+})
+
+
+export const CloseVaultPubSessionResponse = zod.void()
+
+
+/**
  * @summary Read profile with profile:read permission
  */
 export const getVaultExternalProfileResponseNameMax = 200;
@@ -727,6 +757,7 @@ export const sendHelpdeskMessageBodySchemeCodeRegExp = new RegExp('^[A-Z]{2}[0-9
 
 
 export const SendHelpdeskMessageBody = zod.object({
+  "use_vault_context": zod.boolean().optional().describe('Explicit consent to send own business profile and document excerpts to external AI; never used by public shared bots.'),
   "messages": zod.array(zod.object({
   "role": zod.enum(['user', 'assistant']),
   "content": zod.string().min(1).max(sendHelpdeskMessageBodyMessagesItemContentMax)
@@ -744,6 +775,11 @@ export const sendHelpdeskMessageResponseReplyMax = 32512;
 
 
 export const SendHelpdeskMessageResponse = zod.object({
+  "vault_sources": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quote": zod.string()
+})).optional(),
   "reply": zod.string().min(1).max(sendHelpdeskMessageResponseReplyMax),
   "engine": zod.enum(['claude', 'gpt', 'deepseek', 'nvidia', 'gemini']).optional(),
   "model": zod.string().optional(),
@@ -803,6 +839,11 @@ export const sendPublicChatbotMessageResponseReplyMax = 32512;
 
 
 export const SendPublicChatbotMessageResponse = zod.object({
+  "vault_sources": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quote": zod.string()
+})).optional(),
   "reply": zod.string().min(1).max(sendPublicChatbotMessageResponseReplyMax),
   "engine": zod.enum(['claude', 'gpt', 'deepseek', 'nvidia', 'gemini']).optional(),
   "model": zod.string().optional(),

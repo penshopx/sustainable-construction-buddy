@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { canonicalCompanies } from "@/lib/ruang-simpan";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +26,7 @@ export default function AdminUsers() {
   useEffect(() => {
     const fetch = async () => {
       const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      if (data) setProfiles(data);
+      if (data) setProfiles(await canonicalCompanies(data));
       setLoading(false);
     };
     fetch();

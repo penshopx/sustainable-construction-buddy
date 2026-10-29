@@ -15,6 +15,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { canonicalCompanies } from "@/lib/ruang-simpan";
 import type { Json, Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -347,7 +348,7 @@ export default function AdminAspekindoLmsCourses() {
     setEnrollments(enrollmentResult.data ?? []);
     setProgress(progressResult.data ?? []);
     setCompletionRecords(recordResult.data ?? []);
-    setProfiles(profileResult.data ?? []);
+    setProfiles(await canonicalCompanies(profileResult.data ?? []));
     setOperationsLoading(false);
   }, [toast]);
 

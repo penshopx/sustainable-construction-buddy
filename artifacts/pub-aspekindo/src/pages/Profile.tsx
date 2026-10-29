@@ -35,9 +35,8 @@ const levelConfig: Record<string, { icon: LucideIcon; color: string; bg: string 
 };
 
 const Profile = () => {
-  const { profile, user, refreshProfile } = useAuth();
+  const { profile, user, refreshProfile, businessProfileError } = useAuth();
   const [fullName, setFullName] = useState(profile?.full_name || "");
-  const [company, setCompany] = useState(profile?.company || "");
   const [position, setPosition] = useState(profile?.position || "");
   const [bujkQualification, setBujkQualification] = useState<BUJKQualification>(
     QUALIFICATION_OPTIONS.some((option) => option.value === profile?.bujk_qualification)
@@ -101,7 +100,6 @@ const Profile = () => {
           {
             user_id: user.id,
             full_name: fullName,
-            company,
             position,
             bujk_qualification: bujkQualification,
           },
@@ -224,11 +222,14 @@ const Profile = () => {
               name="company"
               type="text"
               autoComplete="organization"
-              value={company}
-              onChange={(e) => setCompany(e.target.value)}
+              value={profile?.company || ""}
+              readOnly
+              disabled
               placeholder="cth: PT Karya Konstruksi Nusantara"
               className="w-full h-11 px-4 rounded-lg border border-input bg-background text-foreground font-body text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <p className="mt-2 text-sm text-muted-foreground">Acuan resmi dari <a className="underline text-primary" href="/ruang-simpan/profile">Ruang Simpan PUB — ubah profil perusahaan di sini</a>.</p>
+            {businessProfileError && <p role="alert" className="mt-2 text-sm text-destructive">{businessProfileError}</p>}
           </div>
 
           <div>
