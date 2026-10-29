@@ -27,9 +27,14 @@ TEST_NEW_PRE_TEST_ID="00000000-0000-4000-8000-000000000166"
 TEST_TIE_LOW_ID="00000000-0000-4000-8000-000000000167"
 TEST_TIE_HIGH_ID="00000000-0000-4000-8000-000000000168"
 TEST_OWNERSHIP_PRE_TEST_ID="00000000-0000-4000-8000-000000000170"
+TEST_HTTP_PRE_TEST_ID="00000000-0000-4000-8000-000000000180"
 
 cleanup() {
   "${PSQL[@]}" >/dev/null 2>&1 <<SQL || true
+DROP TRIGGER IF EXISTS assessment_http_answer_audit ON public.pre_test_answers;
+DROP TRIGGER IF EXISTS assessment_http_completion_audit ON public.pre_tests;
+DROP FUNCTION IF EXISTS public.record_assessment_http_write();
+DROP TABLE IF EXISTS public.assessment_http_write_audit;
 DROP TRIGGER IF EXISTS submit_assessment_concurrency_audit_trigger ON public.pre_tests;
 DROP FUNCTION IF EXISTS public.record_submit_assessment_completion();
 DROP TABLE IF EXISTS public.submit_assessment_concurrency_audit;
@@ -677,6 +682,11 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
   exit 1
 fi
 OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
+
+# Keep the SQL concurrency cases above; additionally exercise real overlapping
+# authenticated requests through the local Auth/PostgREST gateway.
+source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-http-concurrency.sh"
+test_concurrent_http_submissions
 
 "${PSQL[@]}" >/dev/null <<SQL
 DO \$\$
@@ -1366,4 +1376,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent submit_assessment, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS including admin revocation tests passed."
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS including admin revocation tests passed."

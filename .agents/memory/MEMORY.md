@@ -10,6 +10,7 @@
 - [Logout di perangkat bersama](assessment-shared-device-logout.md) — utamakan penghapusan semua cadangan draf lokal saat logout, termasuk penulisan tertunda, walau progres offline bisa hilang.
 - [Drift migrasi Supabase](supabase-migration-drift.md) — migrasi dalam repositori belum tentu pernah diterapkan ke database hosted; periksa definisi fungsi aktif sebelum membungkusnya.
 - [Uji RPC LMS terisolasi](lms-rpc-isolated-tests.md) — skema PostgreSQL minimal menguji fungsi asli tanpa data hosted, tetapi bukan pengganti uji skema Supabase lengkap.
+- [Runtime Supabase lokal](local-supabase-runtime.md) — Docker tersedia belum menjamin Auth/gateway siap; kegagalan health-check bukan hasil pengujian HTTP.
 - [Pemulihan tautan video LMS](lms-video-recovery.md) — tautan kedaluwarsa tidak perlu mengganti sumber yang masih lancar; pulihkan hanya bila pemutaran benar-benar terhenti.
 - [Cakupan advisori SheetJS](sheetjs-advisory-scope.md) — rentang advisori npm dapat menandai rilis CDN yang sudah ditambal; verifikasi vendor, bukan menekan seluruh aturan.
 - [Arah model AI aplikasi](application-ai-direction.md) — Claude untuk otak utama; chat harian dapat memakai GPT, DeepSeek, model NVIDIA, atau Gemini.
