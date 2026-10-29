@@ -44,7 +44,7 @@ cleanup
 
 mkdir -p "$TMP_DIR"
 
-# Create the owner through local Auth so the HTTP replay uses a real password
+# Create the owner through local Auth so HTTP submission and replay use a real password
 # session rather than a JWT claim manually set on a privileged SQL connection.
 OWNER_PASSWORD="$(openssl rand -hex 24)"
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
@@ -658,21 +658,59 @@ END;
 \$\$;
 SQL
 
-OWNER_RESULT="$(
-  "${PSQL[@]}" -Atq <<SQL | grep '^{'
-BEGIN;
-SELECT set_config('request.jwt.claim.sub', '$TEST_USER_ID', true);
-SELECT set_config('request.jwt.claim.role', 'authenticated', true);
-SELECT public.submit_assessment(
-  '$TEST_OWNERSHIP_PRE_TEST_ID',
-  jsonb_build_array(jsonb_build_object(
-    'question_id', '$TEST_QUESTION_ID',
-    'selected_answer', 1
-  ))
-)::text;
-COMMIT;
+# Obtain a real owner session before the first submission. Unlike a replay of
+# an already completed assessment, this exercises scoring and writes through
+# PostgREST with the authenticated role, not a privileged SQL connection.
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/owner-session.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "$(jq -nc --arg password "$OWNER_PASSWORD" \
+    '{email:"assessment-concurrency@example.invalid",password:$password}')")"
+unset OWNER_PASSWORD
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e --arg owner "$TEST_USER_ID" \
+     '.user.id == $owner and (.access_token | type) == "string" and (.access_token | length) > 0' \
+     "$TMP_DIR/owner-session.json" >/dev/null; then
+  echo "Could not obtain the local assessment owner's Auth session (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
+
+"${PSQL[@]}" >/dev/null <<SQL
+DO \$\$
+DECLARE
+  unfinished_pre_test public.pre_tests%ROWTYPE;
+BEGIN
+  SELECT * INTO STRICT unfinished_pre_test FROM public.pre_tests
+  WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+  IF unfinished_pre_test.user_id IS DISTINCT FROM '$TEST_USER_ID'::uuid
+     OR unfinished_pre_test.status IS DISTINCT FROM 'in_progress'
+     OR unfinished_pre_test.completed_at IS NOT NULL
+     OR unfinished_pre_test.total_questions IS DISTINCT FROM 1
+     OR public.assessment_deadline_passed(unfinished_pre_test.deadline_at, clock_timestamp())
+     OR EXISTS (SELECT 1 FROM public.pre_test_answers
+                WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID') THEN
+    RAISE EXCEPTION 'First HTTP submission requires an unfinished, unexpired owner assessment without saved answers';
+  END IF;
+END;
+\$\$;
 SQL
-)"
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/owner-first-submit-response.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header "Authorization: Bearer $OWNER_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data "{\"_pre_test_id\":\"$TEST_OWNERSHIP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":1}]}")"
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e '. == {"score":100,"level":"Utama","correct":1,"total":1}' \
+     "$TMP_DIR/owner-first-submit-response.json" >/dev/null 2>&1; then
+  echo "Owner first HTTP assessment submission did not return the expected result (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+OWNER_RESULT="$(cat "$TMP_DIR/owner-first-submit-response.json")"
 
 "${PSQL[@]}" -v owner_result="$OWNER_RESULT" >/dev/null <<SQL
 SELECT set_config('test.owner_result', :'owner_result', false);
@@ -700,14 +738,29 @@ BEGIN
   FROM public.profiles WHERE user_id = '$TEST_USER_ID';
 
   IF owner_pre_test.status IS DISTINCT FROM 'completed'
+     OR owner_pre_test.user_id IS DISTINCT FROM '$TEST_USER_ID'::uuid
      OR owner_pre_test.completed_at IS NULL
+     OR owner_pre_test.total_questions IS DISTINCT FROM 1
      OR owner_pre_test.correct_answers IS DISTINCT FROM 1
      OR owner_pre_test.score IS DISTINCT FROM 100
      OR owner_pre_test.determined_level IS DISTINCT FROM 'Utama'
      OR answer_count <> 1 OR saved_answer IS DISTINCT FROM 1
      OR saved_correct IS DISTINCT FROM true
      OR profile_level IS DISTINCT FROM 'Utama' OR profile_score IS DISTINCT FROM 100 THEN
-    RAISE EXCEPTION 'Owner submission did not save the expected answer, result and profile';
+    RAISE EXCEPTION 'Owner first HTTP submission did not save the expected answer, result and profile';
+  END IF;
+  IF jsonb_build_object(
+       'score', owner_pre_test.score,
+       'level', owner_pre_test.determined_level,
+       'correct', owner_pre_test.correct_answers,
+       'total', answer_count
+     ) IS DISTINCT FROM current_setting('test.owner_result')::jsonb
+     OR NOT EXISTS (
+       SELECT 1 FROM public.pre_test_answers
+       WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID'
+         AND question_id = '$TEST_QUESTION_ID'
+     ) THEN
+    RAISE EXCEPTION 'First HTTP response does not match the persisted result and question';
   END IF;
 END;
 \$\$;
@@ -1010,24 +1063,8 @@ if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
   exit 1
 fi
 
-# Sign in as the owner through Auth, then replay with a deliberately different
+# Reuse the owner's Auth session, then replay with a deliberately different
 # answer. The HTTP gateway must return the stored result without writing again.
-HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
-  --output "$TMP_DIR/owner-session.json" --write-out '%{http_code}' \
-  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
-  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
-  --header 'Content-Type: application/json' \
-  --data "$(jq -nc --arg password "$OWNER_PASSWORD" \
-    '{email:"assessment-concurrency@example.invalid",password:$password}')")"
-unset OWNER_PASSWORD
-if [[ "$HTTP_STATUS" != "200" ]] ||
-   ! jq -e --arg owner "$TEST_USER_ID" \
-     '.user.id == $owner and (.access_token | type) == "string" and (.access_token | length) > 0' \
-     "$TMP_DIR/owner-session.json" >/dev/null; then
-  echo "Could not obtain the local assessment owner's Auth session (HTTP $HTTP_STATUS)" >&2
-  exit 1
-fi
-OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/owner-rpc-response.json" --write-out '%{http_code}' \
   --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
@@ -1329,4 +1366,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent submit_assessment, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS including admin revocation tests passed."
+echo "Concurrent submit_assessment, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS including admin revocation tests passed."
