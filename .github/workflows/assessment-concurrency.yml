@@ -37,5 +37,5 @@ jobs:
         run: |
           supabase status -o json | jq -r '"TEST_SUPABASE_URL=\(.API_URL)\nTEST_SUPABASE_ANON_KEY=\(.ANON_KEY)\nTEST_SUPABASE_SERVICE_ROLE_KEY=\(.SERVICE_ROLE_KEY)"' >> "$GITHUB_ENV"
 
-      - name: Test concurrent owner HTTP and SQL submits, competing pre-tests and cross-user HTTP replay
+      - name: Test concurrent submits, stranger unfinished HTTP denial, owner completion and HTTP replay
         run: bash scripts/test-submit-assessment-concurrency.sh

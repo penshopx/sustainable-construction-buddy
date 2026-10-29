@@ -683,6 +683,42 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
 fi
 OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
 
+# Sign in the stranger before the owner's first submission, so both the
+# unfinished submission and completed replay use a real, distinct Auth session.
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/other-session.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "$(jq -nc --arg password "$OTHER_PASSWORD" \
+    '{email:"assessment-other-user@example.invalid",password:$password}')")"
+unset OTHER_PASSWORD
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e --arg other "$TEST_OTHER_USER_ID" --arg owner "$TEST_USER_ID" \
+     '.user.id == $other and .user.id != $owner and
+      (.access_token | type) == "string" and (.access_token | length) > 0' \
+     "$TMP_DIR/other-session.json" >/dev/null; then
+  echo "Could not obtain the local assessment stranger's distinct Auth session (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+OTHER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/other-session.json")"
+
+# Read complete persisted rows via the fixture connection, not the attacker's
+# RLS-filtered view, which could hide unauthorized writes.
+assessment_http_state() {
+  "${PSQL[@]}" -Atq <<SQL
+SELECT jsonb_build_object(
+  'pre_test', (SELECT to_jsonb(pt) FROM public.pre_tests pt
+               WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID'),
+  'answers', (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
+              FROM public.pre_test_answers a
+              WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID'),
+  'profile', (SELECT to_jsonb(p) FROM public.profiles p
+              WHERE p.user_id = '$TEST_USER_ID')
+)::text;
+SQL
+}
+
 # Keep the SQL concurrency cases above; additionally exercise real overlapping
 # authenticated requests through the local Auth/PostgREST gateway.
 source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-http-concurrency.sh"
@@ -707,6 +743,38 @@ BEGIN
 END;
 \$\$;
 SQL
+
+# Attempt the same unfinished assessment through Auth/PostgREST before the
+# owner submits it. A transport/auth failure is not evidence of RPC ownership
+# enforcement: require the function's exact Unauthorized result.
+BEFORE_UNFINISHED_HTTP_STATE="$(assessment_http_state)"
+if ! jq -e --arg owner "$TEST_USER_ID" \
+  '.pre_test.user_id == $owner and .pre_test.status == "in_progress" and
+   .pre_test.completed_at == null and .answers == [] and
+   .profile.user_id == $owner' >/dev/null <<<"$BEFORE_UNFINISHED_HTTP_STATE"; then
+  echo "Stranger HTTP submission requires an unfinished owner assessment and owner profile" >&2
+  exit 1
+fi
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/other-unfinished-rpc-response.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header "Authorization: Bearer $OTHER_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data "{\"_pre_test_id\":\"$TEST_OWNERSHIP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e '. == {"error":"Unauthorized"}' \
+     "$TMP_DIR/other-unfinished-rpc-response.json" >/dev/null 2>&1; then
+  echo "Stranger HTTP submission of unfinished assessment did not return only Unauthorized (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+if [[ "$(assessment_http_state)" != "$BEFORE_UNFINISHED_HTTP_STATE" ]]; then
+  echo "Stranger HTTP submission changed the unfinished assessment, answers, or owner profile" >&2
+  exit 1
+fi
+echo "Stranger HTTP submission of unfinished assessment was denied without changing owner data."
+
+# The owner must still be able to finish this exact assessment after rejection.
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/owner-first-submit-response.json" --write-out '%{http_code}' \
   --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
@@ -945,20 +1013,6 @@ SQL
 # Exercise the local PostgREST gateway as well as the database role. An API key
 # identifies the project, but without an Authorization header the first request
 # has no user session. Never point this fixture test at the deployed Supabase URL.
-assessment_http_state() {
-  "${PSQL[@]}" -Atq <<SQL
-SELECT jsonb_build_object(
-  'pre_test', (SELECT to_jsonb(pt) FROM public.pre_tests pt
-               WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID'),
-  'answers', (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
-              FROM public.pre_test_answers a
-              WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID'),
-  'profile', (SELECT to_jsonb(p) FROM public.profiles p
-              WHERE p.user_id = '$TEST_USER_ID')
-)::text;
-SQL
-}
-
 BEFORE_HTTP_STATE="$(assessment_http_state)"
 if ! jq -e '.pre_test.status == "completed" and (.answers | length) == 1 and (.profile | type) == "object"' \
   >/dev/null <<<"$BEFORE_HTTP_STATE"; then
@@ -1009,25 +1063,8 @@ if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
   exit 1
 fi
 
-# The stranger must have a different, real authenticated session. Even on a
-# completed pre-test, the RPC must not return the owner's stored score.
-HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
-  --output "$TMP_DIR/other-session.json" --write-out '%{http_code}' \
-  --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
-  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
-  --header 'Content-Type: application/json' \
-  --data "$(jq -nc --arg password "$OTHER_PASSWORD" \
-    '{email:"assessment-other-user@example.invalid",password:$password}')")"
-unset OTHER_PASSWORD
-if [[ "$HTTP_STATUS" != "200" ]] ||
-   ! jq -e --arg other "$TEST_OTHER_USER_ID" --arg owner "$TEST_USER_ID" \
-     '.user.id == $other and .user.id != $owner and
-      (.access_token | type) == "string" and (.access_token | length) > 0' \
-     "$TMP_DIR/other-session.json" >/dev/null; then
-  echo "Could not obtain the local assessment stranger's distinct Auth session (HTTP $HTTP_STATUS)" >&2
-  exit 1
-fi
-OTHER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/other-session.json")"
+# Reuse the stranger's distinct Auth session. Even on a completed pre-test,
+# the RPC must not return the owner's stored score.
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/other-rpc-response.json" --write-out '%{http_code}' \
   --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
@@ -1376,4 +1413,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS including admin revocation tests passed."
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, and direct table RLS including admin revocation tests passed."
