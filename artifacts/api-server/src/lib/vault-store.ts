@@ -1,6 +1,8 @@
 import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
 import { pool } from "@workspace/db";
 import type { VaultWorkspace, VaultDocument, VaultConnection } from "@workspace/api-zod";
+import { fail } from "./vault-errors";
+export { VaultError, fail } from "./vault-errors";
 
 export const QUOTA = 15 * 1024 * 1024;
 export type StoredDocument = VaultDocument & { objectPath: string };
@@ -9,10 +11,6 @@ export type VaultState = Omit<VaultWorkspace, "documents" | "connections" | "use
   documents: StoredDocument[];
   connections: StoredConnection[];
 };
-export class VaultError extends Error {
-  constructor(public status: number, message: string) { super(message); }
-}
-export function fail(status: number, message: string): never { throw new VaultError(status, message); }
 export function initialWorkspace(): VaultState {
   return {
     folders: ["Legalitas", "Teknis", "Penawaran & RAB", "SDM & Sertifikasi", "Tender", "Proyek", "Umum"]

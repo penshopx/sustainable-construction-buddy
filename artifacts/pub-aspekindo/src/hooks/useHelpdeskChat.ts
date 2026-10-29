@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import type { PakarMode } from "@/pages/HelpdeskAI";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { sendHelpdeskMessage, type ChatEngine, type ChatMessage } from "@workspace/api-client-react";
+import { vaultCitationText } from "@/lib/vault-citations";
 import { helpdeskContext } from "@/lib/chatEngines";
 import { profileTitle, restoreProfile, type SchemeProfile } from "@/lib/schemeChat";
 
@@ -160,8 +161,7 @@ export function useHelpdeskChat(
       }, { headers: { Authorization: `Bearer ${session.access_token}` }, signal: controller.signal });
       if (!active()) return;
       if (result.reply?.trim() && result.vault_sources?.length) {
-        result.reply += "\n\n**Sumber konteks Ruang Simpan:**\n" +
-          result.vault_sources.map((s, i) => `[RS${i + 1}] ${s.name.replace(/[\r\n]/g, " ")}`).join("\n");
+        result.reply += vaultCitationText(result.vault_sources);
       }
       if (!result.reply?.trim() || result.engine !== engine ||
         (schemeProfile && result.scheme_code !== schemeProfile.scheme_code)) {
