@@ -2,14 +2,29 @@
 # Sourced by test-submit-assessment-concurrency.sh after the owner has completed
 # the fixture. Never use the service role for member-data HTTP requests.
 test_admin_http_replay() {
-  local status admin_token before_state payload label
+  local status admin_token before_state payload label own_summary
+  local own_pre_test_id="00000000-0000-4000-8000-000000000181"
 
   # Commit the application role so PostgREST's separate connections see it.
   # Remove it below before the existing transactional table-policy tests.
   "${PSQL[@]}" >/dev/null <<SQL
 INSERT INTO public.user_roles (user_id, role)
 VALUES ('$TEST_ADMIN_USER_ID', 'admin');
+INSERT INTO public.pre_tests (
+  id, user_id, total_questions, status, score,
+  determined_level, correct_answers, completed_at
+)
+VALUES (
+  '$own_pre_test_id', '$TEST_ADMIN_USER_ID', 1, 'completed', 100,
+  'Utama', 1, now()
+);
 SQL
+  own_summary="$("${PSQL[@]}" -Atq -c "
+    SELECT jsonb_build_object(
+      'id', id, 'user_id', user_id, 'status', status, 'score', score,
+      'determined_level', determined_level, 'correct_answers', correct_answers,
+      'total_questions', total_questions
+    ) FROM public.pre_tests WHERE id = '$own_pre_test_id'")"
 
   status="$(curl --silent --show-error --max-time 15 \
     --output "$TMP_DIR/admin-session.json" --write-out '%{http_code}' \
@@ -109,10 +124,52 @@ SQL
       exit 1
     fi
   done
-  unset admin_token
+  # Commit revocation through the privileged fixture connection. Do not sign
+  # in, refresh, or replace admin_token: PostgREST must apply the new database
+  # role membership to the very same Auth session on its next request.
   "${PSQL[@]}" >/dev/null <<SQL
 DELETE FROM public.user_roles
 WHERE user_id = '$TEST_ADMIN_USER_ID' AND role = 'admin';
+DO \$\$
+BEGIN
+  IF public.has_role('$TEST_ADMIN_USER_ID', 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'HTTP revocation fixture still has effective admin access';
+  END IF;
+END;
+\$\$;
+SQL
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/revoked-admin-member-summary.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/pre_tests?id=eq.$TEST_OWNERSHIP_PRE_TEST_ID&select=id,user_id,status,score,determined_level,correct_answers,total_questions" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e '. == []' "$TMP_DIR/revoked-admin-member-summary.json" >/dev/null 2>&1; then
+    echo "Revoked admin's unchanged HTTP token can still read a member result or failed (HTTP $status)" >&2
+    exit 1
+  fi
+
+  # Positive control: an expired/rejected token or a deny-all SELECT policy
+  # must not masquerade as successful revocation of access to other members.
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/revoked-admin-own-summary.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/pre_tests?id=eq.$own_pre_test_id&select=id,user_id,status,score,determined_level,correct_answers,total_questions" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --argjson expected "$own_summary" '. == [$expected]' \
+       "$TMP_DIR/revoked-admin-own-summary.json" >/dev/null 2>&1; then
+    echo "Revoked admin's unchanged HTTP token cannot read their own saved result (HTTP $status)" >&2
+    exit 1
+  fi
+  if [[ "$(assessment_http_state)" != "$before_state" ]]; then
+    echo "Admin HTTP revocation checks changed the member assessment, answers, or profile" >&2
+    exit 1
+  fi
+  unset admin_token
+  "${PSQL[@]}" >/dev/null <<SQL
+DELETE FROM public.pre_tests WHERE id = '$own_pre_test_id';
 SQL
   echo "Admin HTTP summary access succeeded; per-question answers stayed hidden and RPC replays were denied without changing owner data."
+  echo "After admin revocation, the unchanged HTTP token hid the member result and still returned the admin's own saved result."
 }

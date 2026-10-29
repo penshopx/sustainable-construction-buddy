@@ -1415,4 +1415,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, and direct table RLS including admin revocation tests passed."
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, and direct table RLS including admin revocation tests passed."
