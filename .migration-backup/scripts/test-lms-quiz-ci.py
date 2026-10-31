@@ -11,6 +11,69 @@ SCRIPTS = Path(__file__).resolve().parent
 
 
 class QuizCI(unittest.TestCase):
+    def test_admin_role_runner_rejects_hosted_and_connection_overrides(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake = Path(directory) / "psql"
+            fake.write_text('#!/bin/sh\ntouch "$CALL_LOG"\nexit 99\n')
+            fake.chmod(0o755)
+            log = Path(directory) / "called"
+            for url in (
+                "postgresql://postgres:postgres@production.invalid:54322/postgres",
+                "postgresql://postgres:postgres@127.0.0.1:54322/postgres?host=production.invalid",
+                "postgresql://postgres:postgres@127.0.0.1:54322/postgres#fragment",
+            ):
+                with self.subTest(url=url):
+                    env = {
+                        **os.environ, "PATH": directory + os.pathsep + os.environ["PATH"],
+                        "CALL_LOG": str(log), "TEST_DATABASE_URL": url,
+                        "TEST_SUPABASE_URL": "http://127.0.0.1:54321",
+                        "TEST_SUPABASE_ANON_KEY": "dummy",
+                        "TEST_SUPABASE_SERVICE_ROLE_KEY": "dummy",
+                    }
+                    result = subprocess.run(
+                        ["bash", str(SCRIPTS / "test-submit-assessment-concurrency.sh"),
+                         "--admin-role-revocation"],
+                        env=env, capture_output=True, text=True,
+                    )
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn("requires a local Supabase database URL", result.stderr)
+                    self.assertFalse(log.exists(), "Unsafe URL reached the database client")
+
+    def test_admin_role_snapshot_requires_unchanged_rows_and_no_effective_admin(self):
+        import json
+        baseline = {
+            "roles": [{"id": "existing-user-row", "user_id": "former-admin", "role": "user"}],
+            "admin": False, "super_admin": False,
+        }
+        for label, actual, expected, succeeds in (
+            ("unchanged", baseline, baseline, True),
+            ("hidden insert", {**baseline, "roles": baseline["roles"] + [
+                {"id": "injected-row", "user_id": "former-admin", "role": "admin"}
+            ]}, baseline, False),
+            ("hidden update", {**baseline, "roles": [
+                {"id": "existing-user-row", "user_id": "former-admin", "role": "super_admin"}
+            ]}, baseline, False),
+            ("effective admin", {**baseline, "admin": True}, baseline, False),
+            ("effective super-admin", {**baseline, "super_admin": True}, baseline, False),
+            # Even an accidentally bad baseline cannot approve stored/effective roles.
+            ("bad baseline", {**baseline, "super_admin": True},
+             {**baseline, "super_admin": True}, False),
+        ):
+            with self.subTest(label=label):
+                result = subprocess.run(
+                    ["bash", "-c", """
+set -euo pipefail
+source "$1"
+TEST_ADMIN_USER_ID=former-admin
+admin_role_privileged_state() { printf '%s\\n' "$ACTUAL"; }
+assert_admin_role_unchanged "$EXPECTED" "snapshot unit check"
+""", "snapshot-check", str(SCRIPTS / "test-admin-role-revocation-http.sh")],
+                    env={**os.environ, "ACTUAL": json.dumps(actual),
+                         "EXPECTED": json.dumps(expected)},
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(result.returncode == 0, succeeds, result.stderr)
+
     def test_all_migrations_staged_once_in_order(self):
         spec = importlib.util.spec_from_file_location(
             "prepare", SCRIPTS / "prepare-supabase-test-project.py"

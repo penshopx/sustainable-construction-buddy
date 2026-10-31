@@ -10,7 +10,7 @@ if [[ ! "$TEST_SUPABASE_URL" =~ ^http://(127\.0\.0\.1|localhost):[0-9]+/?$ ]]; t
   echo "Assessment HTTP fixture requires a local Supabase API URL" >&2
   exit 1
 fi
-if [[ ! "$DATABASE_URL" =~ ^postgres(ql)?://([^/@[:space:]]+@)?(127\.0\.0\.1|localhost):[0-9]+/[^[:space:]]+$ ]]; then
+if [[ ! "$DATABASE_URL" =~ ^postgres(ql)?://([^/@[:space:]]+@)?(127\.0\.0\.1|localhost):[0-9]+/[^?#[:space:]]+$ ]]; then
   echo "Assessment fixture requires a local Supabase database URL" >&2
   exit 1
 fi
@@ -19,6 +19,7 @@ TMP_DIR="$(mktemp -d)"
 TEST_USER_ID="00000000-0000-4000-8000-000000000161"
 TEST_OTHER_USER_ID="00000000-0000-4000-8000-000000000169"
 TEST_ADMIN_USER_ID="00000000-0000-4000-8000-000000000175"
+TEST_SUPER_ADMIN_USER_ID="00000000-0000-4000-8000-000000000183"
 TEST_DOMAIN_ID="00000000-0000-4000-8000-000000000162"
 TEST_QUESTION_ID="00000000-0000-4000-8000-000000000163"
 TEST_PRE_TEST_ID="00000000-0000-4000-8000-000000000164"
@@ -39,7 +40,7 @@ DROP TABLE IF EXISTS public.assessment_http_write_audit;
 DROP TRIGGER IF EXISTS submit_assessment_concurrency_audit_trigger ON public.pre_tests;
 DROP FUNCTION IF EXISTS public.record_submit_assessment_completion();
 DROP TABLE IF EXISTS public.submit_assessment_concurrency_audit;
-DELETE FROM auth.users WHERE id IN ('$TEST_USER_ID', '$TEST_OTHER_USER_ID', '$TEST_ADMIN_USER_ID');
+DELETE FROM auth.users WHERE id IN ('$TEST_USER_ID', '$TEST_OTHER_USER_ID', '$TEST_ADMIN_USER_ID', '$TEST_SUPER_ADMIN_USER_ID');
 DELETE FROM public.competency_domains WHERE id = '$TEST_DOMAIN_ID';
 SQL
   rm -rf "$TMP_DIR"
@@ -121,6 +122,15 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
 fi
 TEST_ADMIN_USER_ID="$(jq -r '.id' "$TMP_DIR/admin-created.json")"
 
+source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/test-admin-role-revocation-http.sh"
+if [[ -z "${1:-}" || "${1:-}" == "--admin-role-revocation" ]]; then
+  test_admin_http_role_revocation
+  if [[ "${1:-}" == "--admin-role-revocation" ]]; then
+    exit 0
+  fi
+fi
+
 "${PSQL[@]}" >/dev/null <<SQL
 INSERT INTO public.competency_domains (id, name)
 VALUES ('$TEST_DOMAIN_ID', 'Assessment concurrency test');
@@ -169,7 +179,6 @@ SQL
 
 # Independently runnable on the latest complete schema, even if an earlier
 # legacy concurrency scenario fails before reaching the admin HTTP checks.
-source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
 test_admin_http_profile_revocation
 if [[ "${1:-}" == "--admin-profile-revocation" ]]; then
   exit 0
