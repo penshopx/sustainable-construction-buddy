@@ -120,6 +120,12 @@ const member = {
   user_metadata: { full_name: "Anggota Uji" },
   created_at: "2026-09-01T00:00:00.000Z",
 };
+const secondMember = {
+  ...member,
+  id: "00000000-0000-4000-8000-000000000060",
+  email: "anggota-kedua@example.test",
+  user_metadata: { full_name: "Anggota Uji Kedua" },
+};
 const course = {
   id: COURSE_ID,
   course_code: "LMS-UJI-01",
@@ -205,7 +211,13 @@ const emptyTables = new Set([
   "aspekindo_lms_sessions", "aspekindo_lms_lessons",
 ]);
 
-async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, lms = null, preserveLmsState = false } = {}) {
+async function installAuthenticatedFixture(page, { user = member, asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, lms = null, lmsAccounts = null, preserveLmsState = false } = {}) {
+  // A shared fake backend keeps each identity's enrollment and progress separate.
+  if (lmsAccounts) {
+    lms = lmsAccounts.get(user.id);
+    expect(lms, `Missing LMS fixture for ${user.id}`).toBeDefined();
+  }
+  const userEnrollment = { ...enrollment, id: lms?.enrollmentId ?? ENROLLMENT_ID, user_id: user.id };
   const unexpectedRequests = [];
   if (lms && !preserveLmsState) {
     lms.progress = [];
@@ -222,7 +234,7 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       user,
     }));
     localStorage.setItem("pub_onboarding_done", "1");
-  }, { user: member, hostname: SUPABASE_HOST });
+  }, { user, hostname: SUPABASE_HOST });
   if (assessment && !assessment.liveCountdown) {
     // Reconcile the countdown via visibilitychange; keep animation frames on
     // real time instead of fast-forwarding the browser's animation clock.
@@ -277,7 +289,7 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
     } else if (url.pathname === "/auth/v1/logout" && request.method() === "POST") {
       data = {};
     } else if (url.pathname === "/auth/v1/user") {
-      data = member;
+      data = user;
     } else if (roleCheck && url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
       roleCheck.requests++;
       await roleCheck.waitForRelease;
@@ -331,19 +343,24 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_materials" && request.method() === "GET") {
       data = lms.video ? [material, videoMaterial] : [material];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_enrollments" && request.method() === "GET") {
-      data = lms.enrolled ? [enrollment] : [];
+      if (url.searchParams.get("user_id") === `eq.${user.id}`) {
+        data = lms.enrolled ? [userEnrollment] : [];
+      }
     } else if (lms && url.pathname === "/rest/v1/rpc/enroll_aspekindo_lms_course" && request.method() === "POST") {
       if (request.postDataJSON()?._course_id === COURSE_ID) {
         lms.enrolled = true;
-        data = enrollment;
+        data = userEnrollment;
       }
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lesson_progress" && request.method() === "GET") {
-      data = lms.progress;
+      if (url.searchParams.get("user_id") === `eq.${user.id}`) {
+        data = lms.progress.filter((item) => item.user_id === user.id &&
+          (!url.searchParams.has("enrollment_id") || url.searchParams.get("enrollment_id") === `eq.${item.enrollment_id}`));
+      }
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lesson_progress" && request.method() === "POST") {
       const progress = request.postDataJSON();
       if ([LESSON_ID, SECOND_LESSON_ID].includes(progress?.lesson_id) &&
-          progress?.enrollment_id === ENROLLMENT_ID && progress?.course_id === COURSE_ID &&
-          progress?.user_id === MEMBER_ID && progress?.status === "in_progress" &&
+          progress?.enrollment_id === userEnrollment.id && progress?.course_id === COURSE_ID &&
+          progress?.user_id === user.id && progress?.status === "in_progress" &&
           (progress.lesson_id === LESSON_ID || lms.progress.some((item) => item.lesson_id === LESSON_ID && item.status === "completed"))) {
         lms.startedLesson = progress;
         const saved = { id: progress.lesson_id === LESSON_ID ? "00000000-0000-4000-8000-000000000040" : "00000000-0000-4000-8000-000000000043", ...progress };
@@ -1267,6 +1284,59 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await expect(otherPage.getByText("pemeriksaan kelengkapan dokumen", { exact: false })).toBeVisible();
       await expect.poll(() => lms.progress.find((item) => item.lesson_id === SECOND_LESSON_ID)?.status).toBe("in_progress");
       expect(lms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("completed");
+      expect(secondUnexpected).toEqual([]);
+    } finally {
+      await otherContext.close();
+    }
+  });
+
+  test("progres akun pertama tidak membuka pelajaran kedua bagi akun lain di konteks baru", async ({ page, browser }) => {
+    const firstLms = { enrolled: true };
+    const secondLms = { enrolled: true, enrollmentId: "00000000-0000-4000-8000-000000000061" };
+    const lmsAccounts = new Map([[member.id, firstLms], [secondMember.id, secondLms]]);
+    const firstUnexpected = await installAuthenticatedFixture(page, { lmsAccounts });
+    await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`);
+    await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
+    await expect.poll(() => firstLms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("in_progress");
+    await page.getByRole("button", { name: "Tandai pelajaran selesai" }).click();
+    await expect(page.getByText("Pelajaran ini sudah selesai")).toBeVisible();
+    await expect.poll(() => firstLms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("completed");
+    await expect(page.getByRole("button", { name: new RegExp(secondLesson.title) })).not.toHaveClass(/cursor-not-allowed/);
+    const firstProgress = structuredClone(firstLms.progress);
+
+    const otherContext = await browser.newContext();
+    try {
+      expect(await otherContext.storageState()).toEqual({ cookies: [], origins: [] });
+      const otherPage = await otherContext.newPage();
+      const secondUnexpected = await installAuthenticatedFixture(otherPage, { user: secondMember, lmsAccounts });
+      const loadedProgress = otherPage.waitForResponse((response) => {
+        const url = new URL(response.url());
+        return url.hostname === SUPABASE_HOST &&
+          url.pathname === "/rest/v1/aspekindo_lms_lesson_progress" &&
+          response.request().method() === "GET";
+      });
+      await otherPage.goto(page.url());
+      const response = await loadedProgress;
+      expect(new URL(response.url()).searchParams.get("user_id")).toBe(`eq.${secondMember.id}`);
+      expect(await response.json()).toEqual([]);
+      await expect(otherPage.getByRole("heading", { name: lesson.title })).toBeVisible();
+      await expect.poll(() => secondLms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("in_progress");
+      expect(secondLms.progress).toEqual([
+        expect.objectContaining({
+          user_id: secondMember.id, enrollment_id: secondLms.enrollmentId,
+          lesson_id: LESSON_ID, status: "in_progress",
+        }),
+      ]);
+      const secondButton = otherPage.getByRole("button", { name: new RegExp(secondLesson.title) });
+      await expect(secondButton).toHaveClass(/cursor-not-allowed/);
+      await secondButton.click();
+      await expect(otherPage.getByRole("heading", { name: secondLesson.title })).toHaveCount(0);
+      await expect(otherPage.getByRole("heading", { name: lesson.title })).toBeVisible();
+      await expect(otherPage.getByText("Pelajaran ini sudah selesai")).toHaveCount(0);
+      expect(secondLms.progress.some((item) => item.lesson_id === SECOND_LESSON_ID)).toBe(false);
+      expect(secondLms.completionRequests).toEqual([]);
+      expect(firstLms.progress).toEqual(firstProgress);
+      expect(firstUnexpected).toEqual([]);
       expect(secondUnexpected).toEqual([]);
     } finally {
       await otherContext.close();
