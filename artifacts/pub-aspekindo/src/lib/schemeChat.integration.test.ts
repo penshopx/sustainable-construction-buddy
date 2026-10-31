@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 let vite: ViteDevServer, Controls: any, helpers: any, root: ReactTestRenderer | undefined;
 test.before(async () => {
   vite = await createServer({ configFile: false, root: fileURLToPath(new URL("../..", import.meta.url)),
+    cacheDir: "node_modules/.vite-scheme-chat-tests",
     esbuild: { jsx: "automatic" }, resolve: { alias: { "@": fileURLToPath(new URL("..", import.meta.url)) } },
     optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: "custom" });
   ({ default: Controls } = await vite.ssrLoadModule("/src/components/chatbot/SchemeChatControls.tsx"));

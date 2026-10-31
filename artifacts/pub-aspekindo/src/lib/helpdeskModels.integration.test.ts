@@ -54,6 +54,7 @@ test.before(async () => {
   };
   (globalThis as any).__modelsNotify = (notice: any) => notices.push(notice);
   server = await createServer({
+    cacheDir: "node_modules/.vite-helpdesk-models-tests",
     configFile: false,
     root: fileURLToPath(new URL("../..", import.meta.url)),
     resolve: { alias: { "@": fileURLToPath(new URL("..", import.meta.url)) } },

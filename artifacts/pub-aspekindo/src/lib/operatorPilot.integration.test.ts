@@ -18,6 +18,7 @@ test.before(async () => {
     data: { session: { user: (globalThis as any).__operatorAuth.user, access_token: "synthetic-session-only" } }, error: null,
   }) } };
   vite = await createServer({
+    cacheDir: "node_modules/.vite-operator-pilot-tests",
     configFile: false, root: fileURLToPath(new URL("../..", import.meta.url)), esbuild: { jsx: "automatic" },
     resolve: { alias: { "@": fileURLToPath(new URL("..", import.meta.url)) } },
     optimizeDeps: { noDiscovery: true, include: [] },

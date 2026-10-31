@@ -22,6 +22,7 @@ async function ask(question = "Jelaskan pemetaan BG001") {
 }
 test.before(async () => {
   vite = await createServer({
+    cacheDir: "node_modules/.vite-hermes-bg001-chat-tests",
     configFile: false, root: fileURLToPath(new URL("../..", import.meta.url)),
     esbuild: { jsx: "automatic" }, resolve: { alias: { "@": fileURLToPath(new URL("..", import.meta.url)) } },
     optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true, hmr: false }, appType: "custom",

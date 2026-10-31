@@ -23,6 +23,7 @@ test.before(async () => {
     from: () => { throw new Error("Pilot UI must not mutate/read member tables directly"); },
   };
   vite = await createServer({
+    cacheDir: "node_modules/.vite-smap-pilot-tests",
     configFile: false, root: fileURLToPath(new URL("../..", import.meta.url)),
     esbuild: { jsx: "automatic" },
     resolve: { alias: { "@": fileURLToPath(new URL("..", import.meta.url)) } },

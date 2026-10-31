@@ -44,6 +44,7 @@ test.before(async () => {
   process.env.PORT ||= "4173";
   process.env.BASE_PATH ||= "/";
   server = await createServer({
+    cacheDir: "node_modules/.vite-competency-pages-tests",
     configFile: new URL("../../vite.config.ts", import.meta.url).pathname,
     optimizeDeps: { noDiscovery: true, include: [] },
     server: { middlewareMode: true },

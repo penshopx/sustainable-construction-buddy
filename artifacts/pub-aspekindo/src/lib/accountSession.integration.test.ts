@@ -15,16 +15,33 @@ function deferred<T>() {
 
 let server: ViteDevServer;
 let modules: any;
+let root: ReactTestRenderer | undefined;
 const fakeSupabase: any = {};
+const globals = ["IS_REACT_ACT_ENVIRONMENT", "__accountTestSupabase", "window", "document", "localStorage"];
+const originalGlobals = new Map(globals.map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+const originalEnv = { PORT: process.env.PORT, BASE_PATH: process.env.BASE_PATH };
+const intervals = new Map<number, () => void>();
+const focusListeners = new Set<() => void>();
+let nextTimer = 0;
+const fakeDocument = { visibilityState: "visible" };
 
 test.before(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   (globalThis as any).__accountTestSupabase = fakeSupabase;
   (globalThis as any).window = {
-    addEventListener() {},
-    removeEventListener() {},
-    setInterval,
-    clearInterval,
+    addEventListener(type: string, callback: () => void) {
+      if (type === "focus") focusListeners.add(callback);
+    },
+    removeEventListener(type: string, callback: () => void) {
+      if (type === "focus") focusListeners.delete(callback);
+    },
+    // No real recurring timers: tests explicitly trigger the production callback.
+    setInterval(callback: () => void) {
+      const id = ++nextTimer;
+      intervals.set(id, callback);
+      return id;
+    },
+    clearInterval(id: number) { intervals.delete(id); },
   };
   Object.defineProperty(globalThis, "localStorage", {
     configurable: true,
@@ -58,10 +75,37 @@ test.before(async () => {
   modules = { ...auth, ...provider, AccountQueryProvider: boundary.default };
 });
 
+// Install after SSR imports: browser-only style injection must not run in Node.
+test.beforeEach(() => {
+  (globalThis as any).document = fakeDocument;
+});
+
+test.afterEach(async () => {
+  try {
+    if (root) await act(async () => { root!.unmount(); });
+    assert.equal(intervals.size, 0, "AuthProvider must clear its refresh timer");
+    assert.equal(focusListeners.size, 0, "AuthProvider must remove its focus listener");
+  } finally {
+    root = undefined;
+    intervals.clear();
+    focusListeners.clear();
+    fakeDocument.visibilityState = "visible";
+  }
+});
+
 test.after(async () => {
-  await server.close();
-  delete (globalThis as any).__accountTestSupabase;
-  delete (globalThis as any).window;
+  try {
+    await server?.close();
+  } finally {
+    for (const [key, descriptor] of originalGlobals) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+    for (const [key, value] of Object.entries(originalEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
 });
 
 test("pergantian akun mengganti cache/state halaman, membatalkan query lama, dan mempertahankan router", async () => {
@@ -80,7 +124,6 @@ test("pergantian akun mengganti cache/state halaman, membatalkan query lama, dan
       React.createElement(MemoryRouter, null,
         React.createElement(modules.AccountQueryProvider, null, React.createElement(Probe))));
   }
-  let root!: ReactTestRenderer;
   await act(async () => { root = create(tree("member-a")); });
   const clientA = seen.client!;
   const oldNavigate = seen.navigate!;
@@ -88,7 +131,7 @@ test("pergantian akun mengganti cache/state halaman, membatalkan query lama, dan
   const pending = deferred<{ owner: string }>();
   const oldQuery = clientA.fetchQuery({ queryKey: ["late-query"], queryFn: () => pending.promise }).catch(() => undefined);
   await act(async () => { seen.setDraft!("draft akun A"); });
-  await act(async () => { root.update(tree("member-b")); });
+  await act(async () => { root!.update(tree("member-b")); });
   const clientB = seen.client!;
   assert.notEqual(clientA, clientB);
   assert.equal(clientB.getQueryData(["unscoped-private-data"]), undefined);
@@ -100,10 +143,9 @@ test("pergantian akun mengganti cache/state halaman, membatalkan query lama, dan
   assert.equal(clientA.getQueryData(["late-query"]), undefined);
   await act(async () => { oldNavigate("/profile"); });
   assert.equal(seen.path, "/profile");
-  await act(async () => { root.update(tree(null)); });
+  await act(async () => { root!.update(tree(null)); });
   assert.notEqual(seen.client, clientB);
   assert.equal(seen.client!.getQueryCache().getAll().length, 0);
-  await act(async () => { root.unmount(); });
 });
 
 test("pembaruan token dengan identitas sama tidak menghapus cache atau draf yang sedang dikerjakan", async () => {
@@ -117,15 +159,13 @@ test("pembaruan token dengan identitas sama tidak menghapus cache atau draf yang
   }
   const tree = () => React.createElement(modules.AuthContext.Provider, { value: { user: { id: "member-a" } } },
     React.createElement(modules.AccountQueryProvider, null, React.createElement(Probe)));
-  let root!: ReactTestRenderer;
   await act(async () => { root = create(tree()); });
   const original = client;
   client.setQueryData(["private"], "akun A");
-  await act(async () => { setDraft("belum disimpan"); root.update(tree()); });
+  await act(async () => { setDraft("belum disimpan"); root!.update(tree()); });
   assert.equal(client, original);
   assert.equal(client.getQueryData(["private"]), "akun A");
   assert.equal(draft, "belum disimpan");
-  await act(async () => { root.unmount(); });
 });
 
 test("profil dan sesi awal yang terlambat tidak menimpa akun yang baru masuk", async () => {
@@ -154,7 +194,6 @@ test("profil dan sesi awal yang terlambat tidak menimpa akun yang baru masuk", a
   };
   let observed: any;
   function Probe() { observed = modules.useAuth(); return null; }
-  let root!: ReactTestRenderer;
   await act(async () => { root = create(React.createElement(modules.AuthProvider, null, React.createElement(Probe))); });
   const session = (id: string) => ({ user: { id } });
   const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -180,7 +219,6 @@ test("profil dan sesi awal yang terlambat tidak menimpa akun yang baru masuk", a
     await tick();
   });
   assert.equal(profiles.size, 0);
-  await act(async () => { root.unmount(); });
 });
 
 test("logout gagal mempertahankan sesi dan bisa diulang setelah error layanan maupun jaringan", async () => {
@@ -212,7 +250,6 @@ test("logout gagal mempertahankan sesi dan bisa diulang setelah error layanan ma
   }) as typeof fetch;
   let observed: any;
   function Probe() { observed = modules.useAuth(); return null; }
-  let root!: ReactTestRenderer;
   try {
     await act(async () => { root = create(React.createElement(modules.AuthProvider, null, React.createElement(Probe))); });
     await act(async () => { await assert.rejects(observed.signOut(), /logout unavailable/); });
@@ -231,7 +268,35 @@ test("logout gagal mempertahankan sesi dan bisa diulang setelah error layanan ma
     assert.equal(observed.session, null);
     assert.equal(observed.profile, null);
   } finally {
-    if (root) await act(async () => { root.unmount(); });
     globalThis.fetch = originalFetch;
   }
+});
+
+test("refresh profil memakai timer dan fokus hanya saat dokumen terlihat, lalu dibersihkan saat unmount", async () => {
+  let profileRequests = 0;
+  fakeSupabase.auth = {
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+    getSession: async () => ({ data: { session: { user: { id: "member-refresh" } } } }),
+  };
+  fakeSupabase.from = () => {
+    const query: any = {
+      select: () => query,
+      eq: () => query,
+      single: async () => { profileRequests += 1; return { data: null }; },
+    };
+    return query;
+  };
+  await act(async () => { root = create(React.createElement(modules.AuthProvider, null, null)); });
+  assert.equal(profileRequests, 1);
+  assert.equal(intervals.size, 1);
+  assert.equal(focusListeners.size, 1);
+  const refreshTimer = [...intervals.values()][0];
+  const focus = [...focusListeners][0];
+  fakeDocument.visibilityState = "hidden";
+  await act(async () => { refreshTimer(); focus(); });
+  assert.equal(profileRequests, 1);
+  fakeDocument.visibilityState = "visible";
+  await act(async () => { refreshTimer(); });
+  await act(async () => { focus(); });
+  assert.equal(profileRequests, 3);
 });

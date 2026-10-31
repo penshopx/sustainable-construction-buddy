@@ -33,6 +33,7 @@ const output = () => JSON.stringify(root!.toJSON());
 const Harness = (_props: { tick?: number }) => { snapshot = useBank(); return null; };
 test.before(async () => {
   vite = await createServer({
+    cacheDir: "node_modules/.vite-scheme-references-tests",
     configFile: false, root: fileURLToPath(new URL("../..", import.meta.url)),
     esbuild: { jsx: "automatic" }, resolve: { alias: { "@": fileURLToPath(new URL("..", import.meta.url)) } },
     optimizeDeps: { noDiscovery: true, include: [] }, server: { middlewareMode: true }, appType: "custom",

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 let vite: ViteDevServer, Catalog: any, root: ReactTestRenderer | undefined;
 test.before(async () => {
   vite = await createServer({
+    cacheDir: "node_modules/.vite-shared-knowledge-base-tests",
     configFile: false, root: fileURLToPath(new URL("../..", import.meta.url)),
     esbuild: { jsx: "automatic" },
     resolve: { alias: { "@": fileURLToPath(new URL("..", import.meta.url)) } },
