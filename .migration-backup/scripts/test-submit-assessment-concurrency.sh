@@ -772,7 +772,35 @@ if [[ "$(assessment_http_state)" != "$BEFORE_UNFINISHED_HTTP_STATE" ]]; then
 fi
 echo "Stranger HTTP submission of unfinished assessment was denied without changing owner data."
 
-# The owner must still be able to finish this exact assessment after rejection.
+# An API key alone is not an owner session. Deliberately omit Authorization
+# while the assessment is still in_progress, before the owner can complete it.
+# Require a gateway permission denial, not a successful RPC or a network error.
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/anon-unfinished-rpc-response.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header 'Content-Type: application/json' \
+  --data "{\"_pre_test_id\":\"$TEST_OWNERSHIP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
+case "$HTTP_STATUS" in
+  401|403|404) ;;
+  *) echo "Anonymous HTTP submission of unfinished assessment was not rejected (HTTP $HTTP_STATUS)" >&2; exit 1 ;;
+esac
+if ! jq -e '
+  type == "object" and (.code == "42501" or .code == "PGRST202")
+  and (has("score") | not) and (has("level") | not)
+  and (has("correct") | not) and (has("total") | not)
+' "$TMP_DIR/anon-unfinished-rpc-response.json" >/dev/null 2>&1; then
+  echo "Anonymous HTTP submission of unfinished assessment returned an unexpected response or exposed a result" >&2
+  exit 1
+fi
+if [[ "$(assessment_http_state)" != "$BEFORE_UNFINISHED_HTTP_STATE" ]]; then
+  echo "Anonymous HTTP submission changed the unfinished assessment, answers, or owner profile" >&2
+  exit 1
+fi
+echo "Anonymous HTTP submission of unfinished assessment was denied without changing owner data."
+
+# The owner must still be able to finish this exact assessment through the real
+# Auth session after both the stranger and anonymous submissions were rejected.
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/owner-first-submit-response.json" --write-out '%{http_code}' \
   --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
@@ -1415,4 +1443,4 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, and direct table RLS including admin revocation tests passed."
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger and anonymous unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, and direct table RLS including admin revocation tests passed."

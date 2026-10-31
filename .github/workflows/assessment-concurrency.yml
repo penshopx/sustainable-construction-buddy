@@ -45,7 +45,7 @@ jobs:
         run: |
           supabase --workdir "$RUNNER_TEMP/aspekindo-supabase" status -o json | jq -r '"TEST_SUPABASE_URL=\(.API_URL)\nTEST_SUPABASE_ANON_KEY=\(.ANON_KEY)\nTEST_SUPABASE_SERVICE_ROLE_KEY=\(.SERVICE_ROLE_KEY)"' >> "$GITHUB_ENV"
 
-      - name: Test concurrent submits, owner completion, HTTP replay and same-token admin revocation
+      - name: Test concurrent submits, anonymous unfinished denial, owner completion, HTTP replay and same-token admin revocation
         run: bash scripts/test-submit-assessment-concurrency.sh
 
       - name: Stop disposable local Supabase
