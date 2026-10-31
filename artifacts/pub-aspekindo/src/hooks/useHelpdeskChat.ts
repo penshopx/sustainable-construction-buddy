@@ -6,6 +6,7 @@ import type { PakarMode } from "@/pages/HelpdeskAI";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { sendHelpdeskMessage, type ChatEngine, type ChatMessage } from "@workspace/api-client-react";
 import { vaultCitationText } from "@/lib/vault-citations";
+import { clinicPrefix } from "@/lib/clinicScope";
 import { helpdeskContext } from "@/lib/chatEngines";
 import { profileTitle, restoreProfile, type SchemeProfile } from "@/lib/schemeChat";
 
@@ -21,6 +22,7 @@ export function useHelpdeskChat(
   schemeProfile?: SchemeProfile,
   onProfileRestore?: (profile?: SchemeProfile) => void,
   useVaultContext = false,
+  clinicTopic?: string,
 ) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -29,6 +31,7 @@ export function useHelpdeskChat(
   const [isLoading, setIsLoading] = useState(false);
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [lastModel, setLastModel] = useState("");
+  const [lastError, setLastError] = useState<string | null>(null);
   const mounted = useRef(false);
   const operation = useRef(0);
   const contextStart = useRef(0);
@@ -45,15 +48,18 @@ export function useHelpdeskChat(
     };
   }, []);
 
-  const notify = (message: string) =>
-    toast({ title: "Pakar Cerdas", description: message, variant: "destructive" });
+  const notify = (message: string) => {
+    setLastError(message);
+    toast({ title: clinicTopic ? "Klinik Konsultasi" : "Pakar Cerdas", description: message, variant: "destructive" });
+  };
 
   const loadConversations = useCallback(async () => {
     if (!user) { setLoadingConversations(false); return; }
     setLoadingConversations(true);
     try {
-      const { data, error } = await supabase.from("helpdesk_conversations")
-        .select("*").eq("user_id", user.id).order("updated_at", { ascending: false });
+      let query = supabase.from("helpdesk_conversations").select("*").eq("user_id", user.id);
+      if (clinicTopic) query = query.like("title", `${clinicPrefix(clinicTopic)}%`);
+      const { data, error } = await query.order("updated_at", { ascending: false });
       if (!mounted.current || currentUserId.current !== user.id) return;
       if (error) throw new Error();
       setConversations(data || []);
@@ -62,7 +68,7 @@ export function useHelpdeskChat(
     } finally {
       if (mounted.current && currentUserId.current === user.id) setLoadingConversations(false);
     }
-  }, [user]);
+  }, [user, clinicTopic]);
 
   useEffect(() => { void loadConversations(); }, [loadConversations]);
 
@@ -75,15 +81,17 @@ export function useHelpdeskChat(
     setActiveConversationId(null);
     setMessages([]);
     setLastModel("");
+    setLastError(null);
   }, []);
 
   useEffect(() => {
     startNewConversation();
     setConversations([]);
-  }, [user?.id, startNewConversation]);
+  }, [user?.id, clinicTopic, startNewConversation]);
 
   const selectConversation = useCallback(async (id: string) => {
     if (!user) return;
+    if (clinicTopic && !conversations.some(row => row.id === id && row.title.startsWith(clinicPrefix(clinicTopic)))) return;
     startNewConversation();
     const version = operation.current;
     setIsLoading(true);
@@ -107,7 +115,7 @@ export function useHelpdeskChat(
     } finally {
       if (mounted.current && operation.current === version) setIsLoading(false);
     }
-  }, [user, startNewConversation, conversations, onProfileRestore]);
+  }, [user, startNewConversation, conversations, onProfileRestore, clinicTopic]);
 
   const deleteConversation = useCallback(async (id: string) => {
     if (!user) return;
@@ -130,6 +138,7 @@ export function useHelpdeskChat(
     const allMessages = [...messages, userMsg];
     setMessages(allMessages);
     setIsLoading(true);
+    setLastError(null);
     let conversationId = activeConversationId;
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -139,7 +148,7 @@ export function useHelpdeskChat(
       }
       if (!conversationId) {
         const row: TablesInsert<"helpdesk_conversations"> = {
-          user_id: user.id, title: `${profileTitle(schemeProfile)}[${engine}] ${text.trim().slice(0, 65)}`,
+          user_id: user.id, title: `${clinicPrefix(clinicTopic)}${profileTitle(schemeProfile)}[${engine}] ${text.trim().slice(0, 65)}`,
           ...(chatbotId ? { chatbot_id: chatbotId } : {}),
         };
         const { data, error } = await supabase.from("helpdesk_conversations").insert(row).select().single();
@@ -189,8 +198,8 @@ export function useHelpdeskChat(
     } finally {
       if (active()) { pending.current = null; setIsLoading(false); }
     }
-  }, [messages, isLoading, user, activeConversationId, loadConversations, mode, customPersona, chatbotId, engine, schemeProfile, useVaultContext]);
+  }, [messages, isLoading, user, activeConversationId, loadConversations, mode, customPersona, chatbotId, engine, schemeProfile, useVaultContext, clinicTopic]);
 
   return { conversations, activeConversationId, messages, isLoading, loadingConversations,
-    sendMessage, selectConversation, startNewConversation, deleteConversation, setMessages, lastModel };
+    sendMessage, selectConversation, startNewConversation, deleteConversation, setMessages, lastModel, lastError };
 }

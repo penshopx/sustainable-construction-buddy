@@ -99,6 +99,7 @@ const learningSubItems = [
 // Komunitas & Bisnis group
 const communitySubItems = [
   { title: "Ruang Simpan PUB", url: "/ruang-simpan/", icon: FolderKanban, fullPage: true },
+  { title: "Klinik Konsultasi", url: "/klinik-konsultasi", icon: MessageCircle },
   { title: "Pusat Informasi", url: "/informasi", icon: Newspaper },
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
@@ -138,6 +139,7 @@ const adminItems = [
   { title: "Konflik Peran", url: "/admin/role-conflicts", icon: ShieldAlert },
   { title: "Rangkuman Platform", url: "/admin/rangkuman", icon: BarChart3 },
   { title: "Brief Marketing", url: "/admin/marketing-brief", icon: Briefcase },
+  { title: "Antrean Klinik Konsultasi", url: "/admin/klinik-konsultasi", icon: MessageCircle },
   { title: "Panel Admin", url: "/admin", icon: Shield },
 ];
 

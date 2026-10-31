@@ -13,6 +13,60 @@ tags:
   - name: chat
     description: Public helpdesk and capability-link chatbots
 paths:
+  /clinic/cases:
+    get:
+      operationId: listClinicCases
+      tags: [clinic]
+      responses:
+        "200":
+          description: Private requests owned by the authenticated PUB member
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/ClinicCase" } }
+    post:
+      operationId: createClinicCase
+      tags: [clinic]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClinicCaseInput" }
+      responses:
+        "201":
+          description: Request recorded, not a promise of immediate human availability
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClinicCase" }
+  /clinic/operator/cases:
+    get:
+      operationId: listClinicOperatorCases
+      tags: [clinic]
+      responses:
+        "200":
+          description: Admin-only request queue
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/ClinicCase" } }
+  /clinic/operator/cases/{id}:
+    patch:
+      operationId: updateClinicCase
+      tags: [clinic]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ClinicCaseUpdate" }
+      responses:
+        "200":
+          description: Admin reply visible only to the requesting member and admins
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClinicCase" }
   /ruang-simpan/company-names:
     post:
       operationId: resolveVaultCompanies
@@ -718,6 +772,39 @@ components:
           schema:
             $ref: "#/components/schemas/ChatError"
   schemas:
+    ClinicTopic:
+      type: string
+      enum: [sbu, lsbu-abu, pub-lkut, perizinan, tender, kontraktor, konsultan, suplai, pelaksanaan-proyek, brain-project, personel-manajerial, smap, pancek, uji-kompetensi, skk, skk-k3, bimtek, pkb, askom, lisensi-bnsp, akreditasi-kan, ajj-nirkertas]
+    ClinicCaseInput:
+      type: object
+      required: [topicId, kind, subject, description]
+      properties:
+        topicId: { $ref: "#/components/schemas/ClinicTopic" }
+        kind: { type: string, enum: [consultation, feedback] }
+        subject: { type: string, minLength: 3, maxLength: 180 }
+        description: { type: string, minLength: 10, maxLength: 4000 }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+    ClinicCaseUpdate:
+      type: object
+      required: [status, operatorReply]
+      properties:
+        status: { type: string, enum: [open, in_review, answered, closed] }
+        operatorReply: { type: string, maxLength: 6000 }
+    ClinicCase:
+      type: object
+      required: [id, ownerId, topicId, kind, subject, description, rating, status, operatorReply, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        ownerId: { type: string }
+        topicId: { $ref: "#/components/schemas/ClinicTopic" }
+        kind: { type: string, enum: [consultation, feedback] }
+        subject: { type: string }
+        description: { type: string }
+        rating: { type: [integer, "null"] }
+        status: { type: string, enum: [open, in_review, answered, closed] }
+        operatorReply: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     VaultCompanyLookup:
       type: object
       required: [userIds]

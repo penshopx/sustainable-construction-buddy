@@ -81,6 +81,9 @@ const PublicAgendaPage = lazy(() => import("./pages/PublicAgendaPage"));
 const SiapCompetencyMap = lazy(() => import("./pages/SiapCompetencyMap"));
 const AdminAspekindoLmsCourses = lazy(() => import("./pages/admin/AdminAspekindoLmsCourses"));
 const PublicCourseLanding = lazy(() => import("./pages/PublicCourseLanding"));
+const ClinicConsultation = lazy(() => import("./pages/ClinicConsultation"));
+const ClinicDesk = lazy(() => import("./pages/ClinicDesk"));
+const AdminClinic = lazy(() => import("./pages/admin/AdminClinic"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 
 function PageLoading() {
@@ -140,6 +143,9 @@ const App = () => (
             <Route path="/marketplace" element={<DashboardLayout><Marketplace /></DashboardLayout>} />
             <Route path="/direktori" element={<DashboardLayout><CompanyDirectory /></DashboardLayout>} />
             <Route path="/direktori/:companyId" element={<DashboardLayout><CompanyDetail /></DashboardLayout>} />
+            <Route path="/klinik-konsultasi" element={<ClinicConsultation />} />
+            <Route path="/klinik-konsultasi/:topicId" element={<DashboardLayout><ClinicDesk /></DashboardLayout>} />
+            <Route path="/admin/klinik-konsultasi" element={<DashboardLayout><AdminGuard><AdminClinic /></AdminGuard></DashboardLayout>} />
             <Route path="/helpdesk" element={<DashboardLayout><HelpdeskAI /></DashboardLayout>} />
             <Route path="/ai-helpdesk" element={<Navigate to="/dashboard" replace />} />
             <Route path="/pesanan" element={<DashboardLayout><MyOrders /></DashboardLayout>} />

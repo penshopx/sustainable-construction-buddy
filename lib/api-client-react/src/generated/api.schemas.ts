@@ -5,6 +5,111 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type ClinicTopic = typeof ClinicTopic[keyof typeof ClinicTopic];
+
+
+export const ClinicTopic = {
+  sbu: 'sbu',
+  'lsbu-abu': 'lsbu-abu',
+  'pub-lkut': 'pub-lkut',
+  perizinan: 'perizinan',
+  tender: 'tender',
+  kontraktor: 'kontraktor',
+  konsultan: 'konsultan',
+  suplai: 'suplai',
+  'pelaksanaan-proyek': 'pelaksanaan-proyek',
+  'brain-project': 'brain-project',
+  'personel-manajerial': 'personel-manajerial',
+  smap: 'smap',
+  pancek: 'pancek',
+  'uji-kompetensi': 'uji-kompetensi',
+  skk: 'skk',
+  'skk-k3': 'skk-k3',
+  bimtek: 'bimtek',
+  pkb: 'pkb',
+  askom: 'askom',
+  'lisensi-bnsp': 'lisensi-bnsp',
+  'akreditasi-kan': 'akreditasi-kan',
+  'ajj-nirkertas': 'ajj-nirkertas',
+} as const;
+
+export type ClinicCaseInputKind = typeof ClinicCaseInputKind[keyof typeof ClinicCaseInputKind];
+
+
+export const ClinicCaseInputKind = {
+  consultation: 'consultation',
+  feedback: 'feedback',
+} as const;
+
+export interface ClinicCaseInput {
+  topicId: ClinicTopic;
+  kind: ClinicCaseInputKind;
+  /**
+     * @minLength 3
+     * @maxLength 180
+     */
+  subject: string;
+  /**
+     * @minLength 10
+     * @maxLength 4000
+     */
+  description: string;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating?: number;
+}
+
+export type ClinicCaseUpdateStatus = typeof ClinicCaseUpdateStatus[keyof typeof ClinicCaseUpdateStatus];
+
+
+export const ClinicCaseUpdateStatus = {
+  open: 'open',
+  in_review: 'in_review',
+  answered: 'answered',
+  closed: 'closed',
+} as const;
+
+export interface ClinicCaseUpdate {
+  status: ClinicCaseUpdateStatus;
+  /** @maxLength 6000 */
+  operatorReply: string;
+}
+
+export type ClinicCaseKind = typeof ClinicCaseKind[keyof typeof ClinicCaseKind];
+
+
+export const ClinicCaseKind = {
+  consultation: 'consultation',
+  feedback: 'feedback',
+} as const;
+
+export type ClinicCaseStatus = typeof ClinicCaseStatus[keyof typeof ClinicCaseStatus];
+
+
+export const ClinicCaseStatus = {
+  open: 'open',
+  in_review: 'in_review',
+  answered: 'answered',
+  closed: 'closed',
+} as const;
+
+export interface ClinicCase {
+  id: string;
+  ownerId: string;
+  topicId: ClinicTopic;
+  kind: ClinicCaseKind;
+  subject: string;
+  description: string;
+  /** @nullable */
+  rating: number | null;
+  status: ClinicCaseStatus;
+  operatorReply: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface VaultCompanyLookup {
   /**
      * @minItems 1

@@ -28,6 +28,9 @@ import type {
   ChatReply,
   ChatTimeoutResponse,
   ChatUnavailableResponse,
+  ClinicCase,
+  ClinicCaseInput,
+  ClinicCaseUpdate,
   HealthStatus,
   HelpdeskInput,
   HermesBg001ChatInput,
@@ -90,6 +93,279 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListClinicCasesUrl = () => {
+
+
+
+
+  return `/api/clinic/cases`
+}
+
+export const listClinicCases = async ( options?: Parameters<typeof customFetch>[1]): Promise<ClinicCase[]> => {
+
+  return customFetch<ClinicCase[]>(getListClinicCasesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListClinicCasesQueryKey = () => {
+    return [
+    `/api/clinic/cases`
+    ] as const;
+    }
+
+
+export const getListClinicCasesQueryOptions = <TData = Awaited<ReturnType<typeof listClinicCases>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClinicCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListClinicCasesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listClinicCases>>> = ({ signal }) => listClinicCases({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listClinicCases>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListClinicCasesQueryResult = NonNullable<Awaited<ReturnType<typeof listClinicCases>>>
+export type ListClinicCasesQueryError = ErrorType<unknown>
+
+
+
+export function useListClinicCases<TData = Awaited<ReturnType<typeof listClinicCases>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClinicCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListClinicCasesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateClinicCaseUrl = () => {
+
+
+
+
+  return `/api/clinic/cases`
+}
+
+export const createClinicCase = async (clinicCaseInput: ClinicCaseInput, options?: Parameters<typeof customFetch>[1]): Promise<ClinicCase> => {
+
+  return customFetch<ClinicCase>(getCreateClinicCaseUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(clinicCaseInput)
+  }
+);}
+
+
+
+
+
+export const getCreateClinicCaseMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClinicCase>>, TError,{data: BodyType<ClinicCaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createClinicCase>>, TError,{data: BodyType<ClinicCaseInput>}, TContext> => {
+
+const mutationKey = ['createClinicCase'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createClinicCase>>, {data: BodyType<ClinicCaseInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createClinicCase(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateClinicCaseMutationResult = NonNullable<Awaited<ReturnType<typeof createClinicCase>>>
+    export type CreateClinicCaseMutationBody = BodyType<ClinicCaseInput>
+    export type CreateClinicCaseMutationError = ErrorType<unknown>
+
+    export const useCreateClinicCase = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClinicCase>>, TError,{data: BodyType<ClinicCaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createClinicCase>>,
+        TError,
+        {data: BodyType<ClinicCaseInput>},
+        TContext
+      > => {
+      return useMutation(getCreateClinicCaseMutationOptions(options));
+    }
+
+export const getListClinicOperatorCasesUrl = () => {
+
+
+
+
+  return `/api/clinic/operator/cases`
+}
+
+export const listClinicOperatorCases = async ( options?: Parameters<typeof customFetch>[1]): Promise<ClinicCase[]> => {
+
+  return customFetch<ClinicCase[]>(getListClinicOperatorCasesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListClinicOperatorCasesQueryKey = () => {
+    return [
+    `/api/clinic/operator/cases`
+    ] as const;
+    }
+
+
+export const getListClinicOperatorCasesQueryOptions = <TData = Awaited<ReturnType<typeof listClinicOperatorCases>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClinicOperatorCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListClinicOperatorCasesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listClinicOperatorCases>>> = ({ signal }) => listClinicOperatorCases({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listClinicOperatorCases>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListClinicOperatorCasesQueryResult = NonNullable<Awaited<ReturnType<typeof listClinicOperatorCases>>>
+export type ListClinicOperatorCasesQueryError = ErrorType<unknown>
+
+
+
+export function useListClinicOperatorCases<TData = Awaited<ReturnType<typeof listClinicOperatorCases>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClinicOperatorCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListClinicOperatorCasesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateClinicCaseUrl = (id: string,) => {
+
+
+
+
+  return `/api/clinic/operator/cases/${id}`
+}
+
+export const updateClinicCase = async (id: string,
+    clinicCaseUpdate: ClinicCaseUpdate, options?: Parameters<typeof customFetch>[1]): Promise<ClinicCase> => {
+
+  return customFetch<ClinicCase>(getUpdateClinicCaseUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(clinicCaseUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateClinicCaseMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClinicCase>>, TError,{id: string;data: BodyType<ClinicCaseUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateClinicCase>>, TError,{id: string;data: BodyType<ClinicCaseUpdate>}, TContext> => {
+
+const mutationKey = ['updateClinicCase'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateClinicCase>>, {id: string;data: BodyType<ClinicCaseUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateClinicCase(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateClinicCaseMutationResult = NonNullable<Awaited<ReturnType<typeof updateClinicCase>>>
+    export type UpdateClinicCaseMutationBody = BodyType<ClinicCaseUpdate>
+    export type UpdateClinicCaseMutationError = ErrorType<unknown>
+
+    export const useUpdateClinicCase = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClinicCase>>, TError,{id: string;data: BodyType<ClinicCaseUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateClinicCase>>,
+        TError,
+        {id: string;data: BodyType<ClinicCaseUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateClinicCaseMutationOptions(options));
+    }
 
 export const getResolveVaultCompaniesUrl = () => {
 

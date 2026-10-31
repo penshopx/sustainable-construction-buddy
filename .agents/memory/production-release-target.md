@@ -15,3 +15,15 @@ diberikan secara eksplisit, khusus untuk tujuan dan konfigurasi tersebut.
 development. Jika tujuan berubah, minta konfirmasi baru; jangan menyalin ref
 otomatis dari TOML sebagai bukti otorisasi. Keberhasilan pemeriksaan konfigurasi
 tanpa deploy bukan bukti bahwa aplikasi atau fungsi produksi telah diterbitkan.
+
+Untuk pengujian akun, jangan menyimpulkan tujuan preview hanya dari berkas `.env`
+lokal. Cocokkan nilai `VITE_SUPABASE_URL` yang efektif pada klien Vite aktif
+dengan konfigurasi runtime dan tujuan yang disetujui sebelum membuat akun uji.
+
+**Why:** Berkas lokal pernah menunjuk proyek lama sementara preview aktif sudah
+memakai tujuan yang benar. Perbandingan terhadap berkas itu saja menghalangi
+pengujian tanpa menunjukkan adanya kesalahan pada aplikasi yang sedang berjalan.
+
+**How to apply:** Periksa properti URL yang benar pada runtime, bukan sembarang
+URL Supabase yang ditemukan dalam teks konfigurasi. Bila tujuan efektif benar-benar
+berbeda, hentikan pembuatan akun/perubahan data; jangan mengganti proyek otomatis.

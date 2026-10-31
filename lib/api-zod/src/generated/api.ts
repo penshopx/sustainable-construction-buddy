@@ -8,6 +8,99 @@
 import * as zod from 'zod';
 
 
+export const ListClinicCasesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "ownerId": zod.string(),
+  "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),
+  "kind": zod.enum(['consultation', 'feedback']),
+  "subject": zod.string(),
+  "description": zod.string(),
+  "rating": zod.number().int().nullable(),
+  "status": zod.enum(['open', 'in_review', 'answered', 'closed']),
+  "operatorReply": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListClinicCasesResponse = zod.array(ListClinicCasesResponseItem)
+
+
+export const createClinicCaseBodySubjectMin = 3;
+export const createClinicCaseBodySubjectMax = 180;
+
+export const createClinicCaseBodyDescriptionMin = 10;
+export const createClinicCaseBodyDescriptionMax = 4000;
+
+export const createClinicCaseBodyRatingMax = 5;
+
+
+
+export const CreateClinicCaseBody = zod.object({
+  "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),
+  "kind": zod.enum(['consultation', 'feedback']),
+  "subject": zod.string().min(createClinicCaseBodySubjectMin).max(createClinicCaseBodySubjectMax),
+  "description": zod.string().min(createClinicCaseBodyDescriptionMin).max(createClinicCaseBodyDescriptionMax),
+  "rating": zod.number().int().min(1).max(createClinicCaseBodyRatingMax).optional()
+})
+
+export const CreateClinicCaseResponse = zod.object({
+  "id": zod.string().uuid(),
+  "ownerId": zod.string(),
+  "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),
+  "kind": zod.enum(['consultation', 'feedback']),
+  "subject": zod.string(),
+  "description": zod.string(),
+  "rating": zod.number().int().nullable(),
+  "status": zod.enum(['open', 'in_review', 'answered', 'closed']),
+  "operatorReply": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const ListClinicOperatorCasesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "ownerId": zod.string(),
+  "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),
+  "kind": zod.enum(['consultation', 'feedback']),
+  "subject": zod.string(),
+  "description": zod.string(),
+  "rating": zod.number().int().nullable(),
+  "status": zod.enum(['open', 'in_review', 'answered', 'closed']),
+  "operatorReply": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListClinicOperatorCasesResponse = zod.array(ListClinicOperatorCasesResponseItem)
+
+
+export const UpdateClinicCaseParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const updateClinicCaseBodyOperatorReplyMax = 6000;
+
+
+
+export const UpdateClinicCaseBody = zod.object({
+  "status": zod.enum(['open', 'in_review', 'answered', 'closed']),
+  "operatorReply": zod.string().max(updateClinicCaseBodyOperatorReplyMax)
+})
+
+export const UpdateClinicCaseResponse = zod.object({
+  "id": zod.string().uuid(),
+  "ownerId": zod.string(),
+  "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),
+  "kind": zod.enum(['consultation', 'feedback']),
+  "subject": zod.string(),
+  "description": zod.string(),
+  "rating": zod.number().int().nullable(),
+  "status": zod.enum(['open', 'in_review', 'answered', 'closed']),
+  "operatorReply": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
 /**
  * @summary Canonical company names, limited to profiles visible under existing PUB RLS
  */
