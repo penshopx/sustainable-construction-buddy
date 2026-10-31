@@ -1,3 +1,4 @@
+import { getLessonPublicationError } from "@/lib/lmsLessonPublication";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive,
@@ -550,6 +551,16 @@ export default function AdminAspekindoLmsCourses() {
       return;
     }
     setSaving(true);
+    const publicationError = await getLessonPublicationError(supabase, {
+      id: editingLesson?.id,
+      is_published: lessonForm.is_published,
+      passing_score: passingScore,
+    });
+    if (publicationError) {
+      setSaving(false);
+      toast({ title: "Pelajaran belum dapat diterbitkan", description: publicationError, variant: "destructive" });
+      return;
+    }
     const payload = {
       course_id: selectedCourseId,
       title: lessonForm.title.trim(),

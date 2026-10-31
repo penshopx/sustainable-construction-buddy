@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { hasValidQuizQuestion, QUIZ_PUBLICATION_GUIDANCE } from "@/lib/lmsLessonPublication";
 
 type Course = Tables<"aspekindo_lms_courses">;
 type Lesson = Tables<"aspekindo_lms_lessons">;
@@ -100,6 +101,7 @@ export default function AdminAspekindoLmsQuiz({
 
   const answerKeyMap = useMemo(() => new Map(answerKeys.map((key) => [key.question_id, key])), [answerKeys]);
   const lessonQuestions = questions.filter((question) => question.lesson_id === selectedLessonId);
+  const selectedLesson = lessons.find((lesson) => lesson.id === selectedLessonId);
 
   const openCreate = () => {
     if (!selectedLessonId) return;
@@ -269,6 +271,11 @@ export default function AdminAspekindoLmsQuiz({
                     );
                   })}
                 </div>
+              )}
+              {!loading && selectedLesson && selectedLesson.passing_score > 0 && !hasValidQuizQuestion(lessonQuestions, answerKeys) && (
+                <p role="alert" className="rounded-lg border border-destructive/30 p-3 text-sm">
+                  Kuis wajib belum siap. {QUIZ_PUBLICATION_GUIDANCE}
+                </p>
               )}
             </>
           )}

@@ -40,6 +40,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import AdminAspekindoLmsQuiz from "@/components/aspekindo/AdminAspekindoLmsQuiz";
+import { getLessonPublicationError, QUIZ_PUBLICATION_GUIDANCE } from "@/lib/lmsLessonPublication";
 
 type Course = Tables<"aspekindo_lms_courses">;
 type Session = Tables<"aspekindo_lms_sessions">;
@@ -619,6 +620,16 @@ export default function AdminAspekindoLmsNative() {
       return;
     }
     setSaving(true);
+    const publicationError = await getLessonPublicationError(supabase, {
+      id: editingLesson?.id,
+      is_published: lessonForm.is_published,
+      passing_score: passingScore,
+    });
+    if (publicationError) {
+      setSaving(false);
+      toast({ title: "Pelajaran belum dapat diterbitkan", description: publicationError, variant: "destructive" });
+      return;
+    }
     const payload = {
       course_id: selectedCourse.id,
       session_id: lessonForm.session_id || null,
@@ -831,6 +842,11 @@ export default function AdminAspekindoLmsNative() {
   };
 
   const updateLessonStatus = async (lesson: Lesson, is_published: boolean) => {
+    const publicationError = await getLessonPublicationError(supabase, { ...lesson, is_published });
+    if (publicationError) {
+      toast({ title: "Pelajaran belum dapat diterbitkan", description: publicationError, variant: "destructive" });
+      return;
+    }
     const { error: updateError } = await supabase.from("aspekindo_lms_lessons").update({ is_published }).eq("id", lesson.id);
     if (updateError) {
       toast({ title: "Status pelajaran gagal diubah", description: updateError.message, variant: "destructive" });
@@ -1301,6 +1317,7 @@ export default function AdminAspekindoLmsNative() {
             <div><Label htmlFor="native-lesson-content">Isi markdown</Label><Textarea id="native-lesson-content" value={lessonForm.content_markdown} onChange={(event) => setLessonForm((current) => ({ ...current, content_markdown: event.target.value }))} rows={10} placeholder="Tulis materi utama pelajaran..." /></div>
             <div className="flex items-center justify-between rounded-lg border p-3"><div><Label htmlFor="native-lesson-published">Terbitkan pelajaran</Label><p className="text-xs text-muted-foreground">Pelajaran hanya tampil ke peserta jika kursus dan sesi juga terbit.</p></div><Switch id="native-lesson-published" checked={lessonForm.is_published} onCheckedChange={(checked) => setLessonForm((current) => ({ ...current, is_published: checked }))} /></div>
           </div>
+          {Number(lessonForm.passing_score) > 0 && <p className="text-sm text-muted-foreground">{QUIZ_PUBLICATION_GUIDANCE}</p>}
           <DialogFooter><Button variant="outline" onClick={() => setDialog(null)}>Batal</Button><Button onClick={() => void saveLesson()} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan pelajaran</Button></DialogFooter>
         </DialogContent>
       </Dialog>
