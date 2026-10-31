@@ -23,6 +23,139 @@ assessment_admin_http_token() {
   jq -r '.access_token' "$TMP_DIR/admin-session.json"
 }
 
+# Called with a verified real admin token while the owner's assessment is
+# unfinished. All fixture reads/writes bypass RLS; every access under test uses
+# Auth/PostgREST with the anon API key and the appropriate user's session.
+test_admin_http_draft_privacy() {
+  local admin_token="$1" status before_state expected_admin expected_owner attack
+  local own_pre_test_id="00000000-0000-4000-8000-000000000182"
+
+  "${PSQL[@]}" >/dev/null <<SQL
+INSERT INTO public.pre_tests (
+  id, user_id, total_questions, status, started_at, deadline_at, authorized_question_ids
+)
+SELECT '$own_pre_test_id', '$TEST_ADMIN_USER_ID', 1, 'in_progress',
+  started_at - interval '1 second', deadline_at, ARRAY['$TEST_QUESTION_ID'::uuid]
+FROM public.pre_tests WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+INSERT INTO public.assessment_drafts (pre_test_id, draft)
+SELECT id, jsonb_build_object(
+  'version', 1, 'revision', 0, 'preTestId', id,
+  'questions', jsonb_build_array(jsonb_build_object('id', '$TEST_QUESTION_ID')),
+  'answers', jsonb_build_object('$TEST_QUESTION_ID',
+    CASE WHEN user_id = '$TEST_USER_ID'::uuid THEN 1 ELSE 0 END),
+  'answerResults', '{}'::jsonb, 'phase', 'review'
+)
+FROM public.pre_tests WHERE id IN ('$TEST_OWNERSHIP_PRE_TEST_ID', '$own_pre_test_id');
+DO \$\$
+BEGIN
+  IF (SELECT count(*) FROM public.pre_tests pt
+      JOIN public.assessment_drafts ad ON ad.pre_test_id = pt.id
+      WHERE pt.id IN ('$TEST_OWNERSHIP_PRE_TEST_ID', '$own_pre_test_id')
+        AND pt.status = 'in_progress' AND pt.completed_at IS NULL
+        AND pt.deadline_at IS NOT NULL
+        AND NOT public.assessment_deadline_passed(pt.deadline_at, clock_timestamp())
+        AND public.validate_assessment_draft(ad.draft) IS TRUE) <> 2 THEN
+    RAISE EXCEPTION 'Draft privacy fixture requires two valid, unfinished, unexpired drafts';
+  END IF;
+END;
+\$\$;
+SQL
+  before_state="$(assessment_http_state)"
+  # Match every response field except the intentionally changing server clock.
+  expected_admin="$("${PSQL[@]}" -Atq -c "
+    SELECT jsonb_build_object('preTestId', pt.id, 'startedAt', pt.started_at,
+      'deadlineAt', pt.deadline_at, 'totalQuestions', pt.total_questions, 'draft', ad.draft)
+    FROM public.pre_tests pt JOIN public.assessment_drafts ad ON ad.pre_test_id = pt.id
+    WHERE pt.id = '$own_pre_test_id'")"
+  expected_owner="$("${PSQL[@]}" -Atq -c "
+    SELECT jsonb_build_object('preTestId', pt.id, 'startedAt', pt.started_at,
+      'deadlineAt', pt.deadline_at, 'totalQuestions', pt.total_questions, 'draft', ad.draft)
+    FROM public.pre_tests pt JOIN public.assessment_drafts ad ON ad.pre_test_id = pt.id
+    WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID'")"
+
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-active-draft.json" --write-out '%{http_code}' \
+    --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/get_active_assessment_draft" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token" \
+    --header 'Content-Type: application/json' --data '{}')"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --argjson expected "$expected_admin" \
+       'del(.serverNow) == $expected' "$TMP_DIR/admin-active-draft.json" >/dev/null 2>&1; then
+    echo "Admin HTTP recovery did not return only the admin's own draft (HTTP $status)" >&2
+    exit 1
+  fi
+
+  # Exercise both an explicit victim filter and an unfiltered table read.
+  # Current grants reject SELECT entirely; a future owner-only RLS policy
+  # may return rows, but only the admin's exact fixture row is allowed.
+  local filter
+  for filter in "pre_test_id=eq.$TEST_OWNERSHIP_PRE_TEST_ID&select=*" "select=*"; do
+    status="$(curl --silent --show-error --max-time 15 \
+      --output "$TMP_DIR/admin-draft-table.json" --write-out '%{http_code}' \
+      "${TEST_SUPABASE_URL%/}/rest/v1/assessment_drafts?$filter" \
+      --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+      --header "Authorization: Bearer $admin_token")"
+    if [[ "$status" == "403" ]]; then
+      if ! jq -e '.code == "42501" and .message == "permission denied for table assessment_drafts"' \
+        "$TMP_DIR/admin-draft-table.json" >/dev/null 2>&1; then
+        echo "Admin draft SELECT failed for an unexpected reason" >&2
+        exit 1
+      fi
+    elif [[ "$status" != "200" ]] ||
+         ! jq -e --arg id "$own_pre_test_id" --arg filter "$filter" \
+           --argjson expected "$expected_admin" \
+           'type == "array" and
+            (if $filter == "select=*" then
+              all(.[]; .pre_test_id == $id and .draft == $expected.draft)
+             else . == [] end)' "$TMP_DIR/admin-draft-table.json" >/dev/null 2>&1; then
+      echo "Admin HTTP SELECT exposed member drafts or failed unexpectedly (HTTP $status)" >&2
+      exit 1
+    fi
+  done
+
+  # Structurally valid payload, matching roster and current revision: denial
+  # must be ownership, not validation, expiry, or a compare-and-swap conflict.
+  attack="$(jq -nc --argjson expected "$expected_owner" --arg question "$TEST_QUESTION_ID" \
+    '{_pre_test_id:$expected.preTestId,
+      _draft:($expected.draft | .answers[$question] = 0)}')"
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-save-member-draft.json" --write-out '%{http_code}' \
+    --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/save_assessment_draft" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token" \
+    --header 'Content-Type: application/json' --data "$attack")"
+  if [[ "$status" != "400" ]] ||
+     ! jq -e '. == {code:"P0001",details:null,hint:null,message:"Assessment unavailable"}' \
+       "$TMP_DIR/admin-save-member-draft.json" >/dev/null 2>&1; then
+    echo "Admin HTTP save of member draft was not denied solely for ownership (HTTP $status)" >&2
+    exit 1
+  fi
+  if [[ "$(assessment_http_state)" != "$before_state" ]]; then
+    echo "Admin draft HTTP checks changed the member draft, assessment, answers, or profile" >&2
+    exit 1
+  fi
+
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/owner-recovered-draft.json" --write-out '%{http_code}' \
+    --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/get_active_assessment_draft" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $OWNER_TOKEN" \
+    --header 'Content-Type: application/json' --data '{}')"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --argjson expected "$expected_owner" 'del(.serverNow) == $expected' \
+       "$TMP_DIR/owner-recovered-draft.json" >/dev/null 2>&1; then
+    echo "Owner HTTP recovery did not preserve the original member draft (HTTP $status)" >&2
+    exit 1
+  fi
+  if [[ "$(assessment_http_state)" != "$before_state" ]]; then
+    echo "Owner draft recovery changed persisted member data" >&2
+    exit 1
+  fi
+  "${PSQL[@]}" >/dev/null -c "DELETE FROM public.pre_tests WHERE id = '$own_pre_test_id'"
+  echo "Admin HTTP recovered only its own draft; member draft SELECT/save were blocked, owner rows stayed unchanged and owner recovery succeeded."
+}
+
 test_admin_http_unfinished() {
   local status admin_token before_state
   # Commit the role so the real Auth/PostgREST session sees admin privileges.
@@ -65,6 +198,10 @@ SQL
     echo "Admin cannot read the unfinished member summary (HTTP $status)" >&2
     exit 1
   fi
+  test_admin_http_draft_privacy "$admin_token"
+  # The privacy check intentionally adds a member draft. Include it in the
+  # baseline for the subsequent unauthorized submission check.
+  before_state="$(assessment_http_state)"
   # Check the actual database clock immediately before the attack, not a
   # client-side timestamp or the fixture's earlier creation time.
   if [[ "$("${PSQL[@]}" -Atq -c "

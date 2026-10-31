@@ -46,6 +46,24 @@ SQL
 }
 trap cleanup EXIT
 
+# Full privileged snapshots cannot hide writes behind the attacker's RLS view.
+assessment_http_state() {
+  local pre_test_id="${1:-$TEST_OWNERSHIP_PRE_TEST_ID}"
+  "${PSQL[@]}" -Atq <<SQL
+SELECT jsonb_build_object(
+  'pre_test', (SELECT to_jsonb(pt) FROM public.pre_tests pt
+               WHERE pt.id = '$pre_test_id'),
+  'answers', (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
+              FROM public.pre_test_answers a
+              WHERE a.pre_test_id = '$pre_test_id'),
+  'draft', (SELECT to_jsonb(ad) FROM public.assessment_drafts ad
+            WHERE ad.pre_test_id = '$pre_test_id'),
+  'profile', (SELECT to_jsonb(p) FROM public.profiles p
+              WHERE p.user_id = '$TEST_USER_ID')
+)::text;
+SQL
+}
+
 cleanup
 
 mkdir -p "$TMP_DIR"
@@ -148,6 +166,34 @@ AFTER UPDATE ON public.pre_tests
 FOR EACH ROW
 EXECUTE FUNCTION public.record_submit_assessment_completion();
 SQL
+
+# Independently runnable on the latest complete schema, even if an earlier
+# legacy concurrency scenario fails before reaching the admin HTTP checks.
+if [[ "${1:-}" == "--admin-draft-privacy" ]]; then
+  "${PSQL[@]}" >/dev/null <<SQL
+INSERT INTO public.pre_tests (id, user_id, total_questions, authorized_question_ids)
+VALUES ('$TEST_OWNERSHIP_PRE_TEST_ID', '$TEST_USER_ID', 1, ARRAY['$TEST_QUESTION_ID'::uuid]);
+SQL
+  HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/owner-session.json" --write-out '%{http_code}' \
+    --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header 'Content-Type: application/json' \
+    --data "$(jq -nc --arg password "$OWNER_PASSWORD" \
+      '{email:"assessment-concurrency@example.invalid",password:$password}')")"
+  unset OWNER_PASSWORD
+  if [[ "$HTTP_STATUS" != "200" ]] ||
+     ! jq -e --arg owner "$TEST_USER_ID" \
+       '.user.id == $owner and (.access_token | type) == "string" and (.access_token | length) > 0' \
+       "$TMP_DIR/owner-session.json" >/dev/null; then
+    echo "Could not obtain the draft owner's real Auth session (HTTP $HTTP_STATUS)" >&2
+    exit 1
+  fi
+  OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
+  source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
+  test_admin_http_unfinished
+  exit 0
+fi
 
 # Hold the target row so both submit statements are active and waiting before
 # either can complete. Releasing this transaction lets PostgreSQL serialize them.
@@ -701,25 +747,6 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
   exit 1
 fi
 OTHER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/other-session.json")"
-
-# Read complete persisted rows via the fixture connection, not the attacker's
-# RLS-filtered view, which could hide unauthorized writes.
-assessment_http_state() {
-  local pre_test_id="${1:-$TEST_OWNERSHIP_PRE_TEST_ID}"
-  "${PSQL[@]}" -Atq <<SQL
-SELECT jsonb_build_object(
-  'pre_test', (SELECT to_jsonb(pt) FROM public.pre_tests pt
-               WHERE pt.id = '$pre_test_id'),
-  'answers', (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
-              FROM public.pre_test_answers a
-              WHERE a.pre_test_id = '$pre_test_id'),
-  'draft', (SELECT to_jsonb(ad) FROM public.assessment_drafts ad
-            WHERE ad.pre_test_id = '$pre_test_id'),
-  'profile', (SELECT to_jsonb(p) FROM public.profiles p
-              WHERE p.user_id = '$TEST_USER_ID')
-)::text;
-SQL
-}
 
 # Keep the SQL concurrency cases above; additionally exercise real overlapping
 # authenticated requests through the local Auth/PostgREST gateway.
