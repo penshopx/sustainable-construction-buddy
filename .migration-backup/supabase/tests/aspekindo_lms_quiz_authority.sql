@@ -1,6 +1,60 @@
 -- Run against a migrated test database as its owner (or with the local runner).
--- All fixture rows, including the simulated auth user, are rolled back.
+-- All fixture rows, including the test Auth users, are rolled back.
 BEGIN;
+
+\if :full_schema
+-- Fail rather than silently exercising the minimal harness or a partially
+-- migrated database. The runner supplies the repository's migration versions.
+SELECT set_config('test.expected_migrations', :'expected_migrations', true);
+DO $$
+DECLARE
+  missing text;
+  target regclass;
+BEGIN
+  SELECT string_agg(version, ', ' ORDER BY version) INTO missing
+  FROM unnest(string_to_array(current_setting('test.expected_migrations'), ',')) AS expected(version)
+  WHERE NOT EXISTS (
+    SELECT 1 FROM supabase_migrations.schema_migrations applied
+    WHERE applied.version = expected.version
+  );
+  IF missing IS NOT NULL THEN
+    RAISE EXCEPTION 'Supabase test database is missing migrations: %', missing;
+  END IF;
+  FOREACH target IN ARRAY ARRAY[
+    'public.aspekindo_lms_quiz_attempts'::regclass,
+    'public.aspekindo_lms_quiz_answers'::regclass,
+    'public.aspekindo_lms_quiz_answer_keys'::regclass,
+    'public.aspekindo_lms_lesson_progress'::regclass
+  ] LOOP
+    IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = target)
+       OR NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = target) THEN
+      RAISE EXCEPTION 'RLS or policies missing on %', target;
+    END IF;
+  END LOOP;
+  IF (SELECT rolbypassrls OR rolsuper FROM pg_roles WHERE rolname = 'authenticated') THEN
+    RAISE EXCEPTION 'authenticated must not bypass RLS';
+  END IF;
+  IF NOT has_function_privilege('authenticated', 'public.submit_aspekindo_lms_quiz(uuid,jsonb)', 'EXECUTE')
+     OR NOT has_function_privilege('authenticated', 'public.complete_aspekindo_lms_lesson(uuid)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.submit_aspekindo_lms_quiz(uuid,jsonb)', 'EXECUTE')
+     OR has_function_privilege('anon', 'public.complete_aspekindo_lms_lesson(uuid)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Unexpected quiz/completion execution grants';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.aspekindo_lms_quiz_attempts'::regclass
+      AND tgname = 'aspekindo_lms_quiz_attempt_number_lock' AND tgenabled = 'O'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.aspekindo_lms_quiz_attempts'::regclass
+      AND tgname = 'aspekindo_lms_attempt_active_course' AND tgenabled = 'O'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgrelid = 'public.aspekindo_lms_lesson_progress'::regclass
+      AND tgname = 'aspekindo_lms_progress_active_course' AND tgenabled = 'O'
+  ) THEN
+    RAISE EXCEPTION 'Expected LMS authority triggers are not enabled';
+  END IF;
+END;
+$$;
+\endif
 
 INSERT INTO auth.users (
   id, instance_id, aud, role, email, encrypted_password,
@@ -9,6 +63,10 @@ INSERT INTO auth.users (
   '00000000-0000-4000-8000-000000000711',
   '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
   'lms-quiz-authority@example.invalid', '', now(), '{}'::jsonb, '{}'::jsonb, now(), now()
+), (
+  '00000000-0000-4000-8000-000000000799',
+  '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+  'lms-quiz-stranger@example.invalid', '', now(), '{}'::jsonb, '{}'::jsonb, now(), now()
 );
 
 INSERT INTO public.aspekindo_lms_courses (id, slug, title, status, member_only)
@@ -36,6 +94,16 @@ VALUES
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000711', true);
 SELECT set_config('request.jwt.claim.role', 'authenticated', true);
+
+DO $$
+BEGIN
+  IF current_user <> 'authenticated'
+     OR auth.uid() IS DISTINCT FROM '00000000-0000-4000-8000-000000000711'::uuid
+     OR current_setting('row_security') <> 'on' THEN
+    RAISE EXCEPTION 'Quiz test must execute as authenticated owner with RLS enabled';
+  END IF;
+END;
+$$;
 
 DO $$
 DECLARE
@@ -197,5 +265,61 @@ BEGIN
   END IF;
 END;
 $$;
+
+\if :full_schema
+-- Exercise table policies, not just SECURITY DEFINER RPCs. Owners must not
+-- read answer keys or manufacture/alter a passing result directly.
+DO $$
+DECLARE
+  changed integer;
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.aspekindo_lms_quiz_answer_keys
+             WHERE question_id = '00000000-0000-4000-8000-000000000715') THEN
+    RAISE EXCEPTION 'Participant can read the private answer key';
+  END IF;
+  BEGIN
+    INSERT INTO public.aspekindo_lms_quiz_attempts
+      (enrollment_id, course_id, lesson_id, user_id, attempt_number, score, passed)
+    VALUES (
+      '00000000-0000-4000-8000-000000000714',
+      '00000000-0000-4000-8000-000000000712',
+      '00000000-0000-4000-8000-000000000713',
+      auth.uid(), 99, 100, true
+    );
+    RAISE EXCEPTION 'Participant can insert a forged passing attempt';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  UPDATE public.aspekindo_lms_quiz_attempts SET score = 100, passed = true
+  WHERE lesson_id = '00000000-0000-4000-8000-000000000713' AND score < 100;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 0 THEN
+    RAISE EXCEPTION 'Participant can overwrite server grading';
+  END IF;
+  UPDATE public.aspekindo_lms_quiz_answers SET is_correct = true
+  WHERE lesson_id = '00000000-0000-4000-8000-000000000713' AND NOT is_correct;
+  GET DIAGNOSTICS changed = ROW_COUNT;
+  IF changed <> 0 THEN
+    RAISE EXCEPTION 'Participant can overwrite answer correctness';
+  END IF;
+END;
+$$;
+
+-- Same real database role, different JWT subject: neither results nor answers
+-- may leak across accounts.
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-000000000799', true);
+DO $$
+BEGIN
+  IF current_user <> 'authenticated' OR EXISTS (
+    SELECT 1 FROM public.aspekindo_lms_quiz_attempts
+    WHERE lesson_id = '00000000-0000-4000-8000-000000000713'
+  ) OR EXISTS (
+    SELECT 1 FROM public.aspekindo_lms_quiz_answers
+    WHERE lesson_id = '00000000-0000-4000-8000-000000000713'
+  ) THEN
+    RAISE EXCEPTION 'Another participant can read owner quiz data';
+  END IF;
+END;
+$$;
+\endif
 
 ROLLBACK;

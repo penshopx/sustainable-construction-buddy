@@ -1,7 +1,37 @@
 #!/usr/bin/env bash
-# Self-contained local PostgreSQL integration test. No hosted database URL is used.
+# Default: isolated PostgreSQL RPC test. --supabase: fully migrated local Supabase.
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+if [[ "${1:-}" == "--supabase" && "$#" == 1 ]]; then
+  # Never fall back to DATABASE_URL (which may point at a hosted project).
+  TEST_DATABASE_URL="${TEST_DATABASE_URL:?Set TEST_DATABASE_URL to local Supabase}"
+  python3 - "$TEST_DATABASE_URL" <<'PY'
+import sys
+from urllib.parse import urlsplit
+
+url = urlsplit(sys.argv[1])
+if not (
+    url.scheme in ("postgres", "postgresql")
+    and url.hostname in ("127.0.0.1", "localhost")
+    and url.port == 54322
+    and url.path == "/postgres"
+    and url.username == "postgres"
+    and not url.query and not url.fragment
+):
+    sys.exit("Quiz authority tests require local Supabase on port 54322; hosted URLs are forbidden")
+PY
+  versions="$(find "$ROOT/supabase/migrations" -name '*.sql' -printf '%f\n' | cut -d_ -f1 | sort -u | paste -sd,)"
+  psql -X "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 \
+    -v full_schema=true -v expected_migrations="$versions" \
+    -f "$ROOT/supabase/tests/aspekindo_lms_quiz_authority.sql"
+  echo "LMS quiz authority test passed (fully migrated local Supabase, authenticated role)."
+  exit 0
+elif (( $# )); then
+  echo "Usage: $0 [--supabase]" >&2
+  exit 2
+fi
+
 TMP="$(mktemp -d)"
 PORT=$((50000 + $$ % 10000))
 started=0
@@ -36,5 +66,5 @@ with output.open("w") as target:
         target.write(source[start:end] + "\n")
 PY
 "${PSQL[@]}" -f "$TMP/functions.sql" >/dev/null
-"${PSQL[@]}" -f "$ROOT/supabase/tests/aspekindo_lms_quiz_authority.sql" >/dev/null
+"${PSQL[@]}" -v full_schema=false -f "$ROOT/supabase/tests/aspekindo_lms_quiz_authority.sql" >/dev/null
 echo "LMS quiz scoring and completion RPC test passed (isolated local PostgreSQL)."
