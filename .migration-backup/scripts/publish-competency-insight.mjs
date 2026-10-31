@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import TOML from "@iarna/toml";
 import { captureOutput, safeDiagnostic } from "./subprocess-diagnostics.mjs";
+import { validateProbeTarget } from "./insight-probe-target.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const functionName = "competency-insight";
@@ -113,6 +114,14 @@ function runQuiet(command, args, step) {
 
 async function publishAndVerify() {
   const projectRef = await readProjectRef();
+  try {
+    validateProbeTarget(process.env.SUPABASE_URL, projectRef);
+  } catch {
+    throw new PublishStepError("configuration", {
+      code: "probe_target_invalid",
+      message: "SUPABASE_URL must be the HTTPS project origin for SUPABASE_PROJECT_REF",
+    });
+  }
 
   await runQuiet(
     "npm",

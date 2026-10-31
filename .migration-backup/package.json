@@ -18,7 +18,7 @@
     "test:auth": "PLAYWRIGHT_BROWSERS_PATH=0 playwright install chromium && PLAYWRIGHT_BROWSERS_PATH=0 playwright test --grep @pr-auth",
     "test:smoke": "npm run test:rate-limit && node scripts/smoke-test.cjs",
     "test:insight": "node --test tests/competency-insight-contract.test.mjs",
-    "test:insight:publish": "node --test tests/publish-competency-insight.test.mjs",
+    "test:insight:publish": "node --test tests/publish-competency-insight.test.mjs tests/verify-competency-insight.test.mjs",
     "test:insight:validate": "node scripts/validate-competency-insight.mjs",
     "test:insight:live": "node scripts/verify-competency-insight.mjs",
     "validate:insight": "npm run test:insight:validate",

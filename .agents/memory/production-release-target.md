@@ -27,3 +27,15 @@ pengujian tanpa menunjukkan adanya kesalahan pada aplikasi yang sedang berjalan.
 **How to apply:** Periksa properti URL yang benar pada runtime, bukan sembarang
 URL Supabase yang ditemukan dalam teks konfigurasi. Bila tujuan efektif benar-benar
 berbeda, hentikan pembuatan akun/perubahan data; jangan mengganti proyek otomatis.
+
+Pemeriksaan pascarilis memakai origin Supabase HTTPS standar untuk ref produksi
+yang diharapkan; jangan menerima domain kustom atau menebak ref dari URL.
+
+**Why:** Probe memakai kredensial istimewa dan membuat pengguna sementara.
+Kesamaan ref publisher saja tidak menjamin URL probe menunjuk tujuan yang sama.
+Pembatasan origin yang ketat sengaja menolak kredensial URL dan komponen tambahan,
+bukan mencoba memperbaikinya secara diam-diam.
+
+**How to apply:** Pertahankan validasi sebelum seluruh request probe dan sebelum
+deploy pada publisher. Mode pemeriksaan konfigurasi saja tetap memeriksa ref/TOML,
+bukan mengklaim kesiapan URL atau hasil probe.

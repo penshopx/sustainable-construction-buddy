@@ -71,7 +71,7 @@ exit 0
   return { directory, npmPath, tracePath };
 }
 
-function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath, override = projectRef, isolatedEnvironment = true, args = [] }) {
+function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail = "", scriptPath = publisherPath, override = projectRef, supabaseUrl = `https://${projectRef}.supabase.co`, isolatedEnvironment = true, args = [] }) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [scriptPath, ...args], {
       cwd: rootDir,
@@ -82,6 +82,7 @@ function runPublisher({ npmPath, tracePath, scenario, detail = "", stdoutDetail 
         FAKE_PUBLISH_SCENARIO: scenario,
         FAKE_FAILURE_DETAIL: detail,
         FAKE_STDOUT_DETAIL: stdoutDetail,
+        SUPABASE_URL: supabaseUrl ?? undefined,
         ...(override === null ? { SUPABASE_PROJECT_REF: undefined } : { SUPABASE_PROJECT_REF: override }),
         PUBLISH_TEST_SECRET: sensitiveValues[0],
         PUBLISH_TEST_TOKEN: sensitiveValues[1],
@@ -119,6 +120,10 @@ async function isolatedPublisher(t, config) {
   await mkdir(path.join(directory, "scripts"));
   const scriptPath = path.join(directory, "scripts", "publish-competency-insight.mjs");
   await writeFile(scriptPath, await readFile(publisherPath));
+  await writeFile(
+    path.join(directory, "scripts", "insight-probe-target.mjs"),
+    await readFile(path.join(rootDir, "scripts", "insight-probe-target.mjs")),
+  );
   await writeFile(
     path.join(directory, "scripts", "subprocess-diagnostics.mjs"),
     await readFile(path.join(rootDir, "scripts", "subprocess-diagnostics.mjs")),
@@ -204,6 +209,11 @@ test("release configuration keeps the insight publication gate", async () => {
     validationAlias,
     "npm run test:insight:validate",
     "the legacy validation command must point to the standard insight validation",
+  );
+  assert.equal(
+    packageJson.scripts?.["test:insight:publish"],
+    "node --test tests/publish-competency-insight.test.mjs tests/verify-competency-insight.test.mjs",
+    "the publication gate must include deterministic probe destination checks",
   );
   assert.ok(buildMatch, ".replit deployment section must define a build command");
   assert.deepEqual(JSON.parse(buildMatch[1]), ["npm", "run", "release"]);
@@ -352,6 +362,25 @@ test("live probe runs only after a successful deployment", async (t) => {
     deployment: "active",
     liveProbe: "passed",
   });
+});
+
+test("invalid probe destinations stop publication before any subprocess", async (t) => {
+  for (const supabaseUrl of [
+    undefined,
+    "",
+    `https://${otherProjectRef}.supabase.co`,
+    `https://user:private-url-password@${projectRef}.supabase.co?token=private-url-token`,
+    `https://${projectRef}.supabase.co.attacker.test`,
+  ]) {
+    const fakeNpm = await createFakeNpm(t);
+    const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+    // Use null to omit the variable rather than invoke the helper's default.
+    const result = await runPublisher({ ...fakeNpm, scriptPath, supabaseUrl: supabaseUrl ?? null });
+    assertConfigurationFailure(result, "probe_target_invalid",
+      "SUPABASE_URL must be the HTTPS project origin for SUPABASE_PROJECT_REF");
+    assert.doesNotMatch(result.stderr, /private-url-password|private-url-token|attacker\.test/);
+    await assert.rejects(readFile(fakeNpm.tracePath), { code: "ENOENT" });
+  }
 });
 
 test("deployment failure stops before the live probe and stays sanitized", async (t) => {

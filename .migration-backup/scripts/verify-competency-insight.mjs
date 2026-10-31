@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
+import { validateProbeTarget } from "./insight-probe-target.mjs";
 
-const supabaseUrl = process.env.SUPABASE_URL;
+let supabaseUrl;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const publishableKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const healthFailureReasons = new Set([
@@ -80,10 +81,11 @@ async function request(path, init) {
   return { response, body };
 }
 
-const probeSecrets = [email, password, supabaseUrl, serviceRoleKey, publishableKey];
+const probeSecrets = [email, password, process.env.SUPABASE_URL, serviceRoleKey, publishableKey];
 
 async function verifyLiveContract() {
-  assert.ok(supabaseUrl, "SUPABASE_URL is required");
+  // Validate before any request, including temporary-user creation or cleanup.
+  supabaseUrl = validateProbeTarget(process.env.SUPABASE_URL, process.env.SUPABASE_PROJECT_REF);
   assert.ok(serviceRoleKey, "SUPABASE_SERVICE_ROLE_KEY is required");
   assert.ok(publishableKey, "VITE_SUPABASE_PUBLISHABLE_KEY is required");
 

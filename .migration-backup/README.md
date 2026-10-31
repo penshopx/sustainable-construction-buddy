@@ -75,6 +75,12 @@ The publisher refuses to deploy if the release ref is missing, invalid, or
 different from the TOML `project_id`. Do not derive this release setting from
 the TOML file.
 
+Set `SUPABASE_URL` independently to `https://<SUPABASE_PROJECT_REF>.supabase.co`
+(one trailing slash is allowed). Both publication and the standalone live probe
+reject any other destination before making requests. Credentials, query strings,
+fragments, ports, and additional paths are not accepted in this URL. The probe
+also requires the expected `SUPABASE_PROJECT_REF`; it never infers it from the URL.
+
 The release owner must confirm the production destination and authorize setting
 `SUPABASE_PROJECT_REF` in the **production** environment. This environment
 setting is managed independently of the Supabase TOML file; development/shared
