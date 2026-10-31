@@ -210,6 +210,38 @@ test("concurrent AI calls are rejected and delete cannot silently resurrect anal
   assert.equal(h.states.get("owner").documentAnalyses[0].messages.length, 2);
 });
 
+test("canonical document names refresh without a second AI request", async () => {
+  const h = fixture();
+  await service.analyzeDocument("owner", h.id);
+  h.states.get("owner").documents[0].name = "nama-terbaru.txt";
+  const [listed] = await service.listAnalyses("owner");
+  assert.equal(listed.documentName, "nama-terbaru.txt");
+  assert.equal(listed.sourceCurrent, true);
+  const reused = await service.analyzeDocument("owner", h.id);
+  assert.equal(reused.documentName, "nama-terbaru.txt");
+  assert.equal(h.calls.length, 1);
+});
+
+test("changed sources retain historical results but are not marked current", async () => {
+  const h = fixture();
+  const saved = await service.analyzeDocument("owner", h.id);
+  h.states.get("owner").documents[0].text = "Versi baru sumber yang berbeda.";
+  const [listed] = await service.listAnalyses("owner");
+  assert.equal(listed.id, saved.id);
+  assert.equal(listed.sourceCurrent, false);
+  assert.equal(listed.result.summary, saved.result.summary);
+  await assert.rejects(service.chatAnalysis("owner", saved.id, "Jelaskan"), /berubah/);
+  assert.equal(h.calls.length, 1);
+  assert.deepEqual(await service.listAnalyses("other"), []);
+});
+
+test("a source awaiting OCR is not reported as a current ready analysis", async () => {
+  const h = fixture();
+  await service.analyzeDocument("owner", h.id);
+  h.states.get("owner").documents[0].status = "processing";
+  assert.equal((await service.listAnalyses("owner"))[0].sourceCurrent, false);
+});
+
 test("deleted source hides analysis and changed text blocks chat", async () => {
   const h = fixture(), a = await service.analyzeDocument("owner", h.id);
   h.states.get("owner").documents[0].text += "v2";

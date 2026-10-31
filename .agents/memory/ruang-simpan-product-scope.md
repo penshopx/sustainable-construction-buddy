@@ -28,3 +28,9 @@ KTK berarti Knowledge Transfer Kit: PDF ringkasan siap kirim ke klien, dengan st
 **Why:** Pengguna menjelaskan arti serta isi KTK untuk Bedah Dokumen.
 
 **How to apply:** Ekspor KTK merupakan laporan PDF beridentitas konsultan, bukan nama alternatif untuk laporan Markdown atau sertifikat kesiapan resmi.
+
+Sinkronisasi sumber tidak berarti menjalankan AI ulang secara otomatis. Hasil analisis dan percakapan terdahulu tetap merupakan catatan saat dibuat; perubahan sumber harus dibedakan dari hasil historis.
+
+**Why:** Menyatukan acuan data tidak boleh memicu tagihan atau pengiriman dokumen privat baru tanpa tindakan dan persetujuan anggota.
+
+**How to apply:** Perbarui pembacaan profil/dokumen, jelaskan bila sumber suatu hasil telah berubah, dan minta analisis ulang secara eksplisit sebelum memperlakukan hasil lama sebagai telaah terbaru.

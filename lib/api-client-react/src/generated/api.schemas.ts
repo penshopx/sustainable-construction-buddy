@@ -124,6 +124,8 @@ export interface DocumentAnalysis {
   sourceCharacters: number;
   analyzedCharacters: number;
   truncated: boolean;
+  /** Whether this historical analysis matches the current readable source in the owner's Ruang Simpan. */
+  sourceCurrent?: boolean;
   result: DocumentAnalysisResult;
   messages: DocumentAnalysisMessage[];
 }

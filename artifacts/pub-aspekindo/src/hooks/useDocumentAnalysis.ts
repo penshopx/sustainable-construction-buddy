@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getVaultWorkspace, listDocumentAnalyses, analyzeVaultDocument,
+  listDocumentAnalyses, analyzeVaultDocument,
   chatDocumentAnalysis, deleteDocumentAnalysis, processVaultOcr,
   type VaultDocument,
 } from "@workspace/api-client-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { usePubWorkspace, pubWorkspaceKey } from "@/hooks/usePubWorkspace";
 
 export type { DocumentAnalysis, VaultDocument } from "@workspace/api-client-react";
 const ROOT = "bedah-dokumen";
@@ -20,6 +21,7 @@ export function analysisError(error: unknown): string {
 }
 export function useDocumentAnalysis() {
   const { user } = useAuth();
+  const documents = usePubWorkspace();
   const qc = useQueryClient();
   const userId = user?.id;
   useEffect(() => {
@@ -31,12 +33,10 @@ export function useDocumentAnalysis() {
     if (error || !session || session.user.id !== userId) throw new Error("Sesi tidak valid. Silakan masuk kembali.");
     return { headers: { Authorization: `Bearer ${session.access_token}` }, signal };
   };
-  const refresh = () => qc.invalidateQueries({ queryKey: [ROOT, userId] });
-  const documents = useQuery({
-    queryKey: [ROOT, userId, "documents"], enabled: !!userId,
-    queryFn: async ({ signal }) => getVaultWorkspace(await auth(signal)),
-    refetchOnWindowFocus: true, refetchInterval: 10_000, retry: false,
-  });
+  const refresh = () => Promise.all([
+    qc.invalidateQueries({ queryKey: [ROOT, userId] }),
+    qc.invalidateQueries({ queryKey: pubWorkspaceKey(userId) }),
+  ]);
   const analyses = useQuery({
     queryKey: [ROOT, userId, "analyses"], enabled: !!userId,
     queryFn: async ({ signal }) => listDocumentAnalyses(await auth(signal)),

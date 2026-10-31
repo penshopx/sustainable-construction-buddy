@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/hooks/useAuth";
 import KtkDialog from "@/components/document-analysis/KtkDialog";
+import VaultReferencePanel from "@/components/VaultReferencePanel";
 import { usePageMeta } from "@/components/clinic/clinicUi";
 import {
   useDocumentAnalysis, analysisError, BEDAH_MAX_BYTES, BEDAH_ACCEPT,
@@ -62,6 +63,7 @@ function reportMarkdown(a: Analysis) {
     `- Dianalisis: ${formatDate(a.createdAt)}`, `- Model: ${a.model}`,
     `- Karakter dianalisis: ${a.analyzedCharacters.toLocaleString("id-ID")} dari ${a.sourceCharacters.toLocaleString("id-ID")}`,
   ];
+  if (a.sourceCurrent === false) L.push(``, `> SUMBER BERUBAH: laporan historis ini belum ditelaah ulang terhadap teks terbaru di Ruang Simpan.`);
   if (a.truncated) L.push(``, `> PERHATIAN: Analisis hanya mencakup sebagian teks sumber. Bagian yang tidak terbaca tidak tercermin dalam laporan ini.`);
   L.push(``, `## Ringkasan`, ``, r.summary, ``, `## Checklist Kelengkapan`, ``);
   r.checklist.length ? r.checklist.forEach(c => L.push(`- [${CHECK[c.status]?.label ?? c.status}] ${c.item}${c.evidence ? ` — ${c.evidence}` : ""}`)) : L.push(`Tidak ada butir.`);
@@ -202,6 +204,11 @@ function Workspace() {
   // Selected-document change clears consents, chat input and errors.
   useEffect(() => { setAiConsent(false); setOcrConsent(false); setAutoConsent(false); setQuestion(""); setChatError(null); setActionError(null); setKtkAnalysis(null); setTab("ringkasan"); }, [docId]);
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }); }, [current?.messages.length]);
+  useEffect(() => {
+    if (ktkAnalysis && analyses.data?.some(a => a.id === ktkAnalysis.id && a.sourceCurrent === false)) {
+      setKtkAnalysis(null);
+    }
+  }, [analyses.data, ktkAnalysis]);
 
   const select = (id: string | null, analysisId?: string) => {
     const next = new URLSearchParams();
@@ -289,6 +296,13 @@ function Workspace() {
         </ul>
       </header>
 
+      <VaultReferencePanel />
+      {current?.sourceCurrent === false && (
+        <div role="alert" className="rounded-xl border border-pub-amber/40 bg-pub-amber/10 p-4 text-sm">
+          <strong>Sumber Ruang Simpan telah berubah atau belum siap dibaca.</strong> Hasil di bawah adalah catatan analisis sebelumnya, bukan telaah versi terbaru.
+          Jalankan analisis ulang setelah teks siap. Chat menolak sumber yang sudah berubah.
+        </div>
+      )}
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         {/* left column */}
         <aside className="space-y-6">
@@ -457,7 +471,7 @@ function Workspace() {
                             {docAnalyses.map(a => <option key={a.id} value={a.id}>{formatDate(a.createdAt)}</option>)}
                           </select>
                         )}
-                        <Button size="sm" onClick={() => setKtkAnalysis(current)} data-testid="button-export-ktk"><Download className="mr-1.5 h-3.5 w-3.5" />Export KTK</Button>
+                        <Button size="sm" disabled={current.sourceCurrent === false} onClick={() => setKtkAnalysis(current)} data-testid="button-export-ktk"><Download className="mr-1.5 h-3.5 w-3.5" />Export KTK</Button>
                         <Button size="sm" variant="outline" onClick={() => printReport(current)} data-testid="button-print-report"><Printer className="mr-1.5 h-3.5 w-3.5" />Cetak</Button>
                         <Button size="sm" variant="outline" onClick={() => downloadMd(current)} data-testid="button-download-md"><Download className="mr-1.5 h-3.5 w-3.5" />.md</Button>
                         <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => setToDelete(current)} data-testid="button-delete-current"><Trash2 className="h-3.5 w-3.5" /></Button>

@@ -59,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <a href="/dashboard" className="px-2 mt-2 block text-sm text-primary">← Kembali ke PUB ASPEKINDO</a>
         <a href="/klinik-konsultasi" className="px-2 mt-3 block text-sm font-semibold text-primary">Buka Klinik Konsultasi</a>
         <a href="/bedah-dokumen" data-testid="link-bedah-dokumen" className="px-2 mt-2 block text-sm font-semibold text-primary">Buka Bedah Dokumen</a>
+        <a href="/helpdesk" className="px-2 mt-2 block text-sm font-semibold text-primary">Buka Helpdesk AI PUB</a>
         <p className="px-2 mt-1 text-[11px] uppercase tracking-[0.2em] text-sidebar-foreground/60 font-mono-ui">Acuan data bisnis PUB</p>
         <nav className="mt-8 flex flex-col gap-1">
           {NAV.map((n) => {

@@ -997,6 +997,9 @@ components:
         sourceCharacters: { type: integer }
         analyzedCharacters: { type: integer }
         truncated: { type: boolean }
+        sourceCurrent:
+          type: boolean
+          description: Whether this historical analysis matches the current readable source in the owner's Ruang Simpan.
         result: { $ref: "#/components/schemas/DocumentAnalysisResult" }
         messages:
           type: array

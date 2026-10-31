@@ -45,6 +45,7 @@ export const ListDocumentAnalysesResponseItem = zod.object({
   "sourceCharacters": zod.number().int(),
   "analyzedCharacters": zod.number().int(),
   "truncated": zod.boolean(),
+  "sourceCurrent": zod.boolean().optional().describe('Whether this historical analysis matches the current readable source in the owner\'s Ruang Simpan.'),
   "result": zod.object({
   "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
   "summary": zod.string().min(1).max(listDocumentAnalysesResponseResultSummaryMax),
@@ -117,6 +118,7 @@ export const AnalyzeVaultDocumentResponse = zod.object({
   "sourceCharacters": zod.number().int(),
   "analyzedCharacters": zod.number().int(),
   "truncated": zod.boolean(),
+  "sourceCurrent": zod.boolean().optional().describe('Whether this historical analysis matches the current readable source in the owner\'s Ruang Simpan.'),
   "result": zod.object({
   "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
   "summary": zod.string().min(1).max(analyzeVaultDocumentResponseResultSummaryMax),
@@ -196,6 +198,7 @@ export const ChatDocumentAnalysisResponse = zod.object({
   "sourceCharacters": zod.number().int(),
   "analyzedCharacters": zod.number().int(),
   "truncated": zod.boolean(),
+  "sourceCurrent": zod.boolean().optional().describe('Whether this historical analysis matches the current readable source in the owner\'s Ruang Simpan.'),
   "result": zod.object({
   "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
   "summary": zod.string().min(1).max(chatDocumentAnalysisResponseResultSummaryMax),

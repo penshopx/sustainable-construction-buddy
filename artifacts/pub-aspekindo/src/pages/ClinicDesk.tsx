@@ -10,6 +10,7 @@ import ClinicHistory from "@/components/clinic/ClinicHistory";
 import ClinicOperatorRequest from "@/components/clinic/ClinicOperatorRequest";
 import ClinicPrepTools from "@/components/clinic/ClinicPrepTools";
 import { usePageMeta } from "@/components/clinic/clinicUi";
+import VaultReferencePanel from "@/components/VaultReferencePanel";
 
 export default function ClinicDesk() {
   const { topicId } = useParams();
@@ -79,6 +80,7 @@ function DeskWorkspace({ topic }: { topic: ClinicTopic }) {
         </label>
       </div>
 
+      <VaultReferencePanel />
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <ClinicChatPanel topic={topic} messages={chat.messages} isLoading={chat.isLoading} lastError={chat.lastError}
           lastModel={chat.lastModel} canSend={consent} onSend={text => { void chat.sendMessage(text); }} />

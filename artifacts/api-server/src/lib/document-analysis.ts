@@ -44,7 +44,11 @@ export function parseAnalysis(content: string, sourceText: string) {
 export async function listAnalyses(owner: string) {
   return workspace(owner, state => analyses(state)
     .filter(a => state.documents.some(d => d.id === a.documentId))
-    .map(safeAnalysis));
+    .map(a => {
+      const doc = ownDocument(state, a.documentId);
+      return { ...safeAnalysis(a), documentName: doc.name,
+        sourceCurrent: doc.status === "ready" && digest(doc.text) === a.sourceHash };
+    }));
 }
 
 async function exclusive<T>(owner: string, action: () => Promise<T>) {
@@ -61,7 +65,8 @@ export async function analyzeDocument(owner: string, documentId: string) {
       const text = readable(doc);
       const hash = digest(doc.text);
       const existing = analyses(state).find(a => a.documentId === doc.id && a.sourceHash === hash);
-      return { doc, text, hash, existing: existing ? safeAnalysis(existing) : undefined };
+      return { doc, text, hash, existing: existing
+        ? { ...safeAnalysis(existing), documentName: doc.name, sourceCurrent: true } : undefined };
     });
     // Retrying after a lost response reuses the saved result; no second AI bill.
     if (input.existing) return input.existing;
@@ -99,7 +104,7 @@ export async function analyzeDocument(owner: string, documentId: string) {
       state.documentAnalyses = analyses(state).filter(a => a.documentId !== documentId);
       state.documentAnalyses.unshift(stored);
       activity(state, `Bedah Dokumen selesai: ${current.name}`);
-      return safeAnalysis(stored);
+      return { ...safeAnalysis(stored), documentName: current.name, sourceCurrent: true };
     });
   });
 }
@@ -134,7 +139,7 @@ export async function chatAnalysis(owner: string, id: string, question: string) 
         { id: randomUUID(), role: "assistant", content: answer, createdAt },
       );
       activity(state, `Chat Bedah Dokumen: ${doc.name}`);
-      return safeAnalysis(current);
+      return { ...safeAnalysis(current), documentName: doc.name, sourceCurrent: true };
     });
   });
 }

@@ -22,6 +22,7 @@ import { ChatbotCard } from "@/components/chatbot/ChatbotCard";
 import { ChatbotMarketplace } from "@/components/chatbot/ChatbotMarketplace";
 import { useSearchParams } from "react-router-dom";
 import { useGetHelpdeskAiStatus, getGetHelpdeskAiStatusQueryKey, type ChatEngine } from "@workspace/api-client-react";
+import VaultReferencePanel from "@/components/VaultReferencePanel";
 import { CHAT_ENGINES } from "@/lib/chatEngines";
 
 export type PakarMode = "pembelajaran" | "profesi" | "proyek";
@@ -285,6 +286,7 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
             <input type="checkbox" checked={useVaultContext} onChange={e => setUseVaultContext(e.target.checked)} disabled={isLoading} className="mt-1" />
             <span>Gunakan acuan bisnis Ruang Simpan. Saya setuju profil perusahaan dan potongan dokumen saya dikirim ke layanan AI eksternal untuk menjawab pesan berikutnya. <a href="/ruang-simpan/" className="underline text-primary">Kelola sumber</a></span>
           </label>
+          <VaultReferencePanel />
           {activeCustomBot && (
             <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-primary/5 border border-primary/20">
               <div className="w-6 h-6 rounded overflow-hidden">
