@@ -1098,6 +1098,49 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     }
   });
 
+  test("anggota dapat melanjutkan video secara manual saat autoplay setelah metadata ditolak", async ({ page }) => {
+    const lms = { enrolled: true, video: true, signRequests: [], videoRequests: [] };
+    const unexpected = await installAuthenticatedFixture(page, { lms });
+    await installControlledVideo(page);
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    try {
+      await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByText(videoMaterial.title)).toBeVisible();
+      await page.getByRole("button", { name: "Putar video" }).click();
+      const video = page.locator("video").filter({ has: page.locator("source[type='video/mp4']") });
+      await expect(video).toBeVisible();
+      await expect.poll(() => lms.videoRequests.length).toBe(1);
+
+      // Start playing first so the rejection must restore a previously hidden
+      // resume button. Metadata events are simulated; media bytes stay pending.
+      await signalVideo(video, "loadedmetadata");
+      const resume = page.getByRole("button", { name: "Lanjutkan video", exact: true });
+      await expect(resume).toHaveCount(0);
+      await expect.poll(() => page.evaluate(() => window.controlledVideo.playSources.length)).toBe(1);
+
+      await page.evaluate(() => { window.controlledVideo.rejectNextPlay = true; });
+      await signalVideo(video, "loadedmetadata");
+      await expect(resume).toBeVisible();
+      await expect(resume).toBeEnabled();
+      await expect.poll(() => video.evaluate((element) => element.paused)).toBe(true);
+      expect(await page.evaluate(() => window.controlledVideo.playSources.length)).toBe(2);
+      await expect(page.getByRole("button", { name: "Muat ulang video" })).toHaveCount(0);
+
+      // A real user click, not a synthetic DOM click, retries play().
+      await resume.click();
+      await expect.poll(() => page.evaluate(() => window.controlledVideo.playSources.length)).toBe(3);
+      await expect.poll(() => video.evaluate((element) => element.paused)).toBe(false);
+      await expect(video).toHaveJSProperty("controls", true);
+      await expect(resume).toHaveCount(0);
+      expect(lms.signRequests).toHaveLength(1);
+      expect(pageErrors).toEqual([]);
+      expect(unexpected).toEqual([]);
+    } finally {
+      lms.releaseVideoResponses?.forEach((release) => release());
+    }
+  });
+
   test("anggota dapat memuat ulang video setelah pembuatan tautan privat gagal", async ({ page }) => {
     const lms = { enrolled: true, video: true, failFirstSign: true, signRequests: [], videoRequests: [] };
     const unexpected = await installAuthenticatedFixture(page, { lms });

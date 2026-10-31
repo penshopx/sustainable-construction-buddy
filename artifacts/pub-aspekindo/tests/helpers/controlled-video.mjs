@@ -11,6 +11,7 @@ export async function installControlledVideo(page) {
     };
     window.controlledVideo = {
       playSources: [],
+      rejectNextPlay: false,
       setState(video, patch) { Object.assign(state(video), patch); },
     };
     for (const property of ["currentTime", "paused", "ended", "readyState"]) {
@@ -23,8 +24,13 @@ export async function installControlledVideo(page) {
       });
     }
     HTMLMediaElement.prototype.play = function () {
-      state(this).paused = false;
       window.controlledVideo.playSources.push(this.querySelector("source")?.src);
+      if (window.controlledVideo.rejectNextPlay) {
+        window.controlledVideo.rejectNextPlay = false;
+        state(this).paused = true;
+        return Promise.reject(new DOMException("Autoplay is not allowed", "NotAllowedError"));
+      }
+      state(this).paused = false;
       this.dispatchEvent(new Event("playing"));
       return Promise.resolve();
     };
