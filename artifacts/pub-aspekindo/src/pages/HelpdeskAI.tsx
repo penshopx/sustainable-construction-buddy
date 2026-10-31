@@ -21,7 +21,7 @@ import { ChatbotBuilderWizard } from "@/components/chatbot/ChatbotBuilderWizard"
 import { ChatbotCard } from "@/components/chatbot/ChatbotCard";
 import { ChatbotMarketplace } from "@/components/chatbot/ChatbotMarketplace";
 import { useSearchParams } from "react-router-dom";
-import type { ChatEngine } from "@workspace/api-client-react";
+import { useGetHelpdeskAiStatus, getGetHelpdeskAiStatusQueryKey, type ChatEngine } from "@workspace/api-client-react";
 import { CHAT_ENGINES } from "@/lib/chatEngines";
 
 export type PakarMode = "pembelajaran" | "profesi" | "proyek";
@@ -83,6 +83,9 @@ function PreviewHelpdeskAI() {
 
 function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: boolean; superAdminLoading: boolean }) {
   const { user } = useAuth();
+  const aiStatus = useGetHelpdeskAiStatus(undefined, {
+    query: { queryKey: getGetHelpdeskAiStatusQueryKey(), enabled: !!user, staleTime: 15_000, refetchInterval: 30_000, retry: false },
+  });
   const { isAdmin } = useAdmin();
   const [searchParams] = useSearchParams();
 
@@ -443,6 +446,12 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
               </ScrollArea>
 
               <div className="p-4 border-t border-border">
+                <div role="status" aria-live="polite" data-testid="ai-readiness" className="mb-3 rounded-lg border border-border bg-muted/40 p-3 text-sm text-foreground">
+                  <p className="font-medium">Status layanan AI: {aiStatus.isPending ? "memeriksa…" : aiStatus.isError ? "belum dapat diperiksa" : aiStatus.data?.state === "configured" ? "konfigurasi tersedia" : aiStatus.data?.state === "limit_indicated" ? "batas penggunaan terindikasi" : aiStatus.data?.state === "not_configured" ? "belum dikonfigurasi" : "belum dapat diperiksa"}</p>
+                  <p>{aiStatus.isError ? "Status AI tidak dapat diperiksa. Pengiriman tetap dapat dicoba, tetapi jawaban belum terjamin." : aiStatus.data?.message ?? "Pemeriksaan hanya membaca metadata layanan, tanpa mengirim percakapan atau dokumen."}</p>
+                  {aiStatus.data && !aiStatus.isError && <p className="mt-1 text-xs">Diperiksa: {new Date(aiStatus.data.checkedAt).toLocaleTimeString("id-ID")}. Status diperbarui berkala.</p>}
+                  <button type="button" className="mt-1 underline" disabled={aiStatus.isFetching} onClick={() => void aiStatus.refetch()}>Periksa lagi</button>
+                </div>
                 <form
                   onSubmit={e => { e.preventDefault(); sendMessage(input); setInput(""); setShowSidebar(false); }}
                   className="flex gap-2"

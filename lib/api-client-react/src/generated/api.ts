@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AiReadiness,
   ChatBadRequestResponse,
   ChatError,
   ChatInput,
@@ -31,6 +32,8 @@ import type {
   ClinicCase,
   ClinicCaseInput,
   ClinicCaseUpdate,
+  GetHelpdeskAiStatusParams,
+  GetVaultAiStatusParams,
   HealthStatus,
   HelpdeskInput,
   HermesBg001ChatInput,
@@ -2687,6 +2690,174 @@ export function useGetSchemeReferences<TData = Awaited<ReturnType<typeof getSche
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetSchemeReferencesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetHelpdeskAiStatusUrl = (params?: GetHelpdeskAiStatusParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/helpdesk/status?${stringifiedParams}` : `/api/helpdesk/status`
+}
+
+/**
+ * @summary Cached AI configuration and provider limit indication, not a funding guarantee
+ */
+export const getHelpdeskAiStatus = async (params?: GetHelpdeskAiStatusParams, options?: Parameters<typeof customFetch>[1]): Promise<AiReadiness> => {
+
+  return customFetch<AiReadiness>(getGetHelpdeskAiStatusUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHelpdeskAiStatusQueryKey = (params?: GetHelpdeskAiStatusParams,) => {
+    return [
+    `/api/helpdesk/status`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetHelpdeskAiStatusQueryOptions = <TData = Awaited<ReturnType<typeof getHelpdeskAiStatus>>, TError = ErrorType<void>>(params?: GetHelpdeskAiStatusParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHelpdeskAiStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHelpdeskAiStatusQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHelpdeskAiStatus>>> = ({ signal }) => getHelpdeskAiStatus(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHelpdeskAiStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetHelpdeskAiStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getHelpdeskAiStatus>>>
+export type GetHelpdeskAiStatusQueryError = ErrorType<void>
+
+
+/**
+ * @summary Cached AI configuration and provider limit indication, not a funding guarantee
+ */
+
+export function useGetHelpdeskAiStatus<TData = Awaited<ReturnType<typeof getHelpdeskAiStatus>>, TError = ErrorType<void>>(
+ params?: GetHelpdeskAiStatusParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHelpdeskAiStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetHelpdeskAiStatusQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetVaultAiStatusUrl = (params?: GetVaultAiStatusParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/ruang-simpan/ai-status?${stringifiedParams}` : `/api/ruang-simpan/ai-status`
+}
+
+/**
+ * @summary Cached AI readiness; requires the existing PUB session
+ */
+export const getVaultAiStatus = async (params?: GetVaultAiStatusParams, options?: Parameters<typeof customFetch>[1]): Promise<AiReadiness> => {
+
+  return customFetch<AiReadiness>(getGetVaultAiStatusUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVaultAiStatusQueryKey = (params?: GetVaultAiStatusParams,) => {
+    return [
+    `/api/ruang-simpan/ai-status`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetVaultAiStatusQueryOptions = <TData = Awaited<ReturnType<typeof getVaultAiStatus>>, TError = ErrorType<void>>(params?: GetVaultAiStatusParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVaultAiStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVaultAiStatusQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVaultAiStatus>>> = ({ signal }) => getVaultAiStatus(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVaultAiStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVaultAiStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getVaultAiStatus>>>
+export type GetVaultAiStatusQueryError = ErrorType<void>
+
+
+/**
+ * @summary Cached AI readiness; requires the existing PUB session
+ */
+
+export function useGetVaultAiStatus<TData = Awaited<ReturnType<typeof getVaultAiStatus>>, TError = ErrorType<void>>(
+ params?: GetVaultAiStatusParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVaultAiStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVaultAiStatusQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

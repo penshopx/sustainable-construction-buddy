@@ -1,6 +1,7 @@
 import type { VaultSource } from "@workspace/api-zod";
 import { z } from "zod";
 import { fail } from "./vault-errors";
+export { aiReadiness as vaultAiReadiness } from "./ai-readiness";
 
 const MODEL = "anthropic/claude-sonnet-4.5";
 export async function requestVaultAnswer(

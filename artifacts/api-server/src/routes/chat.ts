@@ -7,6 +7,7 @@ import {
   SendPublicChatbotMessageParams,
   SendPublicChatbotMessageBody,
   SendPublicChatbotMessageResponse,
+  GetHelpdeskAiStatusResponse,
 } from "@workspace/api-zod";
 import { ChatServiceError, createChatService } from "../lib/chat-service";
 import { createWindowLimiter } from "../lib/chat-limits";
@@ -58,6 +59,15 @@ export function createChatRouter(
       res.off("close", disconnected); controller.abort();
     }
   }
+
+  router.get("/helpdesk/status", async (req, res): Promise<void> => {
+    if (limited(req, res, false)) return;
+    await run(req, res, async () => {
+      const diagnostics = req.query.diagnostics === "true";
+      if (diagnostics) await service.requireAdmin(req.get("authorization"));
+      res.json(GetHelpdeskAiStatusResponse.parse(await service.readiness.get(diagnostics)));
+    });
+  });
 
   router.get("/public-chatbots/:token", async (req, res): Promise<void> => {
     if (limited(req, res, false)) return;

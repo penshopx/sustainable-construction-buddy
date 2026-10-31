@@ -674,6 +674,46 @@ paths:
           description: Member authentication required
         "503":
           description: Reference bank temporarily unavailable
+  /helpdesk/status:
+    get:
+      operationId: getHelpdeskAiStatus
+      tags: [chat]
+      summary: Cached AI configuration and provider limit indication, not a funding guarantee
+      parameters:
+        - $ref: "#/components/parameters/AiDiagnostics"
+      responses:
+        "200":
+          description: Advisory only; never authorizes private context or changes models
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReadiness"
+        "401":
+          description: Diagnostics require a verified member session
+        "403":
+          description: Diagnostics require a current admin role
+        "503":
+          description: Role verification unavailable
+  /ruang-simpan/ai-status:
+    get:
+      operationId: getVaultAiStatus
+      tags: [vault]
+      summary: Cached AI readiness; requires the existing PUB session
+      parameters:
+        - $ref: "#/components/parameters/AiDiagnostics"
+      responses:
+        "200":
+          description: Advisory only, no document access or consent implied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiReadiness"
+        "401":
+          description: PUB session required
+        "403":
+          description: Diagnostics require a current admin role
+        "503":
+          description: Role verification unavailable
   /helpdesk:
     post:
       operationId: sendHelpdeskMessage
@@ -763,6 +803,11 @@ paths:
           $ref: "#/components/responses/ChatTimeout"
 components:
   parameters:
+    AiDiagnostics:
+      name: diagnostics
+      in: query
+      description: Sanitized diagnostic codes only, restricted to a freshly verified admin role.
+      schema: { type: boolean, default: false }
     OperatorJobId:
       name: jobId
       in: path
@@ -1344,6 +1389,23 @@ components:
           type: string
         welcome_message:
           type: string
+    AiReadiness:
+      type: object
+      required: [state, message, checkedAt, recheckAt]
+      properties:
+        state:
+          type: string
+          enum: [configured, limit_indicated, unknown, not_configured]
+        message: { type: string }
+        checkedAt: { type: string, format: date-time }
+        recheckAt: { type: string, format: date-time }
+        diagnostics:
+          type: object
+          description: Admin only. No key, label, raw response, or monetary amounts.
+          required: [reason]
+          properties:
+            reason: { type: string }
+            providerStatus: { type: integer }
     HealthStatus:
       type: object
       properties:

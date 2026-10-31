@@ -13,7 +13,9 @@ import {
 import { workspace, publicWorkspace, ownDocument, ownFolder, activity, fail, tokenHash, VaultError, QUOTA } from "../lib/vault-store";
 import { privateFile } from "../lib/vault-files";
 import { startVaultOcr, expireOcrJobs } from "../lib/vault-ocr";
-import { requestVaultAnswer } from "../lib/vault-ai";
+import { requestVaultAnswer, vaultAiReadiness } from "../lib/vault-ai";
+import { createChatService, ChatServiceError } from "../lib/chat-service";
+import { GetVaultAiStatusResponse } from "@workspace/api-zod";
 import { vaultExternalRouter, uploadDocument, streamDocument, importDocument } from "./vault-external";
 
 export const vaultRouter = Router();
@@ -22,6 +24,18 @@ vaultRouter.use((_req, res, next) => { res.setHeader("Cache-Control", "no-store"
 vaultRouter.post("/session", openPubSession);
 vaultRouter.delete("/session", closePubSession);
 vaultRouter.use(vaultPubMiddleware);
+const statusAuth = createChatService();
+vaultRouter.get("/ai-status", async (req, res) => {
+  const diagnostics = req.query.diagnostics === "true";
+  if (diagnostics) {
+    try { await statusAuth.requireAdmin(pubAuthorization(req)); }
+    catch (error) {
+      if (error instanceof ChatServiceError) fail(error.status, error.message);
+      throw error;
+    }
+  }
+  res.json(GetVaultAiStatusResponse.parse(await vaultAiReadiness.get(diagnostics)));
+});
 vaultRouter.post("/company-names", async (req, res) => {
   const { userIds } = ResolveVaultCompaniesBody.parse(req.body);
   res.json(await visibleCompanyNames(userIds, pubAuthorization(req)!));

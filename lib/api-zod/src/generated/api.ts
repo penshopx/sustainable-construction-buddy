@@ -905,6 +905,48 @@ export const GetSchemeReferencesResponse = zod.object({
 
 
 /**
+ * @summary Cached AI configuration and provider limit indication, not a funding guarantee
+ */
+export const getHelpdeskAiStatusQueryDiagnosticsDefault = false;
+
+export const GetHelpdeskAiStatusQueryParams = zod.object({
+  "diagnostics": zod.coerce.boolean().default(getHelpdeskAiStatusQueryDiagnosticsDefault).describe('Sanitized diagnostic codes only, restricted to a freshly verified admin role.')
+})
+
+export const GetHelpdeskAiStatusResponse = zod.object({
+  "state": zod.enum(['configured', 'limit_indicated', 'unknown', 'not_configured']),
+  "message": zod.string(),
+  "checkedAt": zod.coerce.date(),
+  "recheckAt": zod.coerce.date(),
+  "diagnostics": zod.object({
+  "reason": zod.string(),
+  "providerStatus": zod.number().int().optional()
+}).optional().describe('Admin only. No key, label, raw response, or monetary amounts.')
+})
+
+
+/**
+ * @summary Cached AI readiness; requires the existing PUB session
+ */
+export const getVaultAiStatusQueryDiagnosticsDefault = false;
+
+export const GetVaultAiStatusQueryParams = zod.object({
+  "diagnostics": zod.coerce.boolean().default(getVaultAiStatusQueryDiagnosticsDefault).describe('Sanitized diagnostic codes only, restricted to a freshly verified admin role.')
+})
+
+export const GetVaultAiStatusResponse = zod.object({
+  "state": zod.enum(['configured', 'limit_indicated', 'unknown', 'not_configured']),
+  "message": zod.string(),
+  "checkedAt": zod.coerce.date(),
+  "recheckAt": zod.coerce.date(),
+  "diagnostics": zod.object({
+  "reason": zod.string(),
+  "providerStatus": zod.number().int().optional()
+}).optional().describe('Admin only. No key, label, raw response, or monetary amounts.')
+})
+
+
+/**
  * Requests without model settings use the public daily helpdesk. Explicit engine or expert settings require a valid Supabase member bearer token. No automatic model fallback.
  * @summary Ask the public PUB application helpdesk
  */

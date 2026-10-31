@@ -928,6 +928,33 @@ export interface PublicChatbot {
   welcome_message: string;
 }
 
+export type AiReadinessState = typeof AiReadinessState[keyof typeof AiReadinessState];
+
+
+export const AiReadinessState = {
+  configured: 'configured',
+  limit_indicated: 'limit_indicated',
+  unknown: 'unknown',
+  not_configured: 'not_configured',
+} as const;
+
+/**
+ * Admin only. No key, label, raw response, or monetary amounts.
+ */
+export type AiReadinessDiagnostics = {
+  reason: string;
+  providerStatus?: number;
+};
+
+export interface AiReadiness {
+  state: AiReadinessState;
+  message: string;
+  checkedAt: string;
+  recheckAt: string;
+  /** Admin only. No key, label, raw response, or monetary amounts. */
+  diagnostics?: AiReadinessDiagnostics;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -962,6 +989,11 @@ export type ChatUnavailableResponse = ChatError;
  */
 export type ChatTimeoutResponse = ChatError;
 
+/**
+ * Sanitized diagnostic codes only, restricted to a freshly verified admin role.
+ */
+export type AiDiagnosticsParameter = boolean;
+
 export type ResolveVaultCompanies200CompaniesItem = {
   userId: string;
   name: string;
@@ -983,5 +1015,19 @@ folderId: string;
 export type UploadVaultDocumentParams = {
 name: string;
 folderId: string;
+};
+
+export type GetHelpdeskAiStatusParams = {
+/**
+ * Sanitized diagnostic codes only, restricted to a freshly verified admin role.
+ */
+diagnostics?: AiDiagnosticsParameter;
+};
+
+export type GetVaultAiStatusParams = {
+/**
+ * Sanitized diagnostic codes only, restricted to a freshly verified admin role.
+ */
+diagnostics?: AiDiagnosticsParameter;
 };
 

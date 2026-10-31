@@ -6,10 +6,11 @@ import { knowledgeContext } from "./knowledge-base";
 import { schemeKnowledgeContext, validSchemeSettings } from "./scheme-chat";
 import { AiHarnessError, runReadOnlyHarness } from "./ai-harness";
 import { checkCitationLinks, schemeCitationPairs } from "./harness-citations";
+import { aiReadiness, createAiReadiness } from "./ai-readiness";
 
 export class ChatServiceError extends Error {
   constructor(
-    public readonly status: 400 | 401 | 404 | 503 | 504,
+    public readonly status: 400 | 401 | 403 | 404 | 503 | 504,
     public readonly code: string,
     message: string,
   ) {
@@ -31,6 +32,7 @@ export function createChatService(options: ChatServiceOptions = {}) {
   const env = options.env ?? process.env;
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? 25_000;
+  const readiness = options.env || options.fetchImpl ? createAiReadiness(options) : aiReadiness;
 
   async function requestJson(url: string, init: RequestInit, deadlineMs = timeoutMs, authCheck = false, signal?: AbortSignal): Promise<unknown> {
     try {
@@ -208,5 +210,22 @@ export function createChatService(options: ChatServiceOptions = {}) {
     }
   }
 
-  return { findBot, reply, requireMember };
+  async function requireAdmin(authorization?: string): Promise<void> {
+    const member = await requireMember(authorization);
+    const url = new URL(env.SUPABASE_URL || env.VITE_SUPABASE_URL!);
+    url.pathname = "/rest/v1/user_roles";
+    url.search = new URLSearchParams({ select: "role", user_id: `eq.${member}`, role: "eq.admin" }).toString();
+    const rows = await requestJson(url.toString(), {
+      headers: {
+        apikey: (env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY)!,
+        Authorization: authorization!,
+      }, redirect: "error",
+    }, Math.min(timeoutMs, 7000), true);
+    if (!Array.isArray(rows)) throw new ChatServiceError(503, "role_unavailable", UNAVAILABLE);
+    if (!rows.some(row => row && typeof row === "object" && row.role === "admin")) {
+      throw new ChatServiceError(403, "admin_required", "Rincian diagnostik hanya tersedia untuk admin.");
+    }
+  }
+
+  return { findBot, reply, requireMember, requireAdmin, readiness };
 }

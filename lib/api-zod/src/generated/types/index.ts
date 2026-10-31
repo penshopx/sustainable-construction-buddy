@@ -6,6 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './aiDiagnosticsParameter';
+export * from './aiReadiness';
+export * from './aiReadinessDiagnostics';
+export * from './aiReadinessState';
 export * from './chatBadRequestResponse';
 export * from './chatEngine';
 export * from './chatError';
@@ -25,6 +29,8 @@ export * from './clinicCaseStatus';
 export * from './clinicCaseUpdate';
 export * from './clinicCaseUpdateStatus';
 export * from './clinicTopic';
+export * from './getHelpdeskAiStatusParams';
+export * from './getVaultAiStatusParams';
 export * from './healthStatus';
 export * from './helpdeskInput';
 export * from './helpdeskInputAudience';
