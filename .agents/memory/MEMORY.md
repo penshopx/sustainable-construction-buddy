@@ -31,3 +31,4 @@
 - [Batas penyedia OCR](document-ocr-provider-boundary.md) — engine PDF bawaan dapat menambah penerima dokumen; kunci engine/provider sesuai persetujuan.
 - [Buffer pada parser PDF lama](legacy-pdf-buffer-semantics.md) — PDF.js lama dapat menolak PDF valid bila menerima Buffer Node; pakai salinan Uint8Array.
 - [Privasi impor tautan](vault-link-import-policy.md) — simpan salinan privat dan nama file aman, bukan URL sumber yang mungkin membawa token sementara.
+- [Urutan validasi TypeScript](typescript-reference-validation-order.md) — deklarasi library yang tertinggal dapat membuat typecheck paket gagal meski ekspor sumber tersedia.

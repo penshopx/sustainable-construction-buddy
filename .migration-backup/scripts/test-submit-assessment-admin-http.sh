@@ -1,6 +1,106 @@
 #!/usr/bin/env bash
-# Sourced by test-submit-assessment-concurrency.sh after the owner has completed
-# the fixture. Never use the service role for member-data HTTP requests.
+# Sourced by test-submit-assessment-concurrency.sh before the owner's first
+# submission and reused after completion. Never use the service role for
+# member-data HTTP requests.
+assessment_admin_http_token() {
+  local status
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-session.json" --write-out '%{http_code}' \
+    --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header 'Content-Type: application/json' \
+    --data "$(jq -nc --arg password "$ADMIN_PASSWORD" \
+      '{email:"assessment-admin@example.invalid",password:$password}')")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --arg admin "$TEST_ADMIN_USER_ID" --arg owner "$TEST_USER_ID" \
+       --arg other "$TEST_OTHER_USER_ID" \
+       '.user.id == $admin and .user.id != $owner and .user.id != $other and
+        (.access_token | type) == "string" and (.access_token | length) > 0' \
+       "$TMP_DIR/admin-session.json" >/dev/null; then
+    echo "Could not obtain the local assessment admin's distinct Auth session (HTTP $status)" >&2
+    return 1
+  fi
+  jq -r '.access_token' "$TMP_DIR/admin-session.json"
+}
+
+test_admin_http_unfinished() {
+  local status admin_token before_state
+  # Commit the role so the real Auth/PostgREST session sees admin privileges.
+  "${PSQL[@]}" >/dev/null <<SQL
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('$TEST_ADMIN_USER_ID', 'admin');
+SQL
+  admin_token="$(assessment_admin_http_token)"
+  before_state="$(assessment_http_state)"
+  if ! jq -e --arg owner "$TEST_USER_ID" \
+    '.pre_test.user_id == $owner and .pre_test.status == "in_progress" and
+     .pre_test.completed_at == null and .answers == [] and
+     .profile.user_id == $owner' >/dev/null <<<"$before_state"; then
+    echo "Admin first HTTP submission requires an unfinished owner assessment without saved answers" >&2
+    exit 1
+  fi
+
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-unfinished-role.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/user_roles?user_id=eq.$TEST_ADMIN_USER_ID&role=eq.admin&select=user_id,role" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --arg admin "$TEST_ADMIN_USER_ID" \
+       '. == [{"user_id":$admin,"role":"admin"}]' \
+       "$TMP_DIR/admin-unfinished-role.json" >/dev/null 2>&1; then
+    echo "Admin first HTTP submission lacks the application admin role (HTTP $status)" >&2
+    exit 1
+  fi
+  # Positive control: summary visibility must not imply permission to submit.
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-unfinished-summary.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/pre_tests?id=eq.$TEST_OWNERSHIP_PRE_TEST_ID&select=id,user_id,status,score,determined_level,correct_answers,total_questions" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --argjson state "$before_state" \
+       '. == [$state.pre_test | {id,user_id,status,score,determined_level,correct_answers,total_questions}]' \
+       "$TMP_DIR/admin-unfinished-summary.json" >/dev/null 2>&1; then
+    echo "Admin cannot read the unfinished member summary (HTTP $status)" >&2
+    exit 1
+  fi
+  # Check the actual database clock immediately before the attack, not a
+  # client-side timestamp or the fixture's earlier creation time.
+  if [[ "$("${PSQL[@]}" -Atq -c "
+    SELECT status = 'in_progress' AND completed_at IS NULL
+      AND deadline_at IS NOT NULL
+      AND NOT public.assessment_deadline_passed(deadline_at, clock_timestamp())
+    FROM public.pre_tests WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID'")" != "t" ]]; then
+    echo "Admin first HTTP submission requires an unfinished, unexpired assessment" >&2
+    exit 1
+  fi
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-unfinished-rpc.json" --write-out '%{http_code}' \
+    --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token" \
+    --header 'Content-Type: application/json' \
+    --data "$(jq -nc --arg id "$TEST_OWNERSHIP_PRE_TEST_ID" --arg question "$TEST_QUESTION_ID" \
+      '{_pre_test_id:$id,_answers:[{question_id:$question,selected_answer:0}]}')")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e '. == {"error":"Unauthorized"}' \
+       "$TMP_DIR/admin-unfinished-rpc.json" >/dev/null 2>&1; then
+    echo "Admin first HTTP submission did not return only Unauthorized (HTTP $status)" >&2
+    exit 1
+  fi
+  # Privileged snapshots include every column, answers, draft and owner profile,
+  # so RLS cannot conceal a write made by an accidentally permissive RPC.
+  if [[ "$(assessment_http_state)" != "$before_state" ]]; then
+    echo "Admin first HTTP submission changed the assessment, answers, draft, or owner profile" >&2
+    exit 1
+  fi
+  "${PSQL[@]}" >/dev/null -c "
+    DELETE FROM public.user_roles WHERE user_id = '$TEST_ADMIN_USER_ID' AND role = 'admin'"
+  unset admin_token
+  echo "Admin HTTP submission of unfinished assessment returned only Unauthorized without changing owner data."
+}
+
 test_admin_http_replay() {
   local status admin_token before_state payload label own_summary
   local own_pre_test_id="00000000-0000-4000-8000-000000000181"
@@ -26,24 +126,8 @@ SQL
       'total_questions', total_questions
     ) FROM public.pre_tests WHERE id = '$own_pre_test_id'")"
 
-  status="$(curl --silent --show-error --max-time 15 \
-    --output "$TMP_DIR/admin-session.json" --write-out '%{http_code}' \
-    --request POST "${TEST_SUPABASE_URL%/}/auth/v1/token?grant_type=password" \
-    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
-    --header 'Content-Type: application/json' \
-    --data "$(jq -nc --arg password "$ADMIN_PASSWORD" \
-      '{email:"assessment-admin@example.invalid",password:$password}')")"
+  admin_token="$(assessment_admin_http_token)"
   unset ADMIN_PASSWORD
-  if [[ "$status" != "200" ]] ||
-     ! jq -e --arg admin "$TEST_ADMIN_USER_ID" --arg owner "$TEST_USER_ID" \
-       --arg other "$TEST_OTHER_USER_ID" \
-       '.user.id == $admin and .user.id != $owner and .user.id != $other and
-        (.access_token | type) == "string" and (.access_token | length) > 0' \
-       "$TMP_DIR/admin-session.json" >/dev/null; then
-    echo "Could not obtain the local assessment admin's distinct Auth session (HTTP $status)" >&2
-    exit 1
-  fi
-  admin_token="$(jq -r '.access_token' "$TMP_DIR/admin-session.json")"
   before_state="$(assessment_http_state)"
   if ! jq -e --arg owner "$TEST_USER_ID" \
     '.pre_test.user_id == $owner and .pre_test.status == "completed" and

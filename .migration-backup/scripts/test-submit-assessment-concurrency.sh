@@ -86,7 +86,7 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
 fi
 TEST_OTHER_USER_ID="$(jq -r '.id' "$TMP_DIR/other-created.json")"
 
-# The admin also needs a real Auth identity for the HTTP replay check.
+# The admin needs a real Auth identity for unfinished submission and replay checks.
 ADMIN_PASSWORD="$(openssl rand -hex 24)"
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/admin-created.json" --write-out '%{http_code}' \
@@ -803,8 +803,11 @@ if [[ "$(assessment_http_state)" != "$BEFORE_UNFINISHED_HTTP_STATE" ]]; then
 fi
 echo "Anonymous HTTP submission of unfinished assessment was denied without changing owner data."
 
+source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
+test_admin_http_unfinished
+
 # The owner must still be able to finish this exact assessment through the real
-# Auth session after both the stranger and anonymous submissions were rejected.
+# Auth session after stranger, anonymous and admin submissions were rejected.
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/owner-first-submit-response.json" --write-out '%{http_code}' \
   --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
@@ -1115,7 +1118,6 @@ if [[ "$(assessment_http_state)" != "$BEFORE_HTTP_STATE" ]]; then
 fi
 
 # Summary access for an admin must not imply permission to replay the owner's RPC.
-source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
 test_admin_http_replay
 
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
@@ -1560,4 +1562,4 @@ END;
 SQL
 echo "Owner HTTP finalization of the same expired assessment used the saved draft successfully."
 
-echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger and anonymous unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, direct table RLS including admin revocation, and stranger expired HTTP denial with unchanged assessment, answers, draft and profile followed by owner finalization tests passed."
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger, anonymous and admin unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, direct table RLS including admin revocation, and stranger expired HTTP denial with unchanged assessment, answers, draft and profile followed by owner finalization tests passed."
