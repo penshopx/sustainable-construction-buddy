@@ -53,7 +53,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { getPlayableVideoUrl, isVideoUrlFresh, shouldRecoverStalledVideo, VIDEO_URL_FRESH_MS, type PlayableVideoUrl } from "@/lib/lmsVideoUrl";
+import { getPlayableVideoUrl, isVideoUrlFresh, type PlayableVideoUrl } from "@/lib/lmsVideoUrl";
+import { VideoRecovery } from "@/lib/lmsVideoRecovery";
 
 const DELIVERY_LABELS: Record<string, string> = {
   internal: "Internal PUB ASPEKINDO",
@@ -117,70 +118,120 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
   const [playbackError, setPlaybackError] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [paused, setPaused] = useState(true);
+  const [recovering, setRecovering] = useState(false);
   const [playback, setPlayback] = useState<PlayableVideoUrl | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const resumeTime = useRef(0);
   const preparingRef = useRef(false);
-  const stallTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const wantsPlayback = useRef(false);
+  const reloading = useRef(false);
+  const reloadPause = useRef<HTMLVideoElement | null>(null);
+  const active = useRef(true);
+  const requestVersion = useRef(0);
+  const retryAction = useRef<() => Promise<void>>(async () => {});
+  const [recovery] = useState(() => new VideoRecovery({
+    snapshot: () => {
+      const video = videoRef.current;
+      return {
+        // load() briefly resets currentTime to zero; restoring the old position
+        // is not evidence that playback has actually resumed.
+        time: Math.max(video?.currentTime ?? 0, resumeTime.current),
+        wanted: active.current && wantsPlayback.current && !!video && !video.ended,
+        failed: !!video?.error,
+        healthy: !!video && !video.error && !video.paused && !reloading.current &&
+          video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA,
+      };
+    },
+    retry: () => retryAction.current(),
+    exhausted: () => {
+      setRecovering(false);
+      setPlaybackError(true);
+      setPaused(true);
+    },
+    recovered: () => setRecovering(false),
+  }));
   // Do not mount a video source until a deliberate play request has a fresh URL.
   const videoQuery = useAspekindoLmsVideoUrl(material.storage_path, false);
 
-  function clearStallTimer() {
-    if (stallTimer.current !== null) clearTimeout(stallTimer.current);
-    stallTimer.current = null;
-  }
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+      requestVersion.current++;
+      recovery.cancel();
+    };
+  }, [recovery]);
 
-  useEffect(() => () => {
-    if (stallTimer.current !== null) clearTimeout(stallTimer.current);
-  }, []);
-
-  async function preparePlayback(autoRecovery = false, stalledAt?: number) {
+  async function preparePlayback(autoRecovery = false) {
     if (preparingRef.current) return;
+    if (!autoRecovery) {
+      recovery.reset();
+      wantsPlayback.current = true;
+      setRecovering(false);
+    }
+    const version = ++requestVersion.current;
+    const originalVideo = videoRef.current;
+    const stalledAt = originalVideo?.currentTime ?? resumeTime.current;
     preparingRef.current = true;
     setPreparing(true);
     try {
-      const nextPlayback = await getPlayableVideoUrl(autoRecovery || playbackError ? null : playback, async () => {
+      const nextPlayback = await getPlayableVideoUrl(playbackError ? null : playback, async () => {
         const result = await videoQuery.refetch();
         if (result.error || !result.data) throw result.error ?? new Error("Tautan video tidak tersedia.");
         return { url: result.data, issuedAt: result.dataUpdatedAt };
       });
-      // Buffering can resolve while the new link is being requested. Do not restart a healthy stream.
-      if (autoRecovery && stalledAt !== undefined && videoRef.current &&
-        !shouldRecoverStalledVideo(playback?.issuedAt ?? 0, stalledAt, videoRef.current.currentTime,
-          videoRef.current.paused, videoRef.current.ended,
-          videoRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA)) return;
-      if (nextPlayback === playback) {
-        await videoRef.current?.play();
+      if (!active.current || version !== requestVersion.current || !wantsPlayback.current) return;
+      // A refresh can finish after buffering has resolved. Leave that stream alone.
+      if (autoRecovery && originalVideo &&
+        (videoRef.current !== originalVideo || originalVideo.ended ||
+          (!originalVideo.error && originalVideo.currentTime > stalledAt + 0.1) ||
+          (!originalVideo.error && !originalVideo.paused &&
+            originalVideo.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA))) return;
+      if (nextPlayback === playback && !autoRecovery) {
+        await originalVideo?.play();
       } else {
-        if (videoRef.current && Number.isFinite(videoRef.current.currentTime) && videoRef.current.currentTime > 0) {
-          resumeTime.current = videoRef.current.currentTime;
+        if (originalVideo && Number.isFinite(originalVideo.currentTime) && originalVideo.currentTime > 0) {
+          resumeTime.current = originalVideo.currentTime;
         }
-        setPlayback(nextPlayback);
+        reloading.current = true;
+        if (nextPlayback === playback) {
+          // Reload even when the signed URL is still fresh; play() alone cannot
+          // clear a network MediaError. loadedmetadata restores position.
+          // load() queues exactly one pause event only when it interrupts a
+          // playing element. Do not ignore later native-control user pauses.
+          reloadPause.current = originalVideo && !originalVideo.paused ? originalVideo : null;
+          originalVideo?.load();
+        } else {
+          setPlayback(nextPlayback);
+        }
         setPlaybackError(false);
-        // The new video restores its position and starts in onLoadedMetadata.
       }
     } catch {
-      if (autoRecovery && stalledAt !== undefined && videoRef.current &&
-        (videoRef.current.currentTime > stalledAt + 0.1 ||
-          videoRef.current.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA)) return;
-      setPlaybackError(true);
-      setPaused(true);
+      if (!active.current || version !== requestVersion.current) return;
+      if (!autoRecovery) {
+        setPlaybackError(true);
+        setPaused(true);
+      }
     } finally {
       preparingRef.current = false;
-      setPreparing(false);
+      if (active.current) setPreparing(false);
     }
   }
+  retryAction.current = () => preparePlayback(true);
 
-  function recoverIfStalled(video: HTMLVideoElement) {
-    if (stallTimer.current !== null || !playback || video.paused || video.ended) return;
-    const stalledAt = video.currentTime;
-    stallTimer.current = setTimeout(() => {
-      stallTimer.current = null;
-      if (videoRef.current !== video ||
-        !shouldRecoverStalledVideo(playback.issuedAt, stalledAt, video.currentTime,
-          video.paused, video.ended, video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA)) return;
-      void preparePlayback(true, stalledAt);
-    }, Math.max(4000, playback.issuedAt + VIDEO_URL_FRESH_MS - Date.now()));
+  function recoverIfStalled(video: HTMLVideoElement, mediaError = false) {
+    if (!wantsPlayback.current || video.ended || (!mediaError && video.paused)) return;
+    setRecovering(true);
+    recovery.schedule(mediaError ? undefined : 4000);
+  }
+
+  function pausePlayback() {
+    wantsPlayback.current = false;
+    requestVersion.current++;
+    recovery.cancel();
+    setRecovering(false);
+    setPaused(true);
+    videoRef.current?.pause();
   }
 
   if (!playback || playbackError) {
@@ -189,7 +240,7 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         {preparing ? <Loader2 className="h-8 w-8 animate-spin text-pub-sky" /> : playbackError ? <CircleAlert className="h-8 w-8 text-pub-amber" /> : <PlayCircle className="h-8 w-8 text-pub-sky" />}
         <p className="mt-3 font-semibold">{preparing ? "Menyiapkan video privat..." : playbackError ? "Video belum dapat diputar" : "Video pembelajaran"}</p>
         <p className="mt-1 max-w-md text-xs leading-relaxed text-white/60">
-          {playbackError ? "Tautan video mungkin kedaluwarsa atau file belum tersedia. Coba buat tautan baru." : "Tautan privat akan disiapkan saat Anda memutar video."}
+          {playbackError ? "Pemulihan otomatis berhenti. Periksa koneksi atau ketersediaan file, lalu coba muat ulang." : "Tautan privat akan disiapkan saat Anda memutar video."}
         </p>
         <Button
           size="sm"
@@ -211,42 +262,74 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         key={playback.issuedAt}
         ref={videoRef}
         className="aspect-video w-full bg-black object-contain"
-        controls={!paused}
+        controls={!paused || recovering}
         controlsList="nodownload"
         playsInline
         preload="metadata"
         onError={(event) => {
-          clearStallTimer();
           const video = event.currentTarget;
           if (Number.isFinite(video.currentTime) && video.currentTime > 0) resumeTime.current = video.currentTime;
-          if (!isVideoUrlFresh(playback.issuedAt)) {
-            void preparePlayback(true);
+          if (video.error?.code === MediaError.MEDIA_ERR_NETWORK || !isVideoUrlFresh(playback.issuedAt)) {
+            recoverIfStalled(video, true);
           } else {
+            recovery.cancel();
+            requestVersion.current++;
+            setRecovering(false);
             setPlaybackError(true);
           }
         }}
         onTimeUpdate={(event) => {
-          resumeTime.current = event.currentTarget.currentTime;
+          const video = event.currentTarget;
+          if (!reloading.current) resumeTime.current = video.currentTime;
+          if (!reloading.current && !video.paused && !video.seeking && !video.error &&
+            video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) recovery.progress(video.currentTime);
         }}
         onWaiting={(event) => recoverIfStalled(event.currentTarget)}
         onStalled={(event) => recoverIfStalled(event.currentTarget)}
-        onPause={() => { clearStallTimer(); setPaused(true); }}
-        onPlaying={() => { clearStallTimer(); setPaused(false); }}
-        onEnded={clearStallTimer}
+        onPause={(event) => {
+          if (reloadPause.current === event.currentTarget) {
+            reloadPause.current = null;
+            return;
+          }
+          // MediaError can pause the stream itself. load() clears that error,
+          // so native pauses during the new load still cancel playback intent.
+          if (event.currentTarget.error) return;
+          pausePlayback();
+        }}
+        onPlaying={() => {
+          if (!wantsPlayback.current) {
+            videoRef.current?.pause();
+            return;
+          }
+          recovery.cancel();
+          setRecovering(false);
+          setPaused(false);
+        }}
+        onEnded={() => { wantsPlayback.current = false; recovery.cancel(); setRecovering(false); }}
         onLoadedMetadata={(event) => {
           event.currentTarget.currentTime = resumeTime.current;
-          void event.currentTarget.play().catch(() => setPaused(true));
+          reloading.current = false;
+          reloadPause.current = null;
+          if (wantsPlayback.current) void event.currentTarget.play().catch(() => {
+            if (active.current) { setPaused(true); setRecovering(false); recovery.cancel(); }
+          });
         }}
       >
         <source src={playback.url} type={material.mime_type} />
         Browser Anda belum mendukung pemutaran video ini.
       </video>
-      {paused && (
+      {paused && !recovering && (
         <div className="absolute inset-x-0 top-0 flex aspect-video items-center justify-center bg-black/55">
           <Button variant="secondary" disabled={preparing} onClick={() => void preparePlayback()}>
             {preparing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
             {preparing ? "Menyiapkan video..." : "Lanjutkan video"}
           </Button>
+        </div>
+      )}
+      {recovering && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2 text-xs text-white" role="status">
+          <span>Mencoba memulihkan video… Maksimal 3 percobaan.</span>
+          <Button size="sm" variant="secondary" onClick={pausePlayback}>Jeda pemulihan</Button>
         </div>
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs text-white/65">
