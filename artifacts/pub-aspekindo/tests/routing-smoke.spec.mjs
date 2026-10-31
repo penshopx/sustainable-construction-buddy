@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { freezeVideoClock, installControlledVideo, signalVideo } from "./helpers/controlled-video.mjs";
 
 test("rute publik utama dari build aplikasi aktif dapat dibuka", async ({ page }) => {
   await page.goto("/");
@@ -321,6 +322,9 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
           body: JSON.stringify({ statusCode: "500", error: "StorageError", message: "Gagal membuat tautan sementara" }),
         });
         return;
+      }
+      if (lms.holdSignAt === lms.signRequests.length) {
+        await new Promise((resolve) => { lms.releaseSignResponse = resolve; });
       }
       const token = lms.rotateVideoTokens ? `video-test-${lms.signRequests.length}` : "video-test-only";
       data = { signedURL: `/object/sign/aspekindo-learning/${VIDEO_STORAGE_PATH}?token=${token}` };
@@ -1208,6 +1212,137 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     } finally {
       lms.releaseVideoResponses?.forEach((release) => release());
     }
+  });
+
+  test.describe("pemulihan otomatis video privat", () => {
+    const freshMs = 25 * 60 * 1000;
+    const signedUrl = (n) => `https://${SUPABASE_HOST}${VIDEO_SIGN_PATH}?token=video-test-${n}`;
+    let lms;
+    let unexpected;
+    let video;
+    let originalVideo;
+
+    test.beforeEach(async ({ page }) => {
+      lms = { enrolled: true, video: true, rotateVideoTokens: true, signRequests: [], videoRequests: [] };
+      unexpected = await installAuthenticatedFixture(page, { lms });
+      await installControlledVideo(page);
+      await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
+      await expect(page.getByText(videoMaterial.title)).toBeVisible();
+      await freezeVideoClock(page);
+      await page.getByRole("button", { name: "Putar video" }).click();
+      video = page.locator("video").filter({ has: page.locator("source[type='video/mp4']") });
+      await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
+      await expect.poll(() => lms.videoRequests).toContain(signedUrl(1));
+      await signalVideo(video, "loadedmetadata");
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+      originalVideo = await video.elementHandle();
+    });
+
+    test.afterEach(async () => {
+      lms.releaseSignResponse?.();
+      lms.releaseVideoResponses?.forEach((release) => release());
+      await originalVideo?.dispose();
+      expect(unexpected).toEqual([]);
+    });
+
+    async function expectOriginalStream(page) {
+      expect(lms.signRequests).toHaveLength(1);
+      await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
+      expect(await originalVideo.evaluate((element) => element.isConnected)).toBe(true);
+      expect(await page.evaluate(() => window.controlledVideo.playSources)).toEqual([signedUrl(1)]);
+    }
+
+    for (const event of ["waiting", "stalled"]) {
+      test(`${event} yang bertahan setelah tautan menua meminta sumber baru dan memutar otomatis`, async ({ page }) => {
+        await page.clock.fastForward(freshMs + 1000);
+        await expectOriginalStream(page); // Age alone must not replace a playing source.
+        await signalVideo(video, event, { currentTime: 42, readyState: 2 });
+        // A second signal must not create a parallel refresh or shorten the grace period.
+        await page.clock.runFor(2000);
+        await signalVideo(video, event === "waiting" ? "stalled" : "waiting");
+        await page.clock.runFor(1999);
+        await expectOriginalStream(page);
+        await page.clock.runFor(1);
+
+        await expect(video.locator("source")).toHaveAttribute("src", signedUrl(2));
+        expect(lms.signRequests).toHaveLength(2);
+        expect(lms.signRequests[1]).toEqual({
+          path: VIDEO_SIGN_PATH,
+          body: { expiresIn: 1800 },
+        });
+        await expect.poll(() => lms.videoRequests).toContain(signedUrl(2));
+        expect(await originalVideo.evaluate((element) => element.isConnected)).toBe(false);
+        await signalVideo(video, "loadedmetadata");
+        await expect.poll(() => page.evaluate(() => window.controlledVideo.playSources))
+          .toEqual([signedUrl(1), signedUrl(2)]);
+        expect(await video.evaluate((element) => element.paused)).toBe(false);
+        await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+        await expect(page.getByText("Video belum dapat diputar")).toHaveCount(0);
+        await page.clock.runFor(8000);
+        expect(lms.signRequests).toHaveLength(2);
+      });
+    }
+
+    test("macet yang mulai sebelum batas kesegaran baru menyegarkan tautan saat batas terlewati", async ({ page }) => {
+      await page.clock.fastForward(freshMs - 10_000);
+      await signalVideo(video, "waiting", { readyState: 2 });
+      await page.clock.runFor(4000);
+      await expectOriginalStream(page);
+      await page.clock.runFor(5999);
+      await expectOriginalStream(page);
+      await page.clock.runFor(1);
+      await expect(video.locator("source")).toHaveAttribute("src", signedUrl(2));
+      expect(lms.signRequests).toHaveLength(2);
+    });
+
+    test("sumber kedaluwarsa yang masih maju atau punya buffer tidak diganti", async ({ page }) => {
+      await page.clock.fastForward(freshMs + 1000);
+      await signalVideo(video, "timeupdate", { currentTime: 10, readyState: 4 });
+      await page.clock.runFor(8000);
+      await expectOriginalStream(page);
+
+      // Even without a playing event, advancing playback cancels recovery.
+      await signalVideo(video, "waiting", { readyState: 2 });
+      await signalVideo(video, "timeupdate", { currentTime: 11 });
+      await page.clock.runFor(4000);
+      await expectOriginalStream(page);
+
+      // A full buffer is also sufficient, even if currentTime has not advanced.
+      await signalVideo(video, "stalled", { readyState: 4 });
+      await page.clock.runFor(4000);
+      await expectOriginalStream(page);
+
+      // The normal playing event must cancel the timer too.
+      await signalVideo(video, "waiting", { readyState: 2 });
+      await page.clock.runFor(2000);
+      await signalVideo(video, "playing");
+      await page.clock.runFor(4000);
+      await expectOriginalStream(page);
+    });
+
+    test("video yang pulih saat tautan baru diminta mempertahankan sumber lama", async ({ page }) => {
+      lms.holdSignAt = 2;
+      await page.clock.fastForward(freshMs + 1000);
+      await signalVideo(video, "waiting", { currentTime: 20, readyState: 2 });
+      await page.clock.runFor(4000);
+      await expect.poll(() => lms.signRequests.length).toBe(2);
+      await expect.poll(() => typeof lms.releaseSignResponse).toBe("function");
+      await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
+      await signalVideo(video, "playing", { currentTime: 21, readyState: 4 });
+      const response = page.waitForResponse((response) =>
+        response.url().includes(VIDEO_SIGN_PATH) && response.request().method() === "POST");
+      lms.releaseSignResponse();
+      await (await response).finished();
+      await page.clock.runFor(100);
+      await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
+      expect(await originalVideo.evaluate((element) => element.isConnected)).toBe(true);
+      expect(await video.evaluate((element) => element.paused)).toBe(false);
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+      expect(lms.videoRequests).toEqual([signedUrl(1)]);
+      expect(await page.evaluate(() => window.controlledVideo.playSources)).toEqual([signedUrl(1)]);
+      expect(lms.signRequests).toHaveLength(2);
+    });
   });
 
   test("pelajaran kedua terbuka dan dapat dibuka setelah pelajaran pertama selesai", async ({ page }) => {
