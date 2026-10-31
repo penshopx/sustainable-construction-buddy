@@ -526,6 +526,94 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
 }
 
 test.describe("halaman anggota dengan sesi tiruan", () => {
+  test("draf assessment pulih otomatis setelah jaringan browser benar-benar offline lalu reload", async ({ page, context }) => {
+    const assessment = { started: null, checks: [], submissions: [], submitted: false, liveCountdown: true };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    const draftKey = `pub_assessment_draft_v1:${MEMBER_ID}`;
+    const saveUrl = `https://${SUPABASE_HOST}/rest/v1/rpc/save_assessment_draft`;
+    const failedSaves = [];
+    page.on("requestfailed", request => {
+      if (request.url() === saveUrl) failedSaves.push(request.failure()?.errorText);
+    });
+    await page.addInitScript(() => {
+      window.__assessmentNetworkEvents = [];
+      for (const type of ["offline", "online"]) {
+        window.addEventListener(type, event => {
+          window.__assessmentNetworkEvents.push({ type, trusted: event.isTrusted });
+        });
+      }
+    });
+    // route.fulfill() bypasses Chromium's offline mode. While offline, let
+    // ONLY the inert CI host reach the browser network stack so requests
+    // really fail with ERR_INTERNET_DISCONNECTED, rather than mocking an RPC
+    // error or dispatching an artificial "online" event. Online requests
+    // fall back to the existing isolated, authenticated backend fixture.
+    await page.route(`https://${SUPABASE_HOST}/**`, async route => {
+      if (await page.evaluate(() => navigator.onLine)) await route.fallback();
+      else await route.continue();
+    });
+    const localDraft = () => page.evaluate(key => {
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : null;
+    }, draftKey);
+    const status = page.getByRole("status").filter({ hasText: /progres|Penyimpanan/i });
+
+    try {
+      await page.goto("/assessment");
+      await page.getByRole("button", { name: "Mulai Assessment" }).click();
+      await expect(status).toHaveText("Progres tersimpan di server.");
+      const baseline = structuredClone(assessment.draft);
+      expect(baseline.answers).toEqual({});
+
+      await context.setOffline(true);
+      await expect.poll(() => page.evaluate(() => navigator.onLine)).toBe(false);
+      await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+      await expect(status).toContainText("Penyimpanan tertunda");
+      await expect.poll(() => failedSaves.length).toBeGreaterThan(0);
+      expect(failedSaves).toContain("net::ERR_INTERNET_DISCONNECTED");
+      await expect.poll(async () => (await localDraft())?.answers).toEqual({
+        [assessmentQuestions[0].id]: 0,
+      });
+      expect(assessment.draft).toEqual(baseline);
+
+      // Stay disconnected through at least one real backoff retry. No clock
+      // manipulation: countdown, debounce and retry run in the actual browser.
+      const failuresBeforeRetry = failedSaves.length;
+      await expect.poll(() => failedSaves.length, { timeout: 10_000 }).toBeGreaterThan(failuresBeforeRetry);
+      await expect(status).toContainText("Penyimpanan tertunda");
+      expect(assessment.draft).toEqual(baseline);
+
+      await context.setOffline(false);
+      // No click, focus event, navigation, or reload is allowed to trigger
+      // saving here: the browser online event/backoff must recover by itself.
+      await expect(status).toHaveText("Progres tersimpan di server.", { timeout: 10_000 });
+      expect(assessment.draft.answers).toEqual({ [assessmentQuestions[0].id]: 0 });
+      expect(assessment.draft.revision).toBeGreaterThan(baseline.revision);
+      await expect.poll(localDraft).toBeNull();
+      expect(await page.evaluate(() => window.__assessmentNetworkEvents)).toEqual([
+        { type: "offline", trusted: true },
+        { type: "online", trusted: true },
+      ]);
+
+      // With no local fallback left, reload must recover the answer from the
+      // server fixture, not from React state or the browser's pending copy.
+      const recoveryChecks = assessment.recoveryChecks ?? 0;
+      await page.reload();
+      await expect(page).toHaveURL(/\/assessment$/);
+      await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+      await expect(page.getByRole("button", { name: /Dokumen legalitas/ })).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Selanjutnya" })).toBeEnabled();
+      await expect(status).toHaveText("Progres tersimpan di server.");
+      expect(assessment.recoveryChecks).toBeGreaterThan(recoveryChecks);
+      expect(assessment.draft.answers).toEqual({ [assessmentQuestions[0].id]: 0 });
+      expect(assessment.starts).toBe(1);
+      expect(assessment.submissions).toEqual([]);
+      expect(unexpected).toEqual([]);
+    } finally {
+      await context.setOffline(false);
+    }
+  });
+
   for (const useRemote of [false, true]) {
     test(`dua perangkat mempertahankan jawaban lain saat memilih ${useRemote ? "perangkat lain" : "perangkat ini"} pada konflik`, async ({ page, browser }) => {
       const assessment = { started: null, checks: [], submissions: [], submitted: false };

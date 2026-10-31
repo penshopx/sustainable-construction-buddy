@@ -4,6 +4,7 @@
 - [Diagnostik subproses terbatas](bounded-subprocess-diagnostics.md) — samarkan kredensial sebelum memotong output akhir; sisakan overlap untuk nilai yang melintasi batas.
 - [Playwright di Nix](playwright-nix.md) — browser unduhan dapat gagal memuat pustaka native meski instalasinya berhasil; bedakan lingkungan lokal dari CI Ubuntu.
 - [Jam palsu dan animasi browser](playwright-clock-animation.md) — percepatan jam penuh dapat menahan transisi animasi; gunakan interval terbatas untuk pengujian timer beranimasi.
+- [Jaringan offline dan fixture browser](playwright-offline-fixtures.md) — respons route.fulfill dapat melewati mode offline; buktikan kegagalan jaringan browser, bukan hanya indikator UI.
 - [Tipe plugin Vite di pnpm](vite-peer-types.md) — versi Vite sama dapat menghasilkan tipe tidak cocok bila peer opsionalnya berbeda antar artefak.
 - [Isolasi cache Vite pengujian](vite-test-cache-isolation.md) — cache server SSR pengujian harus terpisah dari preview agar optimasi dependensi tidak memicu 504.
 - [Uji proyek lama di luar workspace](legacy-test-dependencies.md) — pengujian skrip migrasi memerlukan dependensi sendiri; paket workspace utama tidak otomatis tersedia.
