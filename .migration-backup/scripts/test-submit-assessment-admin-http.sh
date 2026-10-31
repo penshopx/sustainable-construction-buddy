@@ -238,6 +238,91 @@ SQL
   echo "Admin HTTP submission of unfinished assessment returned only Unauthorized without changing owner data."
 }
 
+test_admin_http_profile_revocation() {
+  local admin_token status expected_before expected_own profiles_before filter
+
+  # Auth's signup trigger supplies both profiles. Fail rather than accepting
+  # empty fixture data as evidence that the profile policy works.
+  profiles_before="$("${PSQL[@]}" -Atq -c "
+    SELECT COALESCE(jsonb_agg(to_jsonb(p) ORDER BY p.user_id), '[]'::jsonb)
+    FROM public.profiles p
+    WHERE p.user_id IN ('$TEST_USER_ID', '$TEST_ADMIN_USER_ID')")"
+  if ! jq -e --arg owner "$TEST_USER_ID" --arg admin "$TEST_ADMIN_USER_ID" \
+    'length == 2 and (map(.user_id) | sort) == ([$owner,$admin] | sort)' \
+    >/dev/null <<<"$profiles_before"; then
+    echo "Profile revocation requires distinct, existing owner and admin profiles" >&2
+    exit 1
+  fi
+  expected_before="$(jq 'map({id,user_id}) | sort_by(.user_id)' <<<"$profiles_before")"
+  expected_own="$(jq --arg admin "$TEST_ADMIN_USER_ID" \
+    'map(select(.user_id == $admin) | {id,user_id})' <<<"$profiles_before")"
+  "${PSQL[@]}" >/dev/null <<SQL
+BEGIN;
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('$TEST_ADMIN_USER_ID', 'admin');
+COMMIT;
+SQL
+  admin_token="$(assessment_admin_http_token)"
+  filter="user_id=in.($TEST_USER_ID,$TEST_ADMIN_USER_ID)&select=id,user_id&order=user_id"
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-profiles-before-revocation.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/profiles?$filter" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --argjson expected "$expected_before" '. == $expected' \
+       "$TMP_DIR/admin-profiles-before-revocation.json" >/dev/null 2>&1; then
+    echo "Admin HTTP token cannot read both member and own profiles before revocation (HTTP $status)" >&2
+    exit 1
+  fi
+
+  # Commit on the privileged fixture connection before the next HTTP read.
+  # Keep the exact same access token: no login, refresh, or service-role read.
+  "${PSQL[@]}" >/dev/null <<SQL
+BEGIN;
+DELETE FROM public.user_roles
+WHERE user_id = '$TEST_ADMIN_USER_ID' AND role = 'admin';
+DO \$\$
+BEGIN
+  IF public.has_role('$TEST_ADMIN_USER_ID', 'admin'::public.app_role) THEN
+    RAISE EXCEPTION 'Profile revocation fixture still has effective admin access';
+  END IF;
+END;
+\$\$;
+COMMIT;
+SQL
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-profiles-after-revocation.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/profiles?$filter" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --argjson expected "$expected_own" '. == $expected' \
+       "$TMP_DIR/admin-profiles-after-revocation.json" >/dev/null 2>&1; then
+    echo "Revoked admin's unchanged HTTP token must read only their own profile (HTTP $status)" >&2
+    exit 1
+  fi
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/revoked-admin-member-profile.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/profiles?user_id=eq.$TEST_USER_ID&select=id,user_id" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e '. == []' "$TMP_DIR/revoked-admin-member-profile.json" >/dev/null 2>&1; then
+    echo "Revoked admin's unchanged HTTP token exposed a member profile or failed (HTTP $status)" >&2
+    exit 1
+  fi
+  if [[ "$("${PSQL[@]}" -Atq -c "
+    SELECT COALESCE(jsonb_agg(to_jsonb(p) ORDER BY p.user_id), '[]'::jsonb)
+    FROM public.profiles p
+    WHERE p.user_id IN ('$TEST_USER_ID', '$TEST_ADMIN_USER_ID')")" != "$profiles_before" ]]; then
+    echo "Profile revocation checks changed or removed a fixture profile" >&2
+    exit 1
+  fi
+  unset admin_token
+  echo "Admin HTTP read both profiles before revocation; the unchanged token then hid the member profile while preserving own-profile access."
+}
+
 test_admin_http_replay() {
   local status admin_token before_state payload label own_summary
   local own_pre_test_id="00000000-0000-4000-8000-000000000181"

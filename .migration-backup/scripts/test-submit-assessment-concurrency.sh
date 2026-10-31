@@ -169,6 +169,12 @@ SQL
 
 # Independently runnable on the latest complete schema, even if an earlier
 # legacy concurrency scenario fails before reaching the admin HTTP checks.
+source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
+test_admin_http_profile_revocation
+if [[ "${1:-}" == "--admin-profile-revocation" ]]; then
+  exit 0
+fi
+
 if [[ "${1:-}" == "--admin-draft-privacy" ]]; then
   "${PSQL[@]}" >/dev/null <<SQL
 INSERT INTO public.pre_tests (id, user_id, total_questions, authorized_question_ids)
@@ -190,7 +196,6 @@ SQL
     exit 1
   fi
   OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
-  source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
   test_admin_http_unfinished
   exit 0
 fi
@@ -830,7 +835,6 @@ if [[ "$(assessment_http_state)" != "$BEFORE_UNFINISHED_HTTP_STATE" ]]; then
 fi
 echo "Anonymous HTTP submission of unfinished assessment was denied without changing owner data."
 
-source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
 test_admin_http_unfinished
 
 # The owner must still be able to finish this exact assessment through the real

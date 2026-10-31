@@ -45,6 +45,9 @@ jobs:
         run: |
           supabase --workdir "$RUNNER_TEMP/aspekindo-supabase" status -o json | jq -r '"TEST_SUPABASE_URL=\(.API_URL)\nTEST_SUPABASE_ANON_KEY=\(.ANON_KEY)\nTEST_SUPABASE_SERVICE_ROLE_KEY=\(.SERVICE_ROLE_KEY)"' >> "$GITHUB_ENV"
 
+      - name: Verify unchanged admin token loses member profile access after role revocation
+        run: bash scripts/test-submit-assessment-concurrency.sh --admin-profile-revocation
+
       - name: Verify admin cannot read or replace member drafts through Auth and PostgREST
         run: bash scripts/test-submit-assessment-concurrency.sh --admin-draft-privacy
 
