@@ -100,4 +100,102 @@ BEGIN
 END;
 $$;
 
+-- Unequal weights must affect scores, not the diagnostic answer counts.
+RESET ROLE;
+UPDATE public.aspekindo_lms_quiz_questions
+SET points = CASE WHEN sort_order = 0 THEN 3 ELSE 7 END
+WHERE lesson_id = '00000000-0000-4000-8000-000000000713';
+-- Isolate this scenario: completion accepts any historical passing attempt.
+DELETE FROM public.aspekindo_lms_quiz_answers
+WHERE lesson_id = '00000000-0000-4000-8000-000000000713';
+DELETE FROM public.aspekindo_lms_quiz_attempts
+WHERE lesson_id = '00000000-0000-4000-8000-000000000713';
+DELETE FROM public.aspekindo_lms_lesson_progress
+WHERE lesson_id = '00000000-0000-4000-8000-000000000713';
+SET LOCAL ROLE authenticated;
+
+DO $$
+DECLARE
+  v_lesson_id constant uuid := '00000000-0000-4000-8000-000000000713';
+  result public.aspekindo_lms_quiz_attempts;
+  progress public.aspekindo_lms_lesson_progress;
+BEGIN
+  result := public.submit_aspekindo_lms_quiz(v_lesson_id,
+    '{"00000000-0000-4000-8000-000000000715":1,"00000000-0000-4000-8000-000000000716":1}'::jsonb);
+  IF result.score IS DISTINCT FROM 30 OR result.passed IS DISTINCT FROM false
+     OR result.correct_answers IS DISTINCT FROM 1 OR result.total_questions IS DISTINCT FROM 2 THEN
+    RAISE EXCEPTION 'Low-weight correct answer must score 30 and fail: %', result;
+  END IF;
+  BEGIN
+    PERFORM public.complete_aspekindo_lms_lesson(v_lesson_id);
+    RAISE EXCEPTION 'Low-weight correct answer incorrectly allowed completion';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'Kuis pelajaran harus lulus sebelum diselesaikan' THEN RAISE; END IF;
+  END;
+
+  result := public.submit_aspekindo_lms_quiz(v_lesson_id,
+    '{"00000000-0000-4000-8000-000000000715":0,"00000000-0000-4000-8000-000000000716":0}'::jsonb);
+  IF result.score IS DISTINCT FROM 70 OR result.passed IS DISTINCT FROM true
+     OR result.correct_answers IS DISTINCT FROM 1 OR result.total_questions IS DISTINCT FROM 2
+     OR result.attempt_number IS DISTINCT FROM 2
+     OR (SELECT count(*) FROM public.aspekindo_lms_quiz_answers
+         WHERE attempt_id = result.id AND is_correct) <> 1 THEN
+    RAISE EXCEPTION 'High-weight correct answer must pass exactly at 70: %', result;
+  END IF;
+  progress := public.complete_aspekindo_lms_lesson(v_lesson_id);
+  IF progress.status IS DISTINCT FROM 'completed' THEN
+    RAISE EXCEPTION 'Weighted pass did not permit completion: %', progress;
+  END IF;
+
+  result := public.submit_aspekindo_lms_quiz(v_lesson_id,
+    '{"00000000-0000-4000-8000-000000000715":0,"00000000-0000-4000-8000-000000000716":1}'::jsonb);
+  IF result.score IS DISTINCT FROM 0 OR result.passed IS DISTINCT FROM false
+     OR result.correct_answers IS DISTINCT FROM 0 THEN
+    RAISE EXCEPTION 'All weighted answers wrong must score zero: %', result;
+  END IF;
+  result := public.submit_aspekindo_lms_quiz(v_lesson_id,
+    '{"00000000-0000-4000-8000-000000000715":1,"00000000-0000-4000-8000-000000000716":0}'::jsonb);
+  IF result.score IS DISTINCT FROM 100 OR result.passed IS DISTINCT FROM true
+     OR result.correct_answers IS DISTINCT FROM 2 THEN
+    RAISE EXCEPTION 'All weighted answers correct must score 100: %', result;
+  END IF;
+END;
+$$;
+
+RESET ROLE;
+UPDATE public.aspekindo_lms_lessons SET passing_score = 71
+WHERE id = '00000000-0000-4000-8000-000000000713';
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+  result public.aspekindo_lms_quiz_attempts;
+BEGIN
+  result := public.submit_aspekindo_lms_quiz('00000000-0000-4000-8000-000000000713',
+    '{"00000000-0000-4000-8000-000000000715":0,"00000000-0000-4000-8000-000000000716":0}'::jsonb);
+  IF result.score IS DISTINCT FROM 70 OR result.passed IS DISTINCT FROM false THEN
+    RAISE EXCEPTION 'Weighted 70 must fail a pass mark of 71: %', result;
+  END IF;
+END;
+$$;
+
+-- Fractional weighted percentages use the same integer rounding as legacy scores.
+RESET ROLE;
+UPDATE public.aspekindo_lms_quiz_questions
+SET points = CASE WHEN sort_order = 0 THEN 1 ELSE 2 END
+WHERE lesson_id = '00000000-0000-4000-8000-000000000713';
+UPDATE public.aspekindo_lms_lessons SET passing_score = 67
+WHERE id = '00000000-0000-4000-8000-000000000713';
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+  result public.aspekindo_lms_quiz_attempts;
+BEGIN
+  result := public.submit_aspekindo_lms_quiz('00000000-0000-4000-8000-000000000713',
+    '{"00000000-0000-4000-8000-000000000715":0,"00000000-0000-4000-8000-000000000716":0}'::jsonb);
+  IF result.score IS DISTINCT FROM 67 OR result.passed IS DISTINCT FROM true THEN
+    RAISE EXCEPTION 'Two thirds must round to 67 and pass at 67: %', result;
+  END IF;
+END;
+$$;
+
 ROLLBACK;

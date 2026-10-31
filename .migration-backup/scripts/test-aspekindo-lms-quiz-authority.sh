@@ -25,7 +25,7 @@ import sys
 
 migrations, output = Path(sys.argv[1]), Path(sys.argv[2])
 functions = [
-    ("20260928120000_fix_aspekindo_lms_quiz_answer_count.sql", "submit_aspekindo_lms_quiz"),
+    ("20261031110000_weight_aspekindo_lms_quiz_scores.sql", "submit_aspekindo_lms_quiz"),
     ("20260901020000_harden_aspekindo_lms_participant_flows.sql", "complete_aspekindo_lms_lesson"),
 ]
 with output.open("w") as target:

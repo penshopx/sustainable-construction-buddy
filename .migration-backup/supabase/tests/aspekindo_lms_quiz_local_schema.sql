@@ -25,7 +25,8 @@ CREATE TABLE public.aspekindo_lms_enrollments (
 );
 CREATE TABLE public.aspekindo_lms_quiz_questions (
   id uuid PRIMARY KEY, lesson_id uuid REFERENCES public.aspekindo_lms_lessons(id),
-  question_text text, options jsonb, sort_order integer
+  question_text text, options jsonb, sort_order integer,
+  points integer NOT NULL DEFAULT 1 CHECK (points > 0)
 );
 CREATE TABLE public.aspekindo_lms_quiz_answer_keys (
   question_id uuid PRIMARY KEY REFERENCES public.aspekindo_lms_quiz_questions(id),
