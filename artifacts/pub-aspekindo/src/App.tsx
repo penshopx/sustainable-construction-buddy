@@ -84,6 +84,7 @@ const PublicCourseLanding = lazy(() => import("./pages/PublicCourseLanding"));
 const ClinicConsultation = lazy(() => import("./pages/ClinicConsultation"));
 const ClinicDesk = lazy(() => import("./pages/ClinicDesk"));
 const AdminClinic = lazy(() => import("./pages/admin/AdminClinic"));
+const DocumentAnalysis = lazy(() => import("./pages/DocumentAnalysis"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
 
 function PageLoading() {
@@ -143,6 +144,7 @@ const App = () => (
             <Route path="/marketplace" element={<DashboardLayout><Marketplace /></DashboardLayout>} />
             <Route path="/direktori" element={<DashboardLayout><CompanyDirectory /></DashboardLayout>} />
             <Route path="/direktori/:companyId" element={<DashboardLayout><CompanyDetail /></DashboardLayout>} />
+            <Route path="/bedah-dokumen" element={<DocumentAnalysis />} />
             <Route path="/klinik-konsultasi" element={<ClinicConsultation />} />
             <Route path="/klinik-konsultasi/:topicId" element={<DashboardLayout><ClinicDesk /></DashboardLayout>} />
             <Route path="/admin/klinik-konsultasi" element={<DashboardLayout><AdminGuard><AdminClinic /></AdminGuard></DashboardLayout>} />

@@ -32,6 +32,9 @@ import type {
   ClinicCase,
   ClinicCaseInput,
   ClinicCaseUpdate,
+  DocumentAnalysis,
+  DocumentAnalysisChatInput,
+  DocumentAnalysisInput,
   GetHelpdeskAiStatusParams,
   GetVaultAiStatusParams,
   HealthStatus,
@@ -98,6 +101,273 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListDocumentAnalysesUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/bedah-dokumen`
+}
+
+export const listDocumentAnalyses = async ( options?: Parameters<typeof customFetch>[1]): Promise<DocumentAnalysis[]> => {
+
+  return customFetch<DocumentAnalysis[]>(getListDocumentAnalysesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDocumentAnalysesQueryKey = () => {
+    return [
+    `/api/ruang-simpan/bedah-dokumen`
+    ] as const;
+    }
+
+
+export const getListDocumentAnalysesQueryOptions = <TData = Awaited<ReturnType<typeof listDocumentAnalyses>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentAnalyses>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDocumentAnalysesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocumentAnalyses>>> = ({ signal }) => listDocumentAnalyses({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDocumentAnalyses>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDocumentAnalysesQueryResult = NonNullable<Awaited<ReturnType<typeof listDocumentAnalyses>>>
+export type ListDocumentAnalysesQueryError = ErrorType<unknown>
+
+
+
+export function useListDocumentAnalyses<TData = Awaited<ReturnType<typeof listDocumentAnalyses>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentAnalyses>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDocumentAnalysesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAnalyzeVaultDocumentUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/bedah-dokumen`
+}
+
+export const analyzeVaultDocument = async (documentAnalysisInput: DocumentAnalysisInput, options?: Parameters<typeof customFetch>[1]): Promise<DocumentAnalysis> => {
+
+  return customFetch<DocumentAnalysis>(getAnalyzeVaultDocumentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(documentAnalysisInput)
+  }
+);}
+
+
+
+
+
+export const getAnalyzeVaultDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeVaultDocument>>, TError,{data: BodyType<DocumentAnalysisInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof analyzeVaultDocument>>, TError,{data: BodyType<DocumentAnalysisInput>}, TContext> => {
+
+const mutationKey = ['analyzeVaultDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof analyzeVaultDocument>>, {data: BodyType<DocumentAnalysisInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  analyzeVaultDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AnalyzeVaultDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof analyzeVaultDocument>>>
+    export type AnalyzeVaultDocumentMutationBody = BodyType<DocumentAnalysisInput>
+    export type AnalyzeVaultDocumentMutationError = ErrorType<unknown>
+
+    export const useAnalyzeVaultDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof analyzeVaultDocument>>, TError,{data: BodyType<DocumentAnalysisInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof analyzeVaultDocument>>,
+        TError,
+        {data: BodyType<DocumentAnalysisInput>},
+        TContext
+      > => {
+      return useMutation(getAnalyzeVaultDocumentMutationOptions(options));
+    }
+
+export const getChatDocumentAnalysisUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/bedah-dokumen/${id}/chat`
+}
+
+export const chatDocumentAnalysis = async (id: string,
+    documentAnalysisChatInput: DocumentAnalysisChatInput, options?: Parameters<typeof customFetch>[1]): Promise<DocumentAnalysis> => {
+
+  return customFetch<DocumentAnalysis>(getChatDocumentAnalysisUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(documentAnalysisChatInput)
+  }
+);}
+
+
+
+
+
+export const getChatDocumentAnalysisMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chatDocumentAnalysis>>, TError,{id: string;data: BodyType<DocumentAnalysisChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof chatDocumentAnalysis>>, TError,{id: string;data: BodyType<DocumentAnalysisChatInput>}, TContext> => {
+
+const mutationKey = ['chatDocumentAnalysis'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof chatDocumentAnalysis>>, {id: string;data: BodyType<DocumentAnalysisChatInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  chatDocumentAnalysis(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChatDocumentAnalysisMutationResult = NonNullable<Awaited<ReturnType<typeof chatDocumentAnalysis>>>
+    export type ChatDocumentAnalysisMutationBody = BodyType<DocumentAnalysisChatInput>
+    export type ChatDocumentAnalysisMutationError = ErrorType<unknown>
+
+    export const useChatDocumentAnalysis = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chatDocumentAnalysis>>, TError,{id: string;data: BodyType<DocumentAnalysisChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof chatDocumentAnalysis>>,
+        TError,
+        {id: string;data: BodyType<DocumentAnalysisChatInput>},
+        TContext
+      > => {
+      return useMutation(getChatDocumentAnalysisMutationOptions(options));
+    }
+
+export const getDeleteDocumentAnalysisUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/bedah-dokumen/${id}`
+}
+
+export const deleteDocumentAnalysis = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteDocumentAnalysisUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteDocumentAnalysisMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentAnalysis>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentAnalysis>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteDocumentAnalysis'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteDocumentAnalysis>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteDocumentAnalysis(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteDocumentAnalysisMutationResult = NonNullable<Awaited<ReturnType<typeof deleteDocumentAnalysis>>>
+
+    export type DeleteDocumentAnalysisMutationError = ErrorType<unknown>
+
+    export const useDeleteDocumentAnalysis = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteDocumentAnalysis>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteDocumentAnalysis>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteDocumentAnalysisMutationOptions(options));
+    }
 
 export const getListClinicCasesUrl = () => {
 

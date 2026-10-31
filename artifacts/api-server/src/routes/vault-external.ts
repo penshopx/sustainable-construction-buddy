@@ -24,7 +24,7 @@ export async function importDocument(owner: string, input: { url: string; name: 
     await workspace(owner, state => {
       ownFolder(state, input.folderId);
       if (state.documents.length >= 100) fail(400, "Maksimal 100 dokumen per ruang simpan.");
-      if (state.documents.reduce((n, d) => n + d.size, 0) >= QUOTA) fail(413, "Kuota 15 MiB penuh.");
+      if (state.documents.reduce((n, d) => n + d.size, 0) >= QUOTA) fail(413, "Kuota 50 MiB penuh.");
     });
     const bytes = await fetchPublicFile(input.url);
     return await uploadDocument(owner, bytes, input.name, input.folderId);
@@ -34,7 +34,7 @@ export async function importDocument(owner: string, input: { url: string; name: 
 export async function uploadDocument(owner: string, bytes: Buffer, rawName: unknown, rawFolder: unknown, connectionId?: string) {
   if (typeof rawName !== "string" || !rawName.trim() || rawName.length > 200 || /[\\/\0]/.test(rawName)) fail(400, "Nama file tidak valid.");
   if (typeof rawFolder !== "string") fail(400, "Pilih folder tujuan.");
-  if (bytes.length > QUOTA) fail(413, "Ukuran file melebihi 15 MB.");
+  if (bytes.length > QUOTA) fail(413, "Ukuran file melebihi 50 MB.");
   const name = rawName.trim();
   const { type, mime } = validateFile(name, bytes);
   let text = "", status: StoredDocument["status"] = "stored";
@@ -47,7 +47,7 @@ export async function uploadDocument(owner: string, bytes: Buffer, rawName: unkn
       if (connectionId) assertConnection(state, connectionId, "documents:upload", undefined, rawFolder);
       ownFolder(state, rawFolder);
       if (state.documents.length >= 100) fail(400, "Maksimal 100 dokumen per ruang simpan.");
-      if (state.documents.reduce((n, d) => n + d.size, 0) + bytes.length > QUOTA) fail(413, "Kuota 15 MB penuh. Hapus dokumen yang tidak diperlukan.");
+      if (state.documents.reduce((n, d) => n + d.size, 0) + bytes.length > QUOTA) fail(413, "Kuota 50 MB penuh. Hapus dokumen yang tidak diperlukan.");
       await privateFile(path).save(bytes, { resumable: false, contentType: mime });
       uploaded = true;
       const doc: StoredDocument = {

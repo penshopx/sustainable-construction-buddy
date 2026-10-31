@@ -58,6 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <a href="/dashboard" className="px-2 mt-2 block text-sm text-primary">← Kembali ke PUB ASPEKINDO</a>
         <a href="/klinik-konsultasi" className="px-2 mt-3 block text-sm font-semibold text-primary">Buka Klinik Konsultasi</a>
+        <a href="/bedah-dokumen" data-testid="link-bedah-dokumen" className="px-2 mt-2 block text-sm font-semibold text-primary">Buka Bedah Dokumen</a>
         <p className="px-2 mt-1 text-[11px] uppercase tracking-[0.2em] text-sidebar-foreground/60 font-mono-ui">Acuan data bisnis PUB</p>
         <nav className="mt-8 flex flex-col gap-1">
           {NAV.map((n) => {
@@ -101,6 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/90 backdrop-blur px-4 py-3">
         <Brand />
         <a href="/klinik-konsultasi" className="text-sm font-semibold text-primary">Klinik</a>
+        <a href="/bedah-dokumen" data-testid="link-bedah-dokumen-mobile" className="text-sm font-semibold text-primary">Bedah</a>
         <button type="button" data-testid="button-logout-mobile" onClick={() => void signOut()} className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
           <LogOut className="h-4 w-4" /> Keluar
         </button>

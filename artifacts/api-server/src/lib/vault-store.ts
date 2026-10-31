@@ -2,12 +2,13 @@ import { randomUUID, createHash, timingSafeEqual } from "node:crypto";
 import { pool } from "@workspace/db";
 import type { VaultWorkspace, VaultDocument, VaultConnection } from "@workspace/api-zod";
 import { fail } from "./vault-errors";
+import type { AnalysisState } from "./document-analysis";
 export { VaultError, fail } from "./vault-errors";
 
-export const QUOTA = 15 * 1024 * 1024;
+export const QUOTA = 50 * 1024 * 1024;
 export type StoredDocument = VaultDocument & { objectPath: string; ocrJob?: string };
 export type StoredConnection = VaultConnection & { tokenHash: string };
-export type VaultState = Omit<VaultWorkspace, "documents" | "connections" | "usedBytes" | "limitBytes"> & {
+export type VaultState = Omit<VaultWorkspace, "documents" | "connections" | "usedBytes" | "limitBytes"> & AnalysisState & {
   documents: StoredDocument[];
   connections: StoredConnection[];
 };
@@ -24,8 +25,9 @@ export function activity(state: VaultState, action: string) {
   state.activities = state.activities.slice(0, 100);
 }
 export function publicWorkspace(state: VaultState): VaultWorkspace {
+  const { documentAnalyses: _analyses, ...visible } = state;
   return {
-    ...state,
+    ...visible,
     folders: state.folders.map(f => ({ ...f, count: state.documents.filter(d => d.folderId === f.id).length })),
     documents: state.documents.map(({ objectPath: _path, ocrJob: _job, ...d }) => d),
     connections: state.connections.map(({ tokenHash: _hash, ...c }) => c),

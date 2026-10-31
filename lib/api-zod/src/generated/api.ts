@@ -8,6 +8,230 @@
 import * as zod from 'zod';
 
 
+export const listDocumentAnalysesResponseResultSummaryMax = 8000;
+
+export const listDocumentAnalysesResponseResultChecklistItemItemMax = 400;
+
+export const listDocumentAnalysesResponseResultChecklistItemEvidenceMax = 1200;
+
+export const listDocumentAnalysesResponseResultChecklistMax = 20;
+
+export const listDocumentAnalysesResponseResultRisksItemTitleMax = 400;
+
+export const listDocumentAnalysesResponseResultRisksItemEvidenceMax = 1200;
+
+export const listDocumentAnalysesResponseResultRisksItemRecommendationMax = 1200;
+
+export const listDocumentAnalysesResponseResultRisksMax = 15;
+
+export const listDocumentAnalysesResponseResultRegulationsItemTitleMax = 400;
+
+export const listDocumentAnalysesResponseResultRegulationsItemEvidenceMax = 1200;
+
+export const listDocumentAnalysesResponseResultRegulationsItemNoteMax = 1200;
+
+export const listDocumentAnalysesResponseResultRegulationsMax = 20;
+
+export const listDocumentAnalysesResponseMessagesItemContentMax = 32000;
+
+
+
+export const ListDocumentAnalysesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "documentId": zod.string().uuid(),
+  "documentName": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "model": zod.string(),
+  "sourceCharacters": zod.number().int(),
+  "analyzedCharacters": zod.number().int(),
+  "truncated": zod.boolean(),
+  "result": zod.object({
+  "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
+  "summary": zod.string().min(1).max(listDocumentAnalysesResponseResultSummaryMax),
+  "checklist": zod.array(zod.object({
+  "item": zod.string().min(1).max(listDocumentAnalysesResponseResultChecklistItemItemMax),
+  "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
+  "evidence": zod.string().max(listDocumentAnalysesResponseResultChecklistItemEvidenceMax)
+})).max(listDocumentAnalysesResponseResultChecklistMax),
+  "risks": zod.array(zod.object({
+  "title": zod.string().min(1).max(listDocumentAnalysesResponseResultRisksItemTitleMax),
+  "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
+  "evidence": zod.string().max(listDocumentAnalysesResponseResultRisksItemEvidenceMax),
+  "recommendation": zod.string().max(listDocumentAnalysesResponseResultRisksItemRecommendationMax)
+})).max(listDocumentAnalysesResponseResultRisksMax),
+  "regulations": zod.array(zod.object({
+  "title": zod.string().min(1).max(listDocumentAnalysesResponseResultRegulationsItemTitleMax),
+  "evidence": zod.string().max(listDocumentAnalysesResponseResultRegulationsItemEvidenceMax),
+  "note": zod.string().max(listDocumentAnalysesResponseResultRegulationsItemNoteMax)
+})).max(listDocumentAnalysesResponseResultRegulationsMax)
+}),
+  "messages": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string().max(listDocumentAnalysesResponseMessagesItemContentMax),
+  "createdAt": zod.coerce.date()
+}))
+})
+export const ListDocumentAnalysesResponse = zod.array(ListDocumentAnalysesResponseItem)
+
+
+export const AnalyzeVaultDocumentBody = zod.object({
+  "documentId": zod.string().uuid(),
+  "consent": zod.literal(true)
+})
+
+export const analyzeVaultDocumentResponseResultSummaryMax = 8000;
+
+export const analyzeVaultDocumentResponseResultChecklistItemItemMax = 400;
+
+export const analyzeVaultDocumentResponseResultChecklistItemEvidenceMax = 1200;
+
+export const analyzeVaultDocumentResponseResultChecklistMax = 20;
+
+export const analyzeVaultDocumentResponseResultRisksItemTitleMax = 400;
+
+export const analyzeVaultDocumentResponseResultRisksItemEvidenceMax = 1200;
+
+export const analyzeVaultDocumentResponseResultRisksItemRecommendationMax = 1200;
+
+export const analyzeVaultDocumentResponseResultRisksMax = 15;
+
+export const analyzeVaultDocumentResponseResultRegulationsItemTitleMax = 400;
+
+export const analyzeVaultDocumentResponseResultRegulationsItemEvidenceMax = 1200;
+
+export const analyzeVaultDocumentResponseResultRegulationsItemNoteMax = 1200;
+
+export const analyzeVaultDocumentResponseResultRegulationsMax = 20;
+
+export const analyzeVaultDocumentResponseMessagesItemContentMax = 32000;
+
+
+
+export const AnalyzeVaultDocumentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "documentId": zod.string().uuid(),
+  "documentName": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "model": zod.string(),
+  "sourceCharacters": zod.number().int(),
+  "analyzedCharacters": zod.number().int(),
+  "truncated": zod.boolean(),
+  "result": zod.object({
+  "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
+  "summary": zod.string().min(1).max(analyzeVaultDocumentResponseResultSummaryMax),
+  "checklist": zod.array(zod.object({
+  "item": zod.string().min(1).max(analyzeVaultDocumentResponseResultChecklistItemItemMax),
+  "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
+  "evidence": zod.string().max(analyzeVaultDocumentResponseResultChecklistItemEvidenceMax)
+})).max(analyzeVaultDocumentResponseResultChecklistMax),
+  "risks": zod.array(zod.object({
+  "title": zod.string().min(1).max(analyzeVaultDocumentResponseResultRisksItemTitleMax),
+  "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
+  "evidence": zod.string().max(analyzeVaultDocumentResponseResultRisksItemEvidenceMax),
+  "recommendation": zod.string().max(analyzeVaultDocumentResponseResultRisksItemRecommendationMax)
+})).max(analyzeVaultDocumentResponseResultRisksMax),
+  "regulations": zod.array(zod.object({
+  "title": zod.string().min(1).max(analyzeVaultDocumentResponseResultRegulationsItemTitleMax),
+  "evidence": zod.string().max(analyzeVaultDocumentResponseResultRegulationsItemEvidenceMax),
+  "note": zod.string().max(analyzeVaultDocumentResponseResultRegulationsItemNoteMax)
+})).max(analyzeVaultDocumentResponseResultRegulationsMax)
+}),
+  "messages": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string().max(analyzeVaultDocumentResponseMessagesItemContentMax),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+export const ChatDocumentAnalysisParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const chatDocumentAnalysisBodyQuestionMax = 2000;
+
+
+
+export const ChatDocumentAnalysisBody = zod.object({
+  "question": zod.string().min(1).max(chatDocumentAnalysisBodyQuestionMax),
+  "consent": zod.literal(true)
+})
+
+export const chatDocumentAnalysisResponseResultSummaryMax = 8000;
+
+export const chatDocumentAnalysisResponseResultChecklistItemItemMax = 400;
+
+export const chatDocumentAnalysisResponseResultChecklistItemEvidenceMax = 1200;
+
+export const chatDocumentAnalysisResponseResultChecklistMax = 20;
+
+export const chatDocumentAnalysisResponseResultRisksItemTitleMax = 400;
+
+export const chatDocumentAnalysisResponseResultRisksItemEvidenceMax = 1200;
+
+export const chatDocumentAnalysisResponseResultRisksItemRecommendationMax = 1200;
+
+export const chatDocumentAnalysisResponseResultRisksMax = 15;
+
+export const chatDocumentAnalysisResponseResultRegulationsItemTitleMax = 400;
+
+export const chatDocumentAnalysisResponseResultRegulationsItemEvidenceMax = 1200;
+
+export const chatDocumentAnalysisResponseResultRegulationsItemNoteMax = 1200;
+
+export const chatDocumentAnalysisResponseResultRegulationsMax = 20;
+
+export const chatDocumentAnalysisResponseMessagesItemContentMax = 32000;
+
+
+
+export const ChatDocumentAnalysisResponse = zod.object({
+  "id": zod.string().uuid(),
+  "documentId": zod.string().uuid(),
+  "documentName": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "model": zod.string(),
+  "sourceCharacters": zod.number().int(),
+  "analyzedCharacters": zod.number().int(),
+  "truncated": zod.boolean(),
+  "result": zod.object({
+  "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
+  "summary": zod.string().min(1).max(chatDocumentAnalysisResponseResultSummaryMax),
+  "checklist": zod.array(zod.object({
+  "item": zod.string().min(1).max(chatDocumentAnalysisResponseResultChecklistItemItemMax),
+  "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
+  "evidence": zod.string().max(chatDocumentAnalysisResponseResultChecklistItemEvidenceMax)
+})).max(chatDocumentAnalysisResponseResultChecklistMax),
+  "risks": zod.array(zod.object({
+  "title": zod.string().min(1).max(chatDocumentAnalysisResponseResultRisksItemTitleMax),
+  "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
+  "evidence": zod.string().max(chatDocumentAnalysisResponseResultRisksItemEvidenceMax),
+  "recommendation": zod.string().max(chatDocumentAnalysisResponseResultRisksItemRecommendationMax)
+})).max(chatDocumentAnalysisResponseResultRisksMax),
+  "regulations": zod.array(zod.object({
+  "title": zod.string().min(1).max(chatDocumentAnalysisResponseResultRegulationsItemTitleMax),
+  "evidence": zod.string().max(chatDocumentAnalysisResponseResultRegulationsItemEvidenceMax),
+  "note": zod.string().max(chatDocumentAnalysisResponseResultRegulationsItemNoteMax)
+})).max(chatDocumentAnalysisResponseResultRegulationsMax)
+}),
+  "messages": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string().max(chatDocumentAnalysisResponseMessagesItemContentMax),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+export const DeleteDocumentAnalysisParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const DeleteDocumentAnalysisResponse = zod.void()
+
+
 export const ListClinicCasesResponseItem = zod.object({
   "id": zod.string().uuid(),
   "ownerId": zod.string(),

@@ -68,7 +68,7 @@ const bundle = await build({
   stdin: { contents: `
     export { vaultRouter } from "./src/routes/vault";
     export { publicAddress, linkUrl, fetchPublicFile, LINK_MAX_BYTES } from "./src/lib/vault-link";
-    export { initialWorkspace } from "./src/lib/vault-store";
+    export { initialWorkspace, QUOTA } from "./src/lib/vault-store";
   `, resolveDir: root, loader: "ts" },
   bundle: true, platform: "node", format: "cjs", write: false,
   plugins: [{
@@ -121,7 +121,7 @@ const bundle = await build({
 });
 const compiled = { exports: {} };
 new Function("require", "module", "exports", bundle.outputFiles[0].text)(createRequire(import.meta.url), compiled, compiled.exports);
-const { vaultRouter, publicAddress, linkUrl, fetchPublicFile, LINK_MAX_BYTES, initialWorkspace } = compiled.exports;
+const { vaultRouter, publicAddress, linkUrl, fetchPublicFile, LINK_MAX_BYTES, initialWorkspace, QUOTA } = compiled.exports;
 const warnings = [];
 const app = express();
 app.use(express.json());
@@ -213,7 +213,12 @@ test("oversize headers, streaming overflow, login, HTML, compressed and invalid 
   assert.ok(!JSON.stringify(warnings).includes("synthetic-secret"));
 });
 
-test("atomic quota check prevents concurrent upload and import exceeding 15 MiB", async () => {
+test("atomic quota check prevents concurrent upload and import exceeding the active workspace quota", async () => {
+  memory.get("A").documents.push({
+    id: "existing-fixture", name: "existing.txt", size: QUOTA - 12 * 1024 * 1024,
+    text: "", status: "stored", folderId: "default-0", type: "TXT",
+    objectPath: "fixture-only", createdAt: new Date().toISOString(), starred: false,
+  });
   networkHandler = () => ({ body: "x".repeat(8 * 1024 * 1024) });
   const [imported, uploaded] = await Promise.all([
     api("/documents/import", input),
@@ -223,7 +228,7 @@ test("atomic quota check prevents concurrent upload and import exceeding 15 MiB"
     }),
   ]);
   assert.deepEqual([imported.status, uploaded.status].sort(), [200, 413]);
-  assert.equal(memory.get("A").documents.length, 1); assert.equal(blobs.size, 1);
+  assert.equal(memory.get("A").documents.length, 2); assert.equal(blobs.size, 1);
 });
 
 test("deadline includes DNS and network stalls, and raw upstream errors never expose tokens", async () => {

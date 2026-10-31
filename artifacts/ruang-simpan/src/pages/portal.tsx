@@ -121,8 +121,8 @@ export default function PortalPage() {
       const key = `${Date.now()}-${i}-${f.name}`;
       let error: string | undefined;
       if (!ALLOWED_EXT.includes(extOf(f.name))) error = 'Format tidak didukung';
-      else if (f.size > MAX_FILE_BYTES) error = 'Melebihi 15 MB per file';
-      else if (f.size > remaining) error = 'Kuota 15 MB tidak cukup';
+      else if (f.size > MAX_FILE_BYTES) error = 'Melebihi 50 MB per file';
+      else if (f.size > remaining) error = 'Sisa kuota 50 MB tidak cukup';
       if (error) items.push({ key, name: f.name, size: f.size, state: 'error', error });
       else {
         remaining -= f.size;
@@ -243,7 +243,7 @@ export default function PortalPage() {
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1">
             <p className="text-lg font-bold">Seret beberapa file ke sini</p>
-            <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, XLSX, TXT, MD, CSV, JPG, PNG. Maks 15 MiB per file, total kuota 15 MiB gratis. Teks dokumen dibaca lokal saat unggah. Foto/PDF scan hanya dikirim untuk OCR setelah persetujuan Anda per percobaan. OCR maksimal 30 halaman PDF dan 60 detik pemrosesan. Indeks maksimal 100.000 karakter; pembacaan lokal maksimal 150 halaman PDF atau 20 lembar XLSX × 2.000 baris.</p>
+            <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, XLSX, TXT, MD, CSV, JPG, PNG. Maks 50 MiB per file, sesuai sisa total kuota 50 MiB gratis. Teks dokumen dibaca lokal saat unggah. Foto/PDF scan hanya dikirim untuk OCR setelah persetujuan Anda per percobaan. OCR maksimal 15 MiB, 30 halaman PDF, dan 60 detik pemrosesan. Indeks maksimal 100.000 karakter; pembacaan lokal maksimal 150 halaman PDF atau 20 lembar XLSX × 2.000 baris.</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">Simpan ke</span>

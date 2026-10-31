@@ -17,6 +17,7 @@ import { requestVaultAnswer, vaultAiReadiness } from "../lib/vault-ai";
 import { createChatService, ChatServiceError } from "../lib/chat-service";
 import { GetVaultAiStatusResponse } from "@workspace/api-zod";
 import { vaultExternalRouter, uploadDocument, streamDocument, importDocument } from "./vault-external";
+import { documentAnalysisRouter } from "./document-analysis";
 
 export const vaultRouter = Router();
 vaultRouter.use("/external", vaultExternalRouter);
@@ -24,6 +25,7 @@ vaultRouter.use((_req, res, next) => { res.setHeader("Cache-Control", "no-store"
 vaultRouter.post("/session", openPubSession);
 vaultRouter.delete("/session", closePubSession);
 vaultRouter.use(vaultPubMiddleware);
+vaultRouter.use("/bedah-dokumen", documentAnalysisRouter);
 const statusAuth = createChatService();
 vaultRouter.get("/ai-status", async (req, res) => {
   const diagnostics = req.query.diagnostics === "true";
@@ -108,6 +110,7 @@ vaultRouter.delete("/documents/:id", async (req, res) => {
   const path = await workspace(owner(req), state => {
     const doc = ownDocument(state, idParam(req));
     state.documents = state.documents.filter(d => d.id !== doc.id);
+    state.documentAnalyses = state.documentAnalyses?.filter(a => a.documentId !== doc.id);
     // Preserve scoped assistant IDs: deleting its last selected document must
     // not silently broaden an assistant to all documents.
     state.connections.forEach(c => { c.documentIds = c.documentIds.filter(id => id !== doc.id); });
@@ -208,5 +211,5 @@ vaultRouter.use((err: unknown, req: Request, res: Response, _next: NextFunction)
   const status = err instanceof VaultError ? err.status : invalid ? 400 : tooLarge ? 413 : 500;
   req.log.warn({ status }, "Ruang Simpan request rejected");
   if (res.headersSent) { res.end(); return; }
-  res.status(status).json({ error: err instanceof VaultError ? err.message : status === 400 ? "Periksa data yang Anda masukkan." : status === 413 ? "File melebihi batas 15 MB." : "Permintaan belum berhasil. Silakan coba lagi." });
+  res.status(status).json({ error: err instanceof VaultError ? err.message : status === 400 ? "Periksa data yang Anda masukkan." : status === 413 ? "File melebihi batas 50 MB." : "Permintaan belum berhasil. Silakan coba lagi." });
 });

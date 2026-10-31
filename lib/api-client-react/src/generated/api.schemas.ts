@@ -5,6 +5,129 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface DocumentAnalysisInput {
+  documentId: string;
+  consent: true;
+}
+
+export interface DocumentAnalysisChatInput {
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  question: string;
+  consent: true;
+}
+
+export type DocumentAnalysisChecklistStatus = typeof DocumentAnalysisChecklistStatus[keyof typeof DocumentAnalysisChecklistStatus];
+
+
+export const DocumentAnalysisChecklistStatus = {
+  ada: 'ada',
+  perlu_dicek: 'perlu_dicek',
+  tidak_ditemukan: 'tidak_ditemukan',
+} as const;
+
+export interface DocumentAnalysisChecklist {
+  /**
+     * @minLength 1
+     * @maxLength 400
+     */
+  item: string;
+  status: DocumentAnalysisChecklistStatus;
+  /** @maxLength 1200 */
+  evidence: string;
+}
+
+export type DocumentAnalysisRiskSeverity = typeof DocumentAnalysisRiskSeverity[keyof typeof DocumentAnalysisRiskSeverity];
+
+
+export const DocumentAnalysisRiskSeverity = {
+  tinggi: 'tinggi',
+  sedang: 'sedang',
+  rendah: 'rendah',
+} as const;
+
+export interface DocumentAnalysisRisk {
+  /**
+     * @minLength 1
+     * @maxLength 400
+     */
+  title: string;
+  severity: DocumentAnalysisRiskSeverity;
+  /** @maxLength 1200 */
+  evidence: string;
+  /** @maxLength 1200 */
+  recommendation: string;
+}
+
+export interface DocumentAnalysisRegulation {
+  /**
+     * @minLength 1
+     * @maxLength 400
+     */
+  title: string;
+  /** @maxLength 1200 */
+  evidence: string;
+  /** @maxLength 1200 */
+  note: string;
+}
+
+export type DocumentAnalysisResultCategory = typeof DocumentAnalysisResultCategory[keyof typeof DocumentAnalysisResultCategory];
+
+
+export const DocumentAnalysisResultCategory = {
+  Dokumen_Tender: 'Dokumen Tender',
+  'SKK/SBU': 'SKK/SBU',
+  Kontrak: 'Kontrak',
+  Gambar_Teknis: 'Gambar Teknis',
+  Dokumen_Proyek: 'Dokumen Proyek',
+} as const;
+
+export interface DocumentAnalysisResult {
+  category: DocumentAnalysisResultCategory;
+  /**
+     * @minLength 1
+     * @maxLength 8000
+     */
+  summary: string;
+  /** @maxItems 20 */
+  checklist: DocumentAnalysisChecklist[];
+  /** @maxItems 15 */
+  risks: DocumentAnalysisRisk[];
+  /** @maxItems 20 */
+  regulations: DocumentAnalysisRegulation[];
+}
+
+export type DocumentAnalysisMessageRole = typeof DocumentAnalysisMessageRole[keyof typeof DocumentAnalysisMessageRole];
+
+
+export const DocumentAnalysisMessageRole = {
+  user: 'user',
+  assistant: 'assistant',
+} as const;
+
+export interface DocumentAnalysisMessage {
+  id: string;
+  role: DocumentAnalysisMessageRole;
+  /** @maxLength 32000 */
+  content: string;
+  createdAt: string;
+}
+
+export interface DocumentAnalysis {
+  id: string;
+  documentId: string;
+  documentName: string;
+  createdAt: string;
+  model: string;
+  sourceCharacters: number;
+  analyzedCharacters: number;
+  truncated: boolean;
+  result: DocumentAnalysisResult;
+  messages: DocumentAnalysisMessage[];
+}
+
 export type ClinicTopic = typeof ClinicTopic[keyof typeof ClinicTopic];
 
 

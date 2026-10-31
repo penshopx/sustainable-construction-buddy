@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { ArrowUpRight, FileText, FolderCheck, ListChecks } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, ArrowUpRight, FileText, FolderCheck, ListChecks } from "lucide-react";
 
 const DOKUMEN_PROYEK_URL = "https://dokumenproyek.com";
 
@@ -110,6 +111,17 @@ export default function DokumenProyekSection() {
             <p className="mt-3 text-xs text-muted-foreground font-body">
               Anda akan melanjutkan ke dokumenproyek.com di tab baru.
             </p>
+            <Link
+              to="/bedah-dokumen"
+              data-testid="link-home-bedah-dokumen"
+              className="group mt-6 flex max-w-xl items-center justify-between gap-4 rounded-xl border border-pub-amber/40 bg-pub-amber/5 px-5 py-4 transition-all hover:-translate-y-0.5 hover:border-pub-amber"
+            >
+              <span>
+                <span className="block font-heading font-bold text-foreground">Bedah Dokumen</span>
+                <span className="block text-sm text-muted-foreground">Telaah dokumen tender, SKK/SBU, kontrak, dan gambar teknis dari Ruang Simpan Anda dengan bantuan AI.</span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-pub-amber transition-transform group-hover:translate-x-1" />
+            </Link>
           </motion.div>
         </div>
       </div>

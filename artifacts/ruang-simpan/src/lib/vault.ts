@@ -1,6 +1,6 @@
 import type { VaultDocument } from '@workspace/api-client-react';
 
-export const MAX_FILE_BYTES = 15 * 1024 * 1024;
+export const MAX_FILE_BYTES = 50 * 1024 * 1024;
 export const ALLOWED_EXT = ['pdf', 'docx', 'xlsx', 'txt', 'md', 'csv', 'jpg', 'jpeg', 'png'];
 export const ACCEPT_ATTR = ALLOWED_EXT.map((e) => '.' + e).join(',');
 

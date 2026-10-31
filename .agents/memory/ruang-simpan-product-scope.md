@@ -16,3 +16,15 @@ Klinik Konsultasi diminta sebagai fitur PUB yang melengkapi Ruang Simpan, menggu
 **Why:** Pengguna mengoreksi penafsiran awal “aplikasi terpisah”: yang dimaksud bukan terpisah dari PUB, melainkan tidak terintegrasi dengan Gustafta.
 
 **How to apply:** Arahkan integrasi ke PUB, bukan Gustafta. URL Gustafta hanya referensi. Pastikan cakupan data otoritatif sebelum mengganti sumber data PUB; penyatuan akses tidak boleh membuka dokumen lintas pemilik atau memindahkan kepemilikan otomatis.
+
+Bedah Dokumen juga diminta sebagai fitur “PUB dengan Ruang Simpan”, bukan aplikasi mandiri baru.
+
+**Why:** Pengguna memilih “PUB dengan Ruang Simpan” ketika diminta menentukan tempat fitur Bedah Dokumen.
+
+**How to apply:** Gunakan identitas PUB dan dokumen pribadi Ruang Simpan. Halaman Bedah Dokumen Gustafta merupakan referensi fitur, bukan izin menghubungkan data ke Gustafta.
+
+KTK berarti Knowledge Transfer Kit: PDF ringkasan siap kirim ke klien, dengan status kesiapan traffic light, ringkasan eksekutif, risiko/regulasi relevan, dan action plan yang mudah dipahami. Nama biro jasa/konsultan dicetak di header dan footer.
+
+**Why:** Pengguna menjelaskan arti serta isi KTK untuk Bedah Dokumen.
+
+**How to apply:** Ekspor KTK merupakan laporan PDF beridentitas konsultan, bukan nama alternatif untuk laporan Markdown atau sertifikat kesiapan resmi.

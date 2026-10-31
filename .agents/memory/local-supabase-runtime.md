@@ -9,6 +9,12 @@ Tersedianya perintah Docker dan PostgreSQL yang menerima koneksi belum membuktik
 
 **How to apply:** Bedakan hasil pemeriksaan sintaks dari hasil pengujian HTTP sesungguhnya. Jika stack tidak siap, nyatakan keterbatasan verifikasi dan gunakan CI Supabase lokal; jangan mengganti target dengan database hosted atau mengklaim uji SQL sebagai uji gateway.
 
+Menjalankan `supabase start --ignore-health-check` setelah startup parsial dapat keluar sukses hanya dengan database yang sudah hidup, sementara Auth dan PostgREST tetap berhenti.
+
+**Why:** Kode keluar nol pada startup ulang bukan bukti seluruh stack telah diinisialisasi.
+
+**How to apply:** Wajib periksa ketersediaan Auth/PostgREST dan ledger seluruh migrasi sebelum menyebut pengujian skema lengkap berhasil.
+
 Inisialisasi Realtime juga dapat gagal dengan `eafnosupport` pada listener ketika keluarga alamat jaringan tidak didukung runtime. Mengecualikan layanan Realtime dari `start` belum tentu melewati langkah inisialisasi skemanya.
 
 **Why:** CLI dapat menjalankan kontainer inisialisasi sebelum memilih layanan yang dinyalakan. Menonaktifkan layanan saja tidak menjamin bootstrap database selesai.

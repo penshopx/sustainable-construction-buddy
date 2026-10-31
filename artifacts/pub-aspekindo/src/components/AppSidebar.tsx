@@ -29,6 +29,7 @@ import {
   ChevronDown,
   ExternalLink,
   CircleHelp,
+  ScanText,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -99,6 +100,7 @@ const learningSubItems = [
 // Komunitas & Bisnis group
 const communitySubItems = [
   { title: "Ruang Simpan PUB", url: "/ruang-simpan/", icon: FolderKanban, fullPage: true },
+  { title: "Bedah Dokumen", url: "/bedah-dokumen", icon: ScanText },
   { title: "Klinik Konsultasi", url: "/klinik-konsultasi", icon: MessageCircle },
   { title: "Pusat Informasi", url: "/informasi", icon: Newspaper },
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },

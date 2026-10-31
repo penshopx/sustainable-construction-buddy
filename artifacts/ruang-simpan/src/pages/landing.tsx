@@ -30,7 +30,7 @@ export default function LandingPage() {
               Penyimpanan biasa hanya menyimpan file. Ruang Simpan membaca isinya — akta, SBU, SOP, RAB — sehingga bisa dicari per kalimat dan ditanyakan ke asisten AI dengan kutipan sumber.
             </p>
             <div className="rise mt-8 flex flex-wrap gap-3" style={{ animationDelay: '240ms' }}>
-              <Link href="/sign-up" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 font-bold text-primary-foreground" data-testid="link-hero-sign-up">Mulai dengan 15 MB gratis <ArrowRight className="h-4 w-4" /></Link>
+              <Link href="/sign-up" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 font-bold text-primary-foreground" data-testid="link-hero-sign-up">Mulai dengan 50 MB gratis <ArrowRight className="h-4 w-4" /></Link>
               <Link href="/sign-in" className="inline-flex items-center rounded-xl border border-border px-6 py-3.5 font-semibold hover:border-primary" data-testid="link-hero-sign-in">Saya sudah punya akun</Link>
             </div>
           </div>
@@ -107,8 +107,8 @@ export default function LandingPage() {
         </div>
         <div className="p-2">
           <p className="font-mono-ui text-xs uppercase tracking-[0.25em] text-primary">Paket</p>
-          <p className="mt-4 text-6xl md:text-7xl font-extrabold tracking-tight">15 MB</p>
-          <p className="mt-2 text-xl text-foreground/85">Gratis. Maksimal 15 MB per file. Cukup untuk puluhan dokumen legalitas dan SOP inti.</p>
+          <p className="mt-4 text-6xl md:text-7xl font-extrabold tracking-tight">50 MB</p>
+          <p className="mt-2 text-xl text-foreground/85">Gratis. Maksimal 50 MB per file, sesuai sisa kuota ruang simpan. OCR maksimal 15 MiB per file.</p>
           <Link href="/sign-up" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 font-bold text-primary-foreground" data-testid="link-footer-sign-up">Buat ruang kerja <ArrowRight className="h-4 w-4" /></Link>
         </div>
       </section>

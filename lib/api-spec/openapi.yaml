@@ -13,6 +13,61 @@ tags:
   - name: chat
     description: Public helpdesk and capability-link chatbots
 paths:
+  /ruang-simpan/bedah-dokumen:
+    get:
+      operationId: listDocumentAnalyses
+      tags: [vault]
+      responses:
+        "200":
+          description: Saved private analyses of documents still owned by this member
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/DocumentAnalysis" } }
+    post:
+      operationId: analyzeVaultDocument
+      tags: [vault]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DocumentAnalysisInput" }
+      responses:
+        "200":
+          description: Analysis persisted in the owner's workspace
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentAnalysis" }
+  /ruang-simpan/bedah-dokumen/{id}/chat:
+    post:
+      operationId: chatDocumentAnalysis
+      tags: [vault]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DocumentAnalysisChatInput" }
+      responses:
+        "200":
+          description: Updated analysis with persisted document conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DocumentAnalysis" }
+  /ruang-simpan/bedah-dokumen/{id}:
+    delete:
+      operationId: deleteDocumentAnalysis
+      tags: [vault]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: "Analysis and conversation removed, original document retained" }
   /clinic/cases:
     get:
       operationId: listClinicCases
@@ -870,6 +925,82 @@ components:
           schema:
             $ref: "#/components/schemas/ChatError"
   schemas:
+    DocumentAnalysisInput:
+      type: object
+      required: [documentId, consent]
+      properties:
+        documentId: { type: string, format: uuid }
+        consent: { type: boolean, enum: [true] }
+    DocumentAnalysisChatInput:
+      type: object
+      required: [question, consent]
+      properties:
+        question: { type: string, minLength: 1, maxLength: 2000 }
+        consent: { type: boolean, enum: [true] }
+    DocumentAnalysisChecklist:
+      type: object
+      required: [item, status, evidence]
+      properties:
+        item: { type: string, minLength: 1, maxLength: 400 }
+        status: { type: string, enum: [ada, perlu_dicek, tidak_ditemukan] }
+        evidence: { type: string, maxLength: 1200 }
+    DocumentAnalysisRisk:
+      type: object
+      required: [title, severity, evidence, recommendation]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 400 }
+        severity: { type: string, enum: [tinggi, sedang, rendah] }
+        evidence: { type: string, maxLength: 1200 }
+        recommendation: { type: string, maxLength: 1200 }
+    DocumentAnalysisRegulation:
+      type: object
+      required: [title, evidence, note]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 400 }
+        evidence: { type: string, maxLength: 1200 }
+        note: { type: string, maxLength: 1200 }
+    DocumentAnalysisResult:
+      type: object
+      required: [category, summary, checklist, risks, regulations]
+      properties:
+        category: { type: string, enum: [Dokumen Tender, SKK/SBU, Kontrak, Gambar Teknis, Dokumen Proyek] }
+        summary: { type: string, minLength: 1, maxLength: 8000 }
+        checklist:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/DocumentAnalysisChecklist" }
+        risks:
+          type: array
+          maxItems: 15
+          items: { $ref: "#/components/schemas/DocumentAnalysisRisk" }
+        regulations:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/DocumentAnalysisRegulation" }
+    DocumentAnalysisMessage:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string, maxLength: 32000 }
+        createdAt: { type: string, format: date-time }
+    DocumentAnalysis:
+      type: object
+      required: [id, documentId, documentName, createdAt, model, sourceCharacters, analyzedCharacters, truncated, result, messages]
+      properties:
+        id: { type: string, format: uuid }
+        documentId: { type: string, format: uuid }
+        documentName: { type: string }
+        createdAt: { type: string, format: date-time }
+        model: { type: string }
+        sourceCharacters: { type: integer }
+        analyzedCharacters: { type: integer }
+        truncated: { type: boolean }
+        result: { $ref: "#/components/schemas/DocumentAnalysisResult" }
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/DocumentAnalysisMessage" }
     ClinicTopic:
       type: string
       enum: [sbu, lsbu-abu, pub-lkut, perizinan, tender, kontraktor, konsultan, suplai, pelaksanaan-proyek, brain-project, personel-manajerial, smap, pancek, uji-kompetensi, skk, skk-k3, bimtek, pkb, askom, lisensi-bnsp, akreditasi-kan, ajj-nirkertas]

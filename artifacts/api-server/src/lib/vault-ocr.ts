@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { workspace, ownDocument, activity, fail, QUOTA, type VaultState } from "./vault-store";
+import { workspace, ownDocument, activity, fail, type VaultState } from "./vault-store";
 import { privateFile, reserveExtractionWorker, runExtractionWorker } from "./vault-files";
 import { logger } from "./logger";
 import { OCR_ERRORS } from "./vault-ocr-provider";
@@ -24,7 +24,7 @@ async function readPrivateBytes(path: string, expectedSize: number) {
   try {
     for await (const chunk of stream) {
       size += chunk.length;
-      if (size > QUOTA || size > expectedSize) throw new Error("File exceeds size");
+      if (size > 15 * 1024 * 1024 || size > expectedSize) throw new Error("File exceeds size");
       parts.push(Buffer.from(chunk));
     }
     if (size !== expectedSize || !size) throw new Error("File size mismatch");
@@ -45,7 +45,7 @@ export async function startVaultOcr(owner: string, id: string) {
       if (!["PDF", "PNG", "JPG", "JPEG"].includes(d.type)) fail(400, "OCR hanya untuk PDF, JPG, dan PNG.");
       if (d.status === "processing" || d.status === "ready") fail(409, "Dokumen sedang diproses atau teks sudah siap.");
       if (d.ocrAttemptedAt && Date.parse(d.ocrAttemptedAt) > Date.now() - 60_000) fail(429, "Tunggu satu menit sebelum mencoba OCR lagi.");
-      if (d.size > QUOTA) fail(413, "File melebihi batas 15 MiB.");
+      if (d.size > 15 * 1024 * 1024) fail(413, "OCR mendukung maksimal 15 MiB; file asli tetap tersimpan. Gunakan salinan lebih kecil.");
       d.status = "processing"; d.ocrJob = job; d.ocrAttemptedAt = new Date().toISOString();
       delete d.ocrError;
       activity(state, `Persetujuan OCR openrouter-anthropic-v1 diterima; proses dimulai: ${d.name}`);
