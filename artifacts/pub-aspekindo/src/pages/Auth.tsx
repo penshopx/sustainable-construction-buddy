@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import type { AuthError } from "@supabase/supabase-js";
 import { AlertCircle, Building2, CheckCircle2, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "@/components/ui/sonner-toast";
+import { LogoutTimeoutError } from "@/lib/logoutRequest";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -17,6 +18,11 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [registrationMessage, setRegistrationMessage] = useState("");
+  const [logoutPending, setLogoutPending] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  const logoutInFlight = useRef(false);
+  const logoutStarted = useRef(false);
+  const logoutActive = useRef(false);
   const { signIn, signUp, signOut, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -34,12 +40,36 @@ const Auth = () => {
     }
   }, [authLoading, navigate, nextPath, user, logoutRequested]);
   useEffect(() => {
-    if (!logoutRequested || authLoading) return;
-    let active = true;
-    void signOut().then(() => { if (active) navigate("/auth", { replace: true }); })
-      .catch(() => { if (active) setAuthError("Logout gagal. Sesi mungkin masih aktif; coba kembali melalui menu Keluar PUB."); });
-    return () => { active = false; };
-  }, [logoutRequested, authLoading]);
+    logoutActive.current = logoutRequested;
+    if (!logoutRequested) logoutStarted.current = false;
+    return () => { logoutActive.current = false; };
+  }, [logoutRequested]);
+
+  const handleLogout = useCallback(async () => {
+    if (!logoutActive.current || logoutInFlight.current) return;
+    logoutInFlight.current = true;
+    setLogoutPending(true);
+    setLogoutError("");
+    try {
+      await signOut();
+      if (logoutActive.current) navigate("/auth", { replace: true });
+    } catch (error) {
+      if (logoutActive.current) {
+        setLogoutError(error instanceof LogoutTimeoutError
+          ? error.message
+          : "Logout belum terkonfirmasi. Sesi mungkin masih aktif.");
+      }
+    } finally {
+      logoutInFlight.current = false;
+      if (logoutActive.current) setLogoutPending(false);
+    }
+  }, [navigate, signOut]);
+
+  useEffect(() => {
+    if (!logoutRequested || authLoading || logoutStarted.current) return;
+    logoutStarted.current = true;
+    void handleLogout();
+  }, [logoutRequested, authLoading, handleLogout]);
 
   useEffect(() => {
     if (searchParams.get("confirmed") === "1") {
@@ -199,16 +229,47 @@ const Auth = () => {
           </div>
 
           <h1 className="text-2xl font-bold font-heading text-foreground mb-2">
-            {isForgot ? "Lupa Password" : isLogin ? "Masuk ke Akun" : "Daftar Akun Baru"}
+            {logoutRequested ? "Keluar dari Akun" : isForgot ? "Lupa Password" : isLogin ? "Masuk ke Akun" : "Daftar Akun Baru"}
           </h1>
           <p className="text-muted-foreground font-body mb-8">
-            {isForgot
+            {logoutRequested
+              ? "Jangan tinggalkan perangkat bersama sebelum berhasil keluar."
+              : isForgot
               ? "Masukkan email Anda untuk menerima link reset password."
               : isLogin
               ? "Masuk untuk melanjutkan perjalanan kompetensi Anda."
               : "Buat akun untuk memulai assessment kompetensi."}
           </p>
 
+          {logoutRequested ? (
+            <div aria-busy={logoutPending || authLoading}>
+              {logoutError ? (
+                <div role="alert" className="mb-5 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <div>
+                      <p>{logoutError}</p>
+                      <p className="mt-2">Periksa koneksi lalu coba lagi di sini. Jika permintaan sebelumnya masih berjalan, percobaan ulang menunggu hasilnya.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { void handleLogout(); }}
+                    disabled={logoutPending || authLoading}
+                    className="mt-3 rounded-lg border border-destructive/40 px-4 py-2 font-semibold hover:bg-destructive/10 disabled:opacity-50"
+                  >
+                    Coba lagi keluar
+                  </button>
+                </div>
+              ) : (
+                <div role="status" className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  <span>Sedang keluar…</span>
+                </div>
+              )}
+            </div>
+          ) : (
+          <>
           {authError && (
             <div role="alert" className="mb-5 flex items-start gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -341,6 +402,8 @@ const Auth = () => {
               </>
             )}
           </p>
+          </>
+          )}
         </motion.div>
       </div>
     </div>
