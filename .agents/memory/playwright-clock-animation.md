@@ -9,4 +9,8 @@ Untuk uji browser yang mempercepat timer sambil memeriksa layar hasil, jangan se
 
 **How to apply:** Bila uji yang memakai page.clock menunjukkan request berhasil namun layar lama bertahan, periksa animasi transisi sebelum menyimpulkan kode aplikasi gagal. Untuk timer berbasis interval, percepat interval di konteks browser terisolasi dan pertahankan waktu frame serta jaringan biasa.
 
-Untuk timer yang memakai `performance.now()` dan menyegarkan nilai pada `visibilitychange`, perubahan permanen pada `performance.now()` juga dapat menahan transisi Framer Motion walaupun angka timer sudah mencapai nol. Dalam fixture browser, perlambat hanya interval timer, gantikan `performance.now()` sesaat ketika mengirim `visibilitychange`, lalu segera pulihkan sebelum React menjalankan transisi. Simpan total waktu tiruan antar panggilan agar hitungan tetap maju.
+Untuk timer yang memakai `performance.now()` dan menyegarkan nilai pada `visibilitychange`, perubahan permanen pada `performance.now()` juga dapat menahan transisi Framer Motion walaupun angka timer sudah mencapai nol. Penggantian sementara hanya aman untuk memeriksa angka hitung mundur, bukan pengiriman asinkron.
+
+**Why:** Memulihkan `performance.now()` segera setelah `visibilitychange` membuat efek pengiriman membaca waktu yang belum habis, padahal layar sudah menunjukkan nol. Sebaliknya, mempertahankan offset atau memajukan jam Playwright dapat menahan transisi animasi.
+
+**How to apply:** Untuk menguji pemulihan dan pengiriman saat waktu habis, gunakan deadline singkat yang diterbitkan fixture server serta interval browser asli. Geser waktu server untuk jeda reload, lalu biarkan hitung mundur berjalan nyata hingga habis. Jangan mengubah timer produksi hanya untuk mengatasi keterbatasan jam tiruan.

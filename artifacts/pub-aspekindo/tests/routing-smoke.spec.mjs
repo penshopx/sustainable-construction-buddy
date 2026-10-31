@@ -223,7 +223,7 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
     }));
     localStorage.setItem("pub_onboarding_done", "1");
   }, { user: member, hostname: SUPABASE_HOST });
-  if (assessment) {
+  if (assessment && !assessment.liveCountdown) {
     // Reconcile the countdown via visibilitychange; keep animation frames on
     // real time instead of fast-forwarding the browser's animation clock.
     await page.addInitScript(() => {
@@ -396,28 +396,39 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
         { id: assessmentQuestions[0].domain_id, name: "Legalitas" },
         { id: assessmentQuestions[1].domain_id, name: "Manajemen" },
       ];
-    } else if (assessment && url.pathname === "/rest/v1/rpc/get_active_assessment_draft") {
+    } else if (assessment && url.pathname === "/rest/v1/rpc/get_active_assessment_draft" && request.method() === "POST") {
       if (assessment.started) assessment.recoveryChecks = (assessment.recoveryChecks ?? 0) + 1;
       data = assessment.draft && !assessment.submitted ? {
         preTestId: ASSESSMENT_ID, totalQuestions: assessmentQuestions.length,
-        deadlineAt: assessment.deadlineAt, serverNow: new Date().toISOString(), draft: assessment.draft,
+        startedAt: assessment.startedAt, deadlineAt: assessment.deadlineAt,
+        serverNow: new Date(Date.now() + (assessment.serverTimeOffset ?? 0)).toISOString(), draft: assessment.draft,
       } : null;
     } else if (assessment && url.pathname === "/rest/v1/rpc/start_assessment_draft") {
       assessment.starts = (assessment.starts ?? 0) + 1;
       assessment.started = { user_id: MEMBER_ID, total_questions: assessmentQuestions.length, status: "in_progress" };
-      const now = Date.now();
-      assessment.deadlineAt = new Date(now + 180_000).toISOString();
+      const now = Date.now() + (assessment.serverTimeOffset ?? 0);
+      assessment.startedAt = new Date(now).toISOString();
+      assessment.deadlineAt = new Date(now + (assessment.durationMs ?? 180_000)).toISOString();
       assessment.draft = { ...request.postDataJSON()._draft, preTestId: ASSESSMENT_ID, revision: 0 };
-      data = { preTestId: ASSESSMENT_ID, revision: 0, serverNow: new Date(now).toISOString(), deadlineAt: assessment.deadlineAt };
-    } else if (assessment && url.pathname === "/rest/v1/rpc/save_assessment_draft") {
-      const incoming = request.postDataJSON()._draft;
+      data = { preTestId: ASSESSMENT_ID, startedAt: assessment.startedAt, revision: 0, serverNow: new Date(now).toISOString(), deadlineAt: assessment.deadlineAt };
+    } else if (assessment && url.pathname === "/rest/v1/rpc/save_assessment_draft" && request.method() === "POST") {
+      const { _pre_test_id: preTestId, _draft: incoming } = request.postDataJSON();
+      const unavailable = preTestId !== ASSESSMENT_ID || !assessment.started || assessment.submitted;
+      const expired = Date.now() + (assessment.serverTimeOffset ?? 0) >= Date.parse(assessment.deadlineAt);
+      if (unavailable || expired) {
+        await route.fulfill({
+          status: 400, contentType: "application/json",
+          body: JSON.stringify({ message: unavailable ? "Assessment unavailable" : "Assessment deadline has passed" }),
+        });
+        return;
+      }
       const revision = assessment.draft?.revision ?? 0;
       const saved = incoming.revision === revision;
       if (saved) assessment.draft = { ...incoming, revision: revision + 1 };
       else assessment.conflicts = (assessment.conflicts ?? 0) + 1;
       data = { saved, draft: assessment.draft };
     } else if (assessment && url.pathname === "/rest/v1/rpc/get_assessment_time") {
-      data = { serverNow: new Date().toISOString(), deadlineAt: assessment.deadlineAt };
+      data = { serverNow: new Date(Date.now() + (assessment.serverTimeOffset ?? 0)).toISOString(), deadlineAt: assessment.deadlineAt };
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "POST") {
       assessment.starts = (assessment.starts ?? 0) + 1;
       assessment.started = request.postDataJSON();
@@ -846,7 +857,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     const assessment = {
       started: null, checks: [], submissions: [], submitted: false,
-      successfulSubmissions: 0, failFirstSubmit: true,
+      successfulSubmissions: 0, failFirstSubmit: true, durationMs: 15_000, liveCountdown: true,
     };
     const unexpected = await installAuthenticatedFixture(page, { assessment });
     await page.goto("/assessment");
@@ -855,7 +866,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
     await expect(page.getByText("Penjelasan soal uji.")).toBeVisible();
 
-    await advanceAssessmentClock(page, 181_000);
+    // Real ticks keep expiry checks inside asynchronous submission consistent.
     await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("Gagal mengirim assessment.")).toBeVisible();
     await expect(page.getByText("Sisa waktu: 0:00")).toBeVisible();
@@ -874,9 +885,87 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     expect(unexpected).toEqual([]);
   });
 
+  test("review setelah reload melanjutkan deadline server dan dapat mengulang pengiriman saat waktu habis", async ({ page }) => {
+    const assessment = {
+      started: null, checks: [], submissions: [], submitted: false,
+      serverTimeOffset: 0, durationMs: 15_000, liveCountdown: true, failFirstSubmit: true,
+    };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    await page.goto("/assessment");
+    await page.getByRole("button", { name: "Mulai Assessment" }).click();
+    await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+    await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+    await page.getByRole("button", { name: "Selanjutnya" }).click();
+    await page.getByRole("button", { name: /Periksa kesiapan/ }).click();
+    await page.getByRole("button", { name: "Review Jawaban" }).click();
+    await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+
+    const countdown = page.getByText(/^Sisa waktu: \d:\d\d$/);
+    const secondsLeft = async () => {
+      const [, minutes, seconds] = (await countdown.innerText()).match(/(\d):(\d\d)$/);
+      return Number(minutes) * 60 + Number(seconds);
+    };
+    await expect(countdown).toHaveText(/Sisa waktu: 0:\d\d/);
+    await expect.poll(() => assessment.draft?.phase).toBe("review");
+    expect(assessment.draft.answers).toEqual({
+      [assessmentQuestions[0].id]: 0, [assessmentQuestions[1].id]: 1,
+    });
+    const beforeReload = await secondsLeft();
+    expect(beforeReload).toBeGreaterThan(5);
+    expect(beforeReload).toBeLessThan(15);
+    const deadline = assessment.deadlineAt;
+    const revision = assessment.draft.revision;
+
+    // No local fallback: recovery must use the RPC envelope, not the stale
+    // timeLeft/deadlineAt inside its saved draft. Also simulate time away.
+    await page.evaluate((id) => localStorage.removeItem(`pub_assessment_draft_v1:${id}`), MEMBER_ID);
+    assessment.draft = { ...assessment.draft, timeLeft: 180, deadlineAt: Date.parse(deadline) + 180_000 };
+    assessment.serverTimeOffset += 3_000;
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+    await expect(countdown).toHaveText(/Sisa waktu: 0:\d\d/);
+    const afterReload = await secondsLeft();
+    expect(afterReload).toBeGreaterThan(0);
+    expect(afterReload).toBeLessThan(beforeReload);
+    expect(Math.abs(afterReload - (beforeReload - 3))).toBeLessThanOrEqual(2);
+    expect(assessment.deadlineAt).toBe(deadline);
+    expect(assessment.starts).toBe(1);
+    expect(assessment.recoveryChecks).toBe(1);
+    await expect.poll(() => assessment.draft.revision).toBeGreaterThan(revision);
+    expect(assessment.submissions).toEqual([]);
+
+    // Use real ticks after reload so the expiry and async submit observe the
+    // same monotonic clock, without interfering with transition animations.
+    await expect(countdown).toHaveText("Sisa waktu: 0:00", { timeout: 15_000 });
+    await expect(page.getByText("Gagal mengirim assessment.")).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Waktu habis." }))
+      .toContainText("Jika pengiriman gagal, pilih Selesai & Lihat Hasil untuk mencoba lagi.");
+    await expect(page.getByText("Waktu hampir habis. Segera kirim jawaban Anda.")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Kembali ke Soal" })).toBeDisabled();
+    expect(assessment.submissions).toHaveLength(1);
+    const retry = page.getByRole("button", { name: "Selesai & Lihat Hasil" });
+    await expect(retry).toBeEnabled();
+    await retry.click();
+    await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+    const expectedSubmission = {
+      _pre_test_id: ASSESSMENT_ID,
+      _answers: assessmentQuestions.map((q, i) => ({ question_id: q.id, selected_answer: i })),
+    };
+    expect(assessment.submissions).toEqual([expectedSubmission, expectedSubmission]);
+    expect(assessment.successfulSubmissions).toBe(1);
+    expect(assessment.starts).toBe(1);
+    expect(assessment.recoveryChecks).toBe(1);
+    expect(unexpected).toEqual([]);
+  });
+
   test("batas waktu tetap berjalan saat review dan hanya mengirim sekali", async ({ page }) => {
+    test.setTimeout(90_000);
     await page.emulateMedia({ reducedMotion: "reduce" });
-    const assessment = { started: null, checks: [], submissions: [], submitted: false };
+    // Start above the real 60-second warning threshold and cross it naturally.
+    const assessment = {
+      started: null, checks: [], submissions: [], submitted: false,
+      durationMs: 70_000, liveCountdown: true,
+    };
     const unexpected = await installAuthenticatedFixture(page, { assessment });
     await page.goto("/assessment");
     await page.getByRole("button", { name: "Mulai Assessment" }).click();
@@ -889,20 +978,19 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     const countdown = page.getByText(/^Sisa waktu: \d:\d\d$/);
     await expect(countdown).toBeVisible();
     await expect(page.getByText("Waktu hampir habis. Segera kirim jawaban Anda.")).toHaveCount(0);
-    await advanceAssessmentClock(page, 30_000);
-    await expect(countdown).toHaveText(/Sisa waktu: 2:[12]\d/);
-    await advanceAssessmentClock(page, 121_000);
-    await expect(countdown).toHaveText(/Sisa waktu: 0:[12]\d/);
+    const initialCountdown = await countdown.innerText();
+    await expect(countdown).not.toHaveText(initialCountdown);
+    await expect(countdown).toHaveText(/Sisa waktu: (1:00|0:\d\d)/, { timeout: 15_000 });
     await expect(countdown.locator("..")).toHaveClass(/text-destructive/);
     await expect(page.getByRole("status").filter({ hasText: "Waktu hampir habis" })).toBeVisible();
 
-    await advanceAssessmentClock(page, 30_000);
-    await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible({ timeout: 65_000 });
     await expect(countdown).toHaveCount(0);
     expect(assessment.submissions).toEqual([{
       _pre_test_id: ASSESSMENT_ID,
       _answers: assessmentQuestions.map((q, i) => ({ question_id: q.id, selected_answer: i })),
     }]);
+    expect(assessment.successfulSubmissions).toBe(1);
     expect(unexpected).toEqual([]);
   });
 
