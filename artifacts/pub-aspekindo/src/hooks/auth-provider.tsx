@@ -7,6 +7,9 @@ import { AuthContext, type Profile } from "./useAuth";
 import { loadBusinessProfile } from "@/lib/ruang-simpan";
 import { createLogoutRequest } from "@/lib/logoutRequest";
 
+// Match createClient's default key; do not react to unrelated apps' storage.
+const authStorageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split(".")[0]}-auth-token`;
+
 // Shared with every provider instance: an SDK request may outlive its UI.
 const logoutRequest = createLogoutRequest(
   async (signal) => {
@@ -67,6 +70,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mounted.current = true;
     let active = true;
     let authEventVersion = 0;
+    const handleStorage = (event: StorageEvent) => {
+      if (!active || event.storageArea !== localStorage ||
+          (event.key !== authStorageKey && event.key !== null) ||
+          event.newValue !== null) return;
+      // Storage events are queued. A newer login may already have replaced the
+      // removed token; an old logout must not erase that newer identity.
+      try {
+        if (localStorage.getItem(authStorageKey) !== null) return;
+      } catch { return; }
+      authEventVersion += 1;
+      // Invalidate this tab's pending draft writes even if tab one already
+      // removed the shared keys. Do not call signOut: it can race a new login.
+      try { clearLocalAssessmentDrafts(localStorage); } catch { /* Storage is unavailable. */ }
+      profileRequestId.current += 1;
+      currentIdentity.current = null;
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setBusinessProfileError("");
+      setLoading(false);
+    };
+    window.addEventListener("storage", handleStorage);
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!active) return;
@@ -112,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       currentIdentity.current = null;
       profileRequestId.current += 1;
+      window.removeEventListener("storage", handleStorage);
       subscription.unsubscribe();
     };
   }, []);

@@ -679,30 +679,57 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     }))).toEqual({ drafts: [], onboarding: "1" });
   });
 
-  test("siaran logout tab pertama menghapus draf tab kedua meskipun penyimpanan masih tertunda", async ({ page, context }) => {
+  for (const channelMode of ["available", "unavailable", "throws"]) {
+  test(`logout dua tab (${channelMode}) menghapus draf meskipun penyimpanan masih tertunda`, async ({ page, context }) => {
+    // Each test owns an isolated browser context. Both tabs share only this
+    // fake session; no requests may escape to a hosted Supabase project.
+    await context.addInitScript((mode) => {
+      if (mode === "unavailable") {
+        Object.defineProperty(window, "BroadcastChannel", { value: undefined, configurable: true });
+      } else if (mode === "throws") {
+        Object.defineProperty(window, "BroadcastChannel", {
+          value: class { constructor() { throw new Error("BroadcastChannel blocked for test"); } },
+          configurable: true,
+        });
+      }
+    }, channelMode);
     const assessment = { started: null, checks: [], submissions: [], submitted: false };
     const unexpected = await installAuthenticatedFixture(page, { assessment });
     await page.goto("/assessment");
     await expect(page.getByRole("button", { name: /Keluar/ })).toBeVisible();
 
-    // Same context, unlike the separate-device tests above: Supabase must
-    // deliver its real BroadcastChannel SIGNED_OUT message to the other tab.
+    // Same context, unlike separate-device tests: use real browser storage
+    // events, and Supabase's real broadcast only in the available variant.
     const other = await context.newPage();
     let releaseSave;
     const saveGate = new Promise((resolve) => { releaseSave = resolve; });
     try {
       const otherUnexpected = await installAuthenticatedFixture(other, { assessment });
-      await other.addInitScript(() => {
+      await other.addInitScript((mode) => {
         window.__logoutBroadcasts = 0;
+        window.__logoutStorageEvents = 0;
         window.__draftWritesAfterLogout = [];
         const originalSetItem = Storage.prototype.setItem;
         Storage.prototype.setItem = function (key, value) {
-          if (this === localStorage && window.__logoutBroadcasts > 0 &&
+          if (this === localStorage && (window.__logoutBroadcasts > 0 || window.__logoutStorageEvents > 0) &&
               key.startsWith("pub_assessment_draft_v1:")) {
             window.__draftWritesAfterLogout.push(key);
           }
           return originalSetItem.call(this, key, value);
         };
+        if (mode !== "available") {
+          window.addEventListener("storage", (event) => {
+            if (event.storageArea === localStorage &&
+                event.key === "sb-ci-playwright-auth-token" && event.newValue === null) {
+              // Seed a late leftover before the provider's listener runs.
+              // Shared storage removal alone must not make the test pass.
+              originalSetItem.call(localStorage, "pub_assessment_draft_v1:late-leftover",
+                JSON.stringify({ answers: { soal: 1 }, questions: ["Rahasia"] }));
+              window.__logoutStorageEvents++;
+            }
+          });
+          return;
+        }
         const originalAddListener = BroadcastChannel.prototype.addEventListener;
         BroadcastChannel.prototype.addEventListener = function (type, listener, options) {
           if (type !== "message" || this.name !== "sb-ci-playwright-auth-token") {
@@ -721,7 +748,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
             return listener.call(this, event);
           }, options);
         };
-      });
+      }, channelMode);
       await other.goto("/assessment");
       await other.getByRole("button", { name: "Mulai Assessment" }).click();
       await expect.poll(() => assessment.draft?.revision).toBeGreaterThan(0);
@@ -748,7 +775,16 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
 
       await page.getByRole("button", { name: /Keluar/ }).click();
       await expect(page).toHaveURL(/\/auth$/);
-      await expect.poll(() => other.evaluate(() => window.__logoutBroadcasts)).toBe(1);
+      await expect.poll(() => other.evaluate(() =>
+        localStorage.getItem("sb-ci-playwright-auth-token"))).toBeNull();
+      if (channelMode === "available") {
+        await expect.poll(() => other.evaluate(() => window.__logoutBroadcasts)).toBe(1);
+      } else {
+        await expect.poll(() => other.evaluate(() => window.__logoutStorageEvents)).toBe(1);
+        expect(await other.evaluate(() => window.__logoutBroadcasts)).toBe(0);
+        expect(await other.evaluate(() => typeof BroadcastChannel)).toBe(
+          channelMode === "unavailable" ? "undefined" : "function");
+      }
       await expect(other).toHaveURL(/\/auth$/);
       await expect(other.getByRole("heading", { name: "Masuk ke Akun" })).toBeVisible();
       await expect(other.getByRole("heading", { name: assessmentQuestions[0].question_text })).toHaveCount(0);
@@ -773,6 +809,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await other.close();
     }
   });
+  }
 
   test("assessment menampilkan formulir awal dan riwayat", async ({ page }) => {
     const unexpected = await installAuthenticatedFixture(page);
