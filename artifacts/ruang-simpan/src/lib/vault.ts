@@ -36,8 +36,9 @@ export function errorMessage(e: unknown, fallback = 'Terjadi kesalahan. Coba lag
 
 export const STATUS_META: Record<VaultDocument['status'], { label: string; hint: string; cls: string }> = {
   ready: { label: 'Siap AI', hint: 'Teks terbaca dan terindeks. Bisa dicari isinya dan dipakai sebagai konteks AI.', cls: 'bg-sky-400/15 text-sky-200 border-sky-400/40' },
-  stored: { label: 'Tersimpan', hint: 'File tersimpan, tetapi tidak ada teks yang bisa dibaca (OCR belum tersedia).', cls: 'bg-slate-400/10 text-slate-200 border-slate-400/30' },
+  stored: { label: 'Tersimpan', hint: 'File tersimpan, tetapi belum ada teks terbaca. Foto/PDF scan memerlukan persetujuan OCR.', cls: 'bg-slate-400/10 text-slate-200 border-slate-400/30' },
   failed: { label: 'Ekstraksi gagal', hint: 'File tetap tersimpan, tetapi pembacaan teks gagal.', cls: 'bg-amber-400/10 text-amber-200 border-amber-400/40' },
+  processing: { label: 'Memproses OCR', hint: 'File sedang dibaca. Belum siap AI sampai teks berhasil disimpan.', cls: 'bg-sky-400/10 text-sky-200 border-sky-400/30' },
 };
 
 export async function uploadDocument(file: File, folderId: string): Promise<VaultDocument> {

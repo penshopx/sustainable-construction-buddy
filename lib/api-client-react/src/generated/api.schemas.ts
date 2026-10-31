@@ -125,6 +125,7 @@ export const VaultDocumentMetadataStatus = {
   ready: 'ready',
   stored: 'stored',
   failed: 'failed',
+  processing: 'processing',
 } as const;
 
 export interface VaultDocumentMetadata {
@@ -170,6 +171,7 @@ export const VaultDocumentStatus = {
   ready: 'ready',
   stored: 'stored',
   failed: 'failed',
+  processing: 'processing',
 } as const;
 
 export interface VaultDocument {
@@ -182,6 +184,20 @@ export interface VaultDocument {
   status: VaultDocumentStatus;
   starred: boolean;
   text: string;
+  ocrError?: string;
+  ocrAttemptedAt?: string;
+}
+
+export type VaultOcrInputProvider = typeof VaultOcrInputProvider[keyof typeof VaultOcrInputProvider];
+
+
+export const VaultOcrInputProvider = {
+  'openrouter-anthropic-v1': 'openrouter-anthropic-v1',
+} as const;
+
+export interface VaultOcrInput {
+  consent: true;
+  provider: VaultOcrInputProvider;
 }
 
 export interface VaultDocumentUpdate {

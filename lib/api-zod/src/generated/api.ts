@@ -200,7 +200,7 @@ export const ListVaultExternalDocumentsResponseItem = zod.object({
   "size": zod.number().int(),
   "type": zod.string(),
   "createdAt": zod.string(),
-  "status": zod.enum(['ready', 'stored', 'failed']),
+  "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean()
 })
 export const ListVaultExternalDocumentsResponse = zod.array(ListVaultExternalDocumentsResponseItem)
@@ -221,9 +221,11 @@ export const UploadVaultExternalDocumentResponse = zod.object({
   "size": zod.number().int(),
   "type": zod.string(),
   "createdAt": zod.string(),
-  "status": zod.enum(['ready', 'stored', 'failed']),
+  "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
-  "text": zod.string()
+  "text": zod.string(),
+  "ocrError": zod.string().optional(),
+  "ocrAttemptedAt": zod.string().optional()
 })
 
 
@@ -267,9 +269,11 @@ export const GetVaultWorkspaceResponse = zod.object({
   "size": zod.number().int(),
   "type": zod.string(),
   "createdAt": zod.string(),
-  "status": zod.enum(['ready', 'stored', 'failed']),
+  "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
-  "text": zod.string()
+  "text": zod.string(),
+  "ocrError": zod.string().optional(),
+  "ocrAttemptedAt": zod.string().optional()
 })),
   "profile": zod.object({
   "name": zod.string().max(getVaultWorkspaceResponseProfileNameMax),
@@ -374,9 +378,11 @@ export const UploadVaultDocumentResponse = zod.object({
   "size": zod.number().int(),
   "type": zod.string(),
   "createdAt": zod.string(),
-  "status": zod.enum(['ready', 'stored', 'failed']),
+  "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
-  "text": zod.string()
+  "text": zod.string(),
+  "ocrError": zod.string().optional(),
+  "ocrAttemptedAt": zod.string().optional()
 })
 
 
@@ -401,9 +407,11 @@ export const UpdateVaultDocumentResponse = zod.object({
   "size": zod.number().int(),
   "type": zod.string(),
   "createdAt": zod.string(),
-  "status": zod.enum(['ready', 'stored', 'failed']),
+  "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
-  "text": zod.string()
+  "text": zod.string(),
+  "ocrError": zod.string().optional(),
+  "ocrAttemptedAt": zod.string().optional()
 })
 
 
@@ -412,6 +420,34 @@ export const DeleteVaultDocumentParams = zod.object({
 })
 
 export const DeleteVaultDocumentResponse = zod.void()
+
+
+/**
+ * Sends the private file to OpenRouter and Anthropic Claude Sonnet 4.5, without automatic retries or fallback. Maximum 15 MiB and 30 PDF pages; bounded worker and timeout. Poll workspace for completion.
+ * @summary Owner-only OCR after explicit per-attempt external processing consent
+ */
+export const ProcessVaultOcrParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const ProcessVaultOcrBody = zod.object({
+  "consent": zod.literal(true),
+  "provider": zod.enum(['openrouter-anthropic-v1'])
+})
+
+export const ProcessVaultOcrResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "folderId": zod.string(),
+  "size": zod.number().int(),
+  "type": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
+  "starred": zod.boolean(),
+  "text": zod.string(),
+  "ocrError": zod.string().optional(),
+  "ocrAttemptedAt": zod.string().optional()
+})
 
 
 export const DownloadVaultDocumentParams = zod.object({

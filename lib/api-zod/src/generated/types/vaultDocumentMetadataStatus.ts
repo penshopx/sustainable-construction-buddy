@@ -13,4 +13,5 @@ export const VaultDocumentMetadataStatus = {
   ready: 'ready',
   stored: 'stored',
   failed: 'failed',
+  processing: 'processing',
 } as const;

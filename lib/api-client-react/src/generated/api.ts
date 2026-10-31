@@ -62,6 +62,7 @@ import type {
   VaultDocumentUpdate,
   VaultFolder,
   VaultFolderInput,
+  VaultOcrInput,
   VaultProfile,
   VaultQuestionInput,
   VaultWorkspace
@@ -1423,6 +1424,79 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeleteVaultDocumentMutationOptions(options));
+    }
+
+export const getProcessVaultOcrUrl = (id: string,) => {
+
+
+
+
+  return `/api/ruang-simpan/documents/${id}/ocr`
+}
+
+/**
+ * Sends the private file to OpenRouter and Anthropic Claude Sonnet 4.5, without automatic retries or fallback. Maximum 15 MiB and 30 PDF pages; bounded worker and timeout. Poll workspace for completion.
+ * @summary Owner-only OCR after explicit per-attempt external processing consent
+ */
+export const processVaultOcr = async (id: string,
+    vaultOcrInput: VaultOcrInput, options?: Parameters<typeof customFetch>[1]): Promise<VaultDocument> => {
+
+  return customFetch<VaultDocument>(getProcessVaultOcrUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultOcrInput)
+  }
+);}
+
+
+
+
+
+export const getProcessVaultOcrMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof processVaultOcr>>, TError,{id: string;data: BodyType<VaultOcrInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof processVaultOcr>>, TError,{id: string;data: BodyType<VaultOcrInput>}, TContext> => {
+
+const mutationKey = ['processVaultOcr'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof processVaultOcr>>, {id: string;data: BodyType<VaultOcrInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  processVaultOcr(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProcessVaultOcrMutationResult = NonNullable<Awaited<ReturnType<typeof processVaultOcr>>>
+    export type ProcessVaultOcrMutationBody = BodyType<VaultOcrInput>
+    export type ProcessVaultOcrMutationError = ErrorType<void>
+
+    /**
+ * @summary Owner-only OCR after explicit per-attempt external processing consent
+ */
+export const useProcessVaultOcr = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof processVaultOcr>>, TError,{id: string;data: BodyType<VaultOcrInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof processVaultOcr>>,
+        TError,
+        {id: string;data: BodyType<VaultOcrInput>},
+        TContext
+      > => {
+      return useMutation(getProcessVaultOcrMutationOptions(options));
     }
 
 export const getDownloadVaultDocumentUrl = (id: string,) => {

@@ -39,26 +39,41 @@ export function validateFile(name: string, bytes: Buffer) {
   return { type: type.toUpperCase(), mime: formats[type] };
 }
 let extractionCount = 0;
+export function reserveExtractionWorker() {
+  if (extractionCount >= 2) fail(429, "Pekerja pembacaan dokumen sedang penuh. Coba lagi sebentar.");
+  extractionCount++;
+  let released = false;
+  return () => { if (!released) { released = true; extractionCount--; } };
+}
+export function runExtractionWorker(bytes: Buffer, type: string, apiKey?: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL("./vault-extractor.cjs", import.meta.url), {
+      workerData: { bytes, type, apiKey },
+      env: {},
+      resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 16 },
+    });
+    let settled = false;
+    const finish = (error?: Error, text = "") => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      // Keep the slot reserved until termination actually finishes.
+      void worker.terminate().finally(() => error ? reject(error) : resolve(text));
+    };
+    const timer = setTimeout(() => finish(new Error("OCR_TIMEOUT")), apiKey ? 60_000 : 15_000);
+    worker.once("message", (result: { text?: string; error?: boolean; code?: string }) => {
+      if (result.error || typeof result.text !== "string") finish(new Error(result.code ?? "OCR_FAILED"));
+      else finish(undefined, result.text);
+    });
+    worker.once("error", () => finish(new Error("Extraction failed")));
+    worker.once("exit", () => finish(new Error("Extraction stopped")));
+  });
+}
 export async function extractText(bytes: Buffer, type: string): Promise<string> {
   if (["TXT", "MD", "CSV"].includes(type)) return bytes.toString("utf8").replace(/\0/g, "").trim().slice(0, 100_000);
   if (!["PDF", "DOCX", "XLSX"].includes(type)) return "";
-  if (extractionCount >= 2) throw new Error("Extraction workers busy");
-  extractionCount++;
+  const release = reserveExtractionWorker();
   try {
-    return await new Promise<string>((resolve, reject) => {
-      // A bounded, disposable worker prevents parser failures or compressed
-      // document expansion from blocking the shared API's event loop.
-      const worker = new Worker(new URL("./vault-extractor.cjs", import.meta.url), {
-        workerData: { bytes, type },
-        resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 16 },
-      });
-      const timer = setTimeout(() => { void worker.terminate(); reject(new Error("Extraction timeout")); }, 15_000);
-      worker.once("message", (result: { text?: string; error?: boolean }) => {
-        clearTimeout(timer); void worker.terminate();
-        if (result.error) reject(new Error("Extraction failed")); else resolve(result.text ?? "");
-      });
-      worker.once("error", () => { clearTimeout(timer); reject(new Error("Extraction failed")); });
-      worker.once("exit", code => { clearTimeout(timer); if (code !== 0) reject(new Error("Extraction stopped")); });
-    });
-  } finally { extractionCount--; }
+    return await runExtractionWorker(bytes, type);
+  } finally { release(); }
 }

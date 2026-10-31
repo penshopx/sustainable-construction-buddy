@@ -7,6 +7,7 @@ import {
   useDeleteVaultFolder,
   useUpdateVaultDocument,
   useDeleteVaultDocument,
+  useProcessVaultOcr,
   type VaultDocument,
   type VaultFolder,
 } from '@workspace/api-client-react';
@@ -44,7 +45,10 @@ function snippet(text: string, q: string) {
 export default function PortalPage() {
   const qc = useQueryClient();
   const { toast } = useToast();
-  const ws = useGetVaultWorkspace();
+  const ws = useGetVaultWorkspace({ query: {
+    queryKey: getGetVaultWorkspaceQueryKey(),
+    refetchInterval: (q) => q.state.data?.documents.some(d => d.status === 'processing') ? 2000 : 15000,
+  } });
   const invalidate = () => qc.invalidateQueries({ queryKey: getGetVaultWorkspaceQueryKey() });
 
   const [tab, setTab] = useState<string>('all');
@@ -62,17 +66,22 @@ export default function PortalPage() {
   const [renameValue, setRenameValue] = useState('');
   const [moveDoc, setMoveDoc] = useState<VaultDocument | null>(null);
   const [moveTarget, setMoveTarget] = useState('');
-  const [previewDoc, setPreviewDoc] = useState<VaultDocument | null>(null);
+  const [previewSelection, setPreviewDoc] = useState<VaultDocument | null>(null);
+  const [ocrDoc, setOcrDoc] = useState<VaultDocument | null>(null);
+  const [ocrConsent, setOcrConsent] = useState(false);
+  const [ocrRequestError, setOcrRequestError] = useState('');
   const [deleteDoc, setDeleteDoc] = useState<VaultDocument | null>(null);
 
   const createFolder = useCreateVaultFolder();
   const deleteFolder = useDeleteVaultFolder();
   const updateDoc = useUpdateVaultDocument();
   const removeDoc = useDeleteVaultDocument();
+  const processOcr = useProcessVaultOcr();
 
   const data = ws.data;
   const folders = data?.folders ?? [];
   const documents = useMemo(() => data?.documents ?? [], [data]);
+  const previewDoc = documents.find(d => d.id === previewSelection?.id) ?? null;
   const folderName = (id: string) => folders.find((f) => f.id === id)?.name ?? 'Tanpa folder';
 
   const filtered = useMemo(() => {
@@ -148,6 +157,17 @@ export default function PortalPage() {
   ];
   const currentFolder = folders.find((f) => f.id === tab);
 
+  function OcrAction({ doc }: { doc: VaultDocument }) {
+    if (!['PDF', 'PNG', 'JPG', 'JPEG'].includes(doc.type) || doc.status === 'ready') return null;
+    return <div className="mt-3 space-y-2">
+      {doc.ocrError && <p role="alert" className="text-xs text-amber-200">{doc.ocrError}</p>}
+      <Button size="sm" variant="secondary" disabled={doc.status === 'processing'} data-testid={`button-ocr-${doc.id}`}
+        onClick={() => { setOcrDoc(doc); setOcrConsent(false); setOcrRequestError(''); }}>
+        {doc.status === 'processing' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memproses OCR</> : doc.ocrAttemptedAt ? 'Coba ulang OCR' : 'Baca teks dengan OCR'}
+      </Button>
+    </div>;
+  }
+
   function DocActions({ doc }: { doc: VaultDocument }) {
     return (
       <DropdownMenu>
@@ -215,7 +235,7 @@ export default function PortalPage() {
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1">
             <p className="text-lg font-bold">Seret beberapa file ke sini</p>
-            <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, XLSX, TXT, MD, CSV, JPG, PNG. Maks 15 MB per file, total kuota 15 MB gratis. Teks dari PDF/dokumen dibaca otomatis; gambar disimpan tanpa OCR. Indeks dibatasi 100.000 karakter per file, 150 halaman PDF, atau 20 lembar XLSX dengan 2.000 baris per lembar.</p>
+            <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, XLSX, TXT, MD, CSV, JPG, PNG. Maks 15 MiB per file, total kuota 15 MiB gratis. Teks dokumen dibaca lokal saat unggah. Foto/PDF scan hanya dikirim untuk OCR setelah persetujuan Anda per percobaan. OCR maksimal 30 halaman PDF dan 60 detik pemrosesan. Indeks maksimal 100.000 karakter; pembacaan lokal maksimal 150 halaman PDF atau 20 lembar XLSX × 2.000 baris.</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">Simpan ke</span>
@@ -319,6 +339,7 @@ export default function PortalPage() {
                 <span className="font-mono-ui text-muted-foreground">{formatBytes(d.size)}</span>
                 <span className="ml-auto text-muted-foreground">{formatDate(d.createdAt)}</span>
               </div>
+              <OcrAction doc={d} />
             </article>
           ))}
         </div>
@@ -331,6 +352,7 @@ export default function PortalPage() {
                 <p className="truncate font-semibold">{d.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{folderName(d.folderId)} · {formatBytes(d.size)} · {formatDate(d.createdAt)}</p>
               </button>
+              <OcrAction doc={d} />
               <span className="hidden sm:inline"><StatusBadge doc={d} /></span>
               <StarBtn doc={d} />
               <DocActions doc={d} />
@@ -411,19 +433,45 @@ export default function PortalPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="flex-1 overflow-auto rounded-lg border border-border bg-background/70 p-4">
-                {['jpg', 'jpeg', 'png'].includes(extOf(previewDoc.name)) ? (
-                  <img src={downloadUrl(previewDoc.id)} alt={previewDoc.name} className="max-h-[60dvh] mx-auto rounded" />
-                ) : previewDoc.text ? (
+                {previewDoc.text ? (
                   <pre className="whitespace-pre-wrap text-sm leading-relaxed font-mono-ui text-foreground/90" data-testid="text-preview">{previewDoc.text}</pre>
                 ) : (
                   <p className="text-muted-foreground">{STATUS_META[previewDoc.status].hint} Unduh file untuk melihat isi aslinya.</p>
                 )}
+                <OcrAction doc={previewDoc} />
+                {previewDoc.ocrAttemptedAt && previewDoc.text && <p className="mt-3 text-xs text-muted-foreground">Teks hasil OCR dapat keliru. Periksa kutipan terhadap file asli sebelum dipakai untuk keputusan penting.</p>}
               </div>
               <DialogFooter>
                 <Button asChild variant="secondary"><a href={downloadUrl(previewDoc.id)} download={previewDoc.name} data-testid="link-download-preview"><Download className="h-4 w-4 mr-2" />Unduh</a></Button>
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!ocrDoc} onOpenChange={(open) => { if (!open && !processOcr.isPending) setOcrDoc(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Izinkan OCR dokumen ini?</DialogTitle>
+            <DialogDescription className="break-words">{ocrDoc?.name}</DialogDescription>
+          </DialogHeader>
+          <p className="text-sm">Seluruh isi file ini akan dikirim secara privat ke OpenRouter dan Anthropic Claude Sonnet 4.5 untuk membaca teks. Ini layanan eksternal berbiaya; kebijakan penyedia tetap berlaku. Aplikasi meminta agar data tidak dikumpulkan dan tidak memakai model cadangan. File tidak dijadikan tautan publik.</p>
+          <p className="text-sm text-muted-foreground">Hanya file yang dipilih, tanpa dokumen lain. Maksimal 15 MiB, 30 halaman PDF, 60 detik pemrosesan, dan 100.000 karakter hasil. Hasil terpotong ditolak. Tidak ada pengiriman ulang otomatis. Teks baru siap dicari dan ditanya setelah tersimpan; OCR dapat keliru.</p>
+          <label className="flex items-start gap-3 text-sm">
+            <input type="checkbox" checked={ocrConsent} onChange={e => setOcrConsent(e.target.checked)} data-testid="checkbox-ocr-consent" className="mt-1" />
+            Saya menyetujui pengiriman file ini ke OpenRouter dan Anthropic untuk satu percobaan OCR.
+          </label>
+          {ocrRequestError && <p role="alert" className="text-sm text-destructive">{ocrRequestError}</p>}
+          <DialogFooter>
+            <Button variant="secondary" disabled={processOcr.isPending} onClick={() => setOcrDoc(null)}>Batal</Button>
+            <Button disabled={!ocrConsent || processOcr.isPending} data-testid="button-confirm-ocr" onClick={() => {
+              if (!ocrDoc || !ocrConsent) return;
+              processOcr.mutate({ id: ocrDoc.id, data: { consent: true, provider: 'openrouter-anthropic-v1' } }, {
+                onSuccess: () => { setOcrDoc(null); invalidate(); toast({ title: 'OCR dimulai', description: 'Status akan diperbarui setelah teks tersimpan.' }); },
+                onError: e => { setOcrConsent(false); setOcrRequestError(errorMessage(e)); invalidate(); },
+              });
+            }}>{processOcr.isPending ? 'Memulai…' : 'Izinkan dan proses OCR'}</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

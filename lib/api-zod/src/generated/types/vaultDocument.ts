@@ -17,4 +17,6 @@ export interface VaultDocument {
   status: VaultDocumentStatus;
   starred: boolean;
   text: string;
+  ocrError?: string;
+  ocrAttemptedAt?: string;
 }

@@ -28,3 +28,5 @@
 - [Ruang Simpan sebagai acuan PUB](ruang-simpan-product-scope.md) — sumber kebenaran utama untuk PUB ASPEKINDO, bukan produk terpisah; tidak terintegrasi ke Gustafta.
 - [Batas keluaran OpenRouter](openrouter-output-budget.md) — uji kecil dapat berhasil meski batas keluaran aplikasi ditolak 402; cocokkan model dan max_tokens saat diagnosis.
 - [Badan request Orval](orval-inline-body-exports.md) — pakai skema input bernama agar tipe badan inline tidak bertabrakan dengan validator Zod dalam barrel.
+- [Batas penyedia OCR](document-ocr-provider-boundary.md) — engine PDF bawaan dapat menambah penerima dokumen; kunci engine/provider sesuai persetujuan.
+- [Buffer pada parser PDF lama](legacy-pdf-buffer-semantics.md) — PDF.js lama dapat menolak PDF valid bila menerima Buffer Node; pakai salinan Uint8Array.

@@ -7,9 +7,11 @@ import {
   CreateVaultFolderBody, UpdateVaultProfileBody, UpdateVaultDocumentBody,
   CreateVaultAssistantBody, CreateVaultConnectionBody, AskVaultQuestionBody,
   ResolveVaultCompaniesBody,
+  ProcessVaultOcrBody, ProcessVaultOcrParams, ProcessVaultOcrResponse,
 } from "@workspace/api-zod";
 import { workspace, publicWorkspace, ownDocument, ownFolder, activity, fail, tokenHash, VaultError, QUOTA } from "../lib/vault-store";
 import { privateFile } from "../lib/vault-files";
+import { startVaultOcr, expireOcrJobs } from "../lib/vault-ocr";
 import { requestVaultAnswer } from "../lib/vault-ai";
 import { vaultExternalRouter, uploadDocument, streamDocument } from "./vault-external";
 
@@ -26,7 +28,7 @@ vaultRouter.post("/company-names", async (req, res) => {
 const owner = (req: Request) => req.res!.locals.vaultOwner as string;
 const idParam = (req: Request) => String(req.params.id);
 vaultRouter.get("/workspace", async (req, res) => {
-  res.json(await workspace(owner(req), state => publicWorkspace(state)));
+  res.json(await workspace(owner(req), state => { expireOcrJobs(state); return publicWorkspace(state); }));
 });
 vaultRouter.post("/folders", async (req, res) => {
   const input = CreateVaultFolderBody.parse(req.body);
@@ -61,6 +63,11 @@ vaultRouter.post("/documents", raw({ type: "application/octet-stream", limit: QU
   if (!Buffer.isBuffer(req.body)) fail(400, "Kirim isi file sebagai application/octet-stream.");
   res.json(await uploadDocument(owner(req), req.body, req.query.name, req.query.folderId));
 });
+vaultRouter.post("/documents/:id/ocr", async (req, res) => {
+  const { id } = ProcessVaultOcrParams.parse(req.params);
+  ProcessVaultOcrBody.parse(req.body);
+  res.status(202).json(ProcessVaultOcrResponse.parse(await startVaultOcr(owner(req), id)));
+});
 vaultRouter.patch("/documents/:id", async (req, res) => {
   const input = UpdateVaultDocumentBody.parse(req.body);
   res.json(await workspace(owner(req), state => {
@@ -75,7 +82,7 @@ vaultRouter.patch("/documents/:id", async (req, res) => {
     }
     if (input.starred !== undefined) doc.starred = input.starred;
     activity(state, `Dokumen diperbarui: ${doc.name}`);
-    const { objectPath: _path, ...safe } = doc; return safe;
+    const { objectPath: _path, ocrJob: _job, ...safe } = doc; return safe;
   }));
 });
 vaultRouter.delete("/documents/:id", async (req, res) => {
@@ -159,7 +166,7 @@ vaultRouter.post("/questions", async (req, res) => {
     let docs = state.documents.filter(d => d.status === "ready" && d.text);
     const allowed = assistant?.documentIds.length ? assistant.documentIds : input.documentIds;
     if (allowed?.length) docs = docs.filter(d => allowed.includes(d.id));
-    if (!docs.length) fail(400, "Belum ada dokumen dengan teks terbaca. Unggah PDF bertulisan, DOCX, XLSX, TXT, MD, atau CSV terlebih dahulu.");
+    if (!docs.length) fail(400, "Belum ada dokumen dengan teks terbaca. Selesaikan OCR foto/PDF scan atau unggah dokumen bertulisan terlebih dahulu.");
     const words = input.question.toLowerCase().split(/\W+/).filter(w => w.length > 2);
     // Select bounded text windows. Sources include the exact evidence sent to AI.
     const candidates = docs.flatMap(d => {

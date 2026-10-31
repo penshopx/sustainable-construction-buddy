@@ -280,6 +280,31 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "204": { description: Permanently removed }
+  /ruang-simpan/documents/{id}/ocr:
+    post:
+      operationId: processVaultOcr
+      tags: [vault]
+      summary: Owner-only OCR after explicit per-attempt external processing consent
+      description: Sends the private file to OpenRouter and Anthropic Claude Sonnet 4.5, without automatic retries or fallback. Maximum 15 MiB and 30 PDF pages; bounded worker and timeout. Poll workspace for completion.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultOcrInput" }
+      responses:
+        "202":
+          description: OCR accepted; text is not yet ready
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultDocument" }
+        "400": { description: Invalid consent or unsupported file }
+        "401": { description: Owner authentication required }
+        "404": { description: Document not found in this owner's workspace }
+        "409": { description: OCR already running or text already ready }
+        "429": { description: Workers busy or retry cooldown active }
+        "503": { description: OCR provider unavailable }
   /ruang-simpan/documents/{id}/download:
     get:
       operationId: downloadVaultDocument
@@ -824,7 +849,7 @@ components:
         size: { type: integer }
         type: { type: string }
         createdAt: { type: string }
-        status: { type: string, enum: [ready, stored, failed] }
+        status: { type: string, enum: [ready, stored, failed, processing] }
         starred: { type: boolean }
     VaultFolderInput:
       type: object
@@ -856,9 +881,17 @@ components:
         size: { type: integer }
         type: { type: string }
         createdAt: { type: string }
-        status: { type: string, enum: [ready, stored, failed] }
+        status: { type: string, enum: [ready, stored, failed, processing] }
         starred: { type: boolean }
         text: { type: string }
+        ocrError: { type: string }
+        ocrAttemptedAt: { type: string }
+    VaultOcrInput:
+      type: object
+      required: [consent, provider]
+      properties:
+        consent: { type: boolean, enum: [true] }
+        provider: { type: string, enum: [openrouter-anthropic-v1] }
     VaultDocumentUpdate:
       type: object
       properties:

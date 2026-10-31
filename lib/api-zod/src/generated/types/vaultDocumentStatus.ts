@@ -13,4 +13,5 @@ export const VaultDocumentStatus = {
   ready: 'ready',
   stored: 'stored',
   failed: 'failed',
+  processing: 'processing',
 } as const;
