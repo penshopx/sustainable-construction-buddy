@@ -1,5 +1,14 @@
 const maxDiagnosticBytes = 16 * 1024;
-const diagnosticUrlPattern = /(?:https?|postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|cockroachdb):\/\/[^\s"'<>]+/gi;
+const diagnosticUrlPattern = /(?:https?|postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|cockroachdb)(?::|\\u003a)(?:\/|\\\/|\\u002f){2}[^\s"'<>]+/gi;
+
+function normalizeDiagnosticUrl(url) {
+  // Decode URL delimiters only, not the surrounding JSON or arbitrary escapes.
+  // This also exposes sensitive parameters following a JSON-escaped ampersand.
+  return url.replace(/\\\//g, "/").replace(
+    /\\u(002f|0026|003f|003d|0023|0040|003a)/gi,
+    (_, code) => String.fromCharCode(parseInt(code, 16)),
+  );
+}
 // Normalize parameter names only; leave the useful URL structure and values intact.
 const sensitiveUrlParameters = new Set([
   "token", "accesstoken", "refreshtoken", "idtoken", "signedtoken", "jwt",
@@ -73,18 +82,20 @@ export function safeDiagnostic({ text, truncated }) {
   for (const value of sensitiveValues) {
     output = output.replaceAll(value, "[REDACTED]");
   }
-  output = output
-    .replace(/(Bearer\s+)[^\s"']+/gi, "$1[REDACTED]")
-    .replace(/((?:password|token|secret|api[_-]?key|authorization)\s*[:=]\s*["']?)[^\s"',}&#]+/gi, "$1[REDACTED]");
   // A child process may print a URL with a credential not present in our environment.
   // Preserve the URL and harmless parameters so the failure remains actionable.
   output = output.replace(diagnosticUrlPattern, (url) =>
-    url
+    normalizeDiagnosticUrl(url)
       .replace(/^([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+:[^\s/@]+@/i, "$1[REDACTED]@")
       .replace(
         /([?&#])([^=&#\s"'<>]+)=([^&#\s"'<>]*)/g,
         redactUrlParameter,
       ));
+  // Run generic redaction after URL normalization so an escaped separator cannot
+  // make it consume harmless parameters or the rest of a JSON diagnostic.
+  output = output
+    .replace(/(Bearer\s+)[^\s"']+/gi, "$1[REDACTED]")
+    .replace(/((?:password|token|secret|api[_-]?key|authorization)\s*[:=]\s*["']?)[^\s"',}&#]+/gi, "$1[REDACTED]");
   const bytes = Buffer.from(output);
   if (bytes.length > maxDiagnosticBytes) {
     output = bytes.subarray(-maxDiagnosticBytes).toString("utf8");

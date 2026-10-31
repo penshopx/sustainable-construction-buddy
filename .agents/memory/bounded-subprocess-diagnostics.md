@@ -8,3 +8,9 @@ Saat menampilkan output subproses yang gagal, samarkan nilai rahasia dari lingku
 **Why:** Memotong output mentah tanpa overlap bisa membuang awal kredensial, menyisakan akhiran yang tidak lagi cocok. Membuang baris awal seluruhnya bisa menghilangkan pesan kesalahan yang masih berguna pada baris yang sama; membuang token awal sampai batas spasi lebih aman untuk URL tanpa menghilangkan pesan berikutnya. Nama kredensial berakhiran `KEY` tidak selalu memuat kata `SECRET` atau `TOKEN`.
 
 **How to apply:** Berlaku untuk skrip validasi atau publikasi yang menampilkan stdout/stderr subproses pada log CI.
+
+Perlakukan representasi JSON ber-escape sebagai URL saat menyamarkan diagnostik; jangan bergantung pada kredensial yang terdaftar di lingkungan. Batasi normalisasi pada delimiter URL, bukan seluruh pesan JSON.
+
+**Why:** Subproses bisa menghasilkan tautan bertanda tangan dengan kredensial baru. Pemisah parameter ber-escape juga dapat membuat penyamaran generik menelan parameter aman atau rincian kesalahan berikutnya.
+
+**How to apply:** Pertahankan pesan kesalahan dan parameter aman dalam uji keluaran pendek maupun terpotong, dengan nilai sintetis yang tidak terdaftar sebagai rahasia lingkungan.

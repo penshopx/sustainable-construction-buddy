@@ -12,12 +12,23 @@ const secrets = parameters.map((_, index) => `signed-value-${index}-private%2Fpa
 export const signedUrl = `https://storage.example.test/private/video.mp4?mode=debug&${parameters.map((name, index) => `${name}=${secrets[index]}`).join("&")}&expires=3600#sig=fragment-private-value&section=details`;
 export const signedAssertion = "AssertionError: signed URL request failed";
 
-export function signedUrlDetail(truncated, overlap) {
-  if (!truncated) return `${signedUrl} ${signedAssertion}`;
-  const prefix = "https://cutoff.example.test/video?X-Amz-Signature=cutoff-private-value";
+export const jsonUrlEncoders = [
+  (url) => url.replaceAll("/", "\\/"),
+  (url) => url.replaceAll("&", "\\u0026"),
+  (url) => url.replaceAll("/", "\\/").replaceAll("&", "\\u0026"),
+  (url) => url.replace(/[:/?=&#]/g, (character) =>
+    `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`),
+];
+
+export function signedUrlDetail(truncated, overlap, encode) {
+  const suffix = encode
+    ? ` {"url":"${encode(signedUrl)}"} ${signedAssertion}`
+    : ` ${signedUrl} ${signedAssertion}`;
+  if (!truncated) return suffix.trimStart();
+  const rawPrefix = "https://cutoff.example.test/video?X-Amz-Signature=cutoff-private-value";
+  const prefix = encode ? `{"url":"${encode(rawPrefix)}` : rawPrefix;
   const cutoff = prefix.indexOf("cutoff-private-value") + 7;
   const captureBytes = 16 * 1024 + overlap;
-  const suffix = ` ${signedUrl} ${signedAssertion}`;
   const padding = captureBytes - (prefix.length - cutoff) - suffix.length - 1;
   assert.ok(padding > 0);
   const detail = `${prefix}${"x".repeat(padding)}${suffix}`;

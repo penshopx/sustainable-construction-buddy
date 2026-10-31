@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import test from "node:test";
-import { signedUrlDetail, assertSignedUrlDiagnostics } from "./signed-url-diagnostics-fixtures.mjs";
+import { signedUrlDetail, assertSignedUrlDiagnostics, jsonUrlEncoders } from "./signed-url-diagnostics-fixtures.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(rootDir, "scripts", "validate-competency-insight.mjs");
@@ -238,6 +238,22 @@ test("contract failure drops URL password fragments when capture starts inside a
     assert.equal(result.stderr.includes(fragment), false, `${fragment} must not appear in the JSON log`);
   }
   assert.deepEqual(await readTrace(fakeNpm.tracePath), ["run --silent test:insight"]);
+});
+
+test("validator redacts JSON-escaped URLs in short and truncated stdout and stderr", async (t) => {
+  for (const encode of jsonUrlEncoders) {
+    for (const truncated of [false, true]) {
+      const fakeNpm = await createFakeNpm(t);
+      const result = await runValidator({
+        ...fakeNpm,
+        scenario: "terminal-url-failure",
+        detail: signedUrlDetail(truncated, validationOverlap, encode),
+      });
+      const failure = assertSignedUrlDiagnostics(result, truncated);
+      assert.equal(failure.step, "contract");
+      assert.equal(failure.diagnostics.exitCode, 17);
+    }
+  }
 });
 
 test("validator redacts signed URL parameters in short and truncated JSON diagnostics", async (t) => {
