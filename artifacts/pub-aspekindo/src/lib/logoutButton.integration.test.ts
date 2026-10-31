@@ -41,6 +41,7 @@ test.before(async () => {
   modules = {
     ...await server.ssrLoadModule("/src/hooks/useAuth.tsx"),
     ...await server.ssrLoadModule("/src/components/LogoutButton.tsx"),
+    ...await server.ssrLoadModule("/src/lib/logoutRequest.ts"),
   };
 });
 
@@ -76,7 +77,7 @@ test("tombol Keluar menahan klik ganda, memperingatkan kegagalan, dan mengulang 
     await act(async () => { reject(new Error("network failed")); });
     assert.equal(button().props.disabled, false);
     assert.equal(errors.length, 1);
-    assert.match(errors[0].message, /Sesi Anda masih aktif/);
+    assert.match(errors[0].message, /Sesi mungkin masih aktif/);
     assert.equal(errors[0].duration, Infinity);
     assert.equal(errors[0].action.label, "Coba lagi");
     await act(async () => { errors[0].action.onClick(); });
@@ -94,4 +95,37 @@ test("tombol Keluar menahan klik ganda, memperingatkan kegagalan, dan mengulang 
     assert.equal(errors.length, 2);
     await act(async () => { root.unmount(); });
   }
+});
+
+test("timeout mengaktifkan kembali tombol; retry menunggu SDK yang sama dan unmount mengabaikan hasil terlambat", async (t) => {
+  errors.length = 0;
+  let finish!: () => void;
+  let calls = 0;
+  const request = modules.createLogoutRequest(async () => {}, async () => {
+    calls++;
+    await new Promise<void>((resolve) => { finish = resolve; });
+  });
+  let root!: ReactTestRenderer;
+  await act(async () => {
+    root = create(React.createElement(modules.AuthContext.Provider, { value: { signOut: () => request.run() } },
+      React.createElement(modules.LogoutButton, { collapsed: false })));
+  });
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  const button = () => root.root.findByType("button");
+  await act(async () => { button().props.onClick(); });
+  await act(async () => { t.mock.timers.tick(10_000); });
+  assert.equal(button().props.disabled, false);
+  assert.match(errors[0].message, /Status sesi belum dapat dipastikan/);
+  assert.equal(errors[0].duration, Infinity);
+  await act(async () => {
+    errors[0].action.onClick();
+    errors[0].action.onClick();
+  });
+  assert.equal(calls, 1);
+  assert.equal(button().props.disabled, true);
+  await act(async () => { root.unmount(); });
+  await act(async () => { t.mock.timers.tick(10_000); });
+  assert.equal(errors.length, 1, "unmounted UI must not show a stale failure toast");
+  await act(async () => { errors[0].action.onClick(); finish(); });
+  assert.equal(calls, 1, "stale toast actions must not restart logout");
 });

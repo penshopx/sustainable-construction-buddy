@@ -300,3 +300,43 @@ test("refresh profil memakai timer dan fokus hanya saat dokumen terlihat, lalu d
   await act(async () => { focus(); });
   assert.equal(profileRequests, 3);
 });
+
+test("timeout SDK menahan login baru lintas remount hingga permintaan lama selesai", async (t) => {
+  const sdk = deferred<any>();
+  let calls = 0;
+  let loginCalls = 0;
+  fakeSupabase.auth = {
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+    getSession: async () => ({ data: { session: null } }),
+    signOut: () => { calls++; return sdk.promise; },
+    signInWithPassword: async () => { loginCalls++; return { data: { session: null }, error: null }; },
+    signUp: async () => { loginCalls++; return { data: { session: null }, error: null }; },
+  };
+  const originalFetch = globalThis.fetch;
+  let deletes = 0;
+  globalThis.fetch = (async () => { deletes++; return { ok: true }; }) as typeof fetch;
+  let observed: any;
+  function Probe() { observed = modules.useAuth(); return null; }
+  try {
+    await act(async () => { root = create(React.createElement(modules.AuthProvider, null, React.createElement(Probe))); });
+    t.mock.timers.enable({ apis: ["setTimeout"] });
+    const first = assert.rejects(observed.signOut(), /Status sesi belum dapat dipastikan/);
+    await act(async () => { await Promise.resolve(); });
+    assert.equal(calls, 1, "SDK must have started before its deadline is advanced");
+    await act(async () => { t.mock.timers.tick(10_000); await first; });
+    await act(async () => { root!.unmount(); });
+    await act(async () => { root = create(React.createElement(modules.AuthProvider, null, React.createElement(Probe))); });
+    assert.match((await observed.signIn("a@example.test", "password")).error.message, /sebelumnya belum selesai/);
+    assert.match((await observed.signUp("a@example.test", "password", "A")).error.message, /sebelumnya belum selesai/);
+    assert.equal(loginCalls, 0);
+    const retry = observed.signOut();
+    await act(async () => { sdk.resolve({ error: null }); await retry; });
+    assert.equal(calls, 1);
+    assert.equal(deletes, 1);
+    assert.equal((await observed.signIn("a@example.test", "password")).error, null);
+    assert.equal(loginCalls, 1);
+  } finally {
+    sdk.resolve({ error: null });
+    globalThis.fetch = originalFetch;
+  }
+});

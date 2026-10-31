@@ -12,6 +12,7 @@
 - [Privasi draf assessment](assessment-draft-privacy.md) — simpan jawaban sementara di ruang khusus pemilik, bukan kolom hasil pre-test yang bisa dibaca peran admin.
 - [Pilihan assessment lintas perangkat](assessment-concurrent-choices.md) — gabungkan soal berbeda; konflik pada soal sama memerlukan pilihan anggota, tanpa memperpanjang batas waktu.
 - [Logout di perangkat bersama](assessment-shared-device-logout.md) — utamakan penghapusan semua cadangan draf lokal saat logout, termasuk penulisan tertunda, walau progres offline bisa hilang.
+- [Batas tunggu logout](logout-timeout-safety.md) — timeout UI bukan akhir operasi SDK; tahan login baru dan gabungkan retry sampai operasi lama selesai.
 - [Drift migrasi Supabase](supabase-migration-drift.md) — migrasi dalam repositori belum tentu pernah diterapkan ke database hosted; periksa definisi fungsi aktif sebelum membungkusnya.
 - [Uji RPC LMS terisolasi](lms-rpc-isolated-tests.md) — skema PostgreSQL minimal menguji fungsi asli tanpa data hosted, tetapi bukan pengganti uji skema Supabase lengkap.
 - [Bobot nilai kuis LMS](lms-quiz-weight-policy.md) — points adalah bobot; kelulusan memakai persentase bulat, tanpa menghitung ulang hasil historis.

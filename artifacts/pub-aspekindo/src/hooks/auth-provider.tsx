@@ -1,10 +1,29 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { Session, User } from "@supabase/supabase-js";
+import { AuthError, Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "@/integrations/supabase/client";
 import { clearLocalAssessmentDrafts } from "@/lib/assessmentDraft";
 import { AuthContext, type Profile } from "./useAuth";
 import { loadBusinessProfile } from "@/lib/ruang-simpan";
+import { createLogoutRequest } from "@/lib/logoutRequest";
+
+// Shared with every provider instance: an SDK request may outlive its UI.
+const logoutRequest = createLogoutRequest(
+  async (signal) => {
+    const cleared = await fetch("/api/ruang-simpan/session", {
+      method: "DELETE", credentials: "same-origin", signal,
+    });
+    if (!cleared.ok) throw new Error("Sesi Ruang Simpan belum dapat ditutup. Coba keluar lagi.");
+  },
+  async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  },
+);
+
+function pendingLogoutError() {
+  return new AuthError("Permintaan keluar sebelumnya belum selesai. Coba keluar lagi sebelum masuk atau mendaftar.");
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -98,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string) => {
+    if (logoutRequest.pending) return { error: pendingLogoutError(), session: null };
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -110,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
+    if (logoutRequest.pending) return { error: pendingLogoutError(), session: null };
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     return { error, session: data.session };
   };
@@ -117,11 +138,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     // Purge before the auth request so an interrupted logout cannot leave answers behind.
     try { clearLocalAssessmentDrafts(localStorage); } catch { /* Storage is unavailable. */ }
-    const cleared = await fetch("/api/ruang-simpan/session", { method: "DELETE", credentials: "same-origin" });
-    if (!cleared.ok) throw new Error("Sesi Ruang Simpan belum dapat ditutup. Coba keluar lagi.");
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
-    setProfile(null);
+    await logoutRequest.run();
+    // Auth state/profile changes belong to onAuthStateChange, not a stale
+    // completion callback from a previous provider or identity.
   };
 
   return (
