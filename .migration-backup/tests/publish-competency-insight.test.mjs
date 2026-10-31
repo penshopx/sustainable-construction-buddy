@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import test from "node:test";
-import { signedUrlDetail, assertSignedUrlDiagnostics, jsonUrlEncoders } from "./signed-url-diagnostics-fixtures.mjs";
+import { signedUrlDetail, assertSignedUrlDiagnostics, jsonUrlEncoders, nestedUrlCases, assertNestedUrlDiagnostics } from "./signed-url-diagnostics-fixtures.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const publisherPath = path.join(rootDir, "scripts", "publish-competency-insight.mjs");
@@ -523,6 +523,27 @@ test("deployment and probe redact JSON-escaped URLs in short and truncated stdou
           ...fakeNpm, scriptPath, scenario, detail, stdoutDetail: detail,
         });
         const failure = assertSignedUrlDiagnostics(result, truncated);
+        assert.equal(failure.step, step);
+        assert.equal(failure.diagnostics.exitCode, exitCode);
+      }
+    }
+  }
+});
+
+test("deployment and probe redact percent-encoded nested URLs in short and truncated JSON diagnostics", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+  for (const [scenario, step, exitCode] of [
+    ["deployment-failure", "deployment", 17],
+    ["probe-failure", "live_probe", 23],
+  ]) {
+    for (const { url, expected } of nestedUrlCases) {
+      for (const truncated of [false, true]) {
+        const detail = signedUrlDetail(truncated, publicationOverlap, jsonUrlEncoders[3], url);
+        const result = await runPublisher({
+          ...fakeNpm, scriptPath, scenario, detail, stdoutDetail: detail,
+        });
+        const failure = assertNestedUrlDiagnostics(result, truncated, expected);
         assert.equal(failure.step, step);
         assert.equal(failure.diagnostics.exitCode, exitCode);
       }

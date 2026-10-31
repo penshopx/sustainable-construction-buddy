@@ -5,7 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import test from "node:test";
-import { signedUrlDetail, assertSignedUrlDiagnostics, jsonUrlEncoders } from "./signed-url-diagnostics-fixtures.mjs";
+import { signedUrlDetail, assertSignedUrlDiagnostics, jsonUrlEncoders, nestedUrlCases, assertNestedUrlDiagnostics } from "./signed-url-diagnostics-fixtures.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(rootDir, "scripts", "validate-competency-insight.mjs");
@@ -250,6 +250,22 @@ test("validator redacts JSON-escaped URLs in short and truncated stdout and stde
         detail: signedUrlDetail(truncated, validationOverlap, encode),
       });
       const failure = assertSignedUrlDiagnostics(result, truncated);
+      assert.equal(failure.step, "contract");
+      assert.equal(failure.diagnostics.exitCode, 17);
+    }
+  }
+});
+
+test("validator redacts percent-encoded nested URLs in short and truncated JSON diagnostics", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  for (const { url, expected } of nestedUrlCases) {
+    for (const truncated of [false, true]) {
+      const result = await runValidator({
+        ...fakeNpm,
+        scenario: "terminal-url-failure",
+        detail: signedUrlDetail(truncated, validationOverlap, jsonUrlEncoders[3], url),
+      });
+      const failure = assertNestedUrlDiagnostics(result, truncated, expected);
       assert.equal(failure.step, "contract");
       assert.equal(failure.diagnostics.exitCode, 17);
     }

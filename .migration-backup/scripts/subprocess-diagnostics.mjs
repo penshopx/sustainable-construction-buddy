@@ -1,5 +1,9 @@
 const maxDiagnosticBytes = 16 * 1024;
-const diagnosticUrlPattern = /(?:https?|postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|cockroachdb)(?::|\\u003a)(?:\/|\\\/|\\u002f){2}[^\s"'<>]+/gi;
+// encodeURIComponent leaves apostrophes literal. Retain internal apostrophes
+// followed by an encoded-value character, but not a closing log quote before
+// whitespace, a comma, or another enclosing delimiter.
+const diagnosticUrlPattern = /(?:https?|postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|cockroachdb)(?::|\\u003a)(?:\/|\\\/|\\u002f){2}(?:[^\s"'<>]|'+(?=[a-z0-9%!*()._~-]))+/gi;
+const nestedUrlStartPattern = /(?:https?|postgres(?:ql)?|mysql|mariadb|mongodb(?:\+srv)?|rediss?|cockroachdb):\/\//i;
 
 function normalizeDiagnosticUrl(url) {
   // Decode URL delimiters only, not the surrounding JSON or arbitrary escapes.
@@ -19,7 +23,41 @@ const sensitiveUrlParameters = new Set([
   "policy", "keypairid",
 ]);
 
-function redactUrlParameter(match, prefix, name, value) {
+const maxUrlNesting = 4;
+const maxPercentDecodings = 4;
+
+function redactNestedUrlValue(value, depth) {
+  let decoded = value;
+  for (let layers = 0; layers <= maxPercentDecodings; layers += 1) {
+    const normalized = normalizeDiagnosticUrl(decoded);
+    const urlStart = normalized.search(nestedUrlStartPattern);
+    if (urlStart !== -1) {
+      // A parameter is a complete value, not free-form log text. Quotes or
+      // whitespace decoded within its path must not hide its later query.
+      // Ambiguous text around a destination is not safe to inspect partially.
+      if (urlStart !== 0) return "[REDACTED]";
+      const sanitized = depth >= maxUrlNesting
+        ? "[REDACTED]"
+        : redactDiagnosticUrl(normalized, depth + 1, true);
+      if (sanitized === decoded) return value;
+      let encoded = sanitized;
+      // Keep nested delimiters (and decoded quotes/controls) inside their value,
+      // not in the enclosing URL or JSON message.
+      for (let layer = 0; layer < layers; layer += 1) encoded = encodeURIComponent(encoded);
+      return encoded;
+    }
+    if (!/%[0-9a-f]{2}/i.test(decoded)) return value;
+    // Fail closed rather than emit an uninspected, deeply encoded destination.
+    if (layers === maxPercentDecodings) return "[REDACTED]";
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch {
+      return "[REDACTED]";
+    }
+  }
+}
+
+function redactUrlParameter(match, prefix, name, value, depth) {
   let normalizedName;
   try {
     normalizedName = decodeURIComponent(name).replace(/[_-]/g, "").toLowerCase();
@@ -27,7 +65,25 @@ function redactUrlParameter(match, prefix, name, value) {
     // Malformed names cannot be classified safely.
     return `${prefix}${name}=[REDACTED]`;
   }
-  return `${prefix}${name}=${sensitiveUrlParameters.has(normalizedName) ? "[REDACTED]" : value}`;
+  return `${prefix}${name}=${sensitiveUrlParameters.has(normalizedName)
+    ? "[REDACTED]"
+    : redactNestedUrlValue(value, depth)}`;
+}
+
+function redactDiagnosticUrl(url, depth = 0, completeValue = false) {
+  return normalizeDiagnosticUrl(url)
+    .replace(
+      completeValue
+        ? /^([a-z][a-z0-9+.-]*:\/\/)[^/@]+:[^/@]+@/i
+        : /^([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+:[^\s/@]+@/i,
+      "$1[REDACTED]@",
+    )
+    .replace(
+      completeValue
+        ? /([?&#])([^=&#]+)=([^&#]*)/g
+        : /([?&#])([^=&#\s"'<>]+)=((?:[^&#\s"'<>]|'+(?=[a-z0-9%!*()._~-]))*)/gi,
+      (match, prefix, name, value) => redactUrlParameter(match, prefix, name, value, depth),
+    );
 }
 const sensitiveValues = Object.entries(process.env)
   .filter(([name, value]) =>
@@ -84,13 +140,7 @@ export function safeDiagnostic({ text, truncated }) {
   }
   // A child process may print a URL with a credential not present in our environment.
   // Preserve the URL and harmless parameters so the failure remains actionable.
-  output = output.replace(diagnosticUrlPattern, (url) =>
-    normalizeDiagnosticUrl(url)
-      .replace(/^([a-z][a-z0-9+.-]*:\/\/)[^\s/@]+:[^\s/@]+@/i, "$1[REDACTED]@")
-      .replace(
-        /([?&#])([^=&#\s"'<>]+)=([^&#\s"'<>]*)/g,
-        redactUrlParameter,
-      ));
+  output = output.replace(diagnosticUrlPattern, (url) => redactDiagnosticUrl(url));
   // Run generic redaction after URL normalization so an escaped separator cannot
   // make it consume harmless parameters or the rest of a JSON diagnostic.
   output = output

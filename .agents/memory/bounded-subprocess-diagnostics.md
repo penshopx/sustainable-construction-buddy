@@ -14,3 +14,15 @@ Perlakukan representasi JSON ber-escape sebagai URL saat menyamarkan diagnostik;
 **Why:** Subproses bisa menghasilkan tautan bertanda tangan dengan kredensial baru. Pemisah parameter ber-escape juga dapat membuat penyamaran generik menelan parameter aman atau rincian kesalahan berikutnya.
 
 **How to apply:** Pertahankan pesan kesalahan dan parameter aman dalam uji keluaran pendek maupun terpotong, dengan nilai sintetis yang tidak terdaftar sebagai rahasia lingkungan.
+
+Pembongkaran persen untuk URL tujuan harus terbatas dan gagal tertutup: samarkan nilai yang rusak atau terlalu dalam, bukan meneruskannya tanpa pemeriksaan. Kodekan kembali hasil penyamaran pada jumlah lapisan semula; jangan membongkar seluruh pesan diagnostik.
+
+**Why:** Tujuan bertanda tangan dapat tersembunyi dalam parameter URL lain. Pembongkaran menyeluruh dapat mengubah batas parameter, memasukkan karakter kontrol atau kutipan ke JSON, dan membuat pekerjaan berulang tanpa batas.
+
+**How to apply:** Saat menangani URL bersarang pada log, pertahankan struktur dan parameter aman untuk nilai yang masih dalam batas; uji juga batas pembongkaran dan pembuangan token parsial pada output terpotong.
+
+Periksa nilai parameter yang sudah dibongkar sebagai satu tujuan lengkap, bukan potongan teks yang dicari menggunakan batas kutipan log.
+
+**Why:** Apostrof sah dalam path URL dan dibiarkan literal oleh `encodeURIComponent`; bila pencocokan URL luar maupun tujuan berhenti di apostrof, parameter tanda tangan setelahnya tidak diperiksa. Pembongkaran persen juga dapat memunculkan spasi atau kutipan yang semula aman di dalam nilai terenkode.
+
+**How to apply:** Pisahkan aturan batas teks log dari aturan nilai tujuan lengkap. Kodekan kembali karakter pembatas sebelum mengembalikan nilai ke URL dan JSON luar. Uji hasil `encodeURIComponent` apa adanya serta apostrof `%27`, dengan pembungkus log berkutip tunggal maupun ganda.
