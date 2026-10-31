@@ -28,6 +28,7 @@ TEST_TIE_LOW_ID="00000000-0000-4000-8000-000000000167"
 TEST_TIE_HIGH_ID="00000000-0000-4000-8000-000000000168"
 TEST_OWNERSHIP_PRE_TEST_ID="00000000-0000-4000-8000-000000000170"
 TEST_HTTP_PRE_TEST_ID="00000000-0000-4000-8000-000000000180"
+TEST_EXPIRED_PRE_TEST_ID="00000000-0000-4000-8000-000000000181"
 
 cleanup() {
   "${PSQL[@]}" >/dev/null 2>&1 <<SQL || true
@@ -704,13 +705,16 @@ OTHER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/other-session.json")"
 # Read complete persisted rows via the fixture connection, not the attacker's
 # RLS-filtered view, which could hide unauthorized writes.
 assessment_http_state() {
+  local pre_test_id="${1:-$TEST_OWNERSHIP_PRE_TEST_ID}"
   "${PSQL[@]}" -Atq <<SQL
 SELECT jsonb_build_object(
   'pre_test', (SELECT to_jsonb(pt) FROM public.pre_tests pt
-               WHERE pt.id = '$TEST_OWNERSHIP_PRE_TEST_ID'),
+               WHERE pt.id = '$pre_test_id'),
   'answers', (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
               FROM public.pre_test_answers a
-              WHERE a.pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID'),
+              WHERE a.pre_test_id = '$pre_test_id'),
+  'draft', (SELECT to_jsonb(ad) FROM public.assessment_drafts ad
+            WHERE ad.pre_test_id = '$pre_test_id'),
   'profile', (SELECT to_jsonb(p) FROM public.profiles p
               WHERE p.user_id = '$TEST_USER_ID')
 )::text;
@@ -1443,4 +1447,117 @@ END;
 ROLLBACK;
 SQL
 
-echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger and anonymous unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, and direct table RLS including admin revocation tests passed."
+# Expiry can finalize an assessment from a saved draft, even when the request
+# supplies a different answer. Ownership must be checked BEFORE that path runs.
+# Use a separate fixture so the unexpired/replay cases above stay independent.
+"${PSQL[@]}" >/dev/null <<SQL
+INSERT INTO public.pre_tests (
+  id, user_id, total_questions, status, started_at, deadline_at,
+  authorized_question_ids
+)
+VALUES (
+  '$TEST_EXPIRED_PRE_TEST_ID', '$TEST_USER_ID', 1, 'in_progress',
+  clock_timestamp() - interval '3 minutes',
+  clock_timestamp() - interval '90 seconds', ARRAY['$TEST_QUESTION_ID'::uuid]
+);
+INSERT INTO public.assessment_drafts (pre_test_id, draft, updated_at)
+VALUES (
+  '$TEST_EXPIRED_PRE_TEST_ID',
+  jsonb_build_object(
+    'version', 1, 'revision', 0, 'preTestId', '$TEST_EXPIRED_PRE_TEST_ID',
+    'questions', jsonb_build_array(jsonb_build_object('id', '$TEST_QUESTION_ID')),
+    'answers', jsonb_build_object('$TEST_QUESTION_ID', 1),
+    'answerResults', '{}'::jsonb, 'phase', 'review'
+  ),
+  clock_timestamp() - interval '2 minutes'
+);
+DO \$\$
+DECLARE
+  expired_test public.pre_tests%ROWTYPE;
+  saved_draft public.assessment_drafts%ROWTYPE;
+BEGIN
+  SELECT * INTO STRICT expired_test FROM public.pre_tests
+    WHERE id = '$TEST_EXPIRED_PRE_TEST_ID';
+  SELECT * INTO STRICT saved_draft FROM public.assessment_drafts
+    WHERE pre_test_id = expired_test.id;
+  IF expired_test.user_id IS DISTINCT FROM '$TEST_USER_ID'::uuid
+     OR expired_test.status IS DISTINCT FROM 'in_progress'
+     OR expired_test.completed_at IS NOT NULL
+     OR NOT public.assessment_deadline_passed(expired_test.deadline_at, clock_timestamp())
+     OR saved_draft.updated_at >= expired_test.deadline_at
+     OR public.validate_assessment_draft(saved_draft.draft) IS NOT TRUE
+     OR saved_draft.draft->'answers'->>'$TEST_QUESTION_ID' IS DISTINCT FROM '1'
+     OR EXISTS (SELECT 1 FROM public.pre_test_answers WHERE pre_test_id = expired_test.id) THEN
+    RAISE EXCEPTION 'Expired HTTP fixture requires an unfinished owner assessment and a valid pre-deadline draft';
+  END IF;
+END;
+\$\$;
+SQL
+
+BEFORE_EXPIRED_HTTP_STATE="$(assessment_http_state "$TEST_EXPIRED_PRE_TEST_ID")"
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/other-expired-rpc-response.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header "Authorization: Bearer $OTHER_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data "{\"_pre_test_id\":\"$TEST_EXPIRED_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e '. == {"error":"Unauthorized"}' \
+     "$TMP_DIR/other-expired-rpc-response.json" >/dev/null 2>&1; then
+  echo "Stranger HTTP submission of expired assessment did not return only Unauthorized (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+if [[ "$(assessment_http_state "$TEST_EXPIRED_PRE_TEST_ID")" != "$BEFORE_EXPIRED_HTTP_STATE" ]]; then
+  echo "Stranger HTTP submission changed the expired assessment, answers, draft, or owner profile" >&2
+  exit 1
+fi
+echo "Stranger HTTP submission of expired assessment was denied without changing owner data or draft."
+
+# A denial alone could pass if expiry were broken for everyone. Prove the same
+# assessment still finalizes for its owner, using the saved correct answer (1),
+# not the deliberately incorrect late payload (0).
+HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+  --output "$TMP_DIR/owner-expired-rpc-response.json" --write-out '%{http_code}' \
+  --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+  --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+  --header "Authorization: Bearer $OWNER_TOKEN" \
+  --header 'Content-Type: application/json' \
+  --data "{\"_pre_test_id\":\"$TEST_EXPIRED_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
+if [[ "$HTTP_STATUS" != "200" ]] ||
+   ! jq -e '. == {"score":100,"level":"Utama","correct":1,"total":1}' \
+     "$TMP_DIR/owner-expired-rpc-response.json" >/dev/null 2>&1; then
+  echo "Owner could not finalize the expired assessment from the saved draft (HTTP $HTTP_STATUS)" >&2
+  exit 1
+fi
+"${PSQL[@]}" >/dev/null <<SQL
+DO \$\$
+DECLARE
+  finished public.pre_tests%ROWTYPE;
+  latest_result public.pre_tests%ROWTYPE;
+  owner_profile public.profiles%ROWTYPE;
+BEGIN
+  SELECT * INTO STRICT finished FROM public.pre_tests WHERE id = '$TEST_EXPIRED_PRE_TEST_ID';
+  SELECT * INTO STRICT latest_result FROM public.pre_tests
+    WHERE user_id = '$TEST_USER_ID' AND status = 'completed'
+    ORDER BY started_at DESC, id DESC LIMIT 1;
+  SELECT * INTO STRICT owner_profile FROM public.profiles WHERE user_id = '$TEST_USER_ID';
+  IF finished.user_id IS DISTINCT FROM '$TEST_USER_ID'::uuid
+     OR finished.status IS DISTINCT FROM 'completed' OR finished.completed_at IS NULL
+     OR finished.score IS DISTINCT FROM 100 OR finished.correct_answers IS DISTINCT FROM 1
+     OR finished.total_questions IS DISTINCT FROM 1
+     OR finished.determined_level IS DISTINCT FROM 'Utama'
+     OR (SELECT count(*) FROM public.pre_test_answers WHERE pre_test_id = finished.id) <> 1
+     OR NOT EXISTS (SELECT 1 FROM public.pre_test_answers
+                    WHERE pre_test_id = finished.id AND question_id = '$TEST_QUESTION_ID'
+                      AND selected_answer = 1 AND is_correct IS TRUE)
+     OR owner_profile.total_score IS DISTINCT FROM latest_result.score
+     OR owner_profile.current_level IS DISTINCT FROM latest_result.determined_level THEN
+    RAISE EXCEPTION 'Owner expiry finalization did not persist the saved answer, result, and correct profile';
+  END IF;
+END;
+\$\$;
+SQL
+echo "Owner HTTP finalization of the same expired assessment used the saved draft successfully."
+
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger and anonymous unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, direct table RLS including admin revocation, and stranger expired HTTP denial with unchanged assessment, answers, draft and profile followed by owner finalization tests passed."
