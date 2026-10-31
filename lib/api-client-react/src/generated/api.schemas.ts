@@ -164,6 +164,24 @@ export interface VaultProfile {
   version: number;
 }
 
+export interface VaultLinkInput {
+  /**
+     * @minLength 1
+     * @maxLength 8192
+     */
+  url: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  name: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  folderId: string;
+}
+
 export type VaultDocumentStatus = typeof VaultDocumentStatus[keyof typeof VaultDocumentStatus];
 
 

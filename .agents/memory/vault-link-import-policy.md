@@ -1,0 +1,16 @@
+---
+name: Kebijakan impor tautan Ruang Simpan
+description: Alasan memakai nama file eksplisit dan tidak menyimpan URL sumber impor.
+---
+
+Impor tautan meminta nama file beserta ekstensi dari pengguna dan hanya menyimpan salinan file privat, bukan URL sumber atau riwayat pengalihannya.
+
+**Why:** URL unduhan dapat membawa token atau tanda tangan sementara; menyimpannya dalam metadata, aktivitas, atau pesan kesalahan akan memperluas akses kredensial di luar tujuan pengambilan file.
+
+**How to apply:** Jika kelak menambahkan deteksi nama file otomatis atau riwayat sumber, ambil hanya nama aman, bukan query URL atau kredensial. Jangan memasukkan URL mentah atau exception jaringan ke log/pesan pengguna.
+
+Saat mem-pin satu IP pada lookup HTTPS Node, tetapkan keluarga IP secara eksplisit agar lookup tidak masuk mode pemilihan keluarga otomatis.
+
+**Why:** Node dapat meminta hasil lookup berbentuk array melalui `all: true`. Callback yang mengembalikan satu alamat saja ditolak dengan `ERR_INVALID_IP_ADDRESS`, meskipun alamat valid dan pemeriksaan bertipe/mock lulus.
+
+**How to apply:** Jangan mengubah opsi koneksi tersebut tanpa menguji perilaku transport Node sesungguhnya; mock lookup saja tidak cukup membuktikan file publik bisa diambil.

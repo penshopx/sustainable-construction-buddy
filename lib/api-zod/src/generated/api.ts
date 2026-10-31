@@ -386,6 +386,38 @@ export const UploadVaultDocumentResponse = zod.object({
 })
 
 
+/**
+ * Import a direct public HTTPS file, at most 15 MiB. Login pages and private networks are rejected. Ownership is derived from the session.
+ */
+export const importVaultDocumentBodyUrlMax = 8192;
+
+export const importVaultDocumentBodyNameMax = 200;
+
+export const importVaultDocumentBodyFolderIdMax = 200;
+
+
+
+export const ImportVaultDocumentBody = zod.object({
+  "url": zod.string().min(1).max(importVaultDocumentBodyUrlMax),
+  "name": zod.string().min(1).max(importVaultDocumentBodyNameMax),
+  "folderId": zod.string().min(1).max(importVaultDocumentBodyFolderIdMax)
+})
+
+export const ImportVaultDocumentResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "folderId": zod.string(),
+  "size": zod.number().int(),
+  "type": zod.string(),
+  "createdAt": zod.string(),
+  "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
+  "starred": zod.boolean(),
+  "text": zod.string(),
+  "ocrError": zod.string().optional(),
+  "ocrAttemptedAt": zod.string().optional()
+})
+
+
 export const UpdateVaultDocumentParams = zod.object({
   "id": zod.coerce.string()
 })

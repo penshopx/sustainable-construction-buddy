@@ -8,10 +8,11 @@ import {
   useUpdateVaultDocument,
   useDeleteVaultDocument,
   useProcessVaultOcr,
+  useImportVaultDocument,
   type VaultDocument,
   type VaultFolder,
 } from '@workspace/api-client-react';
-import { Upload, Search, LayoutGrid, List, Star, MoreHorizontal, FolderPlus, Trash2, Download, Eye, Pencil, FolderInput, FileText, X, Loader2 } from 'lucide-react';
+import { Upload, Link, Search, LayoutGrid, List, Star, MoreHorizontal, FolderPlus, Trash2, Download, Eye, Pencil, FolderInput, FileText, X, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -57,6 +58,11 @@ export default function PortalPage() {
   const [targetFolder, setTargetFolder] = useState<string>('');
   const [dragging, setDragging] = useState(false);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importName, setImportName] = useState('');
+  const [importFolder, setImportFolder] = useState('');
+  const [importError, setImportError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [newFolderOpen, setNewFolderOpen] = useState(false);
@@ -77,6 +83,7 @@ export default function PortalPage() {
   const updateDoc = useUpdateVaultDocument();
   const removeDoc = useDeleteVaultDocument();
   const processOcr = useProcessVaultOcr();
+  const importLink = useImportVaultDocument();
 
   const data = ws.data;
   const folders = data?.folders ?? [];
@@ -203,6 +210,7 @@ export default function PortalPage() {
     <div>
       <PageHeader kicker="Ruang Simpan / Dokumen" title="Dokumen tersimpan. Pengetahuan hidup.">
         <Button variant="secondary" onClick={() => setNewFolderOpen(true)} data-testid="button-new-folder"><FolderPlus className="h-4 w-4 mr-2" />Folder baru</Button>
+        <Button variant="secondary" disabled={importLink.isPending || !folders.length} data-testid="button-import-link" onClick={() => { setImportFolder(effectiveTarget); setImportError(''); setImportOpen(true); }}><Link className="h-4 w-4 mr-2" />Impor dari tautan</Button>
         <Button onClick={() => fileRef.current?.click()} disabled={busy} data-testid="button-upload"><Upload className="h-4 w-4 mr-2" />Unggah file</Button>
       </PageHeader>
 
@@ -360,6 +368,57 @@ export default function PortalPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={importOpen} onOpenChange={(open) => {
+        if (importLink.isPending) return;
+        setImportOpen(open);
+        if (!open) { setImportUrl(''); setImportName(''); setImportError(''); }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Impor dokumen dari tautan</DialogTitle>
+            <DialogDescription>Gunakan tautan unduh HTTPS langsung yang dapat diakses tanpa login. Tautan privat, jaringan lokal, dan halaman web akan ditolak. Maksimal 15 MiB per file dan sesuai sisa kuota.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={(e) => {
+            e.preventDefault();
+            if (importLink.isPending) return;
+            setImportError('');
+            importLink.mutate({ data: { url: importUrl.trim(), name: importName.trim(), folderId: importFolder } }, {
+              onSuccess: (doc) => {
+                invalidate(); setTab(doc.folderId); setQuery(''); setImportOpen(false);
+                setImportUrl(''); setImportName(''); setImportError('');
+                toast({ title: 'Dokumen berhasil diimpor', description: `${doc.name} tersimpan secara privat.` });
+              },
+              onError: (err) => setImportError(errorMessage(err)),
+            });
+          }}>
+            <label className="block text-sm space-y-1">
+              <span>Tautan file publik</span>
+              <Input type="url" required maxLength={8192} autoComplete="off" value={importUrl} onChange={e => setImportUrl(e.target.value)} disabled={importLink.isPending} placeholder="https://contoh.org/dokumen.pdf" data-testid="input-import-url" />
+            </label>
+            <label className="block text-sm space-y-1">
+              <span>Nama file beserta ekstensi</span>
+              <Input required maxLength={200} value={importName} onChange={e => setImportName(e.target.value)} disabled={importLink.isPending} placeholder="dokumen.pdf" data-testid="input-import-name" />
+            </label>
+            <div className="text-sm space-y-1">
+              <span>Folder tujuan</span>
+              <Select value={importFolder} onValueChange={setImportFolder} disabled={importLink.isPending}>
+                <SelectTrigger aria-label="Folder tujuan impor" data-testid="select-import-folder"><SelectValue placeholder="Pilih folder" /></SelectTrigger>
+                <SelectContent>{folders.map(f => <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">File disalin ke penyimpanan privat Anda; tautan asal tidak disimpan. Teks dibaca lokal seperti unggah biasa. OCR eksternal tetap memerlukan persetujuan terpisah.</p>
+            {importError && <p role="alert" className="text-sm text-destructive" data-testid="error-import-link">{importError}</p>}
+            <DialogFooter>
+              <Button type="button" variant="secondary" disabled={importLink.isPending} onClick={() => { setImportOpen(false); setImportUrl(''); setImportName(''); }}>Batal</Button>
+              <Button type="submit" disabled={importLink.isPending || !importUrl.trim() || !importName.trim() || !importFolder} data-testid="button-confirm-import">
+                {importLink.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {importLink.isPending ? 'Mengimpor…' : 'Impor dokumen'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* New folder */}
       <Dialog open={newFolderOpen} onOpenChange={(o) => { setNewFolderOpen(o); if (!o) setNewFolderName(''); }}>

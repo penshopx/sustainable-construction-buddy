@@ -7,6 +7,29 @@ import {
 } from "../lib/vault-store";
 import { objectPath, privateFile, validateFile, extractText } from "../lib/vault-files";
 import { randomUUID } from "node:crypto";
+import { fetchPublicFile } from "../lib/vault-link";
+
+const activeImports = new Set<string>();
+export async function importDocument(owner: string, input: { url: string; name: string; folderId: string }) {
+  if (!input.name.trim() || /[\\/\0-\x1f\x7f]/.test(input.name))
+    fail(400, "Nama file tidak valid.");
+  if (!/\.(pdf|docx|xlsx|txt|md|csv|jpg|jpeg|png)$/i.test(input.name.trim()))
+    fail(400, "Gunakan nama file dengan ekstensi PDF, DOCX, XLSX, TXT, MD, CSV, JPG, atau PNG.");
+  if (activeImports.has(owner) || activeImports.size >= 4)
+    fail(429, "Impor sedang berjalan. Tunggu sampai selesai, lalu coba lagi.");
+  activeImports.add(owner);
+  try {
+    // Reject foreign folders and full workspaces before making any network request.
+    // uploadDocument checks these again under the same row lock when saving.
+    await workspace(owner, state => {
+      ownFolder(state, input.folderId);
+      if (state.documents.length >= 100) fail(400, "Maksimal 100 dokumen per ruang simpan.");
+      if (state.documents.reduce((n, d) => n + d.size, 0) >= QUOTA) fail(413, "Kuota 15 MiB penuh.");
+    });
+    const bytes = await fetchPublicFile(input.url);
+    return await uploadDocument(owner, bytes, input.name, input.folderId);
+  } finally { activeImports.delete(owner); }
+}
 
 export async function uploadDocument(owner: string, bytes: Buffer, rawName: unknown, rawFolder: unknown, connectionId?: string) {
   if (typeof rawName !== "string" || !rawName.trim() || rawName.length > 200 || /[\\/\0]/.test(rawName)) fail(400, "Nama file tidak valid.");

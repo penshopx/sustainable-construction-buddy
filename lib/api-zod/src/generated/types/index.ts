@@ -114,6 +114,7 @@ export * from './vaultDocumentStatus';
 export * from './vaultDocumentUpdate';
 export * from './vaultFolder';
 export * from './vaultFolderInput';
+export * from './vaultLinkInput';
 export * from './vaultOcrInput';
 export * from './vaultOcrInputProvider';
 export * from './vaultProfile';

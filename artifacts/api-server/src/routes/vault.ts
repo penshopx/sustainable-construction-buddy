@@ -8,12 +8,13 @@ import {
   CreateVaultAssistantBody, CreateVaultConnectionBody, AskVaultQuestionBody,
   ResolveVaultCompaniesBody,
   ProcessVaultOcrBody, ProcessVaultOcrParams, ProcessVaultOcrResponse,
+  ImportVaultDocumentBody, ImportVaultDocumentResponse,
 } from "@workspace/api-zod";
 import { workspace, publicWorkspace, ownDocument, ownFolder, activity, fail, tokenHash, VaultError, QUOTA } from "../lib/vault-store";
 import { privateFile } from "../lib/vault-files";
 import { startVaultOcr, expireOcrJobs } from "../lib/vault-ocr";
 import { requestVaultAnswer } from "../lib/vault-ai";
-import { vaultExternalRouter, uploadDocument, streamDocument } from "./vault-external";
+import { vaultExternalRouter, uploadDocument, streamDocument, importDocument } from "./vault-external";
 
 export const vaultRouter = Router();
 vaultRouter.use("/external", vaultExternalRouter);
@@ -62,6 +63,10 @@ vaultRouter.put("/profile", async (req, res) => {
 vaultRouter.post("/documents", raw({ type: "application/octet-stream", limit: QUOTA }), async (req, res) => {
   if (!Buffer.isBuffer(req.body)) fail(400, "Kirim isi file sebagai application/octet-stream.");
   res.json(await uploadDocument(owner(req), req.body, req.query.name, req.query.folderId));
+});
+vaultRouter.post("/documents/import", async (req, res) => {
+  const input = ImportVaultDocumentBody.parse(req.body);
+  res.json(ImportVaultDocumentResponse.parse(await importDocument(owner(req), input)));
 });
 vaultRouter.post("/documents/:id/ocr", async (req, res) => {
   const { id } = ProcessVaultOcrParams.parse(req.params);

@@ -62,6 +62,7 @@ import type {
   VaultDocumentUpdate,
   VaultFolder,
   VaultFolderInput,
+  VaultLinkInput,
   VaultOcrInput,
   VaultProfile,
   VaultQuestionInput,
@@ -1293,6 +1294,74 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUploadVaultDocumentMutationOptions(options));
+    }
+
+export const getImportVaultDocumentUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/documents/import`
+}
+
+/**
+ * Import a direct public HTTPS file, at most 15 MiB. Login pages and private networks are rejected. Ownership is derived from the session.
+ */
+export const importVaultDocument = async (vaultLinkInput: VaultLinkInput, options?: Parameters<typeof customFetch>[1]): Promise<VaultDocument> => {
+
+  return customFetch<VaultDocument>(getImportVaultDocumentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(vaultLinkInput)
+  }
+);}
+
+
+
+
+
+export const getImportVaultDocumentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importVaultDocument>>, TError,{data: BodyType<VaultLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof importVaultDocument>>, TError,{data: BodyType<VaultLinkInput>}, TContext> => {
+
+const mutationKey = ['importVaultDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof importVaultDocument>>, {data: BodyType<VaultLinkInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  importVaultDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ImportVaultDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof importVaultDocument>>>
+    export type ImportVaultDocumentMutationBody = BodyType<VaultLinkInput>
+    export type ImportVaultDocumentMutationError = ErrorType<void>
+
+    export const useImportVaultDocument = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importVaultDocument>>, TError,{data: BodyType<VaultLinkInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof importVaultDocument>>,
+        TError,
+        {data: BodyType<VaultLinkInput>},
+        TContext
+      > => {
+      return useMutation(getImportVaultDocumentMutationOptions(options));
     }
 
 export const getUpdateVaultDocumentUrl = (id: string,) => {

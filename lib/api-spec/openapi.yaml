@@ -256,6 +256,34 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/VaultDocument" }
+  /ruang-simpan/documents/import:
+    post:
+      operationId: importVaultDocument
+      tags: [vault]
+      description: Import a direct public HTTPS file, at most 15 MiB. Login pages and private networks are rejected. Ownership is derived from the session.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/VaultLinkInput" }
+      responses:
+        "200":
+          description: Imported private document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultDocument" }
+        "400":
+          description: Invalid URL, private network, login page or unsupported file
+        "401":
+          description: Session required
+        "413":
+          description: File or atomic workspace quota exceeds 15 MiB
+        "429":
+          description: Too many simultaneous imports
+        "502":
+          description: Source unavailable
+        "504":
+          description: Download timed out
   /ruang-simpan/documents/{id}:
     patch:
       operationId: updateVaultDocument
@@ -871,6 +899,13 @@ components:
         nib: { type: string, maxLength: 40 }
         address: { type: string, maxLength: 1000 }
         version: { type: integer, minimum: 0 }
+    VaultLinkInput:
+      type: object
+      required: [url, name, folderId]
+      properties:
+        url: { type: string, minLength: 1, maxLength: 8192 }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        folderId: { type: string, minLength: 1, maxLength: 200 }
     VaultDocument:
       type: object
       required: [id, name, folderId, size, type, createdAt, status, starred, text]
