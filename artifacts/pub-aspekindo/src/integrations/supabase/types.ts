@@ -3877,7 +3877,7 @@ export type Database = {
       }
       save_assessment_draft: {
         Args: { _pre_test_id: string; _draft: Json }
-        Returns: undefined
+        Returns: Json
       }
       start_assessment_draft: {
         Args: { _draft: Json }

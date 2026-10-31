@@ -248,6 +248,13 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       await route.fulfill({ status: 200, contentType: "text/css", body: "" });
       return;
     }
+    if (url.hostname === "127.0.0.1" && url.pathname === "/api/ruang-simpan/workspace" && request.method() === "GET") {
+      await route.fulfill({
+        status: 200, contentType: "application/json",
+        body: JSON.stringify({ profile: { name: "BUJK Uji" } }),
+      });
+      return;
+    }
     unexpectedRequests.push(`${request.method()} ${url.hostname}${url.pathname}`);
     await route.fulfill({ status: 503, contentType: "application/json", body: '{"message":"Unexpected test request"}' });
   });
@@ -386,15 +393,25 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
         { id: assessmentQuestions[1].domain_id, name: "Manajemen" },
       ];
     } else if (assessment && url.pathname === "/rest/v1/rpc/get_active_assessment_draft") {
-      data = null;
+      if (assessment.started) assessment.recoveryChecks = (assessment.recoveryChecks ?? 0) + 1;
+      data = assessment.draft && !assessment.submitted ? {
+        preTestId: ASSESSMENT_ID, totalQuestions: assessmentQuestions.length,
+        deadlineAt: assessment.deadlineAt, serverNow: new Date().toISOString(), draft: assessment.draft,
+      } : null;
     } else if (assessment && url.pathname === "/rest/v1/rpc/start_assessment_draft") {
       assessment.starts = (assessment.starts ?? 0) + 1;
       assessment.started = { user_id: MEMBER_ID, total_questions: assessmentQuestions.length, status: "in_progress" };
       const now = Date.now();
       assessment.deadlineAt = new Date(now + 180_000).toISOString();
-      data = { preTestId: ASSESSMENT_ID, serverNow: new Date(now).toISOString(), deadlineAt: assessment.deadlineAt };
+      assessment.draft = { ...request.postDataJSON()._draft, preTestId: ASSESSMENT_ID, revision: 0 };
+      data = { preTestId: ASSESSMENT_ID, revision: 0, serverNow: new Date(now).toISOString(), deadlineAt: assessment.deadlineAt };
     } else if (assessment && url.pathname === "/rest/v1/rpc/save_assessment_draft") {
-      data = true;
+      const incoming = request.postDataJSON()._draft;
+      const revision = assessment.draft?.revision ?? 0;
+      const saved = incoming.revision === revision;
+      if (saved) assessment.draft = { ...incoming, revision: revision + 1 };
+      else assessment.conflicts = (assessment.conflicts ?? 0) + 1;
+      data = { saved, draft: assessment.draft };
     } else if (assessment && url.pathname === "/rest/v1/rpc/get_assessment_time") {
       data = { serverNow: new Date().toISOString(), deadlineAt: assessment.deadlineAt };
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "POST") {
@@ -469,6 +486,55 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
 }
 
 test.describe("halaman anggota dengan sesi tiruan", () => {
+  for (const useRemote of [false, true]) {
+    test(`dua perangkat mempertahankan jawaban lain saat memilih ${useRemote ? "perangkat lain" : "perangkat ini"} pada konflik`, async ({ page, browser }) => {
+      const assessment = { started: null, checks: [], submissions: [], submitted: false };
+      const unexpected = await installAuthenticatedFixture(page, { assessment });
+      await page.goto("/assessment");
+      await page.getByRole("button", { name: "Mulai Assessment" }).click();
+      await expect.poll(() => assessment.draft?.revision).toBeGreaterThan(0);
+      const other = await browser.newPage();
+      try {
+        const otherUnexpected = await installAuthenticatedFixture(other, { assessment });
+        await other.goto("/assessment");
+        await expect(other.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+        await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+        await expect.poll(() => assessment.draft.answers[assessmentQuestions[0].id]).toBe(0);
+        await other.getByRole("button", { name: /Dokumen lain/ }).click();
+        await expect(other.getByRole("heading", { name: "Ada jawaban berbeda di perangkat lain" })).toBeVisible();
+        // While resolution is paused, the first device adds another valid answer.
+        await page.getByRole("button", { name: "Selanjutnya" }).click();
+        await page.getByRole("button", { name: /Periksa kesiapan/ }).click();
+        await expect.poll(() => assessment.draft.answers[assessmentQuestions[1].id]).toBe(1);
+        await other.getByRole("button", {
+          name: useRemote ? /Gunakan jawaban perangkat lain:/ : /Gunakan jawaban perangkat ini:/,
+        }).click();
+        await expect(other.getByRole("heading", { name: "Ada jawaban berbeda di perangkat lain" })).toHaveCount(0);
+        await expect.poll(() => assessment.draft.answers).toEqual({
+          [assessmentQuestions[0].id]: useRemote ? 0 : 1,
+          [assessmentQuestions[1].id]: 1,
+        });
+        await other.reload();
+        // Navigation is shared draft metadata: the first device may have saved
+        // its position on question two immediately before the reload.
+        await expect(other.getByRole("heading", { name: /Apa dokumen pertama|Apa langkah berikutnya/ })).toBeVisible();
+        await expect(other.getByRole("heading", { name: "Ada jawaban berbeda di perangkat lain" })).toHaveCount(0);
+        if (await other.getByRole("heading", { name: assessmentQuestions[0].question_text }).isVisible()) {
+          await other.getByRole("button", { name: "Selanjutnya" }).click();
+        }
+        await expect(other.getByRole("button", { name: /Periksa kesiapan/ })).toBeDisabled();
+        await other.getByRole("button", { name: "Review Jawaban" }).click();
+        await expect(other.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+        await expect(other.getByRole("button", { name: "Selesai & Lihat Hasil" })).toBeEnabled();
+        await other.getByRole("button", { name: "Selesai & Lihat Hasil" }).click();
+        await expect(other.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+        expect(assessment.submissions[0]._answers.map(item => item.selected_answer)).toEqual([useRemote ? 0 : 1, 1]);
+        expect(unexpected).toEqual([]);
+        expect(otherUnexpected).toEqual([]);
+      } finally { await other.close(); }
+    });
+  }
+
   test("logout membersihkan jawaban assessment dari browser bersama", async ({ page }) => {
     await installAuthenticatedFixture(page);
     await page.goto("/dashboard");
