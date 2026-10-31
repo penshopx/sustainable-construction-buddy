@@ -248,6 +248,10 @@ async function installAuthenticatedFixture(page, { asAdmin = false, asSuperAdmin
       await route.fulfill({ status: 200, contentType: "text/css", body: "" });
       return;
     }
+    if (url.hostname === "127.0.0.1" && url.pathname === "/api/ruang-simpan/session" && request.method() === "DELETE") {
+      await route.fulfill({ status: 204 });
+      return;
+    }
     if (url.hostname === "127.0.0.1" && url.pathname === "/api/ruang-simpan/workspace" && request.method() === "GET") {
       await route.fulfill({
         status: 200, contentType: "application/json",
@@ -549,6 +553,101 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       drafts: Object.keys(localStorage).filter((key) => key.startsWith("pub_assessment_draft_v1:")),
       onboarding: localStorage.getItem("pub_onboarding_done"),
     }))).toEqual({ drafts: [], onboarding: "1" });
+  });
+
+  test("siaran logout tab pertama menghapus draf tab kedua meskipun penyimpanan masih tertunda", async ({ page, context }) => {
+    const assessment = { started: null, checks: [], submissions: [], submitted: false };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    await page.goto("/assessment");
+    await expect(page.getByRole("button", { name: /Keluar/ })).toBeVisible();
+
+    // Same context, unlike the separate-device tests above: Supabase must
+    // deliver its real BroadcastChannel SIGNED_OUT message to the other tab.
+    const other = await context.newPage();
+    let releaseSave;
+    const saveGate = new Promise((resolve) => { releaseSave = resolve; });
+    try {
+      const otherUnexpected = await installAuthenticatedFixture(other, { assessment });
+      await other.addInitScript(() => {
+        window.__logoutBroadcasts = 0;
+        window.__draftWritesAfterLogout = [];
+        const originalSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (key, value) {
+          if (this === localStorage && window.__logoutBroadcasts > 0 &&
+              key.startsWith("pub_assessment_draft_v1:")) {
+            window.__draftWritesAfterLogout.push(key);
+          }
+          return originalSetItem.call(this, key, value);
+        };
+        const originalAddListener = BroadcastChannel.prototype.addEventListener;
+        BroadcastChannel.prototype.addEventListener = function (type, listener, options) {
+          if (type !== "message" || this.name !== "sb-ci-playwright-auth-token") {
+            return originalAddListener.call(this, type, listener, options);
+          }
+          return originalAddListener.call(this, type, (event) => {
+            if (event.data?.event === "SIGNED_OUT") {
+              // Tab one's purge already removed shared localStorage. Seed a
+              // late leftover immediately before delivery so only tab two's
+              // SIGNED_OUT handler can clean it; shared storage alone cannot
+              // make this test pass.
+              originalSetItem.call(localStorage, "pub_assessment_draft_v1:late-leftover",
+                JSON.stringify({ answers: { soal: 1 }, questions: ["Rahasia"] }));
+              window.__logoutBroadcasts++;
+            }
+            return listener.call(this, event);
+          }, options);
+        };
+      });
+      await other.goto("/assessment");
+      await other.getByRole("button", { name: "Mulai Assessment" }).click();
+      await expect.poll(() => assessment.draft?.revision).toBeGreaterThan(0);
+
+      let saveRequests = 0;
+      let pendingDraft;
+      await other.route(`https://${SUPABASE_HOST}/rest/v1/rpc/save_assessment_draft`, async (route) => {
+        saveRequests++;
+        pendingDraft = route.request().postDataJSON()._draft;
+        await saveGate;
+        await route.fulfill({
+          status: 503, contentType: "application/json",
+          body: JSON.stringify({ message: "Penyimpanan uji tertunda lalu gagal" }),
+        });
+      });
+      await other.getByRole("button", { name: /Dokumen legalitas/ }).click();
+      await expect.poll(() => pendingDraft?.answers[assessmentQuestions[0].id]).toBe(0);
+      const localDrafts = () => other.evaluate(() =>
+        Object.keys(localStorage).filter((key) => key.startsWith("pub_assessment_draft_v1:")));
+      await expect.poll(async () => other.evaluate((id) => {
+        const draft = JSON.parse(localStorage.getItem(`pub_assessment_draft_v1:${id}`) ?? "null");
+        return draft?.answers;
+      }, MEMBER_ID)).toEqual({ [assessmentQuestions[0].id]: 0 });
+
+      await page.getByRole("button", { name: /Keluar/ }).click();
+      await expect(page).toHaveURL(/\/auth$/);
+      await expect.poll(() => other.evaluate(() => window.__logoutBroadcasts)).toBe(1);
+      await expect(other).toHaveURL(/\/auth$/);
+      await expect(other.getByRole("heading", { name: "Masuk ke Akun" })).toBeVisible();
+      await expect(other.getByRole("heading", { name: assessmentQuestions[0].question_text })).toHaveCount(0);
+      await expect.poll(localDrafts).toEqual([]);
+
+      const lateResponse = other.waitForResponse((response) =>
+        response.url() === `https://${SUPABASE_HOST}/rest/v1/rpc/save_assessment_draft` &&
+        response.status() === 503);
+      releaseSave();
+      await (await lateResponse).finished();
+      // Also cross the first automatic retry's 2-second delay. A late failure
+      // must neither recreate the fallback nor schedule another save.
+      await other.waitForTimeout(2200);
+      expect(await localDrafts()).toEqual([]);
+      expect(await other.evaluate(() => window.__draftWritesAfterLogout)).toEqual([]);
+      expect(await other.evaluate(() => localStorage.getItem("pub_onboarding_done"))).toBe("1");
+      expect(saveRequests).toBe(1);
+      expect(unexpected).toEqual([]);
+      expect(otherUnexpected).toEqual([]);
+    } finally {
+      releaseSave();
+      await other.close();
+    }
   });
 
   test("assessment menampilkan formulir awal dan riwayat", async ({ page }) => {
