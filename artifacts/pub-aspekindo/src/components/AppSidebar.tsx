@@ -5,7 +5,6 @@ import {
   BookOpen,
   User,
   Bell,
-  LogOut,
   BarChart3,
   FileText,
   MessageCircle,
@@ -33,6 +32,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { LogoutButton } from "@/components/LogoutButton";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -238,7 +238,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
-  const { profile, signOut } = useAuth();
+  const { profile } = useAuth();
   const { isAdmin } = useAdmin();
   const { isSuperAdmin } = useSuperAdmin();
   const visibleAdminItems = isSuperAdmin
@@ -367,10 +367,7 @@ export function AppSidebar() {
         )}
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={signOut} className="text-destructive hover:bg-destructive/10">
-              <LogOut className="mr-2 h-4 w-4" />
-              {!collapsed && <span>Keluar</span>}
-            </SidebarMenuButton>
+            <LogoutButton collapsed={collapsed} />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

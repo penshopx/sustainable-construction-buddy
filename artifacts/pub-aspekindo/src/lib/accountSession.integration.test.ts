@@ -20,6 +20,12 @@ const fakeSupabase: any = {};
 test.before(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   (globalThis as any).__accountTestSupabase = fakeSupabase;
+  (globalThis as any).window = {
+    addEventListener() {},
+    removeEventListener() {},
+    setInterval,
+    clearInterval,
+  };
   Object.defineProperty(globalThis, "localStorage", {
     configurable: true,
     value: { length: 0, key: () => null, getItem: () => null, removeItem: () => undefined },
@@ -28,6 +34,7 @@ test.before(async () => {
   process.env.BASE_PATH ||= "/";
   server = await createServer({
     configFile: new URL("../../vite.config.ts", import.meta.url).pathname,
+    cacheDir: "node_modules/.vite-account-session-tests",
     optimizeDeps: { noDiscovery: true, include: [] },
     plugins: [{
       name: "account-tests-fake-supabase",
@@ -54,6 +61,7 @@ test.before(async () => {
 test.after(async () => {
   await server.close();
   delete (globalThis as any).__accountTestSupabase;
+  delete (globalThis as any).window;
 });
 
 test("pergantian akun mengganti cache/state halaman, membatalkan query lama, dan mempertahankan router", async () => {
@@ -173,4 +181,57 @@ test("profil dan sesi awal yang terlambat tidak menimpa akun yang baru masuk", a
   });
   assert.equal(profiles.size, 0);
   await act(async () => { root.unmount(); });
+});
+
+test("logout gagal mempertahankan sesi dan bisa diulang setelah error layanan maupun jaringan", async () => {
+  const session = { user: { id: "member-logout" } };
+  let listener!: (event: string, session: any) => Promise<void>;
+  let authError: Error | null = new Error("logout unavailable");
+  let signOutCalls = 0;
+  fakeSupabase.auth = {
+    onAuthStateChange(callback: typeof listener) {
+      listener = callback;
+      return { data: { subscription: { unsubscribe() {} } } };
+    },
+    getSession: async () => ({ data: { session } }),
+    signOut: async () => {
+      signOutCalls += 1;
+      if (!authError) await listener("SIGNED_OUT", null);
+      return { error: authError };
+    },
+  };
+  fakeSupabase.from = () => {
+    const query: any = { select: () => query, eq: () => query, single: async () => ({ data: null }) };
+    return query;
+  };
+  const originalFetch = globalThis.fetch;
+  let response: "ok" | "error" | "network" = "ok";
+  globalThis.fetch = (async () => {
+    if (response === "network") throw new TypeError("Failed to fetch");
+    return { ok: response === "ok" };
+  }) as typeof fetch;
+  let observed: any;
+  function Probe() { observed = modules.useAuth(); return null; }
+  let root!: ReactTestRenderer;
+  try {
+    await act(async () => { root = create(React.createElement(modules.AuthProvider, null, React.createElement(Probe))); });
+    await act(async () => { await assert.rejects(observed.signOut(), /logout unavailable/); });
+    assert.equal(observed.session, session);
+    assert.equal(observed.user.id, "member-logout");
+    response = "error";
+    await act(async () => { await assert.rejects(observed.signOut(), /belum dapat ditutup/); });
+    response = "network";
+    await act(async () => { await assert.rejects(observed.signOut(), /Failed to fetch/); });
+    assert.equal(observed.session, session);
+    assert.equal(signOutCalls, 1);
+    response = "ok";
+    authError = null;
+    await act(async () => { await observed.signOut(); });
+    assert.equal(observed.user, null);
+    assert.equal(observed.session, null);
+    assert.equal(observed.profile, null);
+  } finally {
+    if (root) await act(async () => { root.unmount(); });
+    globalThis.fetch = originalFetch;
+  }
 });
