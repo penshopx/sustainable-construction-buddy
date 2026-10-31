@@ -14,7 +14,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import type { LucideIcon } from "lucide-react";
 import type { Json, Tables } from "@/integrations/supabase/types";
 import { assessmentLevel, formatAssessmentDate } from "@/lib/competencyFallbacks";
-import { assessmentDraftKey, assessmentDraftStorageEpoch, assessmentSecondsLeft, parseAssessmentDraft, resolveAssessmentClock, resolveServerAssessmentDraft, saveLocalAssessmentDraft, mergeAssessmentDrafts, resolveDraftSave, type AssessmentDraft } from "@/lib/assessmentDraft";
+import { assessmentDraftContent, createAssessmentDraftRetry, assessmentDraftKey, assessmentDraftStorageEpoch, assessmentSecondsLeft, parseAssessmentDraft, resolveAssessmentClock, resolveServerAssessmentDraft, saveLocalAssessmentDraft, mergeAssessmentDrafts, resolveDraftSave, type AssessmentDraft } from "@/lib/assessmentDraft";
 
 interface Question {
   id: string;
@@ -179,6 +179,17 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const conflictRef = useRef<{ remote: AssessmentDraft; ids: string[] } | null>(null);
   const [draftConflict, setDraftConflict] = useState<typeof conflictRef.current>(null);
   const [saveBlocked, setSaveBlocked] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"pending" | "saving" | "saved">("pending");
+  const [saveUnavailable, setSaveUnavailable] = useState(false);
+  const unavailableDraftRef = useRef<string | null>(null);
+  const retryRef = useRef<ReturnType<typeof createAssessmentDraftRetry> | null>(null);
+  const queuedSaveRef = useRef<Promise<void> | null>(null);
+  const submittingRef = useRef(false);
+  const activeSaveRef = useRef<{ owner: string; id: string; clock: NonNullable<typeof serverClock> } | null>(null);
+  activeSaveRef.current = user && draftOwner === user.id && preTestId && serverClock &&
+    recoveryState === "ready" && !timedOut && unavailableDraftRef.current !== preTestId &&
+    (phase === "test" || phase === "review")
+    ? { owner: user.id, id: preTestId, clock: serverClock } : null;
 
   if (preTestId && (phase === "test" || phase === "review")) {
     latestDraftRef.current = {
@@ -188,25 +199,49 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     };
   }
 
-  const syncDraft = useCallback(async (): Promise<boolean> => {
+  const syncDraft = useCallback(async (forSubmit = false): Promise<boolean> => {
     const epoch = assessmentDraftStorageEpoch();
     const owner = user?.id;
     const initial = latestDraftRef.current;
-    if (!owner || !initial || conflictRef.current) return false;
+    if (!owner || !initial) return false;
+    const canSave = () => !!owner && !!initial &&
+      activeSaveRef.current?.owner === owner && activeSaveRef.current?.id === initial.preTestId &&
+      epoch === assessmentDraftStorageEpoch() && !conflictRef.current &&
+      (!submittingRef.current || forSubmit) &&
+      assessmentSecondsLeft(activeSaveRef.current.clock, performance.now()) > 0;
+    if (!canSave()) return false;
+    setSaveStatus("saving");
     try {
       for (let attempt = 0; attempt < 3; attempt++) {
-        if (epoch !== assessmentDraftStorageEpoch() || conflictRef.current) return false;
+        if (!canSave()) return false;
         const local = latestDraftRef.current!;
         const outgoing = { ...local, revision: baseDraftRef.current?.revision ?? 0 };
         const { data, error } = await supabase.rpc("save_assessment_draft", {
           _pre_test_id: outgoing.preTestId, _draft: draftJson(outgoing),
         });
-        if (epoch !== assessmentDraftStorageEpoch()) return false;
+        if (!canSave()) return false;
+        if (error && ["Assessment unavailable", "Assessment deadline has passed"].includes(error.message)) {
+          unavailableDraftRef.current = outgoing.preTestId;
+          activeSaveRef.current = null;
+          retryRef.current?.reset();
+          setSaveUnavailable(true);
+          setSaveBlocked(false);
+          setSaveStatus("pending");
+          return false;
+        }
         const response = resolveDraftSave(data);
         if (error || !response || response.draft.preTestId !== outgoing.preTestId) throw new Error("Draft save failed");
         if (response.saved) {
           baseDraftRef.current = response.draft;
           setSaveBlocked(false);
+          // An answer or navigation may have changed while this request was in flight.
+          if (assessmentDraftContent(latestDraftRef.current!) !== assessmentDraftContent(outgoing)) {
+            setSaveStatus("pending");
+            try { saveLocalAssessmentDraft(localStorage, owner!, latestDraftRef.current!, epoch); } catch { /* Unavailable. */ }
+            continue;
+          }
+          retryRef.current?.reset();
+          setSaveStatus("saved");
           try { localStorage.removeItem(assessmentDraftKey(owner)); } catch { /* Unavailable. */ }
           return true;
         }
@@ -220,20 +255,53 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         if (merged.conflicts.length) {
           conflictRef.current = { remote: response.draft, ids: merged.conflicts };
           setDraftConflict(conflictRef.current);
+          setSaveStatus("pending");
+          retryRef.current?.reset();
           try { saveLocalAssessmentDraft(localStorage, owner, merged.draft, epoch); } catch { /* Unavailable. */ }
           return false;
         }
       }
       throw new Error("Assessment is being edited on another device");
     } catch {
-      if (epoch === assessmentDraftStorageEpoch()) {
+      if (canSave()) {
         setSaveBlocked(true);
+        setSaveStatus("pending");
         try { saveLocalAssessmentDraft(localStorage, owner, latestDraftRef.current!, epoch); } catch { /* Unavailable. */ }
-        toast.error("Progres belum tersimpan di server. Periksa koneksi atau coba simpan lagi.");
+        retryRef.current?.schedule();
       }
       return false;
     }
   }, [user?.id]);
+
+  const enqueueSave = useCallback((): Promise<void> => {
+    // Coalesce timer, online event, manual retry, and edits into a single queued write.
+    if (queuedSaveRef.current) return queuedSaveRef.current;
+    const epoch = assessmentDraftStorageEpoch();
+    const task = saveQueueRef.current.catch(() => undefined).then(async () => {
+      if (epoch === assessmentDraftStorageEpoch()) await syncDraft();
+    }).finally(() => {
+      if (queuedSaveRef.current === task) queuedSaveRef.current = null;
+    });
+    queuedSaveRef.current = task;
+    saveQueueRef.current = task;
+    return task;
+  }, [syncDraft]);
+
+  useEffect(() => {
+    const retry = createAssessmentDraftRetry(enqueueSave);
+    retryRef.current = retry;
+    const online = () => {
+      if (activeSaveRef.current && !conflictRef.current && !submittingRef.current) {
+        void enqueueSave();
+      }
+    };
+    window.addEventListener("online", online);
+    return () => {
+      retry.stop();
+      activeSaveRef.current = null;
+      window.removeEventListener("online", online);
+    };
+  }, [enqueueSave]);
 
   const resolveConflict = (id: string, useRemote: boolean) => {
     const conflict = conflictRef.current;
@@ -267,6 +335,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     conflictRef.current = null;
     setDraftConflict(null);
     setRecoveryState("checking");
+    setSaveUnavailable(false);
     void (async () => {
       const { data: remote, error: remoteError } = await supabase.rpc("get_active_assessment_draft");
       if (!active) return;
@@ -368,13 +437,16 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   useEffect(() => {
     if (!user || draftOwner !== user.id || !preTestId || timedOut ||
         (phase !== "test" && phase !== "review") || !questions.length) return;
-    const storageEpoch = assessmentDraftStorageEpoch();
-    saveQueueRef.current = saveQueueRef.current.catch(() => undefined).then(async () => {
-      if (storageEpoch !== assessmentDraftStorageEpoch()) return;
-      if (serverClock && assessmentSecondsLeft(serverClock, performance.now()) === 0) return;
-      await syncDraft();
-    });
-  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, deadlineAt, timedOut, serverClock, draftConflict, syncDraft]);
+    setSaveStatus("pending");
+    if (latestDraftRef.current) {
+      try { saveLocalAssessmentDraft(localStorage, user.id, latestDraftRef.current, assessmentDraftStorageEpoch()); } catch { /* Unavailable. */ }
+    }
+    void enqueueSave();
+  }, [user?.id, draftOwner, preTestId, questions, answers, answerResults, currentQ, phase, deadlineAt, timedOut, serverClock, draftConflict, enqueueSave]);
+
+  useEffect(() => {
+    if (!activeSaveRef.current || timedOut) retryRef.current?.reset();
+  }, [phase, draftOwner, user?.id, timedOut]);
 
   const fetchPastTests = useCallback(async () => {
     if (!user) return;
@@ -469,6 +541,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     }
 
     setQuestions(selected);
+    setSaveUnavailable(false);
     baseDraftRef.current = { ...initialDraft, preTestId: started.preTestId, revision: 0 };
     conflictRef.current = null;
     setDraftConflict(null);
@@ -543,6 +616,8 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
 
   const submitTest = useCallback(async () => {
     return submitGuardRef.current(async () => {
+      submittingRef.current = true;
+      retryRef.current?.reset();
       setLoading(true);
 
       try {
@@ -550,7 +625,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         // Freeze expired tests from the server snapshot, as before. Before expiry,
         // synchronize first so submitting from a stale device cannot drop answers.
         if (!serverClock || assessmentSecondsLeft(serverClock, performance.now()) > 0) {
-          if (!await syncDraft()) {
+          if (!await syncDraft(true)) {
             toast.error("Selesaikan perbedaan jawaban dan simpan progres sebelum mengirim.");
             return;
           }
@@ -576,6 +651,10 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
           return;
         }
 
+        // Invalidate queued/background saves before profile refresh or any render.
+        activeSaveRef.current = null;
+        latestDraftRef.current = null;
+        retryRef.current?.reset();
         if (user) {
           try { localStorage.removeItem(assessmentDraftKey(user.id)); } catch { /* Storage may be unavailable. */ }
         }
@@ -585,6 +664,8 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         setResult(outcome.result);
         setPhase(outcome.nextPhase);
       } finally {
+        submittingRef.current = false;
+        if (activeSaveRef.current && !conflictRef.current) retryRef.current?.schedule();
         setLoading(false);
       }
     });
@@ -655,11 +736,20 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
           })}
         </section>
       )}
-      {saveBlocked && !timedOut && (
+      {(phase === "test" || phase === "review") && !timedOut && (
+        <p role="status" aria-live="polite" className="mb-4 text-sm text-foreground">
+          {saveUnavailable ? "Assessment sudah berakhir atau tidak lagi tersedia. Muat ulang halaman untuk melihat status terbaru."
+            : draftConflict ? "Penyimpanan tertunda — pilih jawaban yang berbeda terlebih dahulu."
+            : saveStatus === "saved" ? "Progres tersimpan di server."
+            : saveStatus === "saving" ? "Menyimpan progres…"
+            : "Penyimpanan tertunda — akan dicoba ulang otomatis saat koneksi tersedia."}
+        </p>
+      )}
+      {saveBlocked && !timedOut && (phase === "test" || phase === "review") && (
         <div role="alert" className="mb-4 rounded border border-destructive p-4 text-foreground">
-          Progres belum tersimpan.
+          Progres belum tersimpan di server. Penyimpanan akan dicoba ulang otomatis.
           <button type="button" className="ml-2 underline" onClick={() => {
-            saveQueueRef.current = saveQueueRef.current.catch(() => undefined).then(async () => { await syncDraft(); });
+            void enqueueSave();
           }}>Coba simpan lagi</button>
         </div>
       )}

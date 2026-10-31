@@ -14,6 +14,35 @@ export interface AssessmentDraft {
   timedOut: boolean;
 }
 
+// Countdown ticks and server revisions do not represent unsaved user edits.
+export function assessmentDraftContent(draft: AssessmentDraft): string {
+  return JSON.stringify([draft.preTestId, draft.questions, draft.answers,
+    draft.answerResults, draft.currentQ, draft.phase]);
+}
+
+/** One retry timer with bounded backoff. The caller serializes network writes. */
+export function createAssessmentDraftRetry(retry: () => Promise<void>) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let failures = 0;
+  let stopped = false;
+  const cancel = () => {
+    if (timer !== null) clearTimeout(timer);
+    timer = null;
+  };
+  return {
+    schedule() {
+      if (stopped || timer !== null) return;
+      const delay = Math.min(2000 * 2 ** Math.min(failures++, 4), 30000);
+      timer = setTimeout(() => {
+        timer = null;
+        if (!stopped) void retry();
+      }, delay);
+    },
+    reset() { cancel(); failures = 0; },
+    stop() { stopped = true; cancel(); },
+  };
+}
+
 // Preserve both devices' independent edits. Never decide conflicting choices silently.
 export function mergeAssessmentDrafts(base: AssessmentDraft | null, local: AssessmentDraft, remote: AssessmentDraft) {
   if (local.preTestId !== remote.preTestId ||
