@@ -86,6 +86,8 @@ const ClinicDesk = lazy(() => import("./pages/ClinicDesk"));
 const AdminClinic = lazy(() => import("./pages/admin/AdminClinic"));
 const DocumentAnalysis = lazy(() => import("./pages/DocumentAnalysis"));
 const HelpCenter = lazy(() => import("./pages/HelpCenter"));
+const BrainProject = lazy(() => import("./pages/BrainProject"));
+const Konsultasi = lazy(() => import("./pages/Konsultasi"));
 
 function PageLoading() {
   return (
@@ -145,6 +147,8 @@ const App = () => (
             <Route path="/direktori" element={<DashboardLayout><CompanyDirectory /></DashboardLayout>} />
             <Route path="/direktori/:companyId" element={<DashboardLayout><CompanyDetail /></DashboardLayout>} />
             <Route path="/bedah-dokumen" element={<DocumentAnalysis />} />
+            <Route path="/brain-project" element={<BrainProject />} />
+            <Route path="/konsultasi" element={<Konsultasi />} />
             <Route path="/klinik-konsultasi" element={<ClinicConsultation />} />
             <Route path="/klinik-konsultasi/:topicId" element={<DashboardLayout><ClinicDesk /></DashboardLayout>} />
             <Route path="/admin/klinik-konsultasi" element={<DashboardLayout><AdminGuard><AdminClinic /></AdminGuard></DashboardLayout>} />

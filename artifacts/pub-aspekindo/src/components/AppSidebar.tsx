@@ -30,6 +30,8 @@ import {
   ExternalLink,
   CircleHelp,
   ScanText,
+  BrainCircuit,
+  Compass,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -102,6 +104,8 @@ const communitySubItems = [
   { title: "Ruang Simpan PUB", url: "/ruang-simpan/", icon: FolderKanban, fullPage: true },
   { title: "Bedah Dokumen", url: "/bedah-dokumen", icon: ScanText },
   { title: "Klinik Konsultasi", url: "/klinik-konsultasi", icon: MessageCircle },
+  { title: "Konsultasi Terpandu", url: "/konsultasi", icon: Compass },
+  { title: "Brain Project", url: "/brain-project", icon: BrainCircuit },
   { title: "Pusat Informasi", url: "/informasi", icon: Newspaper },
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },

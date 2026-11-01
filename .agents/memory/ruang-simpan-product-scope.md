@@ -34,3 +34,9 @@ Sinkronisasi sumber tidak berarti menjalankan AI ulang secara otomatis. Hasil an
 **Why:** Menyatukan acuan data tidak boleh memicu tagihan atau pengiriman dokumen privat baru tanpa tindakan dan persetujuan anggota.
 
 **How to apply:** Perbarui pembacaan profil/dokumen, jelaskan bila sumber suatu hasil telah berubah, dan minta analisis ulang secara eksplisit sebelum memperlakukan hasil lama sebagai telaah terbaru.
+
+Brain Project dan konsultasi terpandu juga merupakan fitur PUB yang melengkapi Ruang Simpan; halaman Brain Project dan konsultasi Gustafta hanya acuan.
+
+**Why:** Pengguna meminta “tambahkan brain project” dengan referensi kedua halaman tersebut dalam aplikasi PUB yang sama.
+
+**How to apply:** Gunakan identitas dan akun PUB serta persetujuan penggunaan konteks Ruang Simpan; jangan menyalin identitas Gustafta atau menghubungkan data anggota ke layanannya.

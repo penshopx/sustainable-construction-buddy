@@ -122,7 +122,7 @@ export default function ClinicConsultation() {
               <div>
                 <h2 className="font-heading text-xl font-bold">Ruang Simpan sebagai acuan, hanya bila Anda izinkan</h2>
                 <p className="mt-2 text-sm text-muted-foreground">Di setiap loket ada kotak centang terpisah. Bila dicentang, profil perusahaan milik Anda dan potongan teks dokumen yang relevan dikirim ke layanan AI eksternal. Berkas utuh tidak dikirim, dan pilihan ini kembali mati saat berganti loket atau akun.</p>
-                <a href="/ruang-simpan/" className="mt-3 inline-flex text-sm font-medium text-primary underline" data-testid="link-ruang-simpan">Buka Ruang Simpan</a>
+                <span className="mt-3 flex flex-wrap gap-4"><a href="/ruang-simpan/" className="text-sm font-medium text-primary underline" data-testid="link-ruang-simpan">Buka Ruang Simpan</a><Link to="/brain-project" className="text-sm font-medium text-primary underline" data-testid="link-brain-project">Analisis proyek di Brain Project</Link><Link to="/konsultasi" className="text-sm font-medium text-primary underline" data-testid="link-konsultasi">Konsultasi terpandu</Link></span>
               </div>
             </div>
             <div className="flex gap-4">
