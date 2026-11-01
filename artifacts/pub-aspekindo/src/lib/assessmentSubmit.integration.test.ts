@@ -96,3 +96,21 @@ test("timer habis dan submit manual bersamaan hanya menjalankan satu permintaan"
   await Promise.all([manualSubmit, timerSubmit, repeatedClick]);
   assert.equal(rpcCalls, 1);
 });
+
+test("penolakan daftar soal dan draf server dikenali dari respons error-only", async () => {
+  const { resolveAssessmentSubmitResponse } = await server.ssrLoadModule("/src/pages/Assessment.tsx");
+  for (const error of ["Invalid assessment questions", "Assessment draft unavailable; restart assessment"]) {
+    const outcome = resolveAssessmentSubmitResponse({ error });
+    assert.equal(outcome.ok, false);
+    assert.equal(outcome.nextPhase, "restart");
+    assert.match(outcome.message, /Mulai ulang/);
+    assert.match(outcome.message, /Hasil assessment yang sudah selesai tetap tersimpan/);
+    assert.doesNotMatch(outcome.message, /Invalid|unavailable/);
+  }
+  for (const error of ["Unauthorized", "Pre-test not found", "Network unavailable"]) {
+    const outcome = resolveAssessmentSubmitResponse({ error });
+    assert.equal(outcome.ok, false);
+    assert.equal(outcome.nextPhase, "review");
+    assert.match(outcome.message, /belum dapat dikirim/);
+  }
+});

@@ -50,6 +50,8 @@ let fail = true;
 let hold: (() => void) | null = null;
 let saved: any;
 let root: ReactTestRenderer;
+let rpcNames: string[] = [];
+let startPayload: any;
 
 test.before(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
@@ -97,20 +99,36 @@ test.afterEach(async () => {
   installStorage();
 });
 
-async function mount(options: { storageFailure?: StorageFailure; unanswered?: boolean } = {}) {
+async function mount(options: {
+  storageFailure?: StorageFailure; unanswered?: boolean;
+  browserOnly?: boolean; duplicate?: boolean; completedBackup?: boolean;
+  expired?: boolean; submitResponse?: unknown; startFails?: boolean;
+} = {}) {
   calls = 0; fail = true; hold = null; storage.clear();
+  rpcNames = []; startPayload = null;
   installStorage(options.storageFailure);
   const now = Date.now();
+  const deadline = now + (options.expired ? -1000 : 90000);
   saved = {
     version: 1, preTestId: "assessment-a", questions: [question], answers: options.unanswered ? {} : { q1: 1 },
     answerResults: {}, currentQ: 0, phase: options.unanswered ? "test" : "review", timeLeft: 90, timedOut: false,
-    deadlineAt: now + 90000, revision: 0,
+    deadlineAt: deadline, revision: 0,
   };
+  if (options.duplicate) saved.questions = [question, question];
+  if (options.browserOnly) storage.set("pub_assessment_draft_v1:owner", JSON.stringify(saved));
   api.rpc = async (name: string, args: any) => {
-    if (name === "get_active_assessment_draft") return { data: {
-      preTestId: saved.preTestId, draft: saved, totalQuestions: 1,
-      deadlineAt: new Date(now + 90000).toISOString(), serverNow: new Date(now).toISOString(),
+    rpcNames.push(name);
+    if (name === "get_active_assessment_draft") return { data: options.browserOnly ? null : {
+      preTestId: saved.preTestId, draft: saved, totalQuestions: saved.questions.length,
+      deadlineAt: new Date(deadline).toISOString(), serverNow: new Date(now).toISOString(),
     } };
+    if (name === "get_questions_safe") return { data: [{ ...question, domain_id: "d1" }] };
+    if (name === "start_assessment_draft") {
+      startPayload = args._draft;
+      if (options.startFails) return { error: { message: "Network unavailable" } };
+      saved = { ...args._draft, preTestId: "assessment-new", deadlineAt: now + 90000, revision: 0 };
+      return { data: { preTestId: saved.preTestId, deadlineAt: new Date(now + 90000).toISOString(), serverNow: new Date(now).toISOString() } };
+    }
     if (name === "save_assessment_draft") {
       calls++;
       if (hold) await new Promise<void>(resolve => { hold = resolve; });
@@ -119,13 +137,17 @@ async function mount(options: { storageFailure?: StorageFailure; unanswered?: bo
       return { data: { saved: true, draft: saved } };
     }
     if (name === "check_question_answer") return { data: null };
-    if (name === "submit_assessment") return { data: { score: 100, correct: 1, total: 1, level: "Utama" } };
+    if (name === "submit_assessment") return { data: options.submitResponse ?? { score: 100, correct: 1, total: 1, level: "Utama" } };
     throw new Error(`Unexpected RPC: ${name}`);
   };
-  api.from = () => {
+  api.from = (table: string) => {
     const query: any = {};
     for (const method of ["select", "eq"]) query[method] = () => query;
     query.order = () => ({ ...query, order: async () => ({ data: [] }) });
+    query.maybeSingle = async () => ({ data: { id: saved.preTestId, status: options.completedBackup ? "completed" : "in_progress" } });
+    query.then = (resolve: any) => Promise.resolve({
+      data: table === "competency_domains" ? [{ id: "d1", name: "Manajemen" }] : [],
+    }).then(resolve);
     return query;
   };
   await act(async () => {
@@ -139,6 +161,91 @@ const childText = (children: any): string => React.Children.toArray(children).ma
   typeof child === "string" ? child : React.isValidElement<{ children?: React.ReactNode }>(child)
     ? childText(child.props.children) : "").join("");
 const online = async () => { await act(async () => { events.dispatchEvent(new Event("online")); }); };
+const buttonNamed = (name: string) => {
+  const button = root.root.findAllByType("button").find(button => childText(button.props.children).includes(name));
+  assert.ok(button, `Missing button: ${name}`);
+  return button;
+};
+
+for (const duplicate of [false, true]) {
+  test(`draf browser-only${duplicate ? " dengan ID duplikat" : ""} menawarkan sesi baru tanpa mengirim daftar soal lama`, async () => {
+    await mount({ browserOnly: true, duplicate });
+    assert.match(text(), /Assessment lama perlu dimulai ulang/);
+    assert.deepEqual(rpcNames, ["get_active_assessment_draft"]);
+    assert.equal(storage.size, 1, "backup stays until a new session is accepted");
+    await online();
+    assert.equal(calls, 0);
+    fail = false;
+    await act(async () => { await buttonNamed("Mulai Ulang Assessment").props.onClick(); });
+    assert.equal(startPayload.preTestId, "pending");
+    assert.deepEqual(startPayload.answers, {});
+    assert.equal(startPayload.questions.length, 1);
+    assert.equal(saved.preTestId, "assessment-new");
+    assert.doesNotMatch(text(), /Assessment lama perlu dimulai ulang/);
+    assert.match(text(), /Progres tersimpan di server/);
+    assert.equal(storage.size, 0);
+  });
+}
+
+test("draf server ber-ID duplikat menawarkan mulai ulang, bukan retry pemulihan", async () => {
+  await mount({ duplicate: true });
+  assert.match(text(), /Assessment lama perlu dimulai ulang/);
+  assert.doesNotMatch(text(), /Draf assessment belum dapat diperiksa/);
+  await online();
+  assert.equal(calls, 0);
+});
+
+test("kegagalan mulai ulang mempertahankan penjelasan dan cadangan; hasil selesai bukan draf untuk dimulai ulang", async () => {
+  await mount({ browserOnly: true, startFails: true });
+  await act(async () => { await buttonNamed("Mulai Ulang Assessment").props.onClick(); });
+  assert.match(text(), /Assessment lama perlu dimulai ulang/);
+  assert.equal(storage.size, 1);
+  assert.equal(calls, 0);
+  await act(async () => { root.unmount(); });
+  await mount({ browserOnly: true, completedBackup: true });
+  assert.doesNotMatch(text(), /Assessment lama perlu dimulai ulang/);
+  assert.equal(buttonNamed("Mulai Assessment").props.disabled, false);
+  assert.deepEqual(rpcNames, ["get_active_assessment_draft"]);
+});
+
+for (const error of ["Invalid assessment questions", "Assessment draft unavailable; restart assessment"]) {
+  for (const expired of [false, true]) {
+    test(`${error}: ${expired ? "submit otomatis" : "submit manual"} berhenti dan menawarkan mulai ulang`, async (t) => {
+      t.mock.timers.enable({ apis: ["setTimeout"] });
+      await mount({ submitResponse: { error }, expired });
+      if (!expired) {
+        fail = false;
+        await online();
+        await act(async () => { await buttonNamed("Selesai & Lihat Hasil").props.onClick(); });
+      }
+      assert.match(text(), /Assessment lama perlu dimulai ulang/);
+      assert.equal(rpcNames.filter(name => name === "submit_assessment").length, 1);
+      const saves = calls;
+      await online();
+      await act(async () => { t.mock.timers.tick(60000); });
+      assert.equal(calls, saves);
+      assert.equal(rpcNames.filter(name => name === "submit_assessment").length, 1);
+      assert.equal(startPayload, null, "restart requires a member's explicit choice");
+      await act(async () => { root.unmount(); });
+      t.mock.timers.reset();
+    });
+  }
+}
+
+test("kesalahan submit sementara tetap di review dan assessment valid dapat dikirim ulang", async () => {
+  await mount({ submitResponse: { error: "Network unavailable" } });
+  fail = false;
+  await online();
+  await act(async () => { await buttonNamed("Selesai & Lihat Hasil").props.onClick(); });
+  assert.match(text(), /Review Jawaban/);
+  assert.doesNotMatch(text(), /Assessment lama perlu dimulai ulang/);
+  const originalRpc = api.rpc;
+  api.rpc = async (name: string, args: any) => name === "submit_assessment"
+    ? { data: { score: 100, correct: 1, total: 1, level: "Utama" } }
+    : originalRpc(name, args);
+  await act(async () => { await buttonNamed("Selesai & Lihat Hasil").props.onClick(); });
+  assert.match(text(), /Assessment Selesai/);
+});
 
 test("gagal simpan lalu pulih tanpa interaksi; backoff dan online tidak menggandakan simpan", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });

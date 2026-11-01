@@ -67,7 +67,14 @@ interface AssessmentSubmitResponse {
 type AssessmentResult = Pick<AssessmentSubmitResponse, "score" | "level" | "correct" | "total">;
 type AssessmentSubmitOutcome =
   | { ok: true; result: AssessmentResult; nextPhase: "result" }
-  | { ok: false; message: string; nextPhase: "review" };
+  | { ok: false; message: string; nextPhase: "review" | "restart" };
+
+export const assessmentRestartMessage =
+  "Assessment lama ini tidak dapat dilanjutkan karena daftar soal atau draf server tidak dapat diverifikasi. Mulai ulang untuk mendapatkan sesi dan batas waktu baru. Jawaban draf lama tidak akan dinilai. Hasil assessment yang sudah selesai tetap tersimpan.";
+
+const requiresAssessmentRestart = (message: unknown) =>
+  message === "Invalid assessment questions" ||
+  message === "Assessment draft unavailable; restart assessment";
 
 export const createAssessmentSubmitGuard = () => {
   let inFlight: Promise<void> | null = null;
@@ -100,11 +107,16 @@ const isAssessmentSubmitResponse = (value: unknown): value is AssessmentSubmitRe
   (value.error === undefined || typeof value.error === "string");
 
 export const resolveAssessmentSubmitResponse = (value: unknown): AssessmentSubmitOutcome => {
+  // RPC failures have an error-only envelope, without score/result fields.
+  if (isRecord(value) && typeof value.error === "string" && value.error) {
+    return {
+      ok: false,
+      message: requiresAssessmentRestart(value.error) ? assessmentRestartMessage : "Assessment belum dapat dikirim. Periksa sesi dan koneksi Anda, lalu coba lagi.",
+      nextPhase: requiresAssessmentRestart(value.error) ? "restart" : "review",
+    };
+  }
   if (!isAssessmentSubmitResponse(value)) {
     return { ok: false, message: "Respons assessment tidak valid.", nextPhase: "review" };
-  }
-  if (value.error) {
-    return { ok: false, message: value.error, nextPhase: "review" };
   }
   return {
     ok: true,
@@ -171,7 +183,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   const timeoutSubmissionRef = useRef(false);
   const submitGuardRef = useRef(createAssessmentSubmitGuard());
   const [draftOwner, setDraftOwner] = useState<string | null>(null);
-  const [recoveryState, setRecoveryState] = useState<"checking" | "ready" | "error">("checking");
+  const [recoveryState, setRecoveryState] = useState<"checking" | "ready" | "error" | "restart">("checking");
   const [recoveryAttempt, setRecoveryAttempt] = useState(0);
   const saveQueueRef = useRef<Promise<void>>(Promise.resolve());
   const baseDraftRef = useRef<AssessmentDraft | null>(null);
@@ -191,13 +203,33 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     (phase === "test" || phase === "review")
     ? { owner: user.id, id: preTestId, clock: serverClock } : null;
 
-  if (preTestId && (phase === "test" || phase === "review")) {
+  if (recoveryState === "ready" && preTestId && (phase === "test" || phase === "review")) {
     latestDraftRef.current = {
       version: 1, preTestId, questions, answers, answerResults, currentQ, phase,
       timeLeft, deadlineAt: deadlineAt ?? undefined, timedOut,
       revision: baseDraftRef.current?.revision ?? 0,
     };
   }
+
+  const requireRestart = useCallback(() => {
+    // Invalidate in-flight/queued saves before rendering the restart choice.
+    // Do not delete or rewrite any server result, including completed history.
+    unavailableDraftRef.current = latestDraftRef.current?.preTestId ?? null;
+    activeSaveRef.current = null;
+    latestDraftRef.current = null;
+    baseDraftRef.current = null;
+    conflictRef.current = null;
+    retryRef.current?.reset();
+    timeoutSubmissionRef.current = true;
+    setDraftConflict(null);
+    setSaveBlocked(false);
+    setDraftOwner(null);
+    setPreTestId(null);
+    setServerClock(null);
+    setDeadlineAt(null);
+    setPhase("intro");
+    setRecoveryState("restart");
+  }, []);
 
   const syncDraft = useCallback(async (forSubmit = false): Promise<boolean> => {
     const epoch = assessmentDraftStorageEpoch();
@@ -346,7 +378,8 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       let draft = remote ? resolveServerAssessmentDraft(remote) : null;
       let clock = remote ? resolveAssessmentClock(remote, performance.now()) : null;
       if (remote && (!draft || !clock)) {
-        setRecoveryState("error");
+        if (!draft && clock && isRecord(remote) && typeof remote.preTestId === "string") requireRestart();
+        else setRecoveryState("error");
         return;
       }
       baseDraftRef.current = draft;
@@ -368,42 +401,21 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         }
       }
       if (!draft) {
-        // Migrate a browser-only draft once, after verifying its owner and status.
+        // Browser-only drafts cannot establish a missing server question roster.
+        // Read only their identity, even if the local question list is corrupt.
         let stored: string | null = null;
         try { stored = localStorage.getItem(key); } catch { /* No browser storage. */ }
-        const legacy = stored ? parseAssessmentDraft(stored) : null;
-        if (legacy) {
+        let legacy: unknown = null;
+        try { legacy = stored ? JSON.parse(stored) : null; } catch { /* Invalid backup. */ }
+        if (isRecord(legacy) && typeof legacy.preTestId === "string") {
           const { data: row, error } = await supabase.from("pre_tests")
-            .select("id, status, started_at, total_questions")
+            .select("id, status")
             .eq("id", legacy.preTestId).eq("user_id", user.id).maybeSingle();
           if (!active) return;
           if (error) { setRecoveryState("error"); return; }
-          if (row?.status === "in_progress" && row.total_questions === legacy.questions.length) {
-            const { data: time, error: timeError } = await supabase.rpc("get_assessment_time", { _pre_test_id: row.id });
-            if (!active) return;
-            clock = resolveAssessmentClock(time, performance.now());
-            if (timeError || !clock) { setRecoveryState("error"); return; }
-            draft = resolveServerAssessmentDraft({
-              preTestId: row.id, deadlineAt: new Date(clock.deadlineAt).toISOString(), totalQuestions: row.total_questions, draft: legacy,
-            });
-            if (draft) draft.revision = 0;
-            if (draft && assessmentSecondsLeft(clock, performance.now()) > 0) {
-              const { data: saved, error: saveError } = await supabase.rpc("save_assessment_draft", {
-                _pre_test_id: row.id, _draft: draftJson(draft),
-              });
-              if (!active) return;
-              const response = resolveDraftSave(saved);
-              if (saveError || !response) { setRecoveryState("error"); return; }
-              if (!response.saved) {
-                const merged = mergeAssessmentDrafts(null, draft, response.draft);
-                if (merged.conflicts.length) {
-                  conflictRef.current = { remote: response.draft, ids: merged.conflicts };
-                  setDraftConflict(conflictRef.current);
-                }
-                draft = merged.draft;
-              } else draft = response.draft;
-              baseDraftRef.current = response.draft;
-            }
+          if (row?.status === "in_progress") {
+            requireRestart();
+            return;
           }
         }
       }
@@ -432,7 +444,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
       setRecoveryState("ready");
     })();
     return () => { active = false; };
-  }, [user?.id, recoveryAttempt]);
+  }, [user?.id, recoveryAttempt, requireRestart]);
 
   useEffect(() => {
     if (!user || draftOwner !== user.id || !preTestId || timedOut ||
@@ -492,7 +504,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   }, [phase, serverClock, timedOut]);
 
   const startTest = async () => {
-    if (!user || recoveryState !== "ready") return;
+    if (!user || (recoveryState !== "ready" && recoveryState !== "restart") || loading) return;
     setLoading(true);
     const [{ data: allQuestions }, { data: domains }] = await Promise.all([
       supabase.rpc("get_questions_safe"),
@@ -541,6 +553,9 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
     }
 
     setQuestions(selected);
+    setRecoveryState("ready");
+    unavailableDraftRef.current = null;
+    try { localStorage.removeItem(assessmentDraftKey(user.id)); } catch { /* Storage may be unavailable. */ }
     setSaveUnavailable(false);
     baseDraftRef.current = { ...initialDraft, preTestId: started.preTestId, revision: 0 };
     conflictRef.current = null;
@@ -615,6 +630,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
   };
 
   const submitTest = useCallback(async () => {
+    if (recoveryState !== "ready" || !preTestId) return;
     return submitGuardRef.current(async () => {
       submittingRef.current = true;
       retryRef.current?.reset();
@@ -641,12 +657,20 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         });
 
         if (error) {
+          if (requiresAssessmentRestart(error.message)) {
+            requireRestart();
+            return;
+          }
           toast.error("Gagal mengirim assessment.");
           return;
         }
 
         const outcome = resolveAssessmentSubmitResponse(data);
         if (!outcome.ok) {
+          if (outcome.nextPhase === "restart") {
+            requireRestart();
+            return;
+          }
           toast.error(outcome.message);
           return;
         }
@@ -669,7 +693,7 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
         setLoading(false);
       }
     });
-  }, [answers, preTestId, questions, refreshProfile, user, serverClock, syncDraft]);
+  }, [answers, preTestId, questions, refreshProfile, user, serverClock, syncDraft, recoveryState, requireRestart]);
 
   // Auto-submit when timer runs out
   useEffect(() => {
@@ -782,6 +806,12 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
             </div>
 
             <div className="text-center">
+              {recoveryState === "restart" && (
+                <section role="alert" className="mb-4 rounded-xl border border-pub-amber bg-card p-5 text-foreground">
+                  <h2 className="font-bold">Assessment lama perlu dimulai ulang</h2>
+                  <p className="mt-2 text-sm">{assessmentRestartMessage}</p>
+                </section>
+              )}
               {recoveryState === "error" && (
                 <div role="alert" className="mb-4 text-sm text-destructive">
                   Draf assessment belum dapat diperiksa. Periksa koneksi Anda, lalu coba lagi.
@@ -792,11 +822,11 @@ const Assessment = ({ initialPastTests = [] }: AssessmentProps) => {
               )}
               <button
                 onClick={startTest}
-                disabled={loading || recoveryState !== "ready"}
+                disabled={loading || (recoveryState !== "ready" && recoveryState !== "restart")}
                 className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-gradient-amber text-accent-foreground font-semibold font-heading shadow-amber hover:brightness-110 transition-all disabled:opacity-50"
               >
                 {loading || recoveryState === "checking" ? <Loader2 className="w-5 h-5 animate-spin" /> : (
-                  <>Mulai Assessment <ArrowRight className="w-4 h-4" /></>
+                  <>{recoveryState === "restart" ? "Mulai Ulang Assessment" : "Mulai Assessment"} <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
             </div>
