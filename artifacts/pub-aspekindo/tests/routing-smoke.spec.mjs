@@ -319,12 +319,15 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
       data = requestUser;
     } else if (roleCheck && url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
       roleCheck.requests++;
-      await roleCheck.waitForRelease;
-      if (roleCheck.abortError) {
-        await route.abort(roleCheck.abortError);
+      // Snapshot each request before waiting so a newer check can finish first
+      // without changing the response belonging to an older, held request.
+      const { waitForRelease, abortError, response } = roleCheck;
+      await waitForRelease;
+      if (abortError) {
+        await route.abort(abortError);
         return;
       }
-      await route.fulfill(roleCheck.response);
+      await route.fulfill(response);
       return;
     } else if (url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
       data = asSuperAdmin;
@@ -534,10 +537,11 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
         assessment.result = { score, level: "Pemula", correct, total: assessmentQuestions.length };
         data = assessment.result;
       }
-    } else if (accounts && ["toolkit_activities", "contributions", "e_course_modules",
+    } else if (url.pathname.startsWith("/rest/v1/") &&
+        ["toolkit_activities", "contributions", "e_course_modules", "competency_domains",
         "marketplace_products", "marketplace_orders"].includes(endpoint) &&
         ["GET", "HEAD"].includes(request.method())) {
-      // The real password-login journey visits Dashboard before Assessment.
+      // Login and revoked-role redirects both visit the real Dashboard.
       // Its ancillary read-only lists/counts are empty in this isolated backend.
       await route.fulfill({
         status: 200, contentType: "application/json",
@@ -2217,6 +2221,90 @@ test.describe("halaman khusus super-admin dengan sesi tiruan", () => {
   });
 
   for (const { path, heading } of restrictedPages) {
+    test(`respons izin lama true tidak membuka kembali ${path} setelah pemeriksaan baru menolak`, async ({ page }) => {
+      const allowedResponse = { status: 200, contentType: "application/json", body: "true" };
+      const deniedResponse = { status: 200, contentType: "application/json", body: "false" };
+      const roleCheck = { response: allowedResponse, requests: 0 };
+      const unexpected = await installAuthenticatedFixture(page, { asSuperAdmin: true, roleCheck });
+      await page.goto(path);
+      const protectedHeading = page.getByRole("heading", { name: heading });
+      const protectedCell = page.getByRole("cell", { name: "Anggota Uji" });
+      await expect(protectedHeading).toBeVisible();
+      await expect(protectedCell).toBeVisible();
+      const restrictedLinks = page.locator('a[href="/admin/akses"], a[href="/admin/permintaan"]');
+      await expect(restrictedLinks).toHaveCount(2);
+
+      let releaseOld;
+      roleCheck.waitForRelease = new Promise((resolve) => { releaseOld = resolve; });
+      const previousRequests = roleCheck.requests;
+      // Both the sidebar and route guard own a hook instance. Hold the old
+      // request from each, then let both newer checks deny independently.
+      try {
+        await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+        await expect.poll(() => roleCheck.requests).toBe(previousRequests + 2);
+        await expect(protectedHeading).toHaveCount(0);
+        await expect(protectedCell).toHaveCount(0);
+        await expect(restrictedLinks).toHaveCount(0);
+        await expect(page).toHaveURL(new RegExp(`${path}$`));
+
+        roleCheck.response = deniedResponse;
+        roleCheck.waitForRelease = Promise.resolve();
+        await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+        await expect.poll(() => roleCheck.requests).toBe(previousRequests + 4);
+        await expect(page).toHaveURL(/\/dashboard$/);
+        await expect(protectedHeading).toHaveCount(0);
+        await expect(protectedCell).toHaveCount(0);
+        await expect(restrictedLinks).toHaveCount(0);
+
+        // Watch for even a transient restoration, not just the final DOM state.
+        await page.evaluate((restrictedHeading) => {
+          window.__staleRoleContentRestored = false;
+          const inspect = (node) => {
+            if (node.nodeType !== Node.ELEMENT_NODE) return;
+            const restrictedLink = 'a[href="/admin/akses"], a[href="/admin/permintaan"]';
+            const headings = 'h1, h2, h3, [role="heading"]';
+            const cells = 'td, [role="cell"]';
+            const elements = [node, ...node.querySelectorAll(`${restrictedLink}, ${headings}, ${cells}`)];
+            if (elements.some((element) =>
+              element.matches(restrictedLink) ||
+              (element.matches(headings) && element.textContent.trim() === restrictedHeading) ||
+              (element.matches(cells) && element.textContent.trim() === "Anggota Uji"))) {
+              window.__staleRoleContentRestored = true;
+            }
+          };
+          new MutationObserver((records) => {
+            for (const record of records) {
+              if (record.type === "characterData") inspect(record.target.parentElement);
+              for (const node of record.addedNodes) inspect(node);
+            }
+          }).observe(document.body, { childList: true, subtree: true, characterData: true });
+        }, heading);
+        const oldResponses = [];
+        page.on("response", (response) => {
+          if (new URL(response.url()).pathname === "/rest/v1/rpc/current_user_is_super_admin") {
+            oldResponses.push(response);
+          }
+        });
+        releaseOld();
+        await expect.poll(() => oldResponses.length).toBe(2);
+        for (const response of oldResponses) {
+          expect(await response.text()).toBe("true");
+          expect(await response.finished()).toBeNull();
+        }
+        // Let the fetch continuation and React updates settle before assertions.
+        await page.evaluate(() => new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        await expect(page).toHaveURL(/\/dashboard$/);
+        await expect(protectedHeading).toHaveCount(0);
+        await expect(protectedCell).toHaveCount(0);
+        await expect(restrictedLinks).toHaveCount(0);
+        expect(await page.evaluate(() => window.__staleRoleContentRestored)).toBe(false);
+        expect(unexpected).toEqual([]);
+      } finally {
+        releaseOld();
+      }
+    });
+
     test(`pencabutan super-admin saat ${path} terbuka menyembunyikan isi dan mengalihkan`, async ({ page }) => {
       const roleCheck = {
         response: { status: 200, contentType: "application/json", body: "true" },

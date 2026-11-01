@@ -37,3 +37,4 @@
 - [Urutan validasi TypeScript](typescript-reference-validation-order.md) — deklarasi library yang tertinggal dapat membuat typecheck paket gagal meski ekspor sumber tersedia.
 - [Batas riwayat klinik](clinic-history-boundaries.md) — audit tanpa konteks Ruang Simpan; balasan lama menjadi snapshot dengan pengubah tidak diketahui, bukan riwayat rekaan.
 - [Perilaku media native](native-media-recovery.md) — Chromium menyambung respons terpotong lewat Range; load tidak selalu mengirim pause, dan play bisa ditolak karena jaringan.
+- [Bukti uji balapan izin](permission-race-test-evidence.md) — amati juga konsumen izin yang bertahan setelah navigasi agar unmount tidak menghasilkan kelulusan semu.
