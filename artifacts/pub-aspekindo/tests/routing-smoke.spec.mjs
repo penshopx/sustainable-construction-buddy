@@ -1489,6 +1489,55 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     }
   });
 
+  for (const expired of [false, true]) {
+    test(`anggota dapat memutar ulang video selesai dengan tautan ${expired ? "kedaluwarsa" : "segar"}`, async ({ page }) => {
+      const lms = { enrolled: true, video: true, rotateVideoTokens: true, signRequests: [], videoRequests: [] };
+      const unexpected = await installAuthenticatedFixture(page, { lms });
+      await installControlledVideo(page);
+      const now = Date.now();
+      await page.clock.setFixedTime(now);
+      const pageErrors = [];
+      page.on("pageerror", (error) => pageErrors.push(error.message));
+      try {
+        await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
+        await page.getByRole("button", { name: "Putar video", exact: true }).click();
+        const video = page.locator("video");
+        await expect(video).toBeVisible();
+        await expect.poll(() => lms.videoRequests.length).toBe(1);
+        await signalVideo(video, "loadedmetadata");
+        await expect(video).toHaveJSProperty("paused", false);
+
+        await signalVideo(video, "timeupdate", { currentTime: 120 });
+        await signalVideo(video, "ended", { currentTime: 120, paused: true, ended: true });
+        const replay = page.getByRole("button", { name: "Putar ulang video", exact: true });
+        await expect(replay).toBeVisible();
+        await expect(replay).toBeEnabled();
+        await expect(video).toHaveJSProperty("controls", false);
+        expect(await page.evaluate(() => window.controlledVideo.playSources.length)).toBe(1);
+        expect(lms.signRequests).toHaveLength(1);
+
+        if (expired) await page.clock.setFixedTime(now + 26 * 60 * 1000);
+        await replay.click();
+        if (expired) {
+          await expect.poll(() => lms.signRequests.length).toBe(2);
+          await expect.poll(() => lms.videoRequests.length).toBe(2);
+          await signalVideo(video, "loadedmetadata");
+        }
+        await expect.poll(() => page.evaluate(() => window.controlledVideo.playSources.length)).toBe(2);
+        await expect(video).toHaveJSProperty("currentTime", 0);
+        await expect(video).toHaveJSProperty("paused", false);
+        await expect(video).toHaveJSProperty("controls", true);
+        await expect(replay).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "Lanjutkan video", exact: true })).toHaveCount(0);
+        expect(lms.signRequests).toHaveLength(expired ? 2 : 1);
+        expect(pageErrors).toEqual([]);
+        expect(unexpected).toEqual([]);
+      } finally {
+        lms.releaseVideoResponses?.forEach((release) => release());
+      }
+    });
+  }
+
   test("anggota dapat melanjutkan video secara manual saat autoplay setelah metadata ditolak", async ({ page }) => {
     const lms = { enrolled: true, video: true, signRequests: [], videoRequests: [] };
     const unexpected = await installAuthenticatedFixture(page, { lms });

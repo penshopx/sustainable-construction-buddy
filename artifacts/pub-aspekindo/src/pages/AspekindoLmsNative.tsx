@@ -119,6 +119,7 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
   const [playbackError, setPlaybackError] = useState<"general" | "decode" | "unsupported" | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [paused, setPaused] = useState(true);
+  const [ended, setEnded] = useState(false);
   const [recovering, setRecovering] = useState(false);
   const [playback, setPlayback] = useState<PlayableVideoUrl | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -179,6 +180,10 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
       recovery.reset();
       wantsPlayback.current = true;
       setRecovering(false);
+      if (ended) {
+        resumeTime.current = 0;
+        if (videoRef.current) videoRef.current.currentTime = 0;
+      }
     }
     const version = ++requestVersion.current;
     const originalVideo = videoRef.current;
@@ -339,8 +344,15 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
           recovery.cancel();
           setRecovering(false);
           setPaused(false);
+          setEnded(false);
         }}
-        onEnded={() => { wantsPlayback.current = false; recovery.cancel(); setRecovering(false); }}
+        onEnded={() => {
+          wantsPlayback.current = false;
+          recovery.cancel();
+          setRecovering(false);
+          setEnded(true);
+          setPaused(true);
+        }}
         onLoadedMetadata={(event) => {
           const video = event.currentTarget;
           video.currentTime = resumeTime.current;
@@ -365,7 +377,7 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         <div className="absolute inset-x-0 top-0 flex aspect-video items-center justify-center bg-black/55">
           <Button variant="secondary" disabled={preparing} onClick={() => void preparePlayback()}>
             {preparing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircle className="mr-2 h-4 w-4" />}
-            {preparing ? "Menyiapkan video..." : "Lanjutkan video"}
+            {preparing ? "Menyiapkan video..." : ended ? "Putar ulang video" : "Lanjutkan video"}
           </Button>
         </div>
       )}
