@@ -5,9 +5,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import test from "node:test";
+import { parse as parseToml } from "@iarna/toml";
 import { signedUrlDetail, assertSignedUrlDiagnostics, jsonUrlEncoders, nestedUrlCases, assertNestedUrlDiagnostics } from "./signed-url-diagnostics-fixtures.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const workspaceDir = path.resolve(rootDir, "..");
 const publisherPath = path.join(rootDir, "scripts", "publish-competency-insight.mjs");
 const packageJsonPath = path.join(rootDir, "package.json");
 const replitConfigPath = path.join(rootDir, ".replit");
@@ -152,18 +154,39 @@ function assertConfigurationFailure(result, code, message) {
   });
 }
 
-function readTomlSection(source, sectionName) {
-  const lines = source.split(/\r?\n/);
-  const sectionHeader = `[${sectionName}]`;
-  const sectionStart = lines.findIndex((line) => line.trim() === sectionHeader);
-  assert.notEqual(sectionStart, -1, `${sectionHeader} section is missing`);
-
-  const sectionLines = [];
-  for (const line of lines.slice(sectionStart + 1)) {
-    if (/^\s*\[[^\]]+\]\s*$/.test(line)) break;
-    sectionLines.push(line);
+// Production builds belong to service manifests when router=application.
+// Keep this separate from the archived, explicitly invoked npm release below.
+function assertApplicationReleaseConfig({ deployment, frontend, api, packages }) {
+  assert.equal(deployment?.router, "application");
+  assert.equal(deployment.deploymentTarget, "autoscale");
+  for (const [manifest, packageName, serviceName, servicePath] of [
+    [frontend, "@workspace/pub-aspekindo", "web", "/"],
+    [api, "@workspace/api-server", "API Server", "/api"],
+  ]) {
+    const service = manifest.services?.find(({ name }) => name === serviceName);
+    assert.ok(service, `${packageName} must define its production service`);
+    assert.deepEqual(service.paths, [servicePath]);
+    const production = service.production;
+    assert.ok(production, `${packageName} must define production configuration`);
+    const build = production.build;
+    // Both command encodings are valid in artifact.toml.
+    assert.deepEqual(Array.isArray(build) ? build : build?.args,
+      ["pnpm", "--filter", packageName, "run", "build"],
+      `${packageName} must build the intended workspace package`);
+    const scripts = packages[packageName]?.scripts;
+    assert.ok(scripts?.build?.trim(), `${packageName} must provide its build script`);
+    assert.ok(scripts?.typecheck?.trim(), `${packageName} must provide its typecheck script`);
+    if (manifest === frontend) {
+      assert.equal(production.serve, "static");
+      assert.equal(production.publicDir, "artifacts/pub-aspekindo/dist/public");
+      assert.deepEqual(production.rewrites, [{ from: "/*", to: "/index.html" }]);
+    } else {
+      const run = production.run;
+      assert.deepEqual(Array.isArray(run) ? run : run?.args,
+        ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]);
+      assert.equal(production.health?.startup?.path, "/api/healthz");
+    }
   }
-  return sectionLines.join("\n");
 }
 
 function assertSanitizedOutput(result, expectedStep, exitCode) {
@@ -186,7 +209,7 @@ function assertSanitizedOutput(result, expectedStep, exitCode) {
   assert.equal(result.stdout, "");
 }
 
-test("release configuration keeps the insight publication gate", async () => {
+test("archived npm release keeps validation, build, and the insight publication gate", async () => {
   const [packageJsonSource, replitConfig] = await Promise.all([
     readFile(packageJsonPath, "utf8"),
     readFile(replitConfigPath, "utf8"),
@@ -195,8 +218,7 @@ test("release configuration keeps the insight publication gate", async () => {
   const releaseScript = packageJson.scripts?.release;
   const insightValidationScript = packageJson.scripts?.["test:insight:validate"];
   const validationAlias = packageJson.scripts?.["validate:insight"];
-  const deploymentSection = readTomlSection(replitConfig, "deployment");
-  const buildMatch = deploymentSection.match(/^\s*build\s*=\s*(.+?)\s*$/m);
+  const deployment = parseToml(replitConfig).deployment;
   const releaseSteps = releaseScript?.split("&&").map((step) => step.trim());
 
   assert.ok(releaseScript, "package.json must define a release script");
@@ -215,13 +237,64 @@ test("release configuration keeps the insight publication gate", async () => {
     "node --test tests/publish-competency-insight.test.mjs tests/verify-competency-insight.test.mjs",
     "the publication gate must include deterministic probe destination checks",
   );
-  assert.ok(buildMatch, ".replit deployment section must define a build command");
-  assert.deepEqual(JSON.parse(buildMatch[1]), ["npm", "run", "release"]);
+  assert.deepEqual(deployment?.build, ["npm", "run", "release"],
+    "the archived single-app configuration must retain its guarded release command");
   assert.deepEqual(
     releaseSteps,
     ["npm run test:insight:validate", "npm run build", "npm run publish:insight"],
     "the release script must run validation and propagate the insight publication result",
   );
+});
+
+test("active application release validates service manifests without requiring deployment.build", async (t) => {
+  const [replit, frontend, api, frontendPackage, apiPackage] = await Promise.all([
+    readFile(path.join(workspaceDir, ".replit"), "utf8"),
+    readFile(path.join(workspaceDir, "artifacts/pub-aspekindo/.replit-artifact/artifact.toml"), "utf8"),
+    readFile(path.join(workspaceDir, "artifacts/api-server/.replit-artifact/artifact.toml"), "utf8"),
+    readFile(path.join(workspaceDir, "artifacts/pub-aspekindo/package.json"), "utf8"),
+    readFile(path.join(workspaceDir, "artifacts/api-server/package.json"), "utf8"),
+  ]);
+  const config = {
+    deployment: parseToml(replit).deployment,
+    frontend: parseToml(frontend),
+    api: parseToml(api),
+    packages: {
+      "@workspace/pub-aspekindo": JSON.parse(frontendPackage),
+      "@workspace/api-server": JSON.parse(apiPackage),
+    },
+  };
+  assertApplicationReleaseConfig(config);
+  await t.test("both manifest command forms work without a top-level build", () => {
+    const alternative = structuredClone(config);
+    delete alternative.deployment.build;
+    const frontendProduction = alternative.frontend.services[0].production;
+    frontendProduction.build = Array.isArray(frontendProduction.build)
+      ? { args: frontendProduction.build } : frontendProduction.build.args;
+    const apiProduction = alternative.api.services[0].production;
+    apiProduction.build = Array.isArray(apiProduction.build)
+      ? { args: apiProduction.build } : apiProduction.build.args;
+    apiProduction.run = Array.isArray(apiProduction.run)
+      ? { args: apiProduction.run } : apiProduction.run.args;
+    assertApplicationReleaseConfig(alternative);
+  });
+  for (const [name, mutate] of [
+    ["missing frontend production", (c) => { delete c.frontend.services[0].production; }],
+    ["missing frontend build", (c) => { delete c.frontend.services[0].production.build; }],
+    ["wrong frontend build target", (c) => { c.frontend.services[0].production.build = ["pnpm", "run", "build"]; }],
+    ["wrong static output", (c) => { c.frontend.services[0].production.publicDir = "dist"; }],
+    ["missing SPA rewrite", (c) => { delete c.frontend.services[0].production.rewrites; }],
+    ["missing API service", (c) => { c.api.services = []; }],
+    ["missing API build", (c) => { delete c.api.services[0].production.build; }],
+    ["missing API run", (c) => { delete c.api.services[0].production.run; }],
+    ["missing package build", (c) => { delete c.packages["@workspace/pub-aspekindo"].scripts.build; }],
+    ["missing package typecheck", (c) => { delete c.packages["@workspace/api-server"].scripts.typecheck; }],
+  ]) {
+    await t.test(`rejects ${name}`, () => {
+      const broken = structuredClone(config);
+      mutate(broken);
+      assert.throws(() => assertApplicationReleaseConfig(broken), assert.AssertionError);
+    });
+  }
 });
 
 test("unreadable configuration fails before deployment with a safe diagnosis", async (t) => {

@@ -62,6 +62,32 @@ This project is built with:
 
 ## How can I deploy this project?
 
+### Active multi-artifact workspace versus this archive
+
+This directory is the archived single-app project. Its `npm run release`
+command and `.replit` build hook below describe that legacy path, not the
+active workspace's deployment command.
+
+The active root `.replit` uses `deployment.router = "application"`. Production
+builds and serving commands are defined per service in
+`artifacts/*/.replit-artifact/artifact.toml`; no root `deployment.build` is
+required. In particular, PUB ASPEKINDO builds to static files and the API server
+has its own build and Node run command. Do not add the archived release command
+to the root configuration merely to satisfy a single-app test.
+
+The archived tests are still used: `.github/workflows/insight-validation.yml`
+runs `npm run test:insight:validate` from this directory. That validator runs
+both contract and publication-gate tests. The publication suite checks the
+legacy guarded release chain **and** the active workspace service manifests,
+including rejected configurations with missing builds or API run commands.
+The same workflow separately typechecks and builds the active frontend.
+None of those checks publishes the Edge Function: publisher subprocess tests
+use a fake npm executable, and `--check-config` must start no subprocess.
+The active artifact builds do not invoke this archive's Edge Function publisher;
+passing CI or a manifest check is not evidence that the function was deployed.
+
+### Archived single-app release
+
 Use the guarded release command so the production application and the
 `competency-insight` Edge Function are released together:
 
