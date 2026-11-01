@@ -9,6 +9,7 @@
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "test": "node --experimental-strip-types --test --test-concurrency=1 src/lib/*.test.ts",
     "test:routing": "playwright test --config playwright.config.mjs",
+    "test:media": "playwright test --config playwright.media.config.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

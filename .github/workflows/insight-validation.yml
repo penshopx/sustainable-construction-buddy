@@ -131,3 +131,17 @@ jobs:
 
       - name: Smoke test public routes and member assessment through results
         run: pnpm --filter @workspace/pub-aspekindo run test:routing
+
+      - name: Install local native media fixture encoder
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Test native video network recovery
+        run: pnpm --filter @workspace/pub-aspekindo run test:media
+
+      - name: Upload native media evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-media-results
+          path: artifacts/pub-aspekindo/test-results/native-media/
+          if-no-files-found: ignore

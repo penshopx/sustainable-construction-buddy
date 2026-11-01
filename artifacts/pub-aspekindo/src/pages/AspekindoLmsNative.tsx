@@ -198,8 +198,9 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         if (nextPlayback === playback) {
           // Reload even when the signed URL is still fresh; play() alone cannot
           // clear a network MediaError. loadedmetadata restores position.
-          // load() queues exactly one pause event only when it interrupts a
-          // playing element. Do not ignore later native-control user pauses.
+          // If load() emits a pause while interrupting playback, ignore only
+          // that pause. Some browsers reset paused without emitting the event.
+          // Do not ignore later native-control user pauses.
           reloadPause.current = originalVideo && !originalVideo.paused ? originalVideo : null;
           originalVideo?.load();
         } else {
@@ -308,10 +309,18 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         }}
         onEnded={() => { wantsPlayback.current = false; recovery.cancel(); setRecovering(false); }}
         onLoadedMetadata={(event) => {
-          event.currentTarget.currentTime = resumeTime.current;
+          const video = event.currentTarget;
+          video.currentTime = resumeTime.current;
           reloading.current = false;
           reloadPause.current = null;
-          if (wantsPlayback.current) void event.currentTarget.play().catch(() => {
+          if (wantsPlayback.current) void video.play().catch(() => {
+            // A native play() can reject because the resumed Range request
+            // failed, not just because autoplay was denied. Keep the bounded
+            // network retry alive regardless of promise/error event ordering.
+            if (active.current && video.error?.code === MediaError.MEDIA_ERR_NETWORK) {
+              recoverIfStalled(video, true);
+              return;
+            }
             if (active.current) { setPaused(true); setRecovering(false); recovery.cancel(); }
           });
         }}
