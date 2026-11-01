@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import test from "node:test";
 import { signedUrlDetail, assertSignedUrlDiagnostics, jsonUrlEncoders, nestedUrlCases, assertNestedUrlDiagnostics } from "./signed-url-diagnostics-fixtures.mjs";
+import { databaseSchemes, databaseJsonEncoders, databaseUrlDetail, assertDatabaseUrlDiagnostics } from "./database-url-diagnostics-fixtures.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const validatorPath = path.join(rootDir, "scripts", "validate-competency-insight.mjs");
@@ -238,6 +239,26 @@ test("contract failure drops URL password fragments when capture starts inside a
     assert.equal(result.stderr.includes(fragment), false, `${fragment} must not appear in the JSON log`);
   }
   assert.deepEqual(await readTrace(fakeNpm.tracePath), ["run --silent test:insight"]);
+});
+
+test("validator redacts JSON-escaped database userinfo in short and truncated stdout and stderr", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  for (const scheme of databaseSchemes) {
+    for (const { name, encode } of databaseJsonEncoders) {
+      for (const truncated of [false, true]) {
+        await t.test(`${scheme}, ${name}, ${truncated ? "truncated" : "short"}`, async () => {
+          const result = await runValidator({
+            ...fakeNpm,
+            scenario: "terminal-url-failure",
+            detail: databaseUrlDetail(scheme, encode, truncated, validationOverlap),
+          });
+          const failure = assertDatabaseUrlDiagnostics(result, scheme, truncated);
+          assert.equal(failure.step, "contract");
+          assert.equal(failure.diagnostics.exitCode, 17);
+        });
+      }
+    }
+  }
 });
 
 test("validator redacts JSON-escaped URLs in short and truncated stdout and stderr", async (t) => {

@@ -7,6 +7,7 @@ import { spawn } from "node:child_process";
 import test from "node:test";
 import { parse as parseToml } from "@iarna/toml";
 import { signedUrlDetail, assertSignedUrlDiagnostics, jsonUrlEncoders, nestedUrlCases, assertNestedUrlDiagnostics } from "./signed-url-diagnostics-fixtures.mjs";
+import { databaseSchemes, databaseJsonEncoders, databaseUrlDetail, assertDatabaseUrlDiagnostics } from "./database-url-diagnostics-fixtures.mjs";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const workspaceDir = path.resolve(rootDir, "..");
@@ -580,6 +581,31 @@ test("long failure output preserves final details without leaking a secret acros
   assert.match(diagnostics.stderr, /AssertionError: published function did not respond$/);
   assert.ok(Buffer.byteLength(diagnostics.stderr) < 17 * 1024);
   assert.ok(Buffer.byteLength(diagnostics.stdout) < 17 * 1024);
+});
+
+test("deployment and probe redact JSON-escaped database userinfo in short and truncated stdout and stderr", async (t) => {
+  const fakeNpm = await createFakeNpm(t);
+  const scriptPath = await isolatedPublisher(t, `project_id = "${projectRef}"\n`);
+  for (const [scenario, step, exitCode] of [
+    ["deployment-failure", "deployment", 17],
+    ["probe-failure", "live_probe", 23],
+  ]) {
+    for (const scheme of databaseSchemes) {
+      for (const { name, encode } of databaseJsonEncoders) {
+        for (const truncated of [false, true]) {
+          await t.test(`${step}, ${scheme}, ${name}, ${truncated ? "truncated" : "short"}`, async () => {
+            const detail = databaseUrlDetail(scheme, encode, truncated, publicationOverlap);
+            const result = await runPublisher({
+              ...fakeNpm, scriptPath, scenario, detail, stdoutDetail: detail,
+            });
+            const failure = assertDatabaseUrlDiagnostics(result, scheme, truncated);
+            assert.equal(failure.step, step);
+            assert.equal(failure.diagnostics.exitCode, exitCode);
+          });
+        }
+      }
+    }
+  }
 });
 
 test("deployment and probe redact JSON-escaped URLs in short and truncated stdout and stderr", async (t) => {
