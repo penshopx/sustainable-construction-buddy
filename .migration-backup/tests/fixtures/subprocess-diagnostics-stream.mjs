@@ -40,6 +40,16 @@ function fixedCuts(length, chunkBytes) {
   return cuts;
 }
 
+function variedCuts(length) {
+  const sizes = [1, 2, 3, 5, 8, 13, 64, 257];
+  const cuts = [];
+  for (let end = 0, index = 0; ; index += 1) {
+    end += sizes[index % sizes.length];
+    if (end >= length) return cuts;
+    cuts.push(end);
+  }
+}
+
 function assertSafe(result, truncated) {
   for (const fragment of fragments) {
     assert.equal(result.includes(fragment), false, `leaked credential fragment: ${fragment}`);
@@ -49,6 +59,76 @@ function assertSafe(result, truncated) {
   assert.equal(result.startsWith(marker), truncated);
   assert.ok(Buffer.byteLength(result) <= diagnosticBytes + (truncated ? Buffer.byteLength(marker) : 0));
 }
+
+// These values are deliberately absent from the synthetic child environment.
+// Exact expected output catches percent-encoded fragments as well as plaintext.
+const multilingualUrl = "https://USERHEAD-é密🔐-USERTAIL:PASSHEAD-ö碼🔑-PASSTAIL@example.test/資料" +
+  "?access_token=TOKENHEAD-é密🔒-TOKENTAIL&view=summary";
+const safeMultilingualUrl = "https://[REDACTED]@example.test/資料?access_token=[REDACTED]&view=summary";
+const nestedCases = [1, 2, 3, 4].map((layers) => {
+  let destination = multilingualUrl;
+  let safeDestination = safeMultilingualUrl;
+  for (let layer = 0; layer < layers; layer += 1) {
+    destination = encodeURIComponent(destination);
+    safeDestination = encodeURIComponent(safeDestination);
+  }
+  return {
+    name: `destination encoded ${layers} times`,
+    token: `https://gateway.example.test/?redirect=${destination}&mode=debug`,
+    safe: `https://gateway.example.test/?redirect=${safeDestination}&mode=debug`,
+  };
+});
+const multilingualCases = [
+  { name: "environment credential", token: credential, safe: "[REDACTED]" },
+  { name: "unknown multilingual URL credentials", token: multilingualUrl, safe: safeMultilingualUrl },
+  ...nestedCases,
+];
+
+test("many Buffer chunks preserve multilingual destinations at every supported encoding depth", () => {
+  for (const { name, token, safe } of multilingualCases) {
+    const text = `café 中文 🔐 ${token} ${finalMessage}`;
+    const bytes = Buffer.from(text);
+    const expected = `café 中文 🔐 ${safe} ${finalMessage}`;
+    for (const cuts of [fixedCuts(bytes.length, 1), fixedCuts(bytes.length, 7), variedCuts(bytes.length)]) {
+      const captured = capture(bytes, cuts);
+      assert.deepEqual(captured, { text, truncated: false }, name);
+      const result = safeDiagnostic(captured);
+      assertSafe(result, false);
+      assert.equal(result, expected, name);
+    }
+  }
+});
+
+test("raw and diagnostic cutoffs before, inside and after multilingual encoded credentials fail closed", () => {
+  for (const { name, token } of multilingualCases) {
+    const tokenBytes = Buffer.from(token);
+    // Every byte includes the middle of multibyte characters and percent
+    // escapes, plus both endpoints and one byte on either side of the token.
+    for (let cutoff = -1; cutoff <= tokenBytes.length + 1; cutoff += 1) {
+      for (const budget of [captureBytes, diagnosticBytes]) {
+        const id = `${name}, cutoff=${cutoff}, budget=${budget}`;
+        const prefix = Buffer.from("p".repeat(captureBytes - budget + 17));
+        const padding = budget - (tokenBytes.length - cutoff) - Buffer.byteLength(` ${finalMessage}`);
+        const bytes = Buffer.concat([prefix, tokenBytes, Buffer.from(`${"x".repeat(padding)} ${finalMessage}`)]);
+        const boundary = prefix.length + cutoff;
+        assert.equal(bytes.length - budget, boundary, `${id}: intended byte boundary`);
+        for (const cuts of [[boundary], variedCuts(bytes.length)]) {
+          const captured = capture(bytes, cuts);
+          const rawStart = bytes.length - captureBytes;
+          assert.ok(rawStart > 0, `${id}: capture actually truncated`);
+          const retained = bytes.subarray(rawStart);
+          assert.equal(retained.length, captureBytes, `${id}: bounded retained bytes`);
+          assert.deepEqual(captured, { text: retained.toString("utf8"), truncated: true }, id);
+          const result = safeDiagnostic(captured);
+          assertSafe(result, true);
+          // No raw OR encoded part of the incomplete token may survive, but
+          // preserve the assertion following it on the very same log line.
+          assert.equal(result, `${marker}${finalMessage}`, id);
+        }
+      }
+    }
+  }
+});
 
 test("every byte split in URL escapes, credentials and multibyte text is equivalent to one chunk", () => {
   const text = `${credential}\n${url}\n${escapedUrl}\n${percentUrl}\n${finalMessage}`;

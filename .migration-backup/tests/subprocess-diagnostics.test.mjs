@@ -11,7 +11,7 @@ for (const credential of [
   `ENVHEAD-${"private-middle-".repeat(40)}ENVTAIL`,
   "ENVHEAD-rahasia-密碼-🔐-ENVTAIL",
 ]) {
-  test(`controlled stream boundaries with ${Buffer.byteLength(credential)} bytes of secret overlap`, () => {
+  test(`Buffer chunk, UTF-8 and encoded destination boundary matrix with ${Buffer.byteLength(credential)} bytes of secret overlap`, () => {
     const result = spawnSync(process.execPath, [
       "--test",
       fileURLToPath(new URL("./fixtures/subprocess-diagnostics-stream.mjs", import.meta.url)),
