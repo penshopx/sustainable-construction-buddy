@@ -27,8 +27,13 @@ jobs:
         with:
           version: latest
 
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Install PostgreSQL test tools
+        run: |
+          sudo apt-get update && sudo apt-get install --yes postgresql postgresql-client
+          dirname "$(find /usr/lib/postgresql -name initdb | sort -V | tail -1)" >> "$GITHUB_PATH"
+
+      - name: Protect the last published quiz question, including concurrent deletes
+        run: bash scripts/test-lms-published-quiz-bank.sh
 
       - name: Check quiz runner safety and prepare disposable Supabase project
         run: |

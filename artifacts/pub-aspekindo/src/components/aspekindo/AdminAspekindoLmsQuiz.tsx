@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { hasValidQuizQuestion, QUIZ_PUBLICATION_GUIDANCE } from "@/lib/lmsLessonPublication";
+import { getQuizMutationError, hasValidQuizQuestion, QUIZ_PUBLICATION_GUIDANCE } from "@/lib/lmsLessonPublication";
 
 type Course = Tables<"aspekindo_lms_courses">;
 type Lesson = Tables<"aspekindo_lms_lessons">;
@@ -155,6 +155,37 @@ export default function AdminAspekindoLmsQuiz({
     };
     let questionId = editing?.id;
     if (editing) {
+      const guardError = await getQuizMutationError(supabase, editing.id, {
+        ...questionPayload, correct_option: correctOption,
+      });
+      if (guardError) {
+        setSaving(false);
+        toast({ title: "Perubahan soal ditolak", description: guardError, variant: "destructive" });
+        return;
+      }
+    }
+    // Keep question + key in one transaction, including when options are shortened.
+    if (editing && editing.lesson_id === form.lesson_id) {
+      const { error } = await supabase.rpc("save_aspekindo_lms_quiz_question", {
+        _question_id: editing.id,
+        _lesson_id: form.lesson_id,
+        _question_text: questionPayload.question_text,
+        _options: options,
+        _points: points,
+        _sort_order: questionPayload.sort_order,
+        _correct_option: correctOption,
+        _explanation_markdown: form.explanation_markdown.trim(),
+      });
+      setSaving(false);
+      if (error) {
+        toast({ title: "Pertanyaan gagal diperbarui", description: error.message, variant: "destructive" });
+        return;
+      }
+      setDialogOpen(false);
+      toast({ title: "Pertanyaan diperbarui" });
+      await loadQuestions();
+      return;
+    } else if (editing) {
       const { error } = await supabase.from("aspekindo_lms_quiz_questions").update(questionPayload).eq("id", editing.id);
       if (error) {
         setSaving(false);
@@ -197,6 +228,11 @@ export default function AdminAspekindoLmsQuiz({
 
   const deleteQuestion = async (question: Question) => {
     if (!window.confirm(`Hapus pertanyaan “${question.question_text}”? Upaya peserta yang sudah tersimpan tidak ikut diubah.`)) return;
+    const guardError = await getQuizMutationError(supabase, question.id);
+    if (guardError) {
+      toast({ title: "Pertanyaan tidak dapat dihapus", description: guardError, variant: "destructive" });
+      return;
+    }
     const { error } = await supabase.from("aspekindo_lms_quiz_questions").delete().eq("id", question.id);
     if (error) {
       toast({ title: "Pertanyaan gagal dihapus", description: error.message, variant: "destructive" });

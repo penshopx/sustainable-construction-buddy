@@ -11,24 +11,32 @@ const question = { id: "q1", lesson_id: lesson.id, question_text: "Soal", option
 const key = { question_id: question.id, correct_option: 0 };
 let questions: unknown[] = [];
 let keys: unknown[] = [];
+let rpcError: { message: string } | null = null;
 const writes: unknown[] = [];
 const messages: { title: string; description?: string }[] = [];
 const toast = (message: any) => messages.push(message);
 
 const client = {
+  rpc(name: string, args: unknown) {
+    writes.push({ rpc: name, args });
+    return Promise.resolve({ data: rpcError ? null : question, error: rpcError });
+  },
   from(table: string) {
     let mutation: unknown;
+    let single = false;
     const query: any = {
       select: () => query,
       order: () => query,
       eq: () => query,
       in: () => query,
       limit: () => query,
+      single: () => { single = true; return query; },
+      delete: () => { mutation = { delete: table }; return query; },
       update: (payload: unknown) => { mutation = payload; return query; },
       insert: (payload: unknown) => { mutation = payload; return query; },
       then(resolve: (result: unknown) => unknown) {
         if (mutation) {
-          if (table === "aspekindo_lms_lessons") writes.push(mutation);
+          writes.push(mutation);
           return Promise.resolve(resolve({ data: [], error: null }));
         }
         const rows: Record<string, unknown[]> = {
@@ -37,7 +45,8 @@ const client = {
           aspekindo_lms_quiz_questions: questions,
           aspekindo_lms_quiz_answer_keys: keys,
         };
-        return Promise.resolve(resolve({ data: rows[table] ?? [], error: null }));
+        const data = rows[table] ?? [];
+        return Promise.resolve(resolve({ data: single ? data[0] : data, error: null }));
       },
     };
     return query;
@@ -98,6 +107,106 @@ test.after(async () => {
 function text(node: any): string {
   if (typeof node === "string") return node;
   return (node.children ?? []).map(text).join("");
+}
+
+for (const manager of ["Quiz", "Courses"]) {
+  test(`${manager}: opsi/kunci invalid tidak ditulis; perubahan opsi dan kunci valid dikirim atomik`, async () => {
+    questions = [{ ...question, options: ["A", "B", "C"] }];
+    keys = [{ ...key, correct_option: 2 }];
+    writes.length = messages.length = 0;
+    lesson.is_published = true;
+    let root!: ReactTestRenderer;
+    if (manager === "Quiz") {
+      const { default: Component } = await server.ssrLoadModule("/src/components/aspekindo/AdminAspekindoLmsQuiz.tsx");
+      await act(async () => { root = create(React.createElement(Component, { course, lessons: [lesson], userId: "admin" })); });
+    } else {
+      const { default: Page } = await server.ssrLoadModule("/src/pages/admin/AdminAspekindoLmsCourses.tsx");
+      await act(async () => { root = create(React.createElement(Page)); });
+      await act(async () => button(root, "Kuis (1)").props.onClick());
+    }
+    try {
+      await act(async () => root.root.findAllByType("button").filter((node) => text(node).trim() === "Edit").at(-1)!.props.onClick());
+      const save = () => button(root, manager === "Quiz" ? "Simpan pertanyaan" : "Simpan perubahan");
+      const change = async (node: any, value: string) => {
+        await act(async () => node.props.onChange({ target: { value } }));
+      };
+      if (manager === "Quiz") {
+        await change(root.root.findByProps({ id: "native-quiz-options" }), "A");
+      } else {
+        await change(root.root.findByProps({ value: "B", placeholder: "Opsi 2" }), "");
+        await change(root.root.findByProps({ value: "C", placeholder: "Opsi 3" }), "");
+      }
+      await act(async () => { await save().props.onClick(); });
+      assert.equal(writes.length, 0);
+      if (manager === "Quiz") {
+        await change(root.root.findByProps({ id: "native-quiz-options" }), "A\nB");
+      } else {
+        await change(root.root.findByProps({ value: "", placeholder: "Opsi 2" }), "B");
+      }
+      // Selected key still points at removed option C.
+      await act(async () => { await save().props.onClick(); });
+      assert.equal(writes.length, 0);
+      if (manager === "Quiz") {
+        await change(root.root.findByProps({ id: "native-quiz-correct" }), "0");
+      } else {
+        await act(async () => root.root.findByProps({ "aria-label": "Jawaban benar opsi 1" }).props.onChange());
+      }
+      rpcError = { message: "Penyimpanan gagal" };
+      await act(async () => { await save().props.onClick(); });
+      assert.equal(writes.length, 1);
+      assert.match(messages.at(-1)!.title, /gagal/);
+      assert.equal(save().props.disabled, false);
+      rpcError = null;
+      await act(async () => { await save().props.onClick(); });
+      assert.equal(writes.length, 2);
+      for (const write of writes as any[]) {
+        assert.equal(write.rpc, "save_aspekindo_lms_quiz_question");
+        assert.deepEqual(write.args._options, ["A", "B"]);
+        assert.equal(write.args._correct_option, 0);
+      }
+    } finally {
+      lesson.is_published = false;
+      rpcError = null;
+      await act(async () => root.unmount());
+    }
+  });
+
+  test(`${manager}: penghapusan soal terakhir ditolak meski status layar masih draf; soal valid lain mengizinkan hapus`, async () => {
+    questions = [question];
+    keys = [key];
+    writes.length = messages.length = 0;
+    const staleLesson = { ...lesson, is_published: false };
+    // The UI loads a draft, but the next operation must read the new published status.
+    let root!: ReactTestRenderer;
+    if (manager === "Quiz") {
+      const { default: Component } = await server.ssrLoadModule("/src/components/aspekindo/AdminAspekindoLmsQuiz.tsx");
+      await act(async () => { root = create(React.createElement(Component, { course, lessons: [staleLesson], userId: "admin" })); });
+    } else {
+      const { default: Page } = await server.ssrLoadModule("/src/pages/admin/AdminAspekindoLmsCourses.tsx");
+      await act(async () => { root = create(React.createElement(Page)); });
+      await act(async () => button(root, "Kuis (1)").props.onClick());
+    }
+    lesson.is_published = true;
+    const previousWindow = globalThis.window;
+    (globalThis as any).window = { confirm: () => true };
+    try {
+      const remove = () => manager === "Quiz"
+        ? root.root.findAllByType("button").find((node) => node.props.className === "text-destructive")!
+        : button(root, "Hapus");
+      await act(async () => { await remove().props.onClick(); });
+      assert.equal(writes.length, 0);
+      assert.match(messages.at(-1)!.description!, /soal valid lain.*draf/);
+      // No UI refresh: a fresh bank read must find this new valid question.
+      questions = [question, { ...question, id: "q2" }];
+      keys = [key, { ...key, question_id: "q2" }];
+      await act(async () => { await remove().props.onClick(); });
+      assert.deepEqual(writes, [{ delete: "aspekindo_lms_quiz_questions" }]);
+    } finally {
+      lesson.is_published = false;
+      (globalThis as any).window = previousWindow;
+      await act(async () => root.unmount());
+    }
+  });
 }
 
 function button(root: ReactTestRenderer, label: string) {

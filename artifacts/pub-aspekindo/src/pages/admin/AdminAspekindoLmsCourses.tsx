@@ -1,4 +1,4 @@
-import { getLessonPublicationError } from "@/lib/lmsLessonPublication";
+import { getLessonPublicationError, getQuizMutationError } from "@/lib/lmsLessonPublication";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive,
@@ -723,6 +723,20 @@ export default function AdminAspekindoLmsCourses() {
       return;
     }
     setSaving(true);
+    if (editingQuestion) {
+      const guardError = await getQuizMutationError(supabase, editingQuestion.id, {
+        lesson_id: quizLesson.id,
+        question_text: questionForm.question_text.trim(),
+        options,
+        points: Math.max(1, Number(questionForm.points) || 1),
+        correct_option: correctOption,
+      });
+      if (guardError) {
+        setSaving(false);
+        toast({ title: "Perubahan soal ditolak", description: guardError, variant: "destructive" });
+        return;
+      }
+    }
     const questionResult = await supabase.rpc("save_aspekindo_lms_quiz_question", {
       _question_id: editingQuestion?.id ?? null,
       _lesson_id: quizLesson.id,
@@ -745,6 +759,11 @@ export default function AdminAspekindoLmsCourses() {
   };
 
   const deleteQuestion = async (question: QuizQuestion) => {
+    const guardError = await getQuizMutationError(supabase, question.id);
+    if (guardError) {
+      toast({ title: "Soal kuis tidak dapat dihapus", description: guardError, variant: "destructive" });
+      return;
+    }
     const { error } = await supabase.from("aspekindo_lms_quiz_questions").delete().eq("id", question.id);
     if (error) {
       toast({ title: "Soal kuis gagal dihapus", description: error.message, variant: "destructive" });

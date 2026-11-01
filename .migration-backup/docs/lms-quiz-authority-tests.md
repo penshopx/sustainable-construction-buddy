@@ -1,5 +1,25 @@
 # Uji otoritas nilai kuis
 
+## Perlindungan bank soal pelajaran terbit
+
+Jalankan `bash scripts/test-lms-published-quiz-bank.sh` dari `.migration-backup`.
+Runner membuat PostgreSQL sementara dan memasang migrasi pengaman asli.
+Uji mencakup penghapusan terakhir melalui akses tabel, perubahan/penghapusan
+kunci, opsi rusak, pemindahan soal, penyimpanan opsi+kunci atomik, pengecualian
+draf/nilai lulus nol, dan dua penghapusan bersamaan pada READ COMMITTED serta
+REPEATABLE READ. Uji berjalan sebagai peran `authenticated`, dengan grant
+fixture; ini bukan bukti kebijakan RLS lengkap. Runner tidak memakai koneksi hosted.
+CI menjalankan runner ini sebelum pemeriksaan skema Supabase lengkap.
+
+Migrasi `20261101090000_protect_published_lms_quiz_bank.sql` harus diterapkan
+melalui proses migrasi Supabase proyek saat perubahan digabung. Menjalankan
+frontend baru saja tidak memasang trigger ke database hosted. Migrasi tidak
+memperbaiki bank soal lama secara otomatis; pelajaran lama yang sudah rusak
+perlu dijadikan draf sebelum perbaikan. Pemeriksaan dipasang sebagai constraint
+deferred agar RPC dapat memperbarui opsi dan kunci dalam satu transaksi.
+
+## Otoritas penilaian
+
 Dua mode menjalankan `supabase/tests/aspekindo_lms_quiz_authority.sql`:
 
 - `bash scripts/test-aspekindo-lms-quiz-authority.sh`: PostgreSQL sementara,
