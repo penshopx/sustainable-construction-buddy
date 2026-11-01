@@ -116,7 +116,7 @@ function formatFileSize(bytes: number) {
 }
 
 function VideoMaterialPlayer({ material }: { material: Material }) {
-  const [playbackError, setPlaybackError] = useState(false);
+  const [playbackError, setPlaybackError] = useState<"general" | "decode" | "unsupported" | null>(null);
   const [preparing, setPreparing] = useState(false);
   const [paused, setPaused] = useState(true);
   const [recovering, setRecovering] = useState(false);
@@ -146,7 +146,7 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
     retry: () => retryAction.current(),
     exhausted: () => {
       setRecovering(false);
-      setPlaybackError(true);
+      setPlaybackError("general");
       setPaused(true);
     },
     recovered: () => setRecovering(false),
@@ -206,12 +206,12 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         } else {
           setPlayback(nextPlayback);
         }
-        setPlaybackError(false);
+        setPlaybackError(null);
       }
     } catch {
       if (!active.current || version !== requestVersion.current) return;
       if (!autoRecovery) {
-        setPlaybackError(true);
+        setPlaybackError("general");
         setPaused(true);
       }
     } finally {
@@ -237,14 +237,25 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
   }
 
   if (!playback || playbackError) {
+    const incompatible = playbackError === "decode" || playbackError === "unsupported";
+    const errorTitle = playbackError === "decode"
+      ? "Video tidak dapat didekode"
+      : playbackError === "unsupported"
+        ? "Format video tidak didukung browser ini"
+        : "Video belum dapat diputar";
+    const errorMessage = playbackError === "decode"
+      ? "Browser tidak dapat membaca isi video. File mungkin rusak atau codec tidak kompatibel. Coba browser lain yang terbaru. Jika tetap gagal, hubungi admin untuk memeriksa atau mengganti file video. Memuat ulang berulang kali tidak akan memperbaiki masalah ini."
+      : playbackError === "unsupported"
+        ? "Format atau codec video tidak didukung browser ini. Gunakan browser terbaru atau coba browser lain. Jika tetap gagal, hubungi admin untuk menyediakan video dalam format yang kompatibel. Pemulihan otomatis dihentikan karena memuat ulang tidak mengubah format video."
+        : "Pemulihan otomatis berhenti. Periksa koneksi atau ketersediaan file, lalu coba muat ulang.";
     return (
       <div className="flex aspect-video flex-col items-center justify-center rounded-xl bg-[hsl(220,60%,8%)] px-6 text-center text-white">
         {preparing ? <Loader2 className="h-8 w-8 animate-spin text-pub-sky" /> : playbackError ? <CircleAlert className="h-8 w-8 text-pub-amber" /> : <PlayCircle className="h-8 w-8 text-pub-sky" />}
-        <p className="mt-3 font-semibold">{preparing ? "Menyiapkan video privat..." : playbackError ? "Video belum dapat diputar" : "Video pembelajaran"}</p>
+        <p className="mt-3 font-semibold">{preparing ? "Menyiapkan video privat..." : playbackError ? errorTitle : "Video pembelajaran"}</p>
         <p className="mt-1 max-w-md text-xs leading-relaxed text-white/60">
-          {playbackError ? "Pemulihan otomatis berhenti. Periksa koneksi atau ketersediaan file, lalu coba muat ulang." : "Tautan privat akan disiapkan saat Anda memutar video."}
+          {playbackError ? errorMessage : "Tautan privat akan disiapkan saat Anda memutar video."}
         </p>
-        <Button
+        {!incompatible && <Button
           size="sm"
           variant="secondary"
           className="mt-4"
@@ -253,7 +264,7 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         >
           {playbackError ? <RefreshCw className="mr-2 h-4 w-4" /> : <PlayCircle className="mr-2 h-4 w-4" />}
           {playbackError ? "Muat ulang video" : "Putar video"}
-        </Button>
+        </Button>}
       </div>
     );
   }
@@ -271,13 +282,25 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
         onError={(event) => {
           const video = event.currentTarget;
           if (Number.isFinite(video.currentTime) && video.currentTime > 0) resumeTime.current = video.currentTime;
+          const code = video.error?.code;
+          // Codec/format failures are terminal even if the signed URL is old.
+          // Cancel queued retries and invalidate any URL refresh already in flight.
+          if (code === MediaError.MEDIA_ERR_DECODE || code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+            wantsPlayback.current = false;
+            recovery.cancel();
+            requestVersion.current++;
+            setRecovering(false);
+            setPaused(true);
+            setPlaybackError(code === MediaError.MEDIA_ERR_DECODE ? "decode" : "unsupported");
+            return;
+          }
           if (video.error?.code === MediaError.MEDIA_ERR_NETWORK || !isVideoUrlFresh(playback.issuedAt)) {
             recoverIfStalled(video, true);
           } else {
             recovery.cancel();
             requestVersion.current++;
             setRecovering(false);
-            setPlaybackError(true);
+            setPlaybackError("general");
           }
         }}
         onTimeUpdate={(event) => {

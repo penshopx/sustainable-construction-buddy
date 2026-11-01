@@ -13,7 +13,7 @@ const material = { storage_path: "lesson.mp4", mime_type: "video/mp4", file_size
 test.before(async () => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   (globalThis as any).HTMLMediaElement = { HAVE_FUTURE_DATA: 3 };
-  (globalThis as any).MediaError = { MEDIA_ERR_NETWORK: 2 };
+  (globalThis as any).MediaError = { MEDIA_ERR_NETWORK: 2, MEDIA_ERR_DECODE: 3, MEDIA_ERR_SRC_NOT_SUPPORTED: 4 };
   (globalThis as any).__videoFixture = { refetch: () => { refreshes++; return refresh(); } };
   process.env.PORT ||= "4173";
   process.env.BASE_PATH ||= "/";
@@ -85,7 +85,7 @@ async function fixture(stale = false) {
   let plays = 0;
   const video = {
     currentTime: 0, paused: true, ended: false, seeking: false, readyState: 0,
-    error: null as { code: number } | null,
+    error: null as { code: number; message?: string } | null,
     load() {
       loads++;
       const wasPaused = this.paused;
@@ -127,8 +127,8 @@ async function fixture(stale = false) {
     root, video, event, click,
     counts: () => ({ loads, plays, refreshes }),
     tick: async (ms: number) => { await act(async () => { mock.timers.tick(ms); }); },
-    fail: async () => {
-      video.error = { code: 2 };
+    fail: async (code = 2) => {
+      video.error = { code, message: "Private media failure: https://storage.example/video?token=private-token" };
       video.readyState = 0;
       video.paused = true;
       await event("onPause");
@@ -196,6 +196,59 @@ test("error berulang berhenti setelah tiga reload dan menyediakan coba ulang man
     assert.equal(f.counts().refreshes, 2);
     await f.event("onLoadedMetadata");
     assert.equal(f.video.currentTime, 42);
+  } finally { await f.close(); }
+});
+
+for (const stale of [false, true]) {
+  for (const code of [3, 4]) {
+    test(`error ${code === 3 ? "decode" : "format"} dengan URL ${stale ? "lama" : "segar"} menjelaskan solusi tanpa retry`, async () => {
+      const f = await fixture(stale);
+      try {
+        await f.fail(code);
+        const message = text(f.root.toJSON());
+        assert.match(message, code === 3 ? /Video tidak dapat didekode/ : /Format video tidak didukung browser ini/);
+        assert.match(message, code === 3 ? /File mungkin rusak atau codec tidak kompatibel/ : /Format atau codec video tidak didukung/);
+        assert.match(message, /browser.*terbaru/i);
+        assert.match(message, /hubungi admin/);
+        assert.doesNotMatch(message, /Periksa koneksi|https?:|storage\.example|private-token/);
+        assert.equal(f.root.root.findAllByType("button").length, 0);
+        assert.equal(f.root.root.findAllByType("source").length, 0);
+        assert.equal(f.root.root.findAllByProps({ role: "status" }).length, 0);
+        await f.tick(60_000);
+        assert.deepEqual(f.counts(), { loads: 0, plays: 1, refreshes: 1 });
+        assert.equal(text(f.root.toJSON()), message);
+      } finally { await f.close(); }
+    });
+  }
+}
+
+test("format tidak didukung membatalkan retry jaringan yang sudah dijadwalkan", async () => {
+  const f = await fixture();
+  try {
+    await f.fail();
+    await f.fail(4);
+    await f.tick(60_000);
+    assert.match(text(f.root.toJSON()), /Format video tidak didukung browser ini/);
+    assert.deepEqual(f.counts(), { loads: 0, plays: 1, refreshes: 1 });
+  } finally { await f.close(); }
+});
+
+test("error decode tidak ditimpa hasil refresh jaringan yang terlambat", async () => {
+  const f = await fixture(true);
+  try {
+    let finish!: (value: unknown) => void;
+    refresh = () => new Promise((resolve) => { finish = resolve; });
+    await f.fail();
+    await f.tick(1000);
+    await f.fail(3);
+    await act(async () => {
+      finish({ data: "https://storage.example/new-video?token=private-token", dataUpdatedAt: Date.now(), error: null });
+    });
+    await f.tick(60_000);
+    assert.match(text(f.root.toJSON()), /Video tidak dapat didekode/);
+    assert.doesNotMatch(text(f.root.toJSON()), /https?:|private-token/);
+    assert.equal(f.root.root.findAllByType("source").length, 0);
+    assert.deepEqual(f.counts(), { loads: 0, plays: 1, refreshes: 2 });
   } finally { await f.close(); }
 });
 
