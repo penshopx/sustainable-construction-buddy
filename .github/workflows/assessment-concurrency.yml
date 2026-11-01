@@ -46,7 +46,7 @@ jobs:
       - name: Start local Supabase and apply every repository migration
         run: supabase --workdir "$RUNNER_TEMP/aspekindo-supabase" start
 
-      - name: Verify quiz authority with all migrations, RLS, grants and triggers
+      - name: Verify quiz authority and overlapping authenticated submissions with all migrations, RLS, grants and triggers
         run: bash scripts/test-aspekindo-lms-quiz-authority.sh --supabase
 
       - name: Configure local API for owner, stranger, admin and anonymous RPC checks

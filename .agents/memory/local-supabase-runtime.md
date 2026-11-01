@@ -32,3 +32,9 @@ Koneksi antarkontainer melalui jaringan bridge dapat macet meskipun proses layan
 **Why:** Layanan asli pernah berhenti pada log awal tanpa menyelesaikan migrasi provider melalui bridge, bahkan dengan alamat IP langsung; pada jaringan host migrasi dan permintaan Auth/PostgREST berhasil.
 
 **How to apply:** Bedakan proses hidup dari layanan siap. Jika koneksi bridge macet, verifikasi alternatif jaringan lokal tanpa mengganti skema atau memakai layanan hosted; tetap periksa migrasi provider dan ledger aplikasi sebelum menjalankan uji HTTP.
+
+Pada image database Supabase, nama role `postgres` tidak menjamin hak superuser atau kepemilikan skema Auth/Storage. Migrasi provider dapat gagal dengan izin skema meskipun koneksi database berhasil.
+
+**Why:** Menjalankan layanan provider dengan role aplikasi `postgres` pernah menolak migrasi skema bawaan; role pemilik provider menjalankan migrasi aslinya tanpa melonggarkan grant.
+
+**How to apply:** Saat menyiapkan kontainer lokal langsung, gunakan role pemilik Auth/Storage masing-masing untuk migrasi provider. Jangan mengatasi kegagalan bootstrap dengan grant luas atau skema pengganti minimal.

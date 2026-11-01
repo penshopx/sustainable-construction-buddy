@@ -21,10 +21,13 @@ if not (
 ):
     sys.exit("Quiz authority tests require local Supabase on port 54322; hosted URLs are forbidden")
 PY
+  # libpq environment overrides must not reroute the checked loopback URL.
+  for variable in ${!PG@}; do unset "$variable"; done
   versions="$(find "$ROOT/supabase/migrations" -name '*.sql' -printf '%f\n' | cut -d_ -f1 | sort -u | paste -sd,)"
   psql -X "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 \
     -v full_schema=true -v expected_migrations="$versions" \
     -f "$ROOT/supabase/tests/aspekindo_lms_quiz_authority.sql"
+  python3 "$ROOT/scripts/test-lms-quiz-submit-concurrency.py"
   echo "LMS quiz authority test passed (fully migrated local Supabase, authenticated role)."
   exit 0
 elif (( $# )); then

@@ -4,8 +4,10 @@ import importlib.util
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 
 SCRIPTS = Path(__file__).resolve().parent
 
@@ -102,15 +104,24 @@ assert_admin_role_unchanged "$EXPECTED" "snapshot unit check"
             self.assertEqual((target / "config.toml").read_text(), 'project_id = "aspekindo-ci"\n')
             self.assertFalse((target / ".temp").exists())
 
-    def run_runner(self, url):
+    def run_runner(self, url, concurrent_exit=0):
         with tempfile.TemporaryDirectory() as directory:
             fake = Path(directory) / "psql"
             # A sentinel proves rejected URLs never reach the database client.
             fake.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$CALL_LOG"\n')
             fake.chmod(0o755)
+            python = Path(directory) / "python3"
+            python.write_text(
+                '#!/bin/sh\ncase "$1" in\n'
+                '  */test-lms-quiz-submit-concurrency.py) printf "%s\\n" "$1" >> "$CALL_LOG"; '
+                'exit "$CONCURRENT_EXIT";;\n'
+                f'esac\nexec "{sys.executable}" "$@"\n'
+            )
+            python.chmod(0o755)
             log = Path(directory) / "called"
             env = {**os.environ, "PATH": directory + os.pathsep + os.environ["PATH"],
-                   "CALL_LOG": str(log), "DATABASE_URL": "postgresql://production.invalid/postgres"}
+                   "CALL_LOG": str(log), "CONCURRENT_EXIT": str(concurrent_exit),
+                   "DATABASE_URL": "postgresql://production.invalid/postgres"}
             env.pop("TEST_DATABASE_URL", None)
             if url is not None:
                 env["TEST_DATABASE_URL"] = url
@@ -126,7 +137,65 @@ assert_admin_role_unchanged "$EXPECTED" "snapshot unit check"
         self.assertIn("full_schema=true", args)
         self.assertIn("expected_migrations=", args)
         self.assertIn("aspekindo_lms_quiz_authority.sql", args)
+        self.assertIn("test-lms-quiz-submit-concurrency.py", args)
         self.assertNotIn("aspekindo_lms_quiz_local_schema.sql", args)
+
+    def test_concurrent_failure_fails_the_full_schema_runner(self):
+        code, args = self.run_runner(
+            "postgresql://postgres:postgres@127.0.0.1:54322/postgres", concurrent_exit=23,
+        )
+        self.assertEqual(code, 23)
+        self.assertIn("test-lms-quiz-submit-concurrency.py", args)
+
+    def test_concurrent_submit_script_rejects_unsafe_targets_before_io(self):
+        with tempfile.TemporaryDirectory() as directory:
+            fake = Path(directory) / "psql"
+            fake.write_text('#!/bin/sh\ntouch "$CALL_LOG"\nexit 99\n')
+            fake.chmod(0o755)
+            log = Path(directory) / "called"
+            for url in (
+                "", "postgresql://postgres:pw@production.invalid:54322/postgres",
+                "postgresql://postgres:pw@127.0.0.1:5432/postgres",
+                "postgresql://postgres:pw@127.0.0.1:54322/production",
+                "postgresql://postgres:pw@127.0.0.1:54322/postgres?host=production.invalid",
+                "postgresql://postgres:pw@127.0.0.1:54322/postgres#fragment",
+            ):
+                with self.subTest(url=url):
+                    result = subprocess.run(
+                        [sys.executable, str(SCRIPTS / "test-lms-quiz-submit-concurrency.py")],
+                        env={**os.environ, "PATH": directory + os.pathsep + os.environ["PATH"],
+                             "CALL_LOG": str(log), "TEST_DATABASE_URL": url,
+                             "DATABASE_URL": "postgresql://production.invalid/postgres"},
+                        capture_output=True, text=True, timeout=10,
+                    )
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn("Requires disposable local Supabase", result.stderr)
+                    self.assertFalse(log.exists(), "Unsafe target reached psql")
+
+    def test_concurrent_submit_requires_full_migrations_and_enabled_trigger(self):
+        spec = importlib.util.spec_from_file_location(
+            "quiz_concurrent", SCRIPTS / "test-lms-quiz-submit-concurrency.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for results, message in (
+            (["1"], "EVERY repository migration"),
+            (["0", "0"], "Attempt-number lock trigger"),
+        ):
+            with self.subTest(message=message):
+                connection = Mock()
+                connection.execute.side_effect = results
+                with patch.object(module, "Connection", return_value=connection), patch.dict(
+                    os.environ,
+                    {"TEST_DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:54322/postgres"},
+                ):
+                    with self.assertRaisesRegex(AssertionError, message):
+                        module.run()
+                self.assertEqual(connection.execute.call_count, len(results))
+                connection.close.assert_called_once()
+                query = connection.execute.call_args_list[0].args[0]
+                for migration in (SCRIPTS.parent / "supabase/migrations").glob("*.sql"):
+                    self.assertIn(module.literal(migration.name.split("_")[0]), query)
 
     def test_reject_missing_hosted_and_connection_overrides(self):
         for url in (
