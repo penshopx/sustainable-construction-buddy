@@ -22,6 +22,18 @@ def prepare(destination: Path) -> None:
         (migrations / f"{version}_ci.sql").write_text(
             "\n".join(f"-- Source: {file.name}\n{file.read_text()}\n" for file in files)
         )
+    # PostgreSQL cannot use a newly added enum label until its transaction
+    # commits. A legacy migration both adds and uses super_admin. Supabase CLI
+    # applies each file transactionally, so commit the same idempotent addition
+    # immediately before that original file in this disposable copy only.
+    # Keep every original migration byte-for-byte intact and its ledger version.
+    prerequisite = "20260827051515"
+    if prerequisite in grouped:
+        raise ValueError("CI enum prerequisite timestamp collides with a repository migration")
+    (migrations / f"{prerequisite}_ci_enum_prerequisite.sql").write_text(
+        "-- Disposable CI only: commit enum label before legacy migration uses it.\n"
+        "ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'super_admin';\n"
+    )
 
 
 if __name__ == "__main__":

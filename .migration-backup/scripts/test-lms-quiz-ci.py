@@ -93,7 +93,12 @@ assert_admin_role_unchanged "$EXPECTED" "snapshot unit check"
                 self.assertIn(marker + file.read_text(), contents)
                 positions.append(contents.index(marker))
             self.assertEqual(positions, sorted(positions))
-            self.assertEqual(len(staged), len({f.name.split("_")[0] for f in original}))
+            self.assertEqual(len(staged), len({f.name.split("_")[0] for f in original}) + 1)
+            prerequisite = target / "migrations/20260827051515_ci_enum_prerequisite.sql"
+            self.assertIn("ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'super_admin';",
+                          prerequisite.read_text())
+            self.assertLess(staged.index(prerequisite),
+                            staged.index(target / "migrations/20260827051516_ci.sql"))
             self.assertEqual((target / "config.toml").read_text(), 'project_id = "aspekindo-ci"\n')
             self.assertFalse((target / ".temp").exists())
 

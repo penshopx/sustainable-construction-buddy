@@ -212,6 +212,11 @@ class DraftConflictsHTTP(unittest.TestCase):
         }})
         self.assertEqual(status, 200, "Owner start RPC must succeed")
         self.pre_test = str(uuid.UUID(started["preTestId"]))
+        # Do not leave earlier tests' unfinished drafts visible to later tests.
+        # Only this test's random fixture is removed; real rows are untouched.
+        self.addCleanup(self.db.sql,
+                        f"DELETE FROM public.pre_tests WHERE id={literal(self.pre_test)}"
+                        f" AND user_id={literal(self.owner)};")
         self.assertEqual(started["revision"], 0)
         self.base = self.active(self.owner_a)
         self.assertEqual(self.base["preTestId"], self.pre_test)
@@ -243,6 +248,14 @@ class DraftConflictsHTTP(unittest.TestCase):
         """)
 
     def assert_error(self, response, message, code="P0001", status=400):
+        if code == "42501":
+            # PostgREST 16 may include a GRANT hint for table ACL denials.
+            # Keep status, SQLSTATE and message strict across server versions.
+            actual_status, body = response
+            self.assertEqual(actual_status, status)
+            self.assertEqual(body["code"], code)
+            self.assertEqual(body["message"], message)
+            return
         self.assertEqual(response, (status, {
             "code": code, "details": None, "hint": None, "message": message,
         }))

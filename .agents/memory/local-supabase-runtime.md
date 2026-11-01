@@ -20,3 +20,9 @@ Inisialisasi Realtime juga dapat gagal dengan `eafnosupport` pada listener ketik
 **Why:** CLI dapat menjalankan kontainer inisialisasi sebelum memilih layanan yang dinyalakan. Menonaktifkan layanan saja tidak menjamin bootstrap database selesai.
 
 **How to apply:** Jika database sehat tetapi `Initialising schema` berhenti, periksa error kontainer bootstrap. Database image Supabase tanpa bootstrap lengkap juga belum setara stack termigrasi: skema Storage awal dapat belum memiliki kolom yang dibutuhkan migrasi aplikasi.
+
+Kegagalan `docker exec` tidak selalu menghalangi `docker run`. Bila CLI tidak dapat melewati health-check, layanan GoTrue, Storage API, dan PostgREST asli dapat dijalankan langsung pada database Supabase lokal yang sama untuk memverifikasi batas API/database.
+
+**Why:** Runtime pernah berhasil menjalankan proses utama kontainer tetapi menolak proses health-check tambahan. Layanan asli masih bisa menerapkan migrasi provider dan memvalidasi JWT/RLS; ini berbeda dari mengganti skema dengan tabel minimal.
+
+**How to apply:** Pastikan migrasi Auth/Storage asli selesai sebelum seluruh migrasi aplikasi dipasang dengan CLI dan ledger diperiksa. Bila memakai penerus HTTP lokal, teruskan request tanpa mengubah header/badan/respons dan nyatakan bahwa konfigurasi Kong tidak ikut diuji. Jangan menyebut startup CLI gagal sebagai stack resmi yang sehat.

@@ -91,6 +91,18 @@ assert module.LocalSupabase().sql("SELECT 1;") == "local-only"
             None, None, 302, "redirect", {}, "https://hosted.invalid",
         ))
 
+    def test_acl_hint_is_version_dependent_but_denial_must_be_exact(self):
+        case = module.DraftConflictsHTTP()
+        for hint in (None, "Grant the required privileges to the current role"):
+            case.assert_error((403, {
+                "code": "42501", "message": "permission denied for table assessment_drafts",
+                "details": None, "hint": hint,
+            }), "permission denied for table assessment_drafts", code="42501", status=403)
+        with self.assertRaises(AssertionError):
+            case.assert_error((200, {
+                "code": "42501", "message": "permission denied for table assessment_drafts",
+            }), "permission denied for table assessment_drafts", code="42501", status=403)
+
     def test_partial_schema_and_missing_acl_fail_before_auth_fixtures(self):
         for sql_results, message in (
             (["1"], "EVERY repository migration"),

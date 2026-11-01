@@ -34,6 +34,7 @@ jobs:
         run: |
           python3 scripts/test-lms-quiz-ci.py
           python3 scripts/test-draft-conflicts-runner.py
+          python3 scripts/test-question-authority-runner.py
           python3 scripts/prepare-supabase-test-project.py "$RUNNER_TEMP/aspekindo-supabase"
 
       - name: Start local Supabase and apply every repository migration
@@ -48,6 +49,9 @@ jobs:
 
       - name: Verify draft conflicts through real Auth and PostgREST on the full schema
         run: python3 scripts/test-assessment-draft-conflicts-http.py
+
+      - name: Verify assessment question authority through real Auth and PostgREST on the full schema
+        run: python3 scripts/test-assessment-question-authority-http.py
 
       - name: Verify revoked admin cannot restore roles with unchanged token and legitimate super-admin can grant
         run: bash scripts/test-submit-assessment-concurrency.sh --admin-role-revocation
