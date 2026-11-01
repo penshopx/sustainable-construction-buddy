@@ -44,7 +44,7 @@ trap cleanup EXIT
 initdb -D "$TMP/db" -U postgres -A trust --no-instructions >/dev/null
 pg_ctl -D "$TMP/db" -o "-c listen_addresses='' -k $TMP -p $PORT" -l "$TMP/server.log" start >/dev/null
 started=1
-PSQL=(psql -X -v ON_ERROR_STOP=1 -h "$TMP" -p "$PORT" -d postgres)
+PSQL=(psql -X -U postgres -v ON_ERROR_STOP=1 -h "$TMP" -p "$PORT" -d postgres)
 "${PSQL[@]}" -f "$ROOT/supabase/tests/aspekindo_lms_quiz_local_schema.sql" >/dev/null
 
 # Load the real migrated RPC bodies instead of maintaining a second copy in
@@ -55,7 +55,7 @@ import sys
 
 migrations, output = Path(sys.argv[1]), Path(sys.argv[2])
 functions = [
-    ("20261031110000_weight_aspekindo_lms_quiz_scores.sql", "submit_aspekindo_lms_quiz"),
+    ("20261101110000_snapshot_lms_quiz_grading.sql", "submit_aspekindo_lms_quiz"),
     ("20260901020000_harden_aspekindo_lms_participant_flows.sql", "complete_aspekindo_lms_lesson"),
 ]
 with output.open("w") as target:
@@ -67,4 +67,5 @@ with output.open("w") as target:
 PY
 "${PSQL[@]}" -f "$TMP/functions.sql" >/dev/null
 "${PSQL[@]}" -v full_schema=false -f "$ROOT/supabase/tests/aspekindo_lms_quiz_authority.sql" >/dev/null
+python3 "$ROOT/scripts/test-lms-quiz-grading-concurrency.py" "${PSQL[@]}"
 echo "LMS quiz scoring and completion RPC test passed (isolated local PostgreSQL)."
