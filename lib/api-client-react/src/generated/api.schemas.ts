@@ -197,9 +197,43 @@ export const ClinicCaseUpdateStatus = {
 } as const;
 
 export interface ClinicCaseUpdate {
+  /**
+     * @minimum 0
+     * @maximum 2147483646
+     */
+  expectedRevision: number;
   status: ClinicCaseUpdateStatus;
   /** @maxLength 6000 */
   operatorReply: string;
+}
+
+export interface ClinicCaseConflict {
+  error: string;
+}
+
+export type ClinicCaseHistoryEntryStatus = typeof ClinicCaseHistoryEntryStatus[keyof typeof ClinicCaseHistoryEntryStatus];
+
+
+export const ClinicCaseHistoryEntryStatus = {
+  open: 'open',
+  in_review: 'in_review',
+  answered: 'answered',
+  closed: 'closed',
+} as const;
+
+export interface ClinicCaseHistoryEntry {
+  id: string;
+  caseId: string;
+  /** @minimum 0 */
+  revision: number;
+  status: ClinicCaseHistoryEntryStatus;
+  operatorReply: string;
+  /**
+     * Verified JWT subject; null for legacy snapshots with unknown authors
+     * @nullable
+     */
+  actorId: string | null;
+  createdAt: string;
 }
 
 export type ClinicCaseKind = typeof ClinicCaseKind[keyof typeof ClinicCaseKind];
@@ -221,6 +255,8 @@ export const ClinicCaseStatus = {
 } as const;
 
 export interface ClinicCase {
+  /** @minimum 0 */
+  revision: number;
   id: string;
   ownerId: string;
   topicId: ClinicTopic;

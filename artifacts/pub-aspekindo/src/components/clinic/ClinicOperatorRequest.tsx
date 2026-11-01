@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ClinicTopic } from "@/lib/clinicCatalog";
 import { useCreateClinicCase, useMyClinicCases, clinicErrorMessage } from "@/hooks/useClinicCases";
 import { CaseStatusBadge, formatClinicDate } from "./clinicUi";
+import ClinicCaseHistory from "./ClinicCaseHistory";
 
 export default function ClinicOperatorRequest({ topic, lastQuestion }: { topic: ClinicTopic; lastQuestion?: string }) {
   const cases = useMyClinicCases();
@@ -91,6 +92,7 @@ export default function ClinicOperatorRequest({ topic, lastQuestion }: { topic: 
                       <p className="whitespace-pre-wrap text-xs">{c.operatorReply}</p>
                     </div>
                   )}
+                  <ClinicCaseHistory caseId={c.id} />
                 </li>
               ))}
             </ul>

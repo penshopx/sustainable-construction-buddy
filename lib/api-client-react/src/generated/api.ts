@@ -30,6 +30,8 @@ import type {
   ChatTimeoutResponse,
   ChatUnavailableResponse,
   ClinicCase,
+  ClinicCaseConflict,
+  ClinicCaseHistoryEntry,
   ClinicCaseInput,
   ClinicCaseUpdate,
   DocumentAnalysis,
@@ -505,6 +507,77 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getCreateClinicCaseMutationOptions(options));
     }
 
+export const getListClinicCaseHistoryUrl = (id: string,) => {
+
+
+
+
+  return `/api/clinic/cases/${id}/history`
+}
+
+export const listClinicCaseHistory = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<ClinicCaseHistoryEntry[]> => {
+
+  return customFetch<ClinicCaseHistoryEntry[]>(getListClinicCaseHistoryUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListClinicCaseHistoryQueryKey = (id: string,) => {
+    return [
+    `/api/clinic/cases/${id}/history`
+    ] as const;
+    }
+
+
+export const getListClinicCaseHistoryQueryOptions = <TData = Awaited<ReturnType<typeof listClinicCaseHistory>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClinicCaseHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListClinicCaseHistoryQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listClinicCaseHistory>>> = ({ signal }) => listClinicCaseHistory(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listClinicCaseHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListClinicCaseHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof listClinicCaseHistory>>>
+export type ListClinicCaseHistoryQueryError = ErrorType<void>
+
+
+
+export function useListClinicCaseHistory<TData = Awaited<ReturnType<typeof listClinicCaseHistory>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listClinicCaseHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListClinicCaseHistoryQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getListClinicOperatorCasesUrl = () => {
 
 
@@ -600,7 +673,7 @@ export const updateClinicCase = async (id: string,
 
 
 
-export const getUpdateClinicCaseMutationOptions = <TError = ErrorType<unknown>,
+export const getUpdateClinicCaseMutationOptions = <TError = ErrorType<ClinicCaseConflict>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClinicCase>>, TError,{id: string;data: BodyType<ClinicCaseUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof updateClinicCase>>, TError,{id: string;data: BodyType<ClinicCaseUpdate>}, TContext> => {
 
@@ -629,9 +702,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type UpdateClinicCaseMutationResult = NonNullable<Awaited<ReturnType<typeof updateClinicCase>>>
     export type UpdateClinicCaseMutationBody = BodyType<ClinicCaseUpdate>
-    export type UpdateClinicCaseMutationError = ErrorType<unknown>
+    export type UpdateClinicCaseMutationError = ErrorType<ClinicCaseConflict>
 
-    export const useUpdateClinicCase = <TError = ErrorType<unknown>,
+    export const useUpdateClinicCase = <TError = ErrorType<ClinicCaseConflict>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClinicCase>>, TError,{id: string;data: BodyType<ClinicCaseUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof updateClinicCase>>,

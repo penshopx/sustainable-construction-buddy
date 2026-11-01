@@ -10,6 +10,8 @@ import type { ClinicCaseStatus } from './clinicCaseStatus';
 import type { ClinicTopic } from './clinicTopic';
 
 export interface ClinicCase {
+  /** @minimum 0 */
+  revision: number;
   id: string;
   ownerId: string;
   topicId: ClinicTopic;

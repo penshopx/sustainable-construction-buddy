@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Inbox, Loader2, RefreshCw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { useOperatorClinicCases, useUpdateClinicCase, clinicErrorMessage, type ClinicCase } from "@/hooks/useClinicCases";
+import { useOperatorClinicCases, useUpdateClinicCase, useClinicCaseHistory, clinicErrorMessage, clinicErrorStatus, type ClinicCase } from "@/hooks/useClinicCases";
+import ClinicCaseHistory from "@/components/clinic/ClinicCaseHistory";
+import { clinicEditorInitial, receiveClinicVersion, rebaseClinicDraft } from "@/lib/clinicEditorState";
 import { getClinicTopic } from "@/lib/clinicCatalog";
 import { CaseStatusBadge, CASE_STATUS_LABEL, formatClinicDate, usePageMeta } from "@/components/clinic/clinicUi";
 
@@ -53,7 +55,7 @@ export default function AdminClinic() {
 
       {cases.isLoading ? (
         <div className="space-y-2">{[0, 1, 2, 3].map(i => <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />)}</div>
-      ) : cases.isError ? (
+      ) : cases.isError && !cases.data ? (
         <div role="alert" className="rounded-xl border border-destructive/30 bg-destructive/10 p-6 text-sm text-destructive">
           <p>{clinicErrorMessage(cases.error, "Antrean belum dapat dimuat.")}</p>
           <Button size="sm" variant="outline" className="mt-3" onClick={() => cases.refetch()}>Coba lagi</Button>
@@ -75,7 +77,7 @@ export default function AdminClinic() {
               </li>
             ))}
           </ul>
-          {selected ? <CaseEditor key={`${selected.id}:${selected.updatedAt}`} item={selected} /> : (
+          {selected ? <CaseEditor key={selected.id} item={selected} /> : (
             <div className="hidden items-center justify-center rounded-xl border border-dashed border-border p-10 text-sm text-muted-foreground lg:flex">Pilih kasus untuk melihat detail.</div>
           )}
         </div>
@@ -84,20 +86,43 @@ export default function AdminClinic() {
   );
 }
 
-function CaseEditor({ item }: { item: ClinicCase }) {
+export function CaseEditor({ item }: { item: ClinicCase }) {
   const update = useUpdateClinicCase();
-  const [status, setStatus] = useState<ClinicCase["status"]>(item.status);
-  const [reply, setReply] = useState(item.operatorReply ?? "");
+  const latest = useClinicCaseHistory(item.id, false);
+  const [draft, setDraft] = useState(() => clinicEditorInitial(item));
+  const { status, reply } = draft;
+  const [conflict, setConflict] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
-  useEffect(() => { setResult(null); }, [item.id]);
+  useEffect(() => { setDraft(current => receiveClinicVersion(current, item)); }, [item]);
   const invalid = status === "answered" && !reply.trim();
 
+  const reloadLatest = async () => {
+    const response = await latest.refetch();
+    const version = response.data?.at(-1);
+    if (response.isError || !version) {
+      setResult({ ok: false, text: clinicErrorMessage(response.error, "Versi terbaru belum dapat dimuat. Draf tetap utuh; coba lagi.") });
+      return;
+    }
+    setDraft(current => rebaseClinicDraft(current, version));
+    setLoaded(true);
+    setConflict(false);
+    setResult({ ok: true, text: "Versi terbaru dimuat. Draf Anda tetap utuh. Bandingkan dengan versi tersimpan sebelum menyimpan lagi." });
+  };
+
   const save = () => {
-    if (invalid || update.isPending) return;
+    if (invalid || update.isPending || conflict) return;
     setResult(null);
-    update.mutate({ id: item.id, data: { status, operatorReply: reply.trim() } }, {
-      onSuccess: () => setResult({ ok: true, text: "Tersimpan." }),
-      onError: err => setResult({ ok: false, text: clinicErrorMessage(err, "Perubahan belum tersimpan.") }),
+    update.mutate({ id: item.id, data: { status, operatorReply: reply.trim(), expectedRevision: draft.base.revision } }, {
+      onSuccess: saved => {
+        setDraft(clinicEditorInitial(saved));
+        setLoaded(false);
+        setResult({ ok: true, text: "Tersimpan." });
+      },
+      onError: err => {
+        setConflict(clinicErrorStatus(err) === 409);
+        setResult({ ok: false, text: clinicErrorMessage(err, "Perubahan belum tersimpan.") });
+      },
     });
   };
 
@@ -113,19 +138,25 @@ function CaseEditor({ item }: { item: ClinicCase }) {
       </div>
       <p className="whitespace-pre-wrap rounded-lg bg-muted/40 p-3 text-sm">{item.description}</p>
       <label className="block text-sm font-medium">Status
-        <select data-testid="select-case-status" value={status} onChange={e => setStatus(e.target.value as ClinicCase["status"])} className="mt-1 block w-full rounded-md border border-input bg-background px-2 py-2 text-sm">
+        <select disabled={update.isPending} data-testid="select-case-status" value={status} onChange={e => setDraft(current => ({ ...current, status: e.target.value as ClinicCase["status"] }))} className="mt-1 block w-full rounded-md border border-input bg-background px-2 py-2 text-sm">
           {STATUSES.map(s => <option key={s} value={s}>{CASE_STATUS_LABEL[s]}</option>)}
         </select>
       </label>
       <div>
         <label htmlFor="op-reply" className="text-sm font-medium">Balasan operator</label>
-        <Textarea id="op-reply" data-testid="input-operator-reply" rows={6} maxLength={6000} value={reply} onChange={e => setReply(e.target.value)} className="mt-1" />
+        <Textarea disabled={update.isPending} id="op-reply" data-testid="input-operator-reply" rows={6} maxLength={6000} value={reply} onChange={e => setDraft(current => ({ ...current, reply: e.target.value }))} className="mt-1" />
         <p className="text-xs text-muted-foreground">{reply.length}/6000{invalid ? " · status Dijawab memerlukan balasan." : ""}</p>
       </div>
       {result && <p role={result.ok ? "status" : "alert"} className={`text-sm ${result.ok ? "text-pub-emerald" : "text-destructive"}`}>{result.text}</p>}
-      <Button onClick={save} disabled={invalid || update.isPending} data-testid="button-save-case">
+      {conflict && <Button variant="outline" disabled={latest.isFetching} onClick={reloadLatest} data-testid="button-load-latest-case">Muat versi terbaru tanpa menghapus draf</Button>}
+      {loaded && <div className="rounded border border-border p-3 text-sm" data-testid="latest-case-version">
+        <p className="font-semibold">Versi tersimpan · revisi {draft.base.revision} · {CASE_STATUS_LABEL[draft.base.status]}</p>
+        <p className="whitespace-pre-wrap break-words">{draft.base.operatorReply || "Belum ada balasan."}</p>
+      </div>}
+      <Button onClick={save} disabled={invalid || update.isPending || conflict} data-testid="button-save-case">
         {update.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Simpan
       </Button>
+      <ClinicCaseHistory caseId={item.id} />
     </section>
   );
 }

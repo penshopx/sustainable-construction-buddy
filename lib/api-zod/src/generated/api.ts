@@ -235,7 +235,12 @@ export const DeleteDocumentAnalysisParams = zod.object({
 export const DeleteDocumentAnalysisResponse = zod.void()
 
 
+export const listClinicCasesResponseRevisionMin = 0;
+
+
+
 export const ListClinicCasesResponseItem = zod.object({
+  "revision": zod.number().int().min(listClinicCasesResponseRevisionMin),
   "id": zod.string().uuid(),
   "ownerId": zod.string(),
   "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),
@@ -269,7 +274,12 @@ export const CreateClinicCaseBody = zod.object({
   "rating": zod.number().int().min(1).max(createClinicCaseBodyRatingMax).optional()
 })
 
+export const createClinicCaseResponseRevisionMin = 0;
+
+
+
 export const CreateClinicCaseResponse = zod.object({
+  "revision": zod.number().int().min(createClinicCaseResponseRevisionMin),
   "id": zod.string().uuid(),
   "ownerId": zod.string(),
   "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),
@@ -284,7 +294,32 @@ export const CreateClinicCaseResponse = zod.object({
 })
 
 
+export const ListClinicCaseHistoryParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const listClinicCaseHistoryResponseRevisionMin = 0;
+
+
+
+export const ListClinicCaseHistoryResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "caseId": zod.string().uuid(),
+  "revision": zod.number().int().min(listClinicCaseHistoryResponseRevisionMin),
+  "status": zod.enum(['open', 'in_review', 'answered', 'closed']),
+  "operatorReply": zod.string(),
+  "actorId": zod.string().nullable().describe('Verified JWT subject; null for legacy snapshots with unknown authors'),
+  "createdAt": zod.coerce.date()
+})
+export const ListClinicCaseHistoryResponse = zod.array(ListClinicCaseHistoryResponseItem)
+
+
+export const listClinicOperatorCasesResponseRevisionMin = 0;
+
+
+
 export const ListClinicOperatorCasesResponseItem = zod.object({
+  "revision": zod.number().int().min(listClinicOperatorCasesResponseRevisionMin),
   "id": zod.string().uuid(),
   "ownerId": zod.string(),
   "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),
@@ -304,16 +339,25 @@ export const UpdateClinicCaseParams = zod.object({
   "id": zod.coerce.string().uuid()
 })
 
+export const updateClinicCaseBodyExpectedRevisionMin = 0;
+export const updateClinicCaseBodyExpectedRevisionMax = 2147483646;
+
 export const updateClinicCaseBodyOperatorReplyMax = 6000;
 
 
 
 export const UpdateClinicCaseBody = zod.object({
+  "expectedRevision": zod.number().int().min(updateClinicCaseBodyExpectedRevisionMin).max(updateClinicCaseBodyExpectedRevisionMax),
   "status": zod.enum(['open', 'in_review', 'answered', 'closed']),
   "operatorReply": zod.string().max(updateClinicCaseBodyOperatorReplyMax)
 })
 
+export const updateClinicCaseResponseRevisionMin = 0;
+
+
+
 export const UpdateClinicCaseResponse = zod.object({
+  "revision": zod.number().int().min(updateClinicCaseResponseRevisionMin),
   "id": zod.string().uuid(),
   "ownerId": zod.string(),
   "topicId": zod.enum(['sbu', 'lsbu-abu', 'pub-lkut', 'perizinan', 'tender', 'kontraktor', 'konsultan', 'suplai', 'pelaksanaan-proyek', 'brain-project', 'personel-manajerial', 'smap', 'pancek', 'uji-kompetensi', 'skk', 'skk-k3', 'bimtek', 'pkb', 'askom', 'lisensi-bnsp', 'akreditasi-kan', 'ajj-nirkertas']),

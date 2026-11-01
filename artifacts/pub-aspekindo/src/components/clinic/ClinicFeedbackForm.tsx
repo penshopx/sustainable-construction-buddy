@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useCreateClinicCase, useMyClinicCases, clinicErrorMessage } from "@/hooks/useClinicCases";
 import { CaseStatusBadge, formatClinicDate } from "./clinicUi";
+import ClinicCaseHistory from "./ClinicCaseHistory";
 
 export default function ClinicFeedbackForm() {
   const { user } = useAuth();
@@ -92,6 +93,7 @@ export default function ClinicFeedbackForm() {
               </div>
               <p className="text-xs text-muted-foreground">{formatClinicDate(c.createdAt)}{c.rating ? ` · ${c.rating}/5` : ""}</p>
               {c.operatorReply && <p className="whitespace-pre-wrap break-words text-sm"><span className="font-semibold">Balasan operator: </span>{c.operatorReply}</p>}
+              <ClinicCaseHistory caseId={c.id} />
             </article>
           ))}
           {!(cases.data ?? []).some(c => c.kind === "feedback") && <p className="mt-3 text-sm text-muted-foreground">Belum ada masukan dari akun ini.</p>}

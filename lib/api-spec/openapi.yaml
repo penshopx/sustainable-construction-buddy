@@ -92,6 +92,22 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ClinicCase" }
+  /clinic/cases/{id}/history:
+    get:
+      operationId: listClinicCaseHistory
+      tags: [clinic]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Complete reply and status history, only for the owner or a currently authorized admin
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/ClinicCaseHistoryEntry" } }
+        "404": { description: Request not found or inaccessible }
   /clinic/operator/cases:
     get:
       operationId: listClinicOperatorCases
@@ -122,6 +138,11 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ClinicCase" }
+        "409":
+          description: Revision changed; reload the latest version before explicitly retrying
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ClinicCaseConflict" }
   /ruang-simpan/company-names:
     post:
       operationId: resolveVaultCompanies
@@ -1018,14 +1039,32 @@ components:
         rating: { type: integer, minimum: 1, maximum: 5 }
     ClinicCaseUpdate:
       type: object
-      required: [status, operatorReply]
+      required: [status, operatorReply, expectedRevision]
       properties:
+        expectedRevision: { type: integer, minimum: 0, maximum: 2147483646 }
         status: { type: string, enum: [open, in_review, answered, closed] }
         operatorReply: { type: string, maxLength: 6000 }
+    ClinicCaseConflict:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+    ClinicCaseHistoryEntry:
+      type: object
+      required: [id, caseId, revision, status, operatorReply, actorId, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        caseId: { type: string, format: uuid }
+        revision: { type: integer, minimum: 0 }
+        status: { type: string, enum: [open, in_review, answered, closed] }
+        operatorReply: { type: string }
+        actorId: { type: [string, "null"], description: Verified JWT subject; null for legacy snapshots with unknown authors }
+        createdAt: { type: string, format: date-time }
     ClinicCase:
       type: object
-      required: [id, ownerId, topicId, kind, subject, description, rating, status, operatorReply, createdAt, updatedAt]
+      required: [id, ownerId, topicId, kind, subject, description, rating, status, operatorReply, revision, createdAt, updatedAt]
       properties:
+        revision: { type: integer, minimum: 0 }
         id: { type: string, format: uuid }
         ownerId: { type: string }
         topicId: { $ref: "#/components/schemas/ClinicTopic" }

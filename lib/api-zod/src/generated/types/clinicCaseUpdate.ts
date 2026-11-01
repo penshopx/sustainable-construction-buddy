@@ -8,6 +8,11 @@
 import type { ClinicCaseUpdateStatus } from './clinicCaseUpdateStatus';
 
 export interface ClinicCaseUpdate {
+  /**
+     * @minimum 0
+     * @maximum 2147483646
+     */
+  expectedRevision: number;
   status: ClinicCaseUpdateStatus;
   /** @maxLength 6000 */
   operatorReply: string;
