@@ -200,6 +200,14 @@ const videoMaterial = {
   file_size_bytes: 1024 * 1024,
   sort_order: 2,
 };
+const secondVideoMaterial = {
+  ...videoMaterial,
+  id: "00000000-0000-4000-8000-000000000061",
+  lesson_id: SECOND_LESSON_ID,
+  title: "Video pemeriksaan dokumen",
+  storage_path: "kursus-uji/video-pemeriksaan.mp4",
+};
+const SECOND_VIDEO_SIGN_PATH = `/storage/v1/object/sign/aspekindo-learning/${secondVideoMaterial.storage_path}`;
 const enrollment = {
   id: ENROLLMENT_ID,
   course_id: COURSE_ID,
@@ -334,15 +342,17 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
       }];
     } else if (url.pathname === "/functions/v1/competency-insight") {
       data = { source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" };
-    } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "POST") {
+    } else if (lms?.video && (url.pathname === VIDEO_SIGN_PATH ||
+        (lms.secondVideo && url.pathname === SECOND_VIDEO_SIGN_PATH)) && request.method() === "POST") {
       lms.signRequests.push({ path: url.pathname, body: request.postDataJSON() });
+      const signNumber = lms.signRequests.length;
       // Hold before choosing the outcome so a delayed failure exercises the
       // player's catch branch only after the original stream has recovered.
-      if (lms.holdSignAt === lms.signRequests.length) {
+      if (lms.holdSignAt === signNumber) {
         await new Promise((resolve) => { lms.releaseSignResponse = resolve; });
       }
-      if ((lms.failFirstSign && lms.signRequests.length === 1) ||
-          lms.failSignAt === lms.signRequests.length) {
+      if ((lms.failFirstSign && signNumber === 1) ||
+          lms.failSignAt === signNumber) {
         await route.fulfill({
           status: 500,
           contentType: "application/json",
@@ -350,9 +360,10 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
         });
         return;
       }
-      const token = lms.rotateVideoTokens ? `video-test-${lms.signRequests.length}` : "video-test-only";
-      data = { signedURL: `/object/sign/aspekindo-learning/${VIDEO_STORAGE_PATH}?token=${token}` };
-    } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "GET" &&
+      const token = lms.rotateVideoTokens ? `video-test-${signNumber}` : "video-test-only";
+      data = { signedURL: `${url.pathname.replace("/storage/v1", "")}?token=${token}` };
+    } else if (lms?.video && (url.pathname === VIDEO_SIGN_PATH ||
+               (lms.secondVideo && url.pathname === SECOND_VIDEO_SIGN_PATH)) && request.method() === "GET" &&
                /^video-test-(?:only|\d+)$/.test(url.searchParams.get("token") ?? "")) {
       lms.videoRequests.push(request.url());
       // Keep the simulated media request pending until the DOM assertion; no real
@@ -369,7 +380,7 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_lessons" && request.method() === "GET") {
       data = [lms.quiz ? { ...lesson, passing_score: 75 } : lesson, secondLesson];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_materials" && request.method() === "GET") {
-      data = lms.video ? [material, videoMaterial] : [material];
+      data = lms.video ? [material, videoMaterial, ...(lms.secondVideo ? [secondVideoMaterial] : [])] : [material];
     } else if (lms && url.pathname === "/rest/v1/aspekindo_lms_enrollments" && request.method() === "GET") {
       if (url.searchParams.get("user_id") === `eq.${user.id}`) {
         data = lms.enrolled ? [userEnrollment] : [];
@@ -1646,7 +1657,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     let originalVideo;
 
     test.beforeEach(async ({ page }) => {
-      lms = { enrolled: true, video: true, rotateVideoTokens: true, signRequests: [], videoRequests: [] };
+      lms = { enrolled: true, video: true, secondVideo: true, rotateVideoTokens: true, signRequests: [], videoRequests: [] };
       unexpected = await installAuthenticatedFixture(page, { lms });
       await installControlledVideo(page);
       await page.goto(`/aspekindo-lms/kursus/${COURSE_ID}`, { waitUntil: "domcontentloaded" });
@@ -1674,6 +1685,98 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
       expect(await originalVideo.evaluate((element) => element.isConnected)).toBe(true);
       expect(await page.evaluate(() => window.controlledVideo.playSources)).toEqual([signedUrl(1)]);
+    }
+
+    async function unlockSecondLesson(page) {
+      await page.getByRole("button", { name: "Tandai pelajaran selesai" }).click();
+      await expect.poll(() => lms.progress.find((item) => item.lesson_id === LESSON_ID)?.status).toBe("completed");
+      // React Query batches the progress refresh on a timer. Let that finish
+      // while the clock is paused, before starting the stall under test.
+      await expect.poll(async () => {
+        await page.clock.runFor(100);
+        return page.getByRole("button", { name: new RegExp(secondLesson.title) }).getAttribute("class");
+      })
+        .not.toMatch(/cursor-not-allowed/);
+    }
+
+    async function switchToSecondVideo(page, signNumber) {
+      await page.getByRole("button", { name: new RegExp(secondLesson.title) }).click();
+      await expect(page.getByRole("heading", { name: secondLesson.title })).toBeVisible();
+      await expect(page.getByText(secondVideoMaterial.title, { exact: true })).toBeVisible();
+      await expect(page.getByText(videoMaterial.title, { exact: true })).toHaveCount(0);
+      expect(await originalVideo.evaluate((element) => element.isConnected)).toBe(false);
+      await page.getByRole("button", { name: "Putar video" }).click();
+      const secondUrl = `https://${SUPABASE_HOST}${SECOND_VIDEO_SIGN_PATH}?token=video-test-${signNumber}`;
+      await expect(video.locator("source")).toHaveAttribute("src", secondUrl);
+      await expect.poll(() => lms.videoRequests).toContain(secondUrl);
+      await signalVideo(video, "loadedmetadata");
+      await resumeControlledVideo(video, 7);
+      return secondUrl;
+    }
+
+    async function expectSecondStreamUnaffected(page, secondUrl, paths) {
+      await expect(page.getByRole("heading", { name: secondLesson.title })).toBeVisible();
+      await expect(page.getByText("pemeriksaan kelengkapan dokumen", { exact: false })).toBeVisible();
+      await expect(page.getByText(secondVideoMaterial.title, { exact: true })).toBeVisible();
+      await expect(video).toHaveCount(1);
+      await expect(video.locator("source")).toHaveAttribute("src", secondUrl);
+      expect(await video.evaluate((element) => ({ time: element.currentTime, paused: element.paused })))
+        .toEqual({ time: 7, paused: false });
+      expect(await originalVideo.evaluate((element) => element.isConnected)).toBe(false);
+      expect(lms.signRequests.map(({ path }) => path)).toEqual(paths);
+      expect(lms.videoRequests).toEqual([signedUrl(1), secondUrl]);
+      expect(await page.evaluate(() => window.controlledVideo.playSources)).toEqual([signedUrl(1), secondUrl]);
+      await expect(page.getByText("Video belum dapat diputar")).toHaveCount(0);
+      await expect(page.getByText("Mencoba memulihkan video… Maksimal 3 percobaan.")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Muat ulang video" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+    }
+
+    for (const event of ["waiting", "stalled"]) {
+      test(`pindah pelajaran sebelum empat detik membatalkan timer ${event} video lama`, async ({ page }) => {
+        await unlockSecondLesson(page);
+        await page.clock.fastForward(freshMs + 1000);
+        await signalVideo(video, event, { currentTime: 42, readyState: 2 });
+        await expect(page.getByText("Mencoba memulihkan video… Maksimal 3 percobaan.")).toBeVisible();
+        await page.clock.runFor(2000);
+        expect(lms.signRequests).toHaveLength(1);
+
+        const secondUrl = await switchToSecondVideo(page, 2);
+        // Cross the old four-second deadline and subsequent retry backoffs.
+        await page.clock.runFor(30_000);
+        await expectSecondStreamUnaffected(page, secondUrl, [VIDEO_SIGN_PATH, SECOND_VIDEO_SIGN_PATH]);
+      });
+    }
+
+    for (const failResponse of [false, true]) {
+      test(`pindah pelajaran mengabaikan respons tautan video lama yang terlambat ${failResponse ? "gagal" : "berhasil"}`, async ({ page }) => {
+        await unlockSecondLesson(page);
+        lms.holdSignAt = 2;
+        if (failResponse) lms.failSignAt = 2;
+        await page.clock.fastForward(freshMs + 1000);
+        await signalVideo(video, "waiting", { currentTime: 42, readyState: 2 });
+        await page.clock.runFor(4000);
+        await expect.poll(() => lms.signRequests.length).toBe(2);
+        await expect.poll(() => typeof lms.releaseSignResponse).toBe("function");
+
+        const secondUrl = await switchToSecondVideo(page, 3);
+        const secondElement = await video.elementHandle();
+        try {
+          const response = page.waitForResponse((response) =>
+            new URL(response.url()).pathname === VIDEO_SIGN_PATH && response.request().method() === "POST");
+          lms.releaseSignResponse();
+          const signResponse = await response;
+          expect(signResponse.status()).toBe(failResponse ? 500 : 200);
+          await signResponse.finished();
+          await page.clock.runFor(30_000);
+
+          await expectSecondStreamUnaffected(page, secondUrl,
+            [VIDEO_SIGN_PATH, VIDEO_SIGN_PATH, SECOND_VIDEO_SIGN_PATH]);
+          expect(await secondElement.evaluate((element) => element.isConnected)).toBe(true);
+        } finally {
+          await secondElement.dispose();
+        }
+      });
     }
 
     for (const event of ["waiting", "stalled"]) {
