@@ -48,6 +48,11 @@ export async function signalVideo(video, event, state = {}) {
   }, { event, state });
 }
 
+export async function resumeControlledVideo(video, currentTime) {
+  await signalVideo(video, "playing", { currentTime, paused: false, readyState: 4 });
+  await signalVideo(video, "timeupdate");
+}
+
 // Install only after navigation/lesson animations settle. Pause the clock so
 // the four-second stall grace period and URL age can be asserted exactly.
 export async function freezeVideoClock(page) {

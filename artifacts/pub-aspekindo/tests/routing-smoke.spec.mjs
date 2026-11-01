@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { freezeVideoClock, installControlledVideo, signalVideo } from "./helpers/controlled-video.mjs";
+import { freezeVideoClock, installControlledVideo, resumeControlledVideo, signalVideo } from "./helpers/controlled-video.mjs";
 
 test("rute publik utama dari build aplikasi aktif dapat dibuka", async ({ page }) => {
   await page.goto("/");
@@ -336,6 +336,11 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
       data = { source: "deterministic", recommendations: [], generatedAt: "2026-09-01T00:00:00.000Z" };
     } else if (lms?.video && url.pathname === VIDEO_SIGN_PATH && request.method() === "POST") {
       lms.signRequests.push({ path: url.pathname, body: request.postDataJSON() });
+      // Hold before choosing the outcome so a delayed failure exercises the
+      // player's catch branch only after the original stream has recovered.
+      if (lms.holdSignAt === lms.signRequests.length) {
+        await new Promise((resolve) => { lms.releaseSignResponse = resolve; });
+      }
       if ((lms.failFirstSign && lms.signRequests.length === 1) ||
           lms.failSignAt === lms.signRequests.length) {
         await route.fulfill({
@@ -344,9 +349,6 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
           body: JSON.stringify({ statusCode: "500", error: "StorageError", message: "Gagal membuat tautan sementara" }),
         });
         return;
-      }
-      if (lms.holdSignAt === lms.signRequests.length) {
-        await new Promise((resolve) => { lms.releaseSignResponse = resolve; });
       }
       const token = lms.rotateVideoTokens ? `video-test-${lms.signRequests.length}` : "video-test-only";
       data = { signedURL: `/object/sign/aspekindo-learning/${VIDEO_STORAGE_PATH}?token=${token}` };
@@ -1742,28 +1744,42 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await expectOriginalStream(page);
     });
 
-    test("video yang pulih saat tautan baru diminta mempertahankan sumber lama", async ({ page }) => {
-      lms.holdSignAt = 2;
-      await page.clock.fastForward(freshMs + 1000);
-      await signalVideo(video, "waiting", { currentTime: 20, readyState: 2 });
-      await page.clock.runFor(4000);
-      await expect.poll(() => lms.signRequests.length).toBe(2);
-      await expect.poll(() => typeof lms.releaseSignResponse).toBe("function");
-      await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
-      await signalVideo(video, "playing", { currentTime: 21, readyState: 4 });
-      const response = page.waitForResponse((response) =>
-        response.url().includes(VIDEO_SIGN_PATH) && response.request().method() === "POST");
-      lms.releaseSignResponse();
-      await (await response).finished();
-      await page.clock.runFor(100);
-      await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
-      expect(await originalVideo.evaluate((element) => element.isConnected)).toBe(true);
-      expect(await video.evaluate((element) => element.paused)).toBe(false);
-      await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
-      expect(lms.videoRequests).toEqual([signedUrl(1)]);
-      expect(await page.evaluate(() => window.controlledVideo.playSources)).toEqual([signedUrl(1)]);
-      expect(lms.signRequests).toHaveLength(2);
-    });
+    for (const failResponse of [false, true]) {
+      test(`video yang pulih saat tautan baru diminta mempertahankan sumber lama saat respons ${failResponse ? "gagal" : "berhasil"}`, async ({ page }) => {
+        lms.holdSignAt = 2;
+        if (failResponse) lms.failSignAt = 2;
+        await page.clock.fastForward(freshMs + 1000);
+        await signalVideo(video, "waiting", { currentTime: 20, readyState: 2 });
+        await page.clock.runFor(4000);
+        await expect.poll(() => lms.signRequests.length).toBe(2);
+        await expect.poll(() => typeof lms.releaseSignResponse).toBe("function");
+        await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
+        await resumeControlledVideo(video, 21);
+        await expect(page.getByText("Mencoba memulihkan video… Maksimal 3 percobaan.")).toHaveCount(0);
+        const response = page.waitForResponse((response) =>
+          response.url().includes(VIDEO_SIGN_PATH) && response.request().method() === "POST");
+        lms.releaseSignResponse();
+        const signResponse = await response;
+        expect(signResponse.status()).toBe(failResponse ? 500 : 200);
+        await signResponse.finished();
+        await page.clock.runFor(100);
+        // Keep advancing the same media after preparePlayback has settled. A
+        // late failure must not detach it, pause it, or display a retry overlay.
+        await signalVideo(video, "timeupdate", { currentTime: 22 });
+        await page.clock.runFor(8000);
+        await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
+        expect(await originalVideo.evaluate((element) => element.isConnected)).toBe(true);
+        expect(await video.evaluate((element) => element.paused)).toBe(false);
+        expect(await video.evaluate((element) => element.currentTime)).toBe(22);
+        await expect(page.getByText("Video belum dapat diputar")).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "Muat ulang video" })).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "Lanjutkan video" })).toHaveCount(0);
+        await expect(page.getByText("Mencoba memulihkan video… Maksimal 3 percobaan.")).toHaveCount(0);
+        expect(lms.videoRequests).toEqual([signedUrl(1)]);
+        expect(await page.evaluate(() => window.controlledVideo.playSources)).toEqual([signedUrl(1)]);
+        expect(lms.signRequests).toHaveLength(2);
+      });
+    }
   });
 
   test("pelajaran kedua terbuka dan dapat dibuka setelah pelajaran pertama selesai", async ({ page }) => {
