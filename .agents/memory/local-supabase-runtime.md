@@ -26,3 +26,9 @@ Kegagalan `docker exec` tidak selalu menghalangi `docker run`. Bila CLI tidak da
 **Why:** Runtime pernah berhasil menjalankan proses utama kontainer tetapi menolak proses health-check tambahan. Layanan asli masih bisa menerapkan migrasi provider dan memvalidasi JWT/RLS; ini berbeda dari mengganti skema dengan tabel minimal.
 
 **How to apply:** Pastikan migrasi Auth/Storage asli selesai sebelum seluruh migrasi aplikasi dipasang dengan CLI dan ledger diperiksa. Bila memakai penerus HTTP lokal, teruskan request tanpa mengubah header/badan/respons dan nyatakan bahwa konfigurasi Kong tidak ikut diuji. Jangan menyebut startup CLI gagal sebagai stack resmi yang sehat.
+
+Koneksi antarkontainer melalui jaringan bridge dapat macet meskipun proses layanan hidup dan PostgreSQL menerima koneksi dari host; jaringan host dengan koneksi loopback dapat bekerja pada runtime yang sama.
+
+**Why:** Layanan asli pernah berhenti pada log awal tanpa menyelesaikan migrasi provider melalui bridge, bahkan dengan alamat IP langsung; pada jaringan host migrasi dan permintaan Auth/PostgREST berhasil.
+
+**How to apply:** Bedakan proses hidup dari layanan siap. Jika koneksi bridge macet, verifikasi alternatif jaringan lokal tanpa mengganti skema atau memakai layanan hosted; tetap periksa migrasi provider dan ledger aplikasi sebelum menjalankan uji HTTP.

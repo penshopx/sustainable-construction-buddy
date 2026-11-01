@@ -38,6 +38,7 @@ jobs:
       - name: Check quiz runner safety and prepare disposable Supabase project
         run: |
           python3 scripts/test-lms-quiz-ci.py
+          python3 scripts/test-lms-quiz-http-runner.py
           python3 scripts/test-draft-conflicts-runner.py
           python3 scripts/test-question-authority-runner.py
           python3 scripts/prepare-supabase-test-project.py "$RUNNER_TEMP/aspekindo-supabase"
@@ -51,6 +52,9 @@ jobs:
       - name: Configure local API for owner, stranger, admin and anonymous RPC checks
         run: |
           supabase --workdir "$RUNNER_TEMP/aspekindo-supabase" status -o json | jq -r '"TEST_SUPABASE_URL=\(.API_URL)\nTEST_SUPABASE_ANON_KEY=\(.ANON_KEY)\nTEST_SUPABASE_SERVICE_ROLE_KEY=\(.SERVICE_ROLE_KEY)"' >> "$GITHUB_ENV"
+
+      - name: Verify quiz grading and anti-forgery through real Auth and PostgREST
+        run: python3 scripts/test-lms-quiz-authority-http.py
 
       - name: Verify draft conflicts through real Auth and PostgREST on the full schema
         run: python3 scripts/test-assessment-draft-conflicts-http.py
