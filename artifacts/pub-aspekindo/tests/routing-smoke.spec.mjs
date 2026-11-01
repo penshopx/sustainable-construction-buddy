@@ -1289,6 +1289,74 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     expect(unexpected).toEqual([]);
   });
 
+  test("review yang dibuka setelah deadline server langsung nol dan mengirim jawaban tersimpan sekali", async ({ page }) => {
+    // The fixture suspends one-second intervals: expiry must be recognized
+    // during recovery itself, not by a countdown tick after reopening.
+    const assessment = {
+      started: null, checks: [], submissions: [], submitted: false,
+      serverTimeOffset: 0,
+    };
+    const unexpected = await installAuthenticatedFixture(page, { assessment });
+    await page.goto("/assessment");
+    await page.getByRole("button", { name: "Mulai Assessment" }).click();
+    await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+    await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+    await page.getByRole("button", { name: "Selanjutnya" }).click();
+    await page.getByRole("button", { name: /Periksa kesiapan/ }).click();
+    await page.getByRole("button", { name: "Review Jawaban" }).click();
+    await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+    const savedAnswers = { [assessmentQuestions[0].id]: 0, [assessmentQuestions[1].id]: 1 };
+    await expect.poll(() => assessment.draft?.phase).toBe("review");
+    await expect.poll(() => assessment.draft?.answers).toEqual(savedAnswers);
+    expect(assessment.submissions).toEqual([]);
+    const deadline = assessment.deadlineAt;
+
+    // Leave before moving server time, so the old page cannot submit.
+    await page.goto("/dashboard");
+    await expect(page.getByRole("button", { name: "Review Jawaban" })).toHaveCount(0);
+    await page.evaluate((id) => localStorage.removeItem(`pub_assessment_draft_v1:${id}`), MEMBER_ID);
+    assessment.serverTimeOffset = Date.parse(deadline) - Date.now() + 5_000;
+    expect(Date.now() + assessment.serverTimeOffset).toBeGreaterThan(Date.parse(deadline));
+    // Stale time fields in the saved draft must not override the RPC envelope.
+    assessment.draft = { ...assessment.draft, timeLeft: 180, deadlineAt: Date.parse(deadline) + 180_000 };
+
+    const attempts = [];
+    let releaseSubmission;
+    const submissionGate = new Promise((resolve) => { releaseSubmission = resolve; });
+    await page.route(`https://${SUPABASE_HOST}/rest/v1/rpc/submit_assessment`, async (route) => {
+      attempts.push(route.request().postDataJSON());
+      await submissionGate;
+      await route.fallback();
+    });
+    const expectedSubmission = {
+      _pre_test_id: ASSESSMENT_ID,
+      _answers: assessmentQuestions.map((q, i) => ({ question_id: q.id, selected_answer: i })),
+    };
+    try {
+      await page.goto("/assessment");
+      await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+      await expect(page.getByText(/^Sisa waktu:/)).toHaveText("Sisa waktu: 0:00");
+      await expect(page.getByRole("status").filter({ hasText: "Waktu habis." }))
+        .toContainText("Hanya jawaban yang tersimpan di server sebelum batas waktu yang dinilai");
+      await expect(page.getByText("Waktu hampir habis. Segera kirim jawaban Anda.")).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Kembali ke Soal" })).toBeDisabled();
+      await expect.poll(() => attempts).toEqual([expectedSubmission]);
+      expect(assessment.starts).toBe(1);
+      expect(assessment.recoveryChecks).toBe(1);
+      expect(assessment.deadlineAt).toBe(deadline);
+      expect(assessment.draft.answers).toEqual(savedAnswers);
+    } finally {
+      releaseSubmission();
+    }
+    await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+    expect(attempts).toEqual([expectedSubmission]);
+    expect(assessment.submissions).toEqual([expectedSubmission]);
+    expect(assessment.successfulSubmissions).toBe(1);
+    expect(assessment.starts).toBe(1);
+    expect(assessment.recoveryChecks).toBe(1);
+    expect(unexpected).toEqual([]);
+  });
+
   test("batas waktu tetap berjalan saat review dan hanya mengirim sekali", async ({ page }) => {
     test.setTimeout(90_000);
     await page.emulateMedia({ reducedMotion: "reduce" });
