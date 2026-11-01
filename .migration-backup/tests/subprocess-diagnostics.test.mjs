@@ -1,6 +1,31 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { safeDiagnostic } from "../scripts/subprocess-diagnostics.mjs";
+
+// The module snapshots sensitive environment values on import. A fresh process
+// makes overlap sizes deterministic without inheriting real workspace secrets.
+for (const credential of [
+  "ENVHEAD-private-middle-ENVTAIL",
+  `ENVHEAD-${"private-middle-".repeat(40)}ENVTAIL`,
+  "ENVHEAD-rahasia-密碼-🔐-ENVTAIL",
+]) {
+  test(`controlled stream boundaries with ${Buffer.byteLength(credential)} bytes of secret overlap`, () => {
+    const result = spawnSync(process.execPath, [
+      "--test",
+      fileURLToPath(new URL("./fixtures/subprocess-diagnostics-stream.mjs", import.meta.url)),
+    ], {
+      env: { DIAGNOSTIC_TEST_API_KEY: credential },
+      encoding: "utf8",
+      timeout: 30_000,
+      maxBuffer: 1024 * 1024,
+    });
+    assert.ifError(result.error);
+    assert.equal(result.signal, null);
+    assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  });
+}
 
 test("redacts URL credentials without hiding harmless query parameters", () => {
   const text = [

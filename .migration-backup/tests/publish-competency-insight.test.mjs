@@ -235,8 +235,8 @@ test("archived npm release keeps validation, build, and the insight publication 
   );
   assert.equal(
     packageJson.scripts?.["test:insight:publish"],
-    "node --test tests/publish-competency-insight.test.mjs tests/verify-competency-insight.test.mjs",
-    "the publication gate must include deterministic probe destination checks",
+    "node --test tests/publish-competency-insight.test.mjs tests/verify-competency-insight.test.mjs tests/subprocess-diagnostics.test.mjs",
+    "the publication gate must include probe destination and controlled diagnostic stream checks",
   );
   assert.deepEqual(deployment?.build, ["npm", "run", "release"],
     "the archived single-app configuration must retain its guarded release command");
