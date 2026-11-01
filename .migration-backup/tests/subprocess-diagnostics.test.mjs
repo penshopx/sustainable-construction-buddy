@@ -112,6 +112,131 @@ test("literal apostrophes from encodeURIComponent do not hide a nested signature
   }
 });
 
+// Enumerate the boundary cross-product rather than sampling randomly. The case
+// ID is sufficient to reproduce a failure; no environment value supplies data.
+const generatedBoundaryValues = [3, 4, 5];
+const generatedHexStyles = ["upper", "lower", "alternating"];
+const generatedJsonDelimiters = [":", "/", "?", "=", "&", "#", "@"];
+
+function generatedHexCase(value, style) {
+  let index = 0;
+  return value.replace(/%[0-9a-f]{2}/gi, (escape) => {
+    const lower = style === "lower" || (style === "alternating" && index++ % 2 === 0);
+    return lower ? escape.toLowerCase() : escape.toUpperCase();
+  });
+}
+
+function generatedEncode(value, layers, style) {
+  for (let layer = 0; layer < layers; layer += 1) value = encodeURIComponent(value);
+  return generatedHexCase(value, style);
+}
+
+function generatedJsonUrl(url, mask, style) {
+  return url.replace(/[:/?=&#@]/g, (character, offset) => {
+    if (!(mask & (1 << generatedJsonDelimiters.indexOf(character)))) return character;
+    // Include both JSON solidus forms in addition to every delimiter subset.
+    if (character === "/" && offset % 2 === 0) return "\\/";
+    const hex = character.charCodeAt(0).toString(16).padStart(4, "0");
+    return `\\u${style === "lower" ? hex : hex.toUpperCase()}`;
+  });
+}
+
+function generatedUrlCase(layers, nesting, style, mask) {
+  const id = `percent=${layers},nesting=${nesting},hex=${style},json=${mask}`;
+  const serial = `${layers}${nesting}${generatedHexStyles.indexOf(style)}${mask}`;
+  const secrets = Array.from({ length: 3 }, (_, index) => `SYNTHETIC_PRIVATE_${serial}_${index}/part=value`);
+  // Encode every byte, including normally literal letters, so a raw substring
+  // assertion alone cannot detect a leak of these unknown URL credentials.
+  const encodedSecrets = secrets.map((secret) => generatedHexCase(
+    [...secret].map((character) => `%${character.charCodeAt(0).toString(16).padStart(2, "0")}`).join(""),
+    style,
+  ));
+  const name = generatedHexCase("X%2dAmz%2dSignature", style);
+  const leaf = (values) =>
+    `https://storage.example.test/asset@${serial}?view=first&${name}=${values[0]}` +
+    `&view=second&${name}=${values[1]}&label=caf%C3%A9#section=details&sig=${values[2]}&section=end`;
+  const wrap = (value, level) =>
+    `https://relay${level}.example.test/asset@${serial}?view=first&view=second` +
+    // Alternate destinations between query and fragment positions.
+    `${level % 2 === 0 ? "&redirect=" : "#redirect="}${value}&attempt=${level}`;
+
+  let url = leaf(encodedSecrets);
+  for (let level = nesting - 1; level >= 0; level -= 1) {
+    url = wrap(generatedEncode(url, layers, style), level);
+  }
+
+  // Independent expected structure from the documented limits, not the
+  // implementation's redaction or decoding helpers. Values beyond a percent
+  // limit disappear at the first edge; a nesting limit removes only the fifth
+  // destination, retaining the root and four inspected nested relay levels.
+  let expected;
+  if (layers > 4) {
+    expected = wrap("[REDACTED]", 0);
+  } else {
+    expected = nesting > 4 ? "[REDACTED]" : leaf(secrets.map(() => "[REDACTED]"));
+    for (let level = Math.min(nesting - 1, 4); level >= 0; level -= 1) {
+      // Changed destinations are canonically re-encoded with uppercase hex.
+      expected = wrap(generatedEncode(expected, layers, "upper"), level);
+    }
+  }
+  return { id, url, expected, secrets };
+}
+
+function assertNoGeneratedSecrets(value, secrets, maxLayers, id) {
+  let decoded = value;
+  for (let layer = 0; layer <= maxLayers; layer += 1) {
+    for (const secret of secrets) {
+      assert.equal(decoded.includes(secret), false, `${id}: secret after decoding layer ${layer}`);
+      assert.equal(
+        decoded.includes(secret.split("/")[0]), false,
+        `${id}: private marker after decoding layer ${layer}`,
+      );
+    }
+    const next = decodeURIComponent(decoded);
+    if (next === decoded) return;
+    decoded = next;
+  }
+  assert.fail(`${id}: inspection did not reach a fully decoded value`);
+}
+
+for (const layers of generatedBoundaryValues) {
+  for (const nesting of generatedBoundaryValues) {
+    for (const style of generatedHexStyles) {
+      test(`generated URL boundaries: ${layers} percent layers, ${nesting} nested URLs, ${style} hex`, () => {
+        const seen = new Set();
+        for (let mask = 0; mask < 2 ** generatedJsonDelimiters.length; mask += 1) {
+          const { id, url, expected, secrets } = generatedUrlCase(layers, nesting, style, mask);
+          seen.add(id);
+          const message = `AssertionError: preserve detail ${mask}`;
+          // Escape only the URL; non-URL JSON escape sequences must stay intact.
+          const context = String.raw`literal \u0026 \/ ?=#@`;
+          const text = `{"url":"${generatedJsonUrl(url, mask, style)}","message":${JSON.stringify(message)},"context":${JSON.stringify(context)}}`;
+          assert.equal(JSON.parse(text).url, url, `${id}: valid input JSON`);
+          const result = safeDiagnostic({ text, truncated: false });
+          const parsed = JSON.parse(result);
+          assert.equal(parsed.message, message, `${id}: error detail retained`);
+          assert.equal(parsed.context, context, `${id}: non-URL context retained`);
+          assert.equal(parsed.url, expected, `${id}: exact safe structure and fail-closed boundary`);
+          assert.equal(result.includes("[earlier output truncated]"), false, `${id}: not a truncation test`);
+          assert.ok(Buffer.byteLength(text) < 16 * 1024, `${id}: input fits diagnostic budget`);
+          assert.ok(Buffer.byteLength(result) < 16 * 1024, `${id}: result fits diagnostic budget`);
+          // Allow more than the generated total layers and require a fixed
+          // point. Check both the raw JSON log and its parsed URL independently.
+          const maxLayers = layers * nesting + 2;
+          assertNoGeneratedSecrets(result, secrets, maxLayers, id);
+          assertNoGeneratedSecrets(parsed.url, secrets, maxLayers, id);
+          // A leaking fixture must actually expose each private marker after
+          // decoding; this prevents an inert generator from giving false safety.
+          let original = url;
+          for (let layer = 0; layer < maxLayers; layer += 1) original = decodeURIComponent(original);
+          for (const secret of secrets) assert.ok(original.includes(secret), `${id}: secret was embedded`);
+        }
+        assert.equal(seen.size, 128, "every JSON delimiter subset has a reproducible case");
+      });
+    }
+  }
+}
+
 test("drops a partial URL at a truncated capture boundary but keeps the final error", () => {
   const result = safeDiagnostic({
     text: "partial-unknown-credential".repeat(1000) + "\nGET https://example.test/?access_token=another-unknown-credential\nAssertionError: final detail",
