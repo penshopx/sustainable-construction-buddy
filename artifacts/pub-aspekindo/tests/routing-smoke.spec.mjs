@@ -127,6 +127,14 @@ const secondMember = {
   email: "anggota-kedua@example.test",
   user_metadata: { full_name: "Anggota Uji Kedua" },
 };
+const fixtureSession = (user) => ({
+  access_token: `test-only-access-token-${user.id}`,
+  refresh_token: `test-only-refresh-token-${user.id}`,
+  token_type: "bearer",
+  expires_in: 3600,
+  expires_at: Math.floor(Date.now() / 1000) + 3600,
+  user,
+});
 const course = {
   id: COURSE_ID,
   course_code: "LMS-UJI-01",
@@ -212,7 +220,7 @@ const emptyTables = new Set([
   "aspekindo_lms_sessions", "aspekindo_lms_lessons",
 ]);
 
-async function installAuthenticatedFixture(page, { user = member, asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, lms = null, lmsAccounts = null, preserveLmsState = false } = {}) {
+async function installAuthenticatedFixture(page, { user = member, asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, accounts = null, lms = null, lmsAccounts = null, preserveLmsState = false } = {}) {
   // A shared fake backend keeps each identity's enrollment and progress separate.
   if (lmsAccounts) {
     lms = lmsAccounts.get(user.id);
@@ -225,17 +233,10 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
     lms.attempts = [];
     lms.completionRequests = [];
   }
-  await page.addInitScript(({ user, hostname }) => {
-    localStorage.setItem(`sb-${hostname.split(".")[0]}-auth-token`, JSON.stringify({
-      access_token: "test-only-access-token",
-      refresh_token: "test-only-refresh-token",
-      token_type: "bearer",
-      expires_in: 3600,
-      expires_at: Math.floor(Date.now() / 1000) + 3600,
-      user,
-    }));
+  await page.addInitScript(({ session, hostname }) => {
+    localStorage.setItem(`sb-${hostname.split(".")[0]}-auth-token`, JSON.stringify(session));
     localStorage.setItem("pub_onboarding_done", "1");
-  }, { user, hostname: SUPABASE_HOST });
+  }, { session: fixtureSession(user), hostname: SUPABASE_HOST });
   if (assessment && !assessment.liveCountdown) {
     // Reconcile the countdown via visibilitychange; keep animation frames on
     // real time instead of fast-forwarding the browser's animation clock.
@@ -278,19 +279,36 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
 
   // Intercept every Supabase HTTP call, including unexpected ones; never let a
   // test request escape to a live project if the build configuration changes.
+  const defaultAssessment = assessment;
   await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, async (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const endpoint = url.pathname.split("/").pop();
     const single = request.headers().accept?.includes("vnd.pgrst.object");
+    // Resolve ownership from each request, not the last login. An in-flight A
+    // request must still belong to A after B signs in in the same page.
+    const account = accounts && [...accounts.values()].find(({ user }) =>
+      request.headers().authorization === `Bearer ${fixtureSession(user).access_token}`);
+    const requestUser = account?.user ?? user;
+    const currentAssessment = accounts ? account?.assessment : defaultAssessment;
+    const assessmentId = currentAssessment?.id ?? ASSESSMENT_ID;
+    // Keep the existing single-identity scenarios using the same RPC fixture.
+    const assessment = currentAssessment;
     let data;
 
     if (url.hostname !== SUPABASE_HOST) {
       unexpectedRequests.push(`${request.method()} ${url.hostname}${url.pathname}`);
+    } else if (accounts && url.pathname === "/auth/v1/token" && request.method() === "POST" &&
+        url.searchParams.get("grant_type") === "password") {
+      const credentials = request.postDataJSON();
+      const login = [...accounts.values()].find(({ user }) => user.email === credentials.email);
+      if (login && credentials.password === "test-only-password") data = fixtureSession(login.user);
+    } else if (accounts && !account) {
+      unexpectedRequests.push(`${request.method()} ${url.pathname} without a fixture identity`);
     } else if (url.pathname === "/auth/v1/logout" && request.method() === "POST") {
       data = {};
     } else if (url.pathname === "/auth/v1/user") {
-      data = user;
+      data = requestUser;
     } else if (roleCheck && url.pathname === "/rest/v1/rpc/current_user_is_super_admin") {
       roleCheck.requests++;
       await roleCheck.waitForRelease;
@@ -424,21 +442,21 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
     } else if (assessment && url.pathname === "/rest/v1/rpc/get_active_assessment_draft" && request.method() === "POST") {
       if (assessment.started) assessment.recoveryChecks = (assessment.recoveryChecks ?? 0) + 1;
       data = assessment.draft && !assessment.submitted ? {
-        preTestId: ASSESSMENT_ID, totalQuestions: assessmentQuestions.length,
+        preTestId: assessmentId, totalQuestions: assessmentQuestions.length,
         startedAt: assessment.startedAt, deadlineAt: assessment.deadlineAt,
         serverNow: new Date(Date.now() + (assessment.serverTimeOffset ?? 0)).toISOString(), draft: assessment.draft,
       } : null;
     } else if (assessment && url.pathname === "/rest/v1/rpc/start_assessment_draft") {
       assessment.starts = (assessment.starts ?? 0) + 1;
-      assessment.started = { user_id: MEMBER_ID, total_questions: assessmentQuestions.length, status: "in_progress" };
+      assessment.started = { user_id: requestUser.id, total_questions: assessmentQuestions.length, status: "in_progress" };
       const now = Date.now() + (assessment.serverTimeOffset ?? 0);
       assessment.startedAt = new Date(now).toISOString();
       assessment.deadlineAt = new Date(now + (assessment.durationMs ?? 180_000)).toISOString();
-      assessment.draft = { ...request.postDataJSON()._draft, preTestId: ASSESSMENT_ID, revision: 0 };
-      data = { preTestId: ASSESSMENT_ID, startedAt: assessment.startedAt, revision: 0, serverNow: new Date(now).toISOString(), deadlineAt: assessment.deadlineAt };
+      assessment.draft = { ...request.postDataJSON()._draft, preTestId: assessmentId, revision: 0 };
+      data = { preTestId: assessmentId, startedAt: assessment.startedAt, revision: 0, serverNow: new Date(now).toISOString(), deadlineAt: assessment.deadlineAt };
     } else if (assessment && url.pathname === "/rest/v1/rpc/save_assessment_draft" && request.method() === "POST") {
       const { _pre_test_id: preTestId, _draft: incoming } = request.postDataJSON();
-      const unavailable = preTestId !== ASSESSMENT_ID || !assessment.started || assessment.submitted;
+      const unavailable = preTestId !== assessmentId || !assessment.started || assessment.submitted;
       const expired = Date.now() + (assessment.serverTimeOffset ?? 0) >= Date.parse(assessment.deadlineAt);
       if (unavailable || expired) {
         await route.fulfill({
@@ -457,16 +475,16 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "POST") {
       assessment.starts = (assessment.starts ?? 0) + 1;
       assessment.started = request.postDataJSON();
-      data = { id: ASSESSMENT_ID, ...assessment.started, status: "in_progress" };
+      data = { id: assessmentId, ...assessment.started, status: "in_progress" };
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "GET") {
       if (url.searchParams.has("id")) {
         assessment.recoveryChecks = (assessment.recoveryChecks ?? 0) + 1;
         data = assessment.started ? [{
-          id: ASSESSMENT_ID, user_id: MEMBER_ID, status: assessment.submitted ? "completed" : "in_progress",
+          id: assessmentId, user_id: requestUser.id, status: assessment.submitted ? "completed" : "in_progress",
         }] : [];
       } else {
         data = assessment.submitted ? [{
-          id: ASSESSMENT_ID, user_id: MEMBER_ID, status: "completed",
+          id: assessmentId, user_id: requestUser.id, status: "completed",
           score: assessment.result.score, determined_level: assessment.result.level, completed_at: "2026-09-01T01:00:00.000Z",
         }] : [];
       }
@@ -493,7 +511,7 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
       assessment.successfulSubmissions = (assessment.successfulSubmissions ?? 0) + 1;
       assessment.submitted = true;
       const answers = assessment.submission?._answers;
-      if (assessment.submission?._pre_test_id === ASSESSMENT_ID &&
+      if (assessment.submission?._pre_test_id === assessmentId &&
           Array.isArray(answers) && answers.length === assessmentQuestions.length &&
           answers.every((answer, index) => answer.question_id === assessmentQuestions[index].id &&
             Number.isInteger(answer.selected_answer) &&
@@ -503,11 +521,22 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
         assessment.result = { score, level: "Pemula", correct, total: assessmentQuestions.length };
         data = assessment.result;
       }
+    } else if (accounts && ["toolkit_activities", "contributions", "e_course_modules",
+        "marketplace_products", "marketplace_orders"].includes(endpoint) &&
+        ["GET", "HEAD"].includes(request.method())) {
+      // The real password-login journey visits Dashboard before Assessment.
+      // Its ancillary read-only lists/counts are empty in this isolated backend.
+      await route.fulfill({
+        status: 200, contentType: "application/json",
+        headers: { "content-range": "*/0" },
+        body: request.method() === "HEAD" ? "" : "[]",
+      });
+      return;
     } else if (url.pathname.startsWith("/rest/v1/") && emptyTables.has(endpoint)) {
       data = [];
     } else if (url.pathname === "/rest/v1/profiles") {
       const profile = {
-        user_id: MEMBER_ID, full_name: "Anggota Uji", company: "BUJK Uji",
+        user_id: requestUser.id, full_name: requestUser.user_metadata.full_name, company: "BUJK Uji",
         position: "Anggota", current_level: "Pemula", total_score: 0,
         created_at: "2026-09-01T00:00:00.000Z",
       };
@@ -678,6 +707,158 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       onboarding: localStorage.getItem("pub_onboarding_done"),
     }))).toEqual({ drafts: [], onboarding: "1" });
   });
+
+  for (const outcome of ["success", "failure", "conflict"]) {
+    test(`pergantian akun mengabaikan respons assessment A (${outcome}) setelah B masuk`, async ({ page }) => {
+      const first = { started: null, submitted: false, checks: [] };
+      const second = { started: null, submitted: false, checks: [], id: "00000000-0000-4000-8000-000000000061" };
+      const accounts = new Map([
+        [member.id, { user: member, assessment: first }],
+        [secondMember.id, { user: secondMember, assessment: second }],
+      ]);
+      const unexpected = await installAuthenticatedFixture(page, { assessment: first, accounts });
+      // Record even transient writes: a later B save must not hide A's
+      // resurrected local backup by deleting/overwriting it before assertion.
+      await page.addInitScript(() => {
+        window.__assessmentWrites = [];
+        const setItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = function (key, value) {
+          if (this === localStorage && key.startsWith("pub_assessment_draft_v1:")) {
+            window.__assessmentWrites.push({ key, draft: JSON.parse(value) });
+          }
+          return setItem.call(this, key, value);
+        };
+      });
+      await page.goto("/assessment");
+      await expect(page.getByText(member.user_metadata.full_name, { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Mulai Assessment" }).click();
+      await expect.poll(() => first.draft?.revision).toBeGreaterThan(0);
+
+      const saveUrl = `https://${SUPABASE_HOST}/rest/v1/rpc/save_assessment_draft`;
+      let releaseA, releaseB;
+      const gateA = new Promise(resolve => { releaseA = resolve; });
+      const gateB = new Promise(resolve => { releaseB = resolve; });
+      let pendingA, pendingB;
+      let savesA = 0, savesB = 0, profilesA = 0;
+      const staleProfileName = "Profil lama anggota A";
+      const staleProfileUrl = `https://${SUPABASE_HOST}/rest/v1/profiles?*`;
+      await page.route(staleProfileUrl, async route => {
+        if (new URL(route.request().url()).searchParams.get("user_id") !== `eq.${member.id}`) {
+          await route.fallback();
+          return;
+        }
+        profilesA++;
+        await gateA;
+        await route.fulfill({
+          status: 200, contentType: "application/json",
+          body: JSON.stringify({
+            user_id: member.id, full_name: staleProfileName, company: "Perusahaan A",
+            current_level: "Ahli", total_score: 999,
+          }),
+        });
+      });
+      await page.route(saveUrl, async route => {
+        const incoming = route.request().postDataJSON()._draft;
+        if (route.request().headers().authorization === `Bearer ${fixtureSession(member).access_token}`) {
+          savesA++;
+          pendingA = incoming;
+          await gateA;
+          await route.fulfill({
+            status: outcome === "failure" ? 503 : 200, contentType: "application/json",
+            body: JSON.stringify(outcome === "failure" ? { message: "Penyimpanan A gagal terlambat" } : {
+              saved: outcome === "success",
+              draft: { ...incoming, revision: incoming.revision + 1 },
+            }),
+          });
+        } else {
+          expect(route.request().headers().authorization).toBe(`Bearer ${fixtureSession(secondMember).access_token}`);
+          if (incoming.answers[assessmentQuestions[0].id] === 1) {
+            savesB++;
+            pendingB = incoming;
+            await gateB;
+          }
+          await route.fallback();
+        }
+      });
+      const localDrafts = () => page.evaluate(() => Object.fromEntries(
+        Object.keys(localStorage).filter(key => key.startsWith("pub_assessment_draft_v1:"))
+          .map(key => [key, JSON.parse(localStorage.getItem(key))])));
+      const firstKey = `pub_assessment_draft_v1:${member.id}`;
+      const secondKey = `pub_assessment_draft_v1:${secondMember.id}`;
+      try {
+        await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+        await expect.poll(() => pendingA?.answers[assessmentQuestions[0].id]).toBe(0);
+        await expect.poll(async () => (await localDrafts())[firstKey]?.answers)
+          .toEqual({ [assessmentQuestions[0].id]: 0 });
+        await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+        await expect.poll(() => profilesA).toBe(1);
+        await page.getByRole("button", { name: /Keluar/ }).click();
+        await expect(page).toHaveURL(/\/auth$/);
+        expect(await localDrafts()).toEqual({});
+        const writesAtLogout = await page.evaluate(() => window.__assessmentWrites.length);
+
+        // Real login form and SDK auth event, without reload or token injection:
+        // A's unresolved requests and provider instance remain alive.
+        await page.locator('input[type="email"]').fill(secondMember.email);
+        await page.locator('input[type="password"]').fill("test-only-password");
+        await page.getByRole("button", { name: "Masuk", exact: true }).click();
+        await expect(page).toHaveURL(/\/dashboard$/);
+        await expect(page.getByRole("heading", { name: secondMember.user_metadata.full_name, exact: true })).toBeVisible();
+        await page.getByText("Mulai Pre-test", { exact: true }).click();
+        await expect(page).toHaveURL(/\/assessment$/);
+        await page.getByRole("button", { name: "Mulai Assessment" }).click();
+        await expect.poll(() => second.draft?.revision).toBeGreaterThan(0);
+        await page.getByRole("button", { name: /Dokumen lain/ }).click();
+        await expect.poll(() => pendingB?.answers[assessmentQuestions[0].id]).toBe(1);
+        // Answer checking is independent of the blocked draft save; wait for
+        // its legitimate update before comparing B's backup across release.
+        await expect.poll(async () => (await localDrafts())[secondKey]?.answerResults[assessmentQuestions[0].id]?.selected)
+          .toBe(1);
+        expect(second.started.user_id).toBe(secondMember.id);
+        expect(pendingB.preTestId).toBe(second.id);
+        const bDraftBefore = (await localDrafts())[secondKey];
+        expect(bDraftBefore.answers).toEqual({ [assessmentQuestions[0].id]: 1 });
+
+        const lateSave = page.waitForResponse(response => response.url() === saveUrl &&
+          response.request().headers().authorization === `Bearer ${fixtureSession(member).access_token}`);
+        const lateProfile = page.waitForResponse(response => response.url().includes("/rest/v1/profiles?") &&
+          new URL(response.url()).searchParams.get("user_id") === `eq.${member.id}`);
+        releaseA();
+        await Promise.all([(await lateSave).finished(), (await lateProfile).finished()]);
+        // Cross the first automatic retry delay as well as promise callbacks.
+        await page.waitForTimeout(2200);
+        expect(savesA).toBe(1);
+        expect(await localDrafts()).toEqual({ [secondKey]: bDraftBefore });
+        await expect(page).toHaveURL(/\/assessment$/);
+        await expect(page.getByText(secondMember.user_metadata.full_name, { exact: true })).toBeVisible();
+        await expect(page.getByText(staleProfileName, { exact: true })).toHaveCount(0);
+        await expect(page.getByText(member.user_metadata.full_name, { exact: true })).toHaveCount(0);
+        await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+        await expect(page.getByRole("button", { name: /Dokumen lain/ })).toBeDisabled();
+        await expect(page.getByText("Penjelasan soal uji.")).toBeVisible();
+        const writes = await page.evaluate(index => window.__assessmentWrites.slice(index), writesAtLogout);
+        expect(writes.length).toBeGreaterThan(0);
+        expect(writes.every(({ key, draft }) => key === secondKey && draft.preTestId === second.id &&
+          draft.answers[assessmentQuestions[0].id] !== 0)).toBe(true);
+
+        // B can finish its own write and make another edit after the old A
+        // callbacks; this catches a stale callback blocking the new save queue.
+        releaseB();
+        await expect.poll(() => second.draft?.answers[assessmentQuestions[0].id]).toBe(1);
+        await page.getByRole("button", { name: "Selanjutnya" }).click();
+        await page.getByRole("button", { name: /Periksa kesiapan/ }).click();
+        await expect.poll(() => second.draft?.answers).toEqual({
+          [assessmentQuestions[0].id]: 1, [assessmentQuestions[1].id]: 1,
+        });
+        await expect.poll(localDrafts).toEqual({});
+        expect(savesB).toBeGreaterThanOrEqual(2);
+        expect(unexpected).toEqual([]);
+      } finally {
+        releaseA();
+        releaseB();
+      }
+    });
+  }
 
   for (const channelMode of ["available", "unavailable", "throws"]) {
   test(`logout dua tab (${channelMode}) menghapus draf meskipun penyimpanan masih tertunda`, async ({ page, context }) => {

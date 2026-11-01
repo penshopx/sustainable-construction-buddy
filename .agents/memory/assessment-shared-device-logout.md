@@ -14,3 +14,9 @@ Sinkronisasi logout tidak boleh bergantung hanya pada BroadcastChannel. Pemberit
 **Why:** Saluran siaran dapat diblokir browser. Penghapusan localStorage bersama tidak membatalkan operasi asinkron milik tab lain; logout SDK tambahan juga dapat menghapus sesi baru yang masuk sebelum pemberitahuan lama diproses.
 
 **How to apply:** Pastikan token masih tidak ada sebelum menerima pemberitahuan penghapusan, batalkan operasi lokal dan pemulihan sesi lama, serta pertahankan pengujian dua tab dengan siaran tidak tersedia dan gagal dibuat.
+
+Pengujian privasi pergantian akun harus mengamati penulisan lokal sementara, bukan hanya isi penyimpanan di akhir, dan harus mempertahankan operasi akun lama selama login akun baru tanpa memuat ulang halaman.
+
+**Why:** Penyimpanan akhir yang bersih dapat menyembunyikan kebocoran sementara yang kemudian ditimpa, sedangkan reload dapat membatalkan respons lama sehingga perlindungan sesi sebenarnya tidak pernah diuji.
+
+**How to apply:** Tahan respons akun lama sampai akun baru mempunyai draf sendiri; pastikan setiap penulisan sesudah logout hanya milik akun baru, lalu buktikan penyimpanan berikutnya tetap berhasil.
