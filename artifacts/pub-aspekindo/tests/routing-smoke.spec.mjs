@@ -2245,6 +2245,67 @@ test.describe("halaman khusus super-admin dengan sesi tiruan", () => {
     });
   }
 
+  for (const { path, heading } of restrictedPages) {
+    test(`RPC super-admin macet saat ${path} terbuka ditutup oleh batas waktu fetch asli`, async ({ page }) => {
+      const roleCheck = {
+        response: { status: 200, contentType: "application/json", body: "true" },
+        requests: 0,
+        waitForRelease: Promise.resolve(),
+      };
+      const unexpected = await installAuthenticatedFixture(page, { asSuperAdmin: true, roleCheck });
+      await page.clock.install();
+      await page.goto(path);
+      const protectedHeading = page.getByRole("heading", { name: heading });
+      const protectedCell = page.getByRole("cell", { name: "Anggota Uji" });
+      await expect(protectedHeading).toBeVisible();
+      await expect(protectedCell).toBeVisible();
+      expect(await page.evaluate(() => document.visibilityState)).toBe("visible");
+
+      await page.clock.pauseAt(await page.evaluate(() => Date.now()));
+      await page.evaluate(() => {
+        window.__roleCheckEvents = [];
+        window.addEventListener("focus", () => window.__roleCheckEvents.push("focus"));
+        document.addEventListener("visibilitychange", () => window.__roleCheckEvents.push("visibilitychange"));
+      });
+      const failedRoleRequests = [];
+      page.on("requestfailed", (request) => {
+        if (new URL(request.url()).pathname === "/rest/v1/rpc/current_user_is_super_admin") {
+          failedRoleRequests.push(request.failure()?.errorText);
+        }
+      });
+      const previousRequests = roleCheck.requests;
+      roleCheck.waitForRelease = new Promise((resolve) => { roleCheck.release = resolve; });
+      try {
+        // Only the periodic check starts this RPC. Keep the fixture unresolved:
+        // do not abort/fulfill it or replace fetch/AbortController in the browser.
+        await page.clock.fastForward(30_000);
+        await expect.poll(() => roleCheck.requests).toBeGreaterThan(previousRequests);
+        await expect(protectedHeading).toHaveCount(0);
+        await expect(protectedCell).toHaveCount(0);
+        await expect(page).toHaveURL(new RegExp(`${path}$`));
+
+        // Exercise SUPABASE_REQUEST_TIMEOUT_MS = 15_000 from the real client.ts,
+        // including the boundary before its AbortController cancels the fetch.
+        await page.clock.runFor(14_999);
+        await expect(page).toHaveURL(new RegExp(`${path}$`));
+        await expect(protectedHeading).toHaveCount(0);
+        await expect(protectedCell).toHaveCount(0);
+        expect(failedRoleRequests).toEqual([]);
+
+        await page.clock.runFor(1);
+        await expect(page).toHaveURL(/\/dashboard$/);
+        await expect.poll(() => failedRoleRequests.length).toBeGreaterThan(0);
+        await expect(protectedHeading).toHaveCount(0);
+        await expect(protectedCell).toHaveCount(0);
+        expect(await page.evaluate(() => window.__roleCheckEvents)).toEqual([]);
+        expect(unexpected).toEqual([]);
+      } finally {
+        // Release only for cleanup, after the application's own timeout fired.
+        roleCheck.release();
+      }
+    });
+  }
+
   for (const { scenario, response, abortError } of [
     {
       scenario: "pencabutan super-admin",
