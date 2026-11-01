@@ -1,4 +1,5 @@
 import { getLessonPublicationError, getQuizMutationError } from "@/lib/lmsLessonPublication";
+import { QuizScoringExplanation } from "@/components/lms/QuizScoringExplanation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Archive,
@@ -947,16 +948,21 @@ export default function AdminAspekindoLmsCourses() {
       <Dialog open={quizDialogOpen} onOpenChange={setQuizDialogOpen}>
         <DialogContent className="max-h-[92vh] max-w-4xl overflow-y-auto">
           <DialogHeader><DialogTitle>Bank soal: {quizLesson?.title}</DialogTitle></DialogHeader>
+          <div className="space-y-2 rounded-xl border bg-muted/30 p-3">
+            <p className="text-sm font-semibold">Poin adalah bobot nilai soal</p>
+            <QuizScoringExplanation />
+            <p className="text-xs text-muted-foreground">Perubahan poin berlaku pada pengiriman berikutnya, bukan untuk menghitung ulang hasil yang sudah tersimpan.</p>
+          </div>
           <div className="grid gap-5 lg:grid-cols-[0.9fr,1.1fr]">
             <div className="space-y-2">
-              {quizQuestions.filter((question) => question.lesson_id === quizLesson?.id).length === 0 ? <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada soal kuis.</div> : quizQuestions.filter((question) => question.lesson_id === quizLesson?.id).map((question, index) => <div key={question.id} className="rounded-lg border p-3"><p className="text-sm font-semibold">{index + 1}. {question.question_text}</p><div className="mt-2 flex gap-1"><Button size="sm" variant="outline" onClick={() => editQuestion(question)}>Edit</Button><Button size="sm" variant="ghost" className="text-destructive" onClick={() => void deleteQuestion(question)}>Hapus</Button></div></div>)}
+              {quizQuestions.filter((question) => question.lesson_id === quizLesson?.id).length === 0 ? <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Belum ada soal kuis.</div> : quizQuestions.filter((question) => question.lesson_id === quizLesson?.id).map((question, index) => <div key={question.id} className="rounded-lg border p-3"><p className="text-sm font-semibold">{index + 1}. {question.question_text}</p><p className="mt-1 text-xs text-muted-foreground">Bobot: {question.points} poin</p><div className="mt-2 flex gap-1"><Button size="sm" variant="outline" onClick={() => editQuestion(question)}>Edit</Button><Button size="sm" variant="ghost" className="text-destructive" onClick={() => void deleteQuestion(question)}>Hapus</Button></div></div>)}
             </div>
             <div className="space-y-4 rounded-xl border p-4">
               <div className="flex items-center justify-between"><h3 className="font-semibold">{editingQuestion ? "Ubah soal" : "Tambah soal"}</h3>{editingQuestion && <Button size="sm" variant="ghost" onClick={resetQuestionForm}>Batal edit</Button>}</div>
               <div><Label>Pertanyaan *</Label><Textarea value={questionForm.question_text} onChange={(event) => setQuestionForm({ ...questionForm, question_text: event.target.value })} /></div>
               <div className="space-y-2"><Label>Opsi jawaban</Label>{questionForm.options.map((option, index) => <div key={index} className="flex items-center gap-2"><input type="radio" name="native-quiz-answer" checked={Number(questionForm.correct_option) === index} onChange={() => setQuestionForm({ ...questionForm, correct_option: String(index) })} aria-label={`Jawaban benar opsi ${index + 1}`} /><Input value={option} onChange={(event) => { const options = [...questionForm.options]; options[index] = event.target.value; setQuestionForm({ ...questionForm, options }); }} placeholder={`Opsi ${index + 1}`} /></div>)}</div>
               <div><Label>Penjelasan jawaban</Label><Textarea value={questionForm.explanation_markdown} onChange={(event) => setQuestionForm({ ...questionForm, explanation_markdown: event.target.value })} /></div>
-              <div className="grid grid-cols-2 gap-3"><div><Label>Poin</Label><Input type="number" min={1} value={questionForm.points} onChange={(event) => setQuestionForm({ ...questionForm, points: event.target.value })} /></div><div><Label>Urutan</Label><Input type="number" min={0} value={questionForm.sort_order} onChange={(event) => setQuestionForm({ ...questionForm, sort_order: event.target.value })} /></div></div>
+              <div className="grid grid-cols-2 gap-3"><div><Label htmlFor="quiz-question-points">Bobot nilai (poin)</Label><Input id="quiz-question-points" aria-describedby="quiz-question-points-help" type="number" min={1} step={1} value={questionForm.points} onChange={(event) => setQuestionForm({ ...questionForm, points: event.target.value })} /><p id="quiz-question-points-help" className="mt-1 text-xs text-muted-foreground">Semakin besar poin, semakin besar pengaruh soal pada nilai akhir.</p></div><div><Label>Urutan</Label><Input type="number" min={0} value={questionForm.sort_order} onChange={(event) => setQuestionForm({ ...questionForm, sort_order: event.target.value })} /></div></div>
               <Button onClick={() => void saveQuestion()} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingQuestion ? "Simpan perubahan" : "Tambah soal"}</Button>
             </div>
           </div>

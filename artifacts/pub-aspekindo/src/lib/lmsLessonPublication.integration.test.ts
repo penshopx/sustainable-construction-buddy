@@ -123,6 +123,10 @@ for (const manager of ["Quiz", "Courses"]) {
       const { default: Page } = await server.ssrLoadModule("/src/pages/admin/AdminAspekindoLmsCourses.tsx");
       await act(async () => { root = create(React.createElement(Page)); });
       await act(async () => button(root, "Kuis (1)").props.onClick());
+      const bankText = text(root.toJSON());
+      assert.match(bankText, /Poin adalah bobot nilai soal/);
+      assert.match(bankText, /Bobot: 1 poin/);
+      assert.match(bankText, /25%.*75%/);
     }
     try {
       await act(async () => root.root.findAllByType("button").filter((node) => text(node).trim() === "Edit").at(-1)!.props.onClick());
