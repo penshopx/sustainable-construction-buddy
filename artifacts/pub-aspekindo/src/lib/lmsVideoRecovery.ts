@@ -10,6 +10,7 @@ type RecoveryOptions = {
   retry: () => Promise<void>;
   exhausted: () => void;
   recovered: () => void;
+  retryDelay?: (backoff: number) => number;
 };
 
 // A playing event alone does not replenish the budget: flaky connections can
@@ -64,6 +65,8 @@ export class VideoRecovery {
     }
     this.stableFrom = null;
     const generation = this.generation;
+    const backoff = RETRY_DELAYS[Math.min(this.attempts, RETRY_DELAYS.length - 1)];
+    const delay = initialDelay ?? this.options.retryDelay?.(backoff) ?? backoff;
     this.timer = setTimeout(async () => {
       this.timer = null;
       const current = this.options.snapshot();
@@ -89,6 +92,6 @@ export class VideoRecovery {
         if (queued && queued.generation === this.generation) this.schedule(queued.delay);
         else if (generation === this.generation) this.schedule();
       }
-    }, initialDelay ?? RETRY_DELAYS[Math.min(this.attempts, RETRY_DELAYS.length - 1)]);
+    }, delay);
   }
 }

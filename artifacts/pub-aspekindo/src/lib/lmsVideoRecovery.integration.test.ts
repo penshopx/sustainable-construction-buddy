@@ -73,11 +73,12 @@ function text(node: any): string {
   return typeof node === "string" ? node : (node.children ?? []).map(text).join("");
 }
 
-async function fixture(stale = false) {
+async function fixture(stale: boolean | number = false) {
   refreshes = 0;
+  const now = Date.now();
   refresh = async () => ({
     data: "https://storage.example/video",
-    dataUpdatedAt: Date.now() - (stale ? 25 * 60 * 1000 + 1 : 0),
+    dataUpdatedAt: now - (typeof stale === "number" ? stale : stale ? 25 * 60 * 1000 + 1 : 0),
     error: null,
   });
   let root!: ReactTestRenderer;
@@ -122,7 +123,7 @@ async function fixture(stale = false) {
   await event("onLoadedMetadata");
   video.currentTime = 42;
   await event("onTimeUpdate");
-  mock.timers.enable({ apis: ["setTimeout"] });
+  mock.timers.enable({ apis: ["setTimeout", "Date"], now });
   return {
     root, video, event, click,
     counts: () => ({ loads, plays, refreshes }),
@@ -263,6 +264,25 @@ test("buffering URL segar menunggu empat detik sebelum pemulihan", async () => {
     await f.tick(1);
     assert.equal(f.counts().loads, 1);
     assert.equal(f.counts().refreshes, 1);
+  } finally { await f.close(); }
+});
+
+test("backoff tidak melewati batas kesegaran URL setelah reload tautan yang masih segar", async () => {
+  const f = await fixture(25 * 60 * 1000 - 10_000);
+  try {
+    refresh = async () => ({ data: "https://storage.example/new-video", dataUpdatedAt: Date.now(), error: null });
+    f.video.readyState = 2;
+    await f.event("onWaiting");
+    await f.tick(4000);
+    assert.deepEqual(f.counts(), { loads: 1, plays: 1, refreshes: 1 });
+    await f.tick(3000);
+    assert.equal(f.counts().loads, 2);
+    await f.tick(2999);
+    assert.equal(f.counts().refreshes, 1);
+    assert.equal(f.root.root.findByType("source").props.src, "https://storage.example/video");
+    await f.tick(1);
+    assert.equal(f.counts().refreshes, 2);
+    assert.equal(f.root.root.findByType("source").props.src, "https://storage.example/new-video");
   } finally { await f.close(); }
 });
 

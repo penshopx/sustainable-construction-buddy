@@ -1655,6 +1655,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     let unexpected;
     let video;
     let originalVideo;
+    let issuedAt;
 
     test.beforeEach(async ({ page }) => {
       lms = { enrolled: true, video: true, secondVideo: true, rotateVideoTokens: true, signRequests: [], videoRequests: [] };
@@ -1664,6 +1665,9 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await expect(page.getByRole("heading", { name: lesson.title })).toBeVisible();
       await expect(page.getByText(videoMaterial.title)).toBeVisible();
       await freezeVideoClock(page);
+      // The paused browser clock, not the Node runner's wall clock, timestamps
+      // React Query's signed URL result. No virtual time elapses during fetch.
+      issuedAt = await page.evaluate(() => Date.now());
       await page.getByRole("button", { name: "Putar video" }).click();
       video = page.locator("video").filter({ has: page.locator("source[type='video/mp4']") });
       await expect(video.locator("source")).toHaveAttribute("src", signedUrl(1));
@@ -1816,8 +1820,10 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await page.clock.runFor(4000);
       await expectOriginalStream(page);
       await page.clock.runFor(5999);
+      expect(await page.evaluate(() => Date.now())).toBe(issuedAt + freshMs - 1);
       await expectOriginalStream(page);
       await page.clock.runFor(1);
+      expect(await page.evaluate(() => Date.now())).toBe(issuedAt + freshMs);
       await expect(video.locator("source")).toHaveAttribute("src", signedUrl(2));
       expect(lms.signRequests).toHaveLength(2);
     });

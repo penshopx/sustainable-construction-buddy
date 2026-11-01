@@ -20,3 +20,9 @@ Sinyal gangguan baru saat permintaan pemulihan lama masih berlangsung harus teta
 **Why:** Pemulihan sesaat tidak menjamin jaringan stabil; membuang sinyal baru dapat meninggalkan video gagal tanpa retry atau pemberitahuan.
 
 **How to apply:** Bedakan pembatalan percobaan lama dari sinyal kegagalan yang lebih baru, dan batalkan keduanya bila pengguna sengaja menjeda.
+
+Jeda retry yang masih memakai tautan segar tidak boleh melewati batas kesegarannya; jangan menghitung batas itu dari waktu event macet.
+
+**Why:** Reload URL yang sama dapat diikuti backoff yang melompati saat URL perlu diperbarui. Kemacetan yang mulai sepuluh detik sebelum batas dapat baru memperbarui tautan tiga detik terlambat meski jam pengujian tepat.
+
+**How to apply:** Batasi jeda retry dengan sisa umur segar tautan aktif, tanpa mengubah masa tunggu awal empat detik atau anggaran retry. Uji tepat satu milidetik sebelum batas dan pada batas berdasarkan jam browser yang menerbitkan timestamp.

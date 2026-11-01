@@ -54,7 +54,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { getPlayableVideoUrl, isVideoUrlFresh, type PlayableVideoUrl } from "@/lib/lmsVideoUrl";
+import { getPlayableVideoUrl, isVideoUrlFresh, VIDEO_URL_FRESH_MS, type PlayableVideoUrl } from "@/lib/lmsVideoUrl";
 import { VideoRecovery } from "@/lib/lmsVideoRecovery";
 
 const DELIVERY_LABELS: Record<string, string> = {
@@ -130,6 +130,8 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
   const active = useRef(true);
   const requestVersion = useRef(0);
   const retryAction = useRef<() => Promise<void>>(async () => {});
+  const playbackRef = useRef(playback);
+  playbackRef.current = playback;
   const [recovery] = useState(() => new VideoRecovery({
     snapshot: () => {
       const video = videoRef.current;
@@ -144,6 +146,14 @@ function VideoMaterialPlayer({ material }: { material: Material }) {
       };
     },
     retry: () => retryAction.current(),
+    retryDelay: (backoff) => {
+      const current = playbackRef.current;
+      const now = Date.now();
+      if (!current || !isVideoUrlFresh(current.issuedAt, now)) return backoff;
+      // A same-URL reload must not let retry backoff skip the exact moment
+      // that a new signed URL becomes necessary.
+      return Math.min(backoff, current.issuedAt + VIDEO_URL_FRESH_MS - now);
+    },
     exhausted: () => {
       setRecovering(false);
       setPlaybackError("general");
