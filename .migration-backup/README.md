@@ -102,6 +102,40 @@ still return a non-zero exit status. Unknown CLI flags are rejected rather than
 falling through to deployment. Configuration checks require no production
 credentials; automated publication-gate tests use isolated synthetic credentials.
 
+### Verification evidence and limits
+
+The latest configuration inspection read only the non-secret
+`SUPABASE_PROJECT_REF` through the environment-management interface, filtered
+to the `production` environment. It returned `yidlglstzvizsszrpobi`, matching
+the owner-approved destination, `.replit`'s production setting, and
+`supabase/config.toml`'s `project_id`. No environment settings were changed.
+
+The publisher's `--check-config` path reads and compares the refs, then reports
+`deployment: "not_started"` and `liveProbe: "not_run"`. It does not invoke the
+deployment or live-probe paths, and does not validate `SUPABASE_URL`.
+
+A local attempt to run `npm run check:release-config` with a clean environment
+containing only `PATH` and the production ref failed before configuration
+validation: `@iarna/toml` is not installed for this backup project. This attempt
+does not renew the earlier successful local check, and is not a release-runtime
+check. No dependencies were installed and no credentials were read.
+
+Deployment metadata reports an active Autoscale deployment with a successful
+build. That metadata does not establish which ref the running application uses.
+This inspection was performed in the assigned task's workspace copy; a branch
+named `main` does not establish access to the main project's post-merge state.
+No execution interface into the existing release environment was available.
+Consequently, post-merge verification on the main project and execution of the
+configuration check inside the release environment remain **unverified**.
+No publication, live probe, or production data access was performed.
+
+To close those evidence gaps after merging, repeat the filtered production
+variable read on the main project and run only `npm run check:release-config`
+from this directory in an independently available release environment with its
+existing dependencies. Record the actual execution context and result; do not
+substitute a local run or deployment metadata for release-runtime evidence, and
+do not publish merely to perform this check.
+
 The release runs the standard insight validator, TypeScript check, and
 frontend build, then invokes `npm run publish:insight`. The standard validator
 covers the local contract tests and publication gate. That publisher deploys
