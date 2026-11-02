@@ -281,6 +281,23 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
       });
       return;
     }
+    if (url.hostname === "127.0.0.1" && url.pathname === "/api/ruang-simpan/company-names" && request.method() === "POST") {
+      const { userIds } = request.postDataJSON();
+      await route.fulfill({ contentType: "application/json",
+        body: JSON.stringify({ companies: userIds.map(userId => ({ userId, name: "BUJK Uji" })) }) });
+      return;
+    }
+    if (url.hostname === "127.0.0.1" &&
+        ["/api/helpdesk/status", "/api/ruang-simpan/ai-status"].includes(url.pathname) &&
+        url.searchParams.get("diagnostics") === "true") {
+      await route.fulfill({ status: asAdmin ? 200 : 403, contentType: "application/json",
+        body: JSON.stringify(asAdmin ? {
+          state: "configured", message: "metadata only",
+          checkedAt: "2026-11-02T01:00:00.000Z", recheckAt: "2026-11-02T01:01:00.000Z",
+          diagnostics: { reason: "metadata_available" },
+        } : { error: "Admin required" }) });
+      return;
+    }
     unexpectedRequests.push(`${request.method()} ${url.hostname}${url.pathname}`);
     await route.fulfill({ status: 503, contentType: "application/json", body: '{"message":"Unexpected test request"}' });
   });
@@ -2175,6 +2192,94 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
 });
 
 test.describe("halaman admin dengan sesi tiruan", () => {
+  test("diagnostik AI menerjemahkan kode aman dan masa cache tanpa respons mentah", async ({ page }) => {
+    const unexpected = await installAuthenticatedFixture(page, { asAdmin: true });
+    let reason = "key_missing";
+    const requests = [];
+    await page.route(/\/api\/(?:helpdesk\/status|ruang-simpan\/ai-status)\?diagnostics=true$/, async route => {
+      requests.push(route.request());
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify({
+        state: "unknown", message: "PRIVATE_PROVIDER_BODY",
+        checkedAt: "2026-11-02T01:00:00.000Z", recheckAt: "2026-11-02T01:00:30.000Z",
+        diagnostics: { reason, key: "PRIVATE_KEY", label: "PRIVATE_LABEL", balance: 987.65 },
+      }) });
+    });
+    await page.goto("/admin");
+    await expect(page.getByText("Konfigurasi belum tersedia", { exact: true })).toHaveCount(2);
+    for (const [code, title] of [
+      ["metadata_rejected", "Pemeriksaan metadata ditolak"],
+      ["provider_credit_limit", "Batas penggunaan penyedia terindikasi"],
+      ["provider_rate_limit", "Terlalu banyak permintaan"],
+      ["key_budget_exhausted", "Batas penggunaan konfigurasi tercapai"],
+      ["metadata_unreachable", "Gangguan koneksi atau waktu tunggu"],
+      ["metadata_invalid", "Metadata tidak dapat dibaca"],
+      ["metadata_available", "Metadata berhasil diperiksa"],
+      ["PRIVATE_UNKNOWN_CODE", "Status belum dikenali"],
+    ]) {
+      reason = code;
+      await page.getByRole("button", { name: "Periksa kembali layanan AI", exact: true }).click();
+      await expect(page.getByText(title, { exact: true })).toHaveCount(2);
+      await expect(page.getByText("Cache server hingga:", { exact: true })).toHaveCount(2);
+      await expect(page.getByText("Diperiksa:", { exact: true })).toHaveCount(2);
+      await expect(page.locator("body")).not.toContainText("PRIVATE_");
+      await expect(page.locator("body")).not.toContainText("987.65");
+    }
+    expect(requests.length).toBeGreaterThanOrEqual(18);
+    for (const request of requests) {
+      expect(request.headers().authorization).toBe(`Bearer ${fixtureSession(member).access_token}`);
+    }
+    expect(unexpected).toEqual([]);
+  });
+
+  test("diagnostik AI menutup kedua hasil saat izin dicabut dan mengabaikan respons lama", async ({ page }) => {
+    const unexpected = await installAuthenticatedFixture(page, { asAdmin: true });
+    await page.goto("/admin");
+    await expect(page.getByText("Metadata berhasil diperiksa", { exact: true })).toHaveCount(2);
+    let release;
+    const held = new Promise(resolve => { release = resolve; });
+    let hold = true, denied = false, heldRequests = 0;
+    await page.route(/\/api\/(?:helpdesk\/status|ruang-simpan\/ai-status)\?diagnostics=true$/, async route => {
+      const old = hold;
+      if (old) { heldRequests++; await held; }
+      await route.fulfill({ status: !old && denied ? 403 : 200, contentType: "application/json",
+        body: JSON.stringify(!old && denied ? { error: "PRIVATE_RAW_ERROR" } : {
+          state: "configured", message: "PRIVATE_BODY",
+          checkedAt: "2026-11-02T01:00:00.000Z", recheckAt: "2026-11-02T01:01:00.000Z",
+          diagnostics: { reason: "metadata_available" },
+        }) }).catch(() => {});
+    });
+    await page.getByRole("button", { name: "Periksa kembali layanan AI", exact: true }).click();
+    await expect.poll(() => heldRequests).toBe(2);
+    await expect(page.getByText("Metadata berhasil diperiksa", { exact: true })).toHaveCount(0);
+    hold = false; denied = true;
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(page.getByRole("alert").filter({ hasText: "Akses diagnostik ditutup" })).toBeVisible();
+    release();
+    await expect(page.getByText("Metadata berhasil diperiksa", { exact: true })).toHaveCount(0);
+    await expect(page.locator("body")).not.toContainText("PRIVATE_");
+    await page.reload();
+    await expect(page.getByRole("alert").filter({ hasText: "Akses diagnostik ditutup" })).toBeVisible();
+    await expect(page.getByText("Cache server hingga:", { exact: true })).toHaveCount(0);
+    expect(unexpected).toEqual([]);
+  });
+
+  test("diagnostik AI gagal tertutup saat sesi atau koneksi gagal dan tersembunyi ketika tidak aktif", async ({ page }) => {
+    await installAuthenticatedFixture(page, { asAdmin: true });
+    await page.goto("/admin");
+    await expect(page.getByText("Metadata berhasil diperiksa", { exact: true })).toHaveCount(2);
+    await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    await expect(page.getByText("Metadata berhasil diperiksa", { exact: true })).toHaveCount(0);
+    await page.route(/\/api\/(?:helpdesk\/status|ruang-simpan\/ai-status)\?diagnostics=true$/, route => route.abort());
+    await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+    await expect(page.getByRole("alert").filter({ hasText: "Status belum dapat dibaca." })).toHaveCount(2);
+    await page.route(/\/api\/(?:helpdesk\/status|ruang-simpan\/ai-status)\?diagnostics=true$/, route =>
+      route.fulfill({ status: 401, contentType: "application/json", body: '{"error":"PRIVATE_RAW"}' }));
+    await page.getByRole("button", { name: "Periksa kembali layanan AI", exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "Sesi tidak dapat diverifikasi." })).toBeVisible();
+    await expect(page.getByText("Cache server hingga:", { exact: true })).toHaveCount(0);
+    await expect(page.locator("body")).not.toContainText("PRIVATE_");
+  });
+
   test("admin membuka panel dan pengelolaan pengguna", async ({ page }) => {
     const unexpected = await installAuthenticatedFixture(page, { asAdmin: true });
 

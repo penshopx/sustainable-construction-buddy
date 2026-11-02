@@ -39,3 +39,4 @@
 - [Perilaku media native](native-media-recovery.md) — Chromium menyambung respons terpotong lewat Range; load tidak selalu mengirim pause, dan play bisa ditolak karena jaringan.
 - [Bukti uji balapan izin](permission-race-test-evidence.md) — amati juga konsumen izin yang bertahan setelah navigasi agar unmount tidak menghasilkan kelulusan semu.
 - [Batas kuota AI anggota](ai-member-quota-boundary.md) — kuota pribadi bukan saldo provider; server tetap berwenang tanpa penggantian model atau pemendekan jawaban otomatis.
+- [Privasi diagnostik AI admin](admin-ai-diagnostic-privacy.md) — cache metadata tidak membuktikan izin; panduan hanya dari kode aman, bukan respons penyedia.

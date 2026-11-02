@@ -15,6 +15,7 @@ import AdminRoleConflicts from "./AdminRoleConflicts";
 import AdminInnovationReview from "./AdminInnovationReview";
 import AdminAspekindoAgenda from "./AdminAspekindoAgenda";
 import AdminAspekindoLms from "./AdminAspekindoLms";
+import AdminAiDiagnostics from "@/components/admin/AdminAiDiagnostics";
 
 type InsightHealth = {
   status: "connected" | "deterministic";
@@ -173,6 +174,7 @@ export default function AdminDashboard() {
       </div>
 
       <InsightHealthCard />
+      <AdminAiDiagnostics />
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
