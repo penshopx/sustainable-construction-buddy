@@ -70,6 +70,7 @@ const bundle = await build({
   stdin: { contents: `
     export { vaultRouter } from "./src/routes/vault";
     export { publicAddress, linkUrl, fetchPublicFile, LINK_MAX_BYTES } from "./src/lib/vault-link";
+    export { importFilename } from "../ruang-simpan/src/lib/import-filename";
     export { initialWorkspace, QUOTA } from "./src/lib/vault-store";
   `, resolveDir: root, loader: "ts" },
   bundle: true, platform: "node", format: "cjs", write: false,
@@ -124,6 +125,7 @@ const bundle = await build({
 const compiled = { exports: {} };
 new Function("require", "module", "exports", bundle.outputFiles[0].text)(createRequire(import.meta.url), compiled, compiled.exports);
 const { vaultRouter, publicAddress, linkUrl, fetchPublicFile, LINK_MAX_BYTES, initialWorkspace, QUOTA } = compiled.exports;
+const { importFilename } = compiled.exports;
 const warnings = [];
 const app = express();
 app.use(express.json());
@@ -154,6 +156,79 @@ test("only public HTTPS addresses; normalized IPs and metadata services are reje
     "https://metadata.google.internal/a", "https://127.1/a", "https://2130706433/a",
     "https://0x7f000001/a", "https://[::1]/", "https://user:pass@public.example/a", "https://public.example:444/a"])
     assert.throws(() => linkUrl(url), e => e.status === 400);
+});
+
+test("filename suggestion uses only the decoded last pathname segment, never signed query or fragment", () => {
+  const cases = [
+    ["https://public.example/private/folder/Laporan%20Proyek.PDF?token=synthetic-secret#secret", "Laporan Proyek.PDF"],
+    ["https://public.example/folder/ringkasan.csv?filename=secret.txt", "ringkasan.csv"],
+    ["https://public.example/folder/catatan%20%C3%A9.md", "catatan é.md"],
+    ["https://public.example/download?filename=secret.pdf&signature=secret", ""],
+    ["https://public.example/folder/?token=secret", ""],
+    ["https://public.example/no-extension", ""],
+    ["https://public.example/archive.zip", ""],
+    ["https://public.example/%2Ehidden.txt", ""],
+    ["https://public.example/dir%2Fsecret.txt", ""],
+    ["https://public.example/dir%5Csecret.txt", ""],
+    ["https://public.example/file%3Ftoken%3Dsecret.txt", ""],
+    ["https://public.example/file%23secret.txt", ""],
+    ["https://public.example/file%252Fsecret.txt", ""],
+    ["https://public.example/file%00.txt", ""],
+    ["https://public.example/file%0D%0A.txt", ""],
+    ["https://public.example/file%C2%85.txt", ""],
+    ["https://public.example/file%E2%80%AE.txt", ""],
+    ["https://public.example/file%ZZ.txt", ""],
+    ["https://public.example/file\n.txt", ""],
+    ["https://public.example/" + "x".repeat(197) + ".txt", ""],
+    ["https://user:secret@public.example/file.txt", ""],
+    ["http://public.example/file.txt", ""],
+    ["not a URL", ""],
+  ];
+  for (const [url, name] of cases) assert.equal(importFilename(url), name);
+});
+
+test("suggested or edited filenames use upload validation and never persist source metadata", async () => {
+  const url = "https://public.example/directory/Laporan%20Proyek.txt?token=synthetic-secret#private";
+  const name = importFilename(url);
+  networkHandler = () => ({ headers: {
+    "content-type": "text/plain",
+    // Untrusted remote names cannot override the user's confirmed name.
+    "content-disposition": 'attachment; filename="https://secret.example/?token=header-secret.txt"',
+  } });
+  const suggested = await api("/documents/import", { ...input, url, name });
+  assert.equal(suggested.status, 200);
+  assert.equal((await suggested.json()).name, "Laporan Proyek.txt");
+  const edited = await api("/documents/import", { ...input, url, name: "  Nama pilihan saya.txt  " });
+  assert.equal(edited.status, 200);
+  assert.equal((await edited.json()).name, "Nama pilihan saya.txt");
+  const state = JSON.stringify([...memory]);
+  for (const secret of ["public.example", "directory", "synthetic-secret", "private", "secret.example", "header-secret"])
+    assert.ok(!JSON.stringify(memory.get("A").activities).includes(secret));
+  assert.ok(!state.includes("synthetic-secret"));
+  assert.ok(!state.includes("header-secret"));
+  networkHandler = () => ({ body: "not a PNG" });
+  const mismatch = await api("/documents/import", { ...input, name: "gambar.png" });
+  assert.equal(mismatch.status, 400);
+  assert.equal(memory.get("A").documents.length, 2);
+});
+
+test("edited unsafe filenames are rejected before fetching, without metadata or activity leaks", async () => {
+  for (const name of [
+    "../dokumen.txt", "folder/dokumen.txt", "folder\\dokumen.txt",
+    "https://public.example/file?token=synthetic-secret.txt",
+    "file?token=synthetic-secret.txt", "token=synthetic-secret.txt",
+    "file%3Ftoken%3Dsynthetic-secret.txt", "file#synthetic-secret.txt",
+    "file\u0000.txt", "file\r\n.txt", "file\u0085.txt", "file\u202e.txt",
+  ]) {
+    const response = await api("/documents/import", { ...input, name });
+    assert.equal(response.status, 400);
+    assert.ok(!(await response.text()).includes("synthetic-secret"));
+  }
+  assert.equal(calls.length, 0);
+  assert.equal(memory.get("A").documents.length, 0);
+  assert.equal(blobs.size, 0);
+  assert.ok(!JSON.stringify([...memory]).includes("synthetic-secret"));
+  assert.ok(!JSON.stringify(warnings).includes("synthetic-secret"));
 });
 
 test("public file persists through real upload flow; URL absent and other owners cannot access or mutate it", async () => {

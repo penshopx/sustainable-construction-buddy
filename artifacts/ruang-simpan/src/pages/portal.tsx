@@ -23,6 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { PageHeader, LoadError, PageSkeleton } from '@/components/app-shell';
 import { ACCEPT_ATTR, ALLOWED_EXT, MAX_FILE_BYTES, STATUS_META, downloadUrl, errorMessage, extOf, formatBytes, formatDate, uploadDocument } from '@/lib/vault';
 import { cn } from '@/lib/utils';
+import { importFilename } from '@/lib/import-filename';
 
 type UploadItem = { key: string; name: string; size: number; state: 'queued' | 'uploading' | 'done' | 'error'; error?: string };
 
@@ -61,6 +62,13 @@ export default function PortalPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [importUrl, setImportUrl] = useState('');
   const [importName, setImportName] = useState('');
+  const importNameEdited = useRef(false);
+  const resetImport = () => {
+    setImportUrl('');
+    setImportName('');
+    setImportError('');
+    importNameEdited.current = false;
+  };
   const [importFolder, setImportFolder] = useState('');
   const [importError, setImportError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
@@ -377,7 +385,7 @@ export default function PortalPage() {
       <Dialog open={importOpen} onOpenChange={(open) => {
         if (importLink.isPending) return;
         setImportOpen(open);
-        if (!open) { setImportUrl(''); setImportName(''); setImportError(''); }
+        if (!open) resetImport();
       }}>
         <DialogContent>
           <DialogHeader>
@@ -391,7 +399,7 @@ export default function PortalPage() {
             importLink.mutate({ data: { url: importUrl.trim(), name: importName.trim(), folderId: importFolder } }, {
               onSuccess: (doc) => {
                 invalidate(); setTab(doc.folderId); setQuery(''); setImportOpen(false);
-                setImportUrl(''); setImportName(''); setImportError('');
+                resetImport();
                 toast({ title: 'Dokumen berhasil diimpor', description: `${doc.name} tersimpan secara privat.` });
               },
               onError: (err) => setImportError(errorMessage(err)),
@@ -399,11 +407,18 @@ export default function PortalPage() {
           }}>
             <label className="block text-sm space-y-1">
               <span>Tautan file publik</span>
-              <Input type="url" required maxLength={8192} autoComplete="off" value={importUrl} onChange={e => setImportUrl(e.target.value)} disabled={importLink.isPending} placeholder="https://contoh.org/dokumen.pdf" data-testid="input-import-url" />
+              <Input type="url" required maxLength={8192} autoComplete="off" value={importUrl} onChange={e => {
+                setImportUrl(e.target.value);
+                if (!importNameEdited.current) setImportName(importFilename(e.target.value));
+              }} disabled={importLink.isPending} placeholder="https://contoh.org/dokumen.pdf" data-testid="input-import-url" />
             </label>
             <label className="block text-sm space-y-1">
               <span>Nama file beserta ekstensi</span>
-              <Input required maxLength={200} value={importName} onChange={e => setImportName(e.target.value)} disabled={importLink.isPending} placeholder="dokumen.pdf" data-testid="input-import-name" />
+              <Input required maxLength={200} value={importName} onChange={e => {
+                importNameEdited.current = true;
+                setImportName(e.target.value);
+              }} disabled={importLink.isPending} placeholder="dokumen.pdf" aria-describedby="import-name-help" data-testid="input-import-name" />
+              <span id="import-name-help" className="block text-xs text-muted-foreground">Nama diisi dari pathname tautan jika aman dan ekstensinya didukung. Anda dapat mengubahnya sebelum impor. Jika kosong, isi nama beserta ekstensi secara manual.</span>
             </label>
             <div className="text-sm space-y-1">
               <span>Folder tujuan</span>
@@ -415,7 +430,7 @@ export default function PortalPage() {
             <p className="text-xs text-muted-foreground">File disalin ke penyimpanan privat Anda; tautan asal tidak disimpan. Teks dibaca lokal seperti unggah biasa. OCR eksternal tetap memerlukan persetujuan terpisah.</p>
             {importError && <p role="alert" className="text-sm text-destructive" data-testid="error-import-link">{importError}</p>}
             <DialogFooter>
-              <Button type="button" variant="secondary" disabled={importLink.isPending} onClick={() => { setImportOpen(false); setImportUrl(''); setImportName(''); }}>Batal</Button>
+              <Button type="button" variant="secondary" disabled={importLink.isPending} onClick={() => { setImportOpen(false); resetImport(); }}>Batal</Button>
               <Button type="submit" disabled={importLink.isPending || !importUrl.trim() || !importName.trim() || !importFolder} data-testid="button-confirm-import">
                 {importLink.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {importLink.isPending ? 'Mengimpor…' : 'Impor dokumen'}

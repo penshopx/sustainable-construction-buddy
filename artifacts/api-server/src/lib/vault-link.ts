@@ -4,6 +4,19 @@ import { BlockList, isIP } from "node:net";
 import { VaultError, fail } from "./vault-errors";
 
 export const LINK_MAX_BYTES = 15 * 1024 * 1024;
+
+// Applies to suggested AND edited names. Never persist URL syntax, encoded
+// payloads, directory paths, or invisible controls in metadata/activity.
+export function importFileName(raw: string): string {
+  if (!raw.trim() || raw.length > 200 || raw.trim().startsWith(".") ||
+      /[\\/:?&#=%<>|"*\p{Cc}\p{Cf}]/u.test(raw))
+    fail(400, "Nama file tidak valid. Gunakan hanya nama file tanpa tautan atau direktori.");
+  const name = raw.trim();
+  if (!/\.(pdf|docx|xlsx|txt|md|csv|jpg|jpeg|png)$/i.test(name))
+    fail(400, "Gunakan nama file dengan ekstensi PDF, DOCX, XLSX, TXT, MD, CSV, JPG, atau PNG.");
+  return name;
+}
+
 const blocked = new BlockList();
 for (const [ip, prefix] of [
   ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8],

@@ -3,7 +3,7 @@ name: Kebijakan impor tautan Ruang Simpan
 description: Alasan memakai nama file eksplisit dan tidak menyimpan URL sumber impor.
 ---
 
-Impor tautan meminta nama file beserta ekstensi dari pengguna dan hanya menyimpan salinan file privat, bukan URL sumber atau riwayat pengalihannya.
+Impor tautan hanya menyimpan salinan file privat dan nama yang dikonfirmasi pengguna, bukan URL sumber atau riwayat pengalihannya. Saran nama otomatis bukan persetujuan untuk menyimpan sumber tautan.
 
 **Why:** URL unduhan dapat membawa token atau tanda tangan sementara; menyimpannya dalam metadata, aktivitas, atau pesan kesalahan akan memperluas akses kredensial di luar tujuan pengambilan file.
 

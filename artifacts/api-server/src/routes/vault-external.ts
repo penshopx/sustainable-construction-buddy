@@ -7,14 +7,11 @@ import {
 } from "../lib/vault-store";
 import { objectPath, privateFile, validateFile, extractText } from "../lib/vault-files";
 import { randomUUID } from "node:crypto";
-import { fetchPublicFile } from "../lib/vault-link";
+import { fetchPublicFile, importFileName } from "../lib/vault-link";
 
 const activeImports = new Set<string>();
 export async function importDocument(owner: string, input: { url: string; name: string; folderId: string }) {
-  if (!input.name.trim() || /[\\/\0-\x1f\x7f]/.test(input.name))
-    fail(400, "Nama file tidak valid.");
-  if (!/\.(pdf|docx|xlsx|txt|md|csv|jpg|jpeg|png)$/i.test(input.name.trim()))
-    fail(400, "Gunakan nama file dengan ekstensi PDF, DOCX, XLSX, TXT, MD, CSV, JPG, atau PNG.");
+  const name = importFileName(input.name);
   if (activeImports.has(owner) || activeImports.size >= 4)
     fail(429, "Impor sedang berjalan. Tunggu sampai selesai, lalu coba lagi.");
   activeImports.add(owner);
@@ -27,7 +24,7 @@ export async function importDocument(owner: string, input: { url: string; name: 
       if (state.documents.reduce((n, d) => n + d.size, 0) >= QUOTA) fail(413, "Kuota 50 MiB penuh.");
     });
     const bytes = await fetchPublicFile(input.url);
-    return await uploadDocument(owner, bytes, input.name, input.folderId);
+    return await uploadDocument(owner, bytes, name, input.folderId);
   } finally { activeImports.delete(owner); }
 }
 
