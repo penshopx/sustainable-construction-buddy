@@ -26,8 +26,27 @@ assessment_admin_http_token() {
 # Called with a verified real admin token while the owner's assessment is
 # unfinished. All fixture reads/writes bypass RLS; every access under test uses
 # Auth/PostgREST with the anon API key and the appropriate user's session.
+assessment_admin_draft_privacy_state() {
+  # Snapshot all member assessments and their complete rows, not the admin's
+  # filtered HTTP view. Include every draft column (including updated_at).
+  "${PSQL[@]}" -Atq <<SQL
+SELECT jsonb_build_object(
+  'pre_tests', (SELECT COALESCE(jsonb_agg(to_jsonb(pt) ORDER BY pt.id), '[]'::jsonb)
+    FROM public.pre_tests pt WHERE pt.user_id = '$TEST_USER_ID'),
+  'drafts', (SELECT COALESCE(jsonb_agg(to_jsonb(ad) ORDER BY ad.pre_test_id), '[]'::jsonb)
+    FROM public.assessment_drafts ad JOIN public.pre_tests pt ON pt.id = ad.pre_test_id
+    WHERE pt.user_id = '$TEST_USER_ID'),
+  'answers', (SELECT COALESCE(jsonb_agg(to_jsonb(a) ORDER BY a.id), '[]'::jsonb)
+    FROM public.pre_test_answers a JOIN public.pre_tests pt ON pt.id = a.pre_test_id
+    WHERE pt.user_id = '$TEST_USER_ID'),
+  'profile', (SELECT to_jsonb(p) FROM public.profiles p WHERE p.user_id = '$TEST_USER_ID')
+)::text;
+SQL
+}
+
 test_admin_http_draft_privacy() {
   local admin_token="$1" status before_state expected_admin expected_owner attack
+  local operation method payload endpoint prefer
   local own_pre_test_id="00000000-0000-4000-8000-000000000182"
 
   "${PSQL[@]}" >/dev/null <<SQL
@@ -60,7 +79,7 @@ BEGIN
 END;
 \$\$;
 SQL
-  before_state="$(assessment_http_state)"
+  before_state="$(assessment_admin_draft_privacy_state)"
   # Match every response field except the intentionally changing server clock.
   expected_admin="$("${PSQL[@]}" -Atq -c "
     SELECT jsonb_build_object('preTestId', pt.id, 'startedAt', pt.started_at,
@@ -114,6 +133,63 @@ SQL
     fi
   done
 
+  # Change a real answer with a valid draft, so payload validation cannot
+  # substitute for access control. Plain POST and merge-upsert must both be
+  # denied, not merely fail on a duplicate key. PATCH/DELETE may instead be
+  # successful no-ops under owner-only RLS, but must return no victim rows.
+  attack="$(jq -nc --argjson expected "$expected_owner" --arg question "$TEST_QUESTION_ID" \
+    '$expected.draft | .answers[$question] = 0')"
+  for operation in patch delete insert upsert; do
+    endpoint="assessment_drafts?pre_test_id=eq.$TEST_OWNERSHIP_PRE_TEST_ID"
+    prefer='return=representation'
+    case "$operation" in
+      patch)
+        method=PATCH
+        payload="$(jq -nc --argjson draft "$attack" '{draft:$draft}')"
+        ;;
+      delete)
+        method=DELETE
+        payload=''
+        ;;
+      insert|upsert)
+        method=POST
+        endpoint='assessment_drafts'
+        payload="$(jq -nc --arg id "$TEST_OWNERSHIP_PRE_TEST_ID" \
+          --argjson draft "$attack" '{pre_test_id:$id,draft:$draft}')"
+        if [[ "$operation" == upsert ]]; then
+          endpoint+='?on_conflict=pre_test_id'
+          prefer+=',resolution=merge-duplicates'
+        fi
+        ;;
+    esac
+    status="$(curl --silent --show-error --max-time 15 \
+      --output "$TMP_DIR/admin-draft-$operation.json" --write-out '%{http_code}' \
+      --request "$method" "${TEST_SUPABASE_URL%/}/rest/v1/$endpoint" \
+      --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+      --header "Authorization: Bearer $admin_token" \
+      --header "Prefer: $prefer" \
+      --header 'Content-Type: application/json' --data "$payload")"
+    if [[ "$status" == "403" ]]; then
+      if ! jq -e '.code == "42501" and
+        (.message == "permission denied for table assessment_drafts" or
+         .message == "new row violates row-level security policy for table \"assessment_drafts\"")' \
+        "$TMP_DIR/admin-draft-$operation.json" >/dev/null 2>&1; then
+        echo "Admin draft $operation failed for an unexpected reason" >&2
+        exit 1
+      fi
+    elif [[ "$operation" != patch && "$operation" != delete ]] ||
+         [[ "$status" != "200" ]] ||
+         ! jq -e '. == []' "$TMP_DIR/admin-draft-$operation.json" >/dev/null 2>&1; then
+      echo "Admin HTTP draft $operation was not denied or a row-free no-op (HTTP $status)" >&2
+      exit 1
+    fi
+    # Check after EACH attempt: a later operation must not hide a prior write.
+    if [[ "$(assessment_admin_draft_privacy_state)" != "$before_state" ]]; then
+      echo "Admin draft $operation changed member drafts, assessments, answers, or profile" >&2
+      exit 1
+    fi
+  done
+
   # Structurally valid payload, matching roster and current revision: denial
   # must be ownership, not validation, expiry, or a compare-and-swap conflict.
   attack="$(jq -nc --argjson expected "$expected_owner" --arg question "$TEST_QUESTION_ID" \
@@ -131,7 +207,7 @@ SQL
     echo "Admin HTTP save of member draft was not denied solely for ownership (HTTP $status)" >&2
     exit 1
   fi
-  if [[ "$(assessment_http_state)" != "$before_state" ]]; then
+  if [[ "$(assessment_admin_draft_privacy_state)" != "$before_state" ]]; then
     echo "Admin draft HTTP checks changed the member draft, assessment, answers, or profile" >&2
     exit 1
   fi
@@ -148,12 +224,12 @@ SQL
     echo "Owner HTTP recovery did not preserve the original member draft (HTTP $status)" >&2
     exit 1
   fi
-  if [[ "$(assessment_http_state)" != "$before_state" ]]; then
+  if [[ "$(assessment_admin_draft_privacy_state)" != "$before_state" ]]; then
     echo "Owner draft recovery changed persisted member data" >&2
     exit 1
   fi
   "${PSQL[@]}" >/dev/null -c "DELETE FROM public.pre_tests WHERE id = '$own_pre_test_id'"
-  echo "Admin HTTP recovered only its own draft; member draft SELECT/save were blocked, owner rows stayed unchanged and owner recovery succeeded."
+  echo "Admin HTTP recovered only its own draft; member draft SELECT/PATCH/DELETE/POST/upsert/save were blocked, all member rows stayed unchanged and owner recovery succeeded."
 }
 
 # Both queue orders use distinct real Auth sessions and the same valid roster,
