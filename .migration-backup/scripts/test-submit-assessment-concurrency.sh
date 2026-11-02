@@ -30,6 +30,8 @@ TEST_TIE_HIGH_ID="00000000-0000-4000-8000-000000000168"
 TEST_OWNERSHIP_PRE_TEST_ID="00000000-0000-4000-8000-000000000170"
 TEST_HTTP_PRE_TEST_ID="00000000-0000-4000-8000-000000000180"
 TEST_EXPIRED_PRE_TEST_ID="00000000-0000-4000-8000-000000000181"
+TEST_HTTP_EXPIRED_PRE_TEST_ID="00000000-0000-4000-8000-000000000186"
+TEST_HTTP_EXPIRED_QUESTION_ID="00000000-0000-4000-8000-000000000187"
 
 cleanup() {
   "${PSQL[@]}" >/dev/null 2>&1 <<SQL || true
@@ -179,7 +181,9 @@ SQL
 
 # Independently runnable on the latest complete schema, even if an earlier
 # legacy concurrency scenario fails before reaching the admin HTTP checks.
-test_admin_http_profile_revocation
+if [[ "${1:-}" != "--expired-http-concurrency" ]]; then
+  test_admin_http_profile_revocation
+fi
 if [[ "${1:-}" == "--admin-profile-revocation" ]]; then
   exit 0
 fi
@@ -209,9 +213,9 @@ SQL
   exit 0
 fi
 
-# Run expiry privacy independently of legacy concurrency fixtures, which have
-# separate coverage for compatibility with the latest question-authority schema.
-if [[ "${1:-}" != "--expired-draft-privacy" ]]; then
+# Run expiry privacy/concurrency independently of legacy concurrency fixtures,
+# which have separate coverage for the latest question-authority schema.
+if [[ "${1:-}" != "--expired-draft-privacy" && "${1:-}" != "--expired-http-concurrency" ]]; then
 # Hold the target row so both submit statements are active and waiting before
 # either can complete. Releasing this transaction lets PostgreSQL serialize them.
 "${PSQL[@]}" >/dev/null <<SQL &
@@ -747,6 +751,14 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
 fi
 OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
 
+# Run independently of legacy SQL fixtures that predate the fixed question
+# roster. This is two overlapping first submissions, not a lost-response replay.
+source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-http-concurrency.sh"
+if [[ "${1:-}" == "--expired-http-concurrency" ]]; then
+  test_concurrent_http_submissions expired
+  exit 0
+fi
+
 # Sign in the stranger before the owner's first submission, so both the
 # unfinished submission and completed replay use a real, distinct Auth session.
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
@@ -770,8 +782,8 @@ OTHER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/other-session.json")"
 if [[ "${1:-}" != "--expired-draft-privacy" ]]; then
 # Keep the SQL concurrency cases above; additionally exercise real overlapping
 # authenticated requests through the local Auth/PostgREST gateway.
-source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-http-concurrency.sh"
 test_concurrent_http_submissions
+test_concurrent_http_submissions expired
 
 "${PSQL[@]}" >/dev/null <<SQL
 DO \$\$

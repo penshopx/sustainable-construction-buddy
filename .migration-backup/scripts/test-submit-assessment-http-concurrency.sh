@@ -3,15 +3,77 @@
 # The subshell keeps worker cleanup separate from the parent fixture cleanup.
 test_concurrent_http_submissions() (
   set -euo pipefail
+  local mode="${1:-unexpired}"
+  local TEST_HTTP_PRE_TEST_ID="$TEST_HTTP_PRE_TEST_ID" TEST_QUESTION_ID="$TEST_QUESTION_ID"
+  local first_answer=1 second_answer=0
+  case "$mode" in
+    unexpired) ;;
+    expired)
+      TEST_HTTP_PRE_TEST_ID="$TEST_HTTP_EXPIRED_PRE_TEST_ID"
+      TEST_QUESTION_ID="$TEST_HTTP_EXPIRED_QUESTION_ID"
+      # Neither late device choice matches the correct server draft (1).
+      first_answer=0
+      second_answer=2
+      ;;
+    *) echo "Unknown HTTP concurrency scenario: $mode" >&2; exit 1 ;;
+  esac
   local locker_pid="" first_pid="" second_pid=""
   trap 'for pid in "$first_pid" "$second_pid" "$locker_pid"; do
     if [[ -n "$pid" ]]; then kill "$pid" 2>/dev/null || true; wait "$pid" 2>/dev/null || true; fi
   done' EXIT
 
-  "${PSQL[@]}" >/dev/null <<SQL
+  rm -f "$TMP_DIR/http-lock-ready" "$TMP_DIR/http-lock-release"
+  if [[ "$mode" == "expired" ]]; then
+    "${PSQL[@]}" >/dev/null <<SQL
+INSERT INTO public.questions (id, domain_id, question_text, options, correct_answer)
+VALUES ('$TEST_QUESTION_ID', '$TEST_DOMAIN_ID', 'Expired two-device test',
+        '["Late device A", "Saved server choice", "Late device B"]'::jsonb, 1);
+INSERT INTO public.pre_tests (
+  id, user_id, total_questions, status, started_at, deadline_at, authorized_question_ids
+) VALUES (
+  '$TEST_HTTP_PRE_TEST_ID', '$TEST_USER_ID', 1, 'in_progress',
+  clock_timestamp() - interval '3 minutes', clock_timestamp() - interval '90 seconds',
+  ARRAY['$TEST_QUESTION_ID'::uuid]
+);
+INSERT INTO public.assessment_drafts (pre_test_id, draft, updated_at)
+VALUES (
+  '$TEST_HTTP_PRE_TEST_ID',
+  jsonb_build_object(
+    'version', 1, 'revision', 0, 'preTestId', '$TEST_HTTP_PRE_TEST_ID',
+    'questions', jsonb_build_array(jsonb_build_object('id', '$TEST_QUESTION_ID')),
+    'answers', jsonb_build_object('$TEST_QUESTION_ID', 1),
+    'answerResults', '{}'::jsonb, 'phase', 'review'
+  ),
+  clock_timestamp() - interval '2 minutes'
+);
+DO \$\$
+DECLARE
+  assessment public.pre_tests%ROWTYPE;
+  saved public.assessment_drafts%ROWTYPE;
+BEGIN
+  SELECT * INTO STRICT assessment FROM public.pre_tests WHERE id = '$TEST_HTTP_PRE_TEST_ID';
+  SELECT * INTO STRICT saved FROM public.assessment_drafts WHERE pre_test_id = assessment.id;
+  IF assessment.user_id IS DISTINCT FROM '$TEST_USER_ID'::uuid
+     OR assessment.status IS DISTINCT FROM 'in_progress'
+     OR assessment.completed_at IS NOT NULL
+     OR NOT public.assessment_deadline_passed(assessment.deadline_at, clock_timestamp())
+     OR saved.updated_at >= assessment.deadline_at
+     OR public.validate_assessment_draft(saved.draft) IS NOT TRUE
+     OR saved.draft->'answers'->>'$TEST_QUESTION_ID' IS DISTINCT FROM '1'
+     OR EXISTS (SELECT 1 FROM public.pre_test_answers WHERE pre_test_id = assessment.id) THEN
+    RAISE EXCEPTION 'Expired concurrency requires an unfinished owner assessment and a valid pre-deadline server draft';
+  END IF;
+END;
+\$\$;
+SQL
+  else
+    "${PSQL[@]}" >/dev/null <<SQL
 INSERT INTO public.pre_tests (id, user_id, total_questions)
 VALUES ('$TEST_HTTP_PRE_TEST_ID', '$TEST_USER_ID', 1);
+SQL
+  fi
 
+  "${PSQL[@]}" >/dev/null <<SQL
 -- Audit actual writes, not only the final row count: deleting and reinserting
 -- an answer (or overwriting it) must not pass as "saved once".
 CREATE TABLE public.assessment_http_write_audit (kind text NOT NULL);
@@ -20,7 +82,8 @@ RETURNS trigger LANGUAGE plpgsql AS \$\$
 BEGIN
   IF TG_TABLE_NAME = 'pre_tests' THEN
     IF NEW.id = '$TEST_HTTP_PRE_TEST_ID'::uuid
-       AND NEW.completed_at IS DISTINCT FROM OLD.completed_at THEN
+       AND (NEW.status = 'completed'
+            OR NEW.completed_at IS DISTINCT FROM OLD.completed_at) THEN
       INSERT INTO public.assessment_http_write_audit VALUES ('completion');
     END IF;
   ELSIF TG_OP = 'DELETE' THEN
@@ -74,9 +137,9 @@ SQL
       --data "{\"_pre_test_id\":\"$TEST_HTTP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":$answer}]}" \
       >"$TMP_DIR/http-$label.status"
   }
-  submit_http 1 first &
+  submit_http "$first_answer" first &
   first_pid=$!
-  submit_http 0 second &
+  submit_http "$second_answer" second &
   second_pid=$!
 
   for _ in {1..100}; do
@@ -126,6 +189,12 @@ SQL
     echo "Concurrent owner HTTP submissions returned different scores/results." >&2
     exit 1
   fi
+  if [[ "$mode" == "expired" ]] &&
+     ! jq -e '. == {"score":100,"level":"Utama","correct":1,"total":1}' \
+       "$TMP_DIR/http-first.json" >/dev/null; then
+    echo "Both expired RPCs must return the server draft result, not either late payload." >&2
+    exit 1
+  fi
 
   "${PSQL[@]}" -v expected_result="$(cat "$TMP_DIR/http-first.json")" >/dev/null <<SQL
 SELECT set_config('test.http_result', :'expected_result', false);
@@ -163,5 +232,5 @@ DROP FUNCTION public.record_assessment_http_write();
 DROP TABLE public.assessment_http_write_audit;
 DELETE FROM public.pre_tests WHERE id = '$TEST_HTTP_PRE_TEST_ID';
 SQL
-  echo "Two overlapping owner HTTP RPCs returned identical results and saved the answer/completion once."
+  echo "Two overlapping $mode owner HTTP RPCs returned identical results and saved the answer/completion once."
 )

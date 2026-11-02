@@ -74,6 +74,9 @@ jobs:
       - name: Verify expired assessments with valid, missing and corrupt drafts reveal only Unauthorized to a different Auth user
         run: bash scripts/test-submit-assessment-concurrency.sh --expired-draft-privacy
 
+      - name: Verify two overlapping expired owner RPCs finalize once from the server draft
+        run: bash scripts/test-submit-assessment-concurrency.sh --expired-http-concurrency
+
       - name: Test concurrent submits, expired stranger denial with valid, missing and corrupt drafts, HTTP replay and admin revocation
         run: bash scripts/test-submit-assessment-concurrency.sh
 
