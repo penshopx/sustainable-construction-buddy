@@ -21,7 +21,8 @@ import { ChatbotBuilderWizard } from "@/components/chatbot/ChatbotBuilderWizard"
 import { ChatbotCard } from "@/components/chatbot/ChatbotCard";
 import { ChatbotMarketplace } from "@/components/chatbot/ChatbotMarketplace";
 import { useSearchParams } from "react-router-dom";
-import { useGetHelpdeskAiStatus, getGetHelpdeskAiStatusQueryKey, type ChatEngine } from "@workspace/api-client-react";
+import { useGetHelpdeskAiStatus, getHelpdeskAiStatus, getGetHelpdeskAiStatusQueryKey, type ChatEngine } from "@workspace/api-client-react";
+import { supabase } from "@/integrations/supabase/client";
 import VaultReferencePanel from "@/components/VaultReferencePanel";
 import { CHAT_ENGINES } from "@/lib/chatEngines";
 
@@ -85,8 +86,21 @@ function PreviewHelpdeskAI() {
 function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: boolean; superAdminLoading: boolean }) {
   const { user } = useAuth();
   const aiStatus = useGetHelpdeskAiStatus(undefined, {
-    query: { queryKey: getGetHelpdeskAiStatusQueryKey(), enabled: !!user, staleTime: 15_000, refetchInterval: 30_000, retry: false },
+    query: {
+      queryKey: [...getGetHelpdeskAiStatusQueryKey(), user?.id],
+      enabled: !!user, staleTime: 0, gcTime: 0, refetchInterval: 30_000, retry: false,
+      queryFn: async ({ signal }) => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!user || session?.user.id !== user.id) throw new Error("Sesi berubah. Periksa ulang status kuota.");
+        return getHelpdeskAiStatus(undefined, { signal, headers: { Authorization: `Bearer ${session.access_token}` } });
+      },
+    },
   });
+  const [quotaNow, setQuotaNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setQuotaNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const { isAdmin } = useAdmin();
   const [searchParams] = useSearchParams();
 
@@ -150,7 +164,7 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const sendMessage = (text: string) => {
-    sendMsg(text);
+    void sendMsg(text).finally(() => { void aiStatus.refetch(); });
   };
 
   const handleSelectCustomBot = (bot: CustomChatbot) => {
@@ -451,6 +465,15 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
                 <div role="status" aria-live="polite" data-testid="ai-readiness" className="mb-3 rounded-lg border border-border bg-muted/40 p-3 text-sm text-foreground">
                   <p className="font-medium">Status layanan AI: {aiStatus.isPending ? "memeriksa…" : aiStatus.isError ? "belum dapat diperiksa" : aiStatus.data?.state === "configured" ? "konfigurasi tersedia" : aiStatus.data?.state === "limit_indicated" ? "batas penggunaan terindikasi" : aiStatus.data?.state === "not_configured" ? "belum dikonfigurasi" : "belum dapat diperiksa"}</p>
                   <p>{aiStatus.isError ? "Status AI tidak dapat diperiksa. Pengiriman tetap dapat dicoba, tetapi jawaban belum terjamin." : aiStatus.data?.message ?? "Pemeriksaan hanya membaca metadata layanan, tanpa mengirim percakapan atau dokumen."}</p>
+                  <div className="mt-2" data-testid="ai-local-quota">
+                    <p className="font-medium">Kuota aplikasi akun Anda</p>
+                    {!aiStatus.isError && user && aiStatus.data?.localQuota ? aiStatus.data.localQuota.map(quota => {
+                      const seconds = quota.retryAfterSeconds > 0 && quota.resetAt ? Math.max(0, Math.ceil((new Date(quota.resetAt).getTime() - quotaNow) / 1000)) : 0;
+                      return <p key={quota.scope}>{quota.scope === "claude" ? "Claude (tambahan)" : "Semua model Helpdesk"}: sisa {quota.remaining}/{quota.limit} per jam.
+                        {quota.retryAfterSeconds > 0 && (seconds > 0 ? ` Kuota habis. Tunggu ${Math.floor(seconds / 60)} menit ${seconds % 60} detik (hingga ${new Date(quota.resetAt!).toLocaleTimeString("id-ID")}).` : " Waktu tunggu selesai; periksa ulang kuota.")}</p>;
+                    }) : <p>Kuota pribadi belum dapat diperiksa.</p>}
+                    <p className="mt-1 text-xs">Batas lokal aplikasi, bukan saldo provider. Status dapat berubah; server tetap memeriksa setiap pengiriman. Model dan panjang jawaban tidak diubah otomatis.</p>
+                  </div>
                   {aiStatus.data && !aiStatus.isError && <p className="mt-1 text-xs">Diperiksa: {new Date(aiStatus.data.checkedAt).toLocaleTimeString("id-ID")}. Status diperbarui berkala.</p>}
                   <button type="button" className="mt-1 underline" disabled={aiStatus.isFetching} onClick={() => void aiStatus.refetch()}>Periksa lagi</button>
                 </div>

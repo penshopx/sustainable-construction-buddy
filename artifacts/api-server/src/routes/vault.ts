@@ -19,6 +19,10 @@ import { createChatService, ChatServiceError } from "../lib/chat-service";
 import { GetVaultAiStatusResponse } from "@workspace/api-zod";
 import { vaultExternalRouter, uploadDocument, streamDocument, importDocument } from "./vault-external";
 import { documentAnalysisRouter } from "./document-analysis";
+import { createSlidingLimiter } from "../lib/chat-limits";
+
+const aiRequests = createSlidingLimiter(60_000, 5);
+const ownerQuota = (req: Request) => [{ scope: "vault", ...aiRequests.inspect(req.res!.locals.vaultOwner as string) }];
 
 export const vaultRouter = Router();
 vaultRouter.use("/external", vaultExternalRouter);
@@ -37,7 +41,9 @@ vaultRouter.get("/ai-status", async (req, res) => {
       throw error;
     }
   }
-  res.json(GetVaultAiStatusResponse.parse(await vaultAiReadiness.get(diagnostics)));
+  res.json(GetVaultAiStatusResponse.parse({
+    ...await vaultAiReadiness.get(diagnostics), localQuota: ownerQuota(req),
+  }));
 });
 vaultRouter.post("/company-names", async (req, res) => {
   const { userIds } = ResolveVaultCompaniesBody.parse(req.body);
@@ -174,15 +180,17 @@ vaultRouter.delete("/connections/:id", async (req, res) => {
   });
   res.sendStatus(204);
 });
-const aiRequests = new Map<string, number[]>();
 vaultRouter.post("/questions", async (req, res) => {
   const input = AskVaultQuestionBody.parse(req.body);
   const user = owner(req);
-  const recent = (aiRequests.get(user) ?? []).filter(t => t > Date.now() - 60_000);
-  if (recent.length >= 5) fail(429, "Maksimal 5 pertanyaan per menit. Coba sebentar lagi.");
-  aiRequests.set(user, [...recent, Date.now()]);
-  if (aiRequests.size > 5000) {
-    for (const [id, times] of aiRequests) if (!times.some(t => t > Date.now() - 60_000)) aiRequests.delete(id);
+  const wait = aiRequests(user);
+  if (wait) {
+    res.set("Retry-After", String(wait));
+    res.status(429).json({
+      error: `Maksimal 5 pertanyaan per menit. Coba lagi dalam ${wait} detik.`,
+      localQuota: ownerQuota(req), retryAfterSeconds: wait,
+    });
+    return;
   }
   const context = await workspace(user, state => {
     const assistant = input.assistantId ? state.assistants.find(a => a.id === input.assistantId) ?? fail(404, "Asisten tidak ditemukan.") : undefined;

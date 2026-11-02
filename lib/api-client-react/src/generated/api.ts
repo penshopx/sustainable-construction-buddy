@@ -2008,7 +2008,7 @@ export const askVaultQuestion = async (vaultQuestionInput: VaultQuestionInput, o
 
 
 
-export const getAskVaultQuestionMutationOptions = <TError = ErrorType<unknown>,
+export const getAskVaultQuestionMutationOptions = <TError = ErrorType<ChatRateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askVaultQuestion>>, TError,{data: BodyType<VaultQuestionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof askVaultQuestion>>, TError,{data: BodyType<VaultQuestionInput>}, TContext> => {
 
@@ -2037,9 +2037,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type AskVaultQuestionMutationResult = NonNullable<Awaited<ReturnType<typeof askVaultQuestion>>>
     export type AskVaultQuestionMutationBody = BodyType<VaultQuestionInput>
-    export type AskVaultQuestionMutationError = ErrorType<unknown>
+    export type AskVaultQuestionMutationError = ErrorType<ChatRateLimitedResponse>
 
-    export const useAskVaultQuestion = <TError = ErrorType<unknown>,
+    export const useAskVaultQuestion = <TError = ErrorType<ChatRateLimitedResponse>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askVaultQuestion>>, TError,{data: BodyType<VaultQuestionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof askVaultQuestion>>,

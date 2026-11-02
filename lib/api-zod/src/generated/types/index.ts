@@ -7,6 +7,8 @@
  */
 
 export * from './aiDiagnosticsParameter';
+export * from './aiLocalQuota';
+export * from './aiLocalQuotaScope';
 export * from './aiReadiness';
 export * from './aiReadinessDiagnostics';
 export * from './aiReadinessState';

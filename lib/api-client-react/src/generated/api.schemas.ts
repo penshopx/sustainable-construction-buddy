@@ -1099,8 +1099,36 @@ export interface HelpdeskInput {
   explanation_depth?: HelpdeskInputExplanationDepth;
 }
 
+export type AiLocalQuotaScope = typeof AiLocalQuotaScope[keyof typeof AiLocalQuotaScope];
+
+
+export const AiLocalQuotaScope = {
+  helpdesk: 'helpdesk',
+  claude: 'claude',
+  vault: 'vault',
+} as const;
+
+export interface AiLocalQuota {
+  scope: AiLocalQuotaScope;
+  /** @minimum 1 */
+  limit: number;
+  /** @minimum 0 */
+  remaining: number;
+  /** @minimum 0 */
+  retryAfterSeconds: number;
+  /** @nullable */
+  resetAt: string | null;
+}
+
 export interface ChatError {
   error: string;
+  /**
+     * Local application cooldown when available, also sent in Retry-After.
+     * @minimum 1
+     */
+  retryAfterSeconds?: number;
+  /** Present only for a verified owner's local quota rejection; never public or aggregate usage. */
+  localQuota?: AiLocalQuota[];
 }
 
 export interface PublicChatbot {
@@ -1136,6 +1164,8 @@ export interface AiReadiness {
   message: string;
   checkedAt: string;
   recheckAt: string;
+  /** Session owner's application limits only. Absent for anonymous callers. Process-local advisory snapshot, not provider balance or permission to send. */
+  localQuota?: AiLocalQuota[];
   /** Admin only. No key, label, raw response, or monetary amounts. */
   diagnostics?: AiReadinessDiagnostics;
 }

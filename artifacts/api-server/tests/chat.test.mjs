@@ -11,6 +11,7 @@ const bundled = await build({
     contents: `
       export { createChatRouter } from "./src/routes/chat";
       export { createWindowLimiter } from "./src/lib/chat-limits";
+      export { createSlidingLimiter } from "./src/lib/chat-limits";
       export { safeRequestPath } from "./src/lib/chat-policy";
       export { handleRequestError } from "./src/lib/request-error";
     `,
@@ -27,7 +28,7 @@ const compiled = { exports: {} };
 new Function("require", "module", "exports", bundled.outputFiles[0].text)(
   createRequire(import.meta.url), compiled, compiled.exports,
 );
-const { createChatRouter, createWindowLimiter, safeRequestPath, handleRequestError } = compiled.exports;
+const { createChatRouter, createWindowLimiter, createSlidingLimiter, safeRequestPath, handleRequestError } = compiled.exports;
 
 const TOKEN = "example_share_token_1234567890";
 const ENV = {
@@ -369,6 +370,82 @@ test("malformed and oversized request bodies return sanitized JSON, not stacks o
 const MEMBER_ID = "11111111-1111-4111-8111-111111111111";
 const MEMBER_HEADERS = { Authorization: "Bearer synthetic-member-token-not-a-real-key" };
 const memberFetch = (url, init) => url.endsWith("/auth/v1/user") ? ok({ id: MEMBER_ID }) : aiReply(JSON.parse(init.body).model);
+
+test("quota inspection does not consume requests, allocate identities, or expose another member", () => {
+  const limit = createWindowLimiter(60_000, 2, 1);
+  for (let i = 0; i < 10; i++) assert.equal(limit.inspect("unused", 0).remaining, 2);
+  assert.equal(limit("owner", 0), 0);
+  assert.equal(limit.inspect("owner", 500).remaining, 1);
+  assert.equal(limit("owner", 1000), 0);
+  assert.deepEqual(limit.inspect("owner", 1000), {
+    limit: 2, remaining: 0, resetAt: new Date(60_000).toISOString(), retryAfterSeconds: 59,
+  });
+  assert.equal(limit.inspect("owner", 60_000).remaining, 2);
+  assert.equal(limit.inspect("unused", 60_000).remaining, 2);
+  assert.equal(limit("unused", 60_000), 0);
+});
+
+test("vault rolling quota reports the first freed slot and preserves the remaining attempts", () => {
+  const limit = createSlidingLimiter(60_000, 5);
+  for (let i = 0; i < 5; i++) assert.equal(limit("owner", i * 1000), 0);
+  assert.equal(limit.inspect("other", 5000).remaining, 5);
+  for (let i = 0; i < 10; i++) assert.equal(limit.inspect("owner", 5000).retryAfterSeconds, 55);
+  assert.equal(limit("owner", 5000), 55);
+  assert.equal(limit.inspect("owner", 60_000).remaining, 1);
+  assert.equal(limit("owner", 60_000), 0);
+  assert.equal(limit("owner", 60_000), 1);
+  assert.equal(limit.inspect("owner", 120_000).remaining, 5);
+});
+
+test("owner-only status is live outside provider cache and expires without consuming quota", async (t) => {
+  let now = 0;
+  const otherId = "22222222-2222-4222-8222-222222222222";
+  const h = await harness(t, {
+    now: () => now,
+    fetchImpl: (url, init) => {
+      if (url.endsWith("/auth/v1/user")) return init.headers.Authorization.includes("other-member") ? ok({ id: otherId }) : memberFetch(url, init);
+      if (url.endsWith("/key")) return ok({ data: { limit_remaining: null } });
+      return memberFetch(url, init);
+    },
+  });
+  const status = async (headers = MEMBER_HEADERS, query = "") => {
+    const res = await h.get("/helpdesk/status" + query, headers);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get("cache-control"), "no-store");
+    return res.json();
+  };
+  assert.equal((await status({})).localQuota, undefined);
+  for (let i = 0; i < 3; i++) {
+    assert.equal((await status()).localQuota[1].remaining, 5);
+  }
+  for (let i = 0; i < 5; i++) assert.equal((await h.post("/helpdesk", { ...INPUT, engine: "claude" }, MEMBER_HEADERS)).status, 200);
+  const full = await status();
+  assert.equal(full.localQuota[0].remaining, 15);
+  assert.equal(full.localQuota[1].remaining, 0);
+  assert.equal(full.localQuota[1].retryAfterSeconds, 3600);
+  const denied = await h.post("/helpdesk", { ...INPUT, engine: "claude" }, MEMBER_HEADERS);
+  const rejection = await denied.json();
+  assert.equal(denied.status, 429);
+  assert.equal(Number(denied.headers.get("retry-after")), rejection.retryAfterSeconds);
+  assert.equal(rejection.localQuota[1].remaining, 0);
+  // User-supplied selectors cannot choose whose counters are returned.
+  const other = await status({ Authorization: "Bearer synthetic-other-member-token" }, `?userId=${MEMBER_ID}`);
+  assert.equal(other.localQuota[0].remaining, 20);
+  assert.equal(other.localQuota[1].remaining, 5);
+  assert.doesNotMatch(JSON.stringify(full), /11111111|22222222|synthetic/);
+  assert.equal(h.calls.filter(c => c.url.endsWith("/key")).length, 1);
+  now = 60 * 60_000;
+  const reset = await status();
+  assert.equal(reset.localQuota[1].remaining, 5);
+  assert.equal(reset.localQuota[1].retryAfterSeconds, 0);
+});
+
+test("invalid status sessions fail instead of reading another member's quota", async (t) => {
+  const h = await harness(t, { fetchImpl: () => new Response("PRIVATE_AUTH", { status: 401 }) });
+  const res = await h.get(`/helpdesk/status?userId=${MEMBER_ID}`, MEMBER_HEADERS);
+  assert.equal(res.status, 401);
+  assert.doesNotMatch(JSON.stringify(await res.json()), /localQuota|PRIVATE_AUTH/);
+});
 
 test("scheme profiles require membership even without an explicit engine", async (t) => {
   const h = await harness(t);

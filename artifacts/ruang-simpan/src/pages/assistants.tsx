@@ -21,16 +21,23 @@ import { useToast } from '@/hooks/use-toast';
 import { PageHeader, LoadError, PageSkeleton } from '@/components/app-shell';
 import { errorMessage } from '@/lib/vault';
 import { cn } from '@/lib/utils';
+import { usePubAuth } from '@/lib/pub-auth';
 
 type Msg = { role: 'user' | 'assistant'; content: string; sources?: VaultSource[]; error?: boolean };
 
 export default function AssistantsPage() {
   const qc = useQueryClient();
+  const { session } = usePubAuth();
   const { toast } = useToast();
   const ws = useGetVaultWorkspace();
   const aiStatus = useGetVaultAiStatus(undefined, {
-    query: { queryKey: getGetVaultAiStatusQueryKey(), enabled: !!ws.data, staleTime: 15_000, refetchInterval: 30_000, retry: false },
+    query: { queryKey: [...getGetVaultAiStatusQueryKey(), session?.user.id], enabled: !!session && !!ws.data, staleTime: 0, gcTime: 0, refetchInterval: 30_000, retry: false },
   });
+  const [quotaNow, setQuotaNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setQuotaNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const invalidate = () => qc.invalidateQueries({ queryKey: getGetVaultWorkspaceQueryKey() });
   const create = useCreateVaultAssistant();
   const remove = useDeleteVaultAssistant();
@@ -67,6 +74,7 @@ export default function AssistantsPage() {
       {
         onSuccess: (ans) => setThreads((t) => ({ ...t, [key]: [...(t[key] ?? []), { role: 'assistant', content: ans.answer, sources: ans.sources }] })),
         onError: (err) => setThreads((t) => ({ ...t, [key]: [...(t[key] ?? []), { role: 'assistant', content: errorMessage(err, 'Pertanyaan tidak dapat diproses saat ini.'), error: true }] })),
+        onSettled: () => { void aiStatus.refetch(); },
       },
     );
   }
@@ -152,6 +160,15 @@ export default function AssistantsPage() {
             <div role="status" aria-live="polite" data-testid="ai-readiness" className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-foreground">
               <p className="font-medium">Status layanan AI: {aiStatus.isPending ? "memeriksa…" : aiStatus.isError ? "belum dapat diperiksa" : aiStatus.data?.state === "configured" ? "konfigurasi tersedia" : aiStatus.data?.state === "limit_indicated" ? "batas penggunaan terindikasi" : aiStatus.data?.state === "not_configured" ? "belum dikonfigurasi" : "belum dapat diperiksa"}</p>
               <p>{aiStatus.isError ? "Status AI tidak dapat diperiksa. Pengiriman tetap dapat dicoba, tetapi jawaban belum terjamin." : aiStatus.data?.message ?? "Pemeriksaan hanya membaca metadata layanan, tanpa mengirim percakapan atau dokumen."}</p>
+              <div className="mt-2" data-testid="ai-local-quota">
+                <p className="font-medium">Kuota aplikasi akun Anda</p>
+                {!aiStatus.isError && session && aiStatus.data?.localQuota ? aiStatus.data.localQuota.map(quota => {
+                  const seconds = quota.retryAfterSeconds > 0 && quota.resetAt ? Math.max(0, Math.ceil((new Date(quota.resetAt).getTime() - quotaNow) / 1000)) : 0;
+                  return <p key={quota.scope}>Pertanyaan dokumen: sisa {quota.remaining}/{quota.limit} dalam satu menit berjalan.
+                    {quota.retryAfterSeconds > 0 && (seconds > 0 ? ` Kuota habis. Tunggu ${seconds} detik (hingga ${new Date(quota.resetAt!).toLocaleTimeString('id-ID')}).` : " Waktu tunggu selesai; periksa ulang kuota.")}</p>;
+                }) : <p>Kuota pribadi belum dapat diperiksa.</p>}
+                <p className="mt-1 text-xs">Batas lokal aplikasi, bukan saldo provider. Status dapat berubah; server tetap memeriksa setiap pengiriman. Model dan panjang jawaban tidak diubah otomatis.</p>
+              </div>
               {aiStatus.data && !aiStatus.isError && <p className="mt-1 text-xs">Diperiksa: {new Date(aiStatus.data.checkedAt).toLocaleTimeString('id-ID')}. Status diperbarui berkala.</p>}
               <button type="button" className="mt-1 underline" disabled={aiStatus.isFetching} onClick={() => void aiStatus.refetch()}>Periksa lagi</button>
             </div>

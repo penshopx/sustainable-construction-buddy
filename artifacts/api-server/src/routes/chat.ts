@@ -25,6 +25,10 @@ export function createChatRouter(
   const memberLimit = createWindowLimiter(60 * 60_000, 20);
   const analysisLimit = createWindowLimiter(60 * 60_000, 5);
   let activeRequests = 0;
+  const localQuota = (memberId: string) => [
+    { scope: "helpdesk", ...memberLimit.inspect(memberId, now()) },
+    { scope: "claude", ...analysisLimit.inspect(memberId, now()) },
+  ];
 
   function limited(req: Request, res: Response, chat: boolean): boolean {
     res.set({ "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" });
@@ -64,8 +68,13 @@ export function createChatRouter(
     if (limited(req, res, false)) return;
     await run(req, res, async () => {
       const diagnostics = req.query.diagnostics === "true";
-      if (diagnostics) await service.requireAdmin(req.get("authorization"));
-      res.json(GetHelpdeskAiStatusResponse.parse(await service.readiness.get(diagnostics)));
+      const memberId = diagnostics
+        ? await service.requireAdmin(req.get("authorization"))
+        : req.get("authorization") ? await service.requireMember(req.get("authorization")) : undefined;
+      const readiness = await service.readiness.get(diagnostics);
+      res.json(GetHelpdeskAiStatusResponse.parse({
+        ...readiness, ...(memberId ? { localQuota: localQuota(memberId) } : {}),
+      }));
     });
   });
 
@@ -110,11 +119,17 @@ export function createChatRouter(
         let memberId: string | undefined;
         if (settings?.engine || settings?.mode || settings?.custom_persona || settings?.scheme_code || settings?.audience || settings?.explanation_depth || settings?.use_vault_context) {
           memberId = await service.requireMember(req.get("authorization"));
-          const wait = memberLimit(memberId, now()) ||
+          const rejected = memberLimit(memberId, now()) ||
             (settings.engine === "claude" ? analysisLimit(memberId, now()) : 0);
-          if (wait) {
+          if (rejected) {
+            const wait = Math.max(...localQuota(memberId)
+              .filter(quota => quota.scope === "helpdesk" || settings.engine === "claude")
+              .map(quota => quota.retryAfterSeconds));
             res.set("Retry-After", String(wait));
-            res.status(429).json({ error: "Kuota AI akun untuk periode ini telah tercapai. Silakan coba lagi nanti." });
+            res.status(429).json({
+              error: `Kuota AI akun untuk periode ini telah tercapai. Coba lagi dalam ${wait} detik.`,
+              localQuota: localQuota(memberId), retryAfterSeconds: wait,
+            });
             return;
           }
         }

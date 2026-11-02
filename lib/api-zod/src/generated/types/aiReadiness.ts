@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AiLocalQuota } from './aiLocalQuota';
 import type { AiReadinessDiagnostics } from './aiReadinessDiagnostics';
 import type { AiReadinessState } from './aiReadinessState';
 
@@ -13,6 +14,8 @@ export interface AiReadiness {
   message: string;
   checkedAt: Date;
   recheckAt: Date;
+  /** Session owner's application limits only. Absent for anonymous callers. Process-local advisory snapshot, not provider balance or permission to send. */
+  localQuota?: AiLocalQuota[];
   /** Admin only. No key, label, raw response, or monetary amounts. */
   diagnostics?: AiReadinessDiagnostics;
 }

@@ -1264,11 +1264,25 @@ export const GetHelpdeskAiStatusQueryParams = zod.object({
   "diagnostics": zod.coerce.boolean().default(getHelpdeskAiStatusQueryDiagnosticsDefault).describe('Sanitized diagnostic codes only, restricted to a freshly verified admin role.')
 })
 
+
+export const getHelpdeskAiStatusResponseLocalQuotaItemRemainingMin = 0;
+
+export const getHelpdeskAiStatusResponseLocalQuotaItemRetryAfterSecondsMin = 0;
+
+
+
 export const GetHelpdeskAiStatusResponse = zod.object({
   "state": zod.enum(['configured', 'limit_indicated', 'unknown', 'not_configured']),
   "message": zod.string(),
   "checkedAt": zod.coerce.date(),
   "recheckAt": zod.coerce.date(),
+  "localQuota": zod.array(zod.object({
+  "scope": zod.enum(['helpdesk', 'claude', 'vault']),
+  "limit": zod.number().int().min(1),
+  "remaining": zod.number().int().min(getHelpdeskAiStatusResponseLocalQuotaItemRemainingMin),
+  "retryAfterSeconds": zod.number().int().min(getHelpdeskAiStatusResponseLocalQuotaItemRetryAfterSecondsMin),
+  "resetAt": zod.coerce.date().nullable()
+})).optional().describe('Session owner\'s application limits only. Absent for anonymous callers. Process-local advisory snapshot, not provider balance or permission to send.'),
   "diagnostics": zod.object({
   "reason": zod.string(),
   "providerStatus": zod.number().int().optional()
@@ -1285,11 +1299,25 @@ export const GetVaultAiStatusQueryParams = zod.object({
   "diagnostics": zod.coerce.boolean().default(getVaultAiStatusQueryDiagnosticsDefault).describe('Sanitized diagnostic codes only, restricted to a freshly verified admin role.')
 })
 
+
+export const getVaultAiStatusResponseLocalQuotaItemRemainingMin = 0;
+
+export const getVaultAiStatusResponseLocalQuotaItemRetryAfterSecondsMin = 0;
+
+
+
 export const GetVaultAiStatusResponse = zod.object({
   "state": zod.enum(['configured', 'limit_indicated', 'unknown', 'not_configured']),
   "message": zod.string(),
   "checkedAt": zod.coerce.date(),
   "recheckAt": zod.coerce.date(),
+  "localQuota": zod.array(zod.object({
+  "scope": zod.enum(['helpdesk', 'claude', 'vault']),
+  "limit": zod.number().int().min(1),
+  "remaining": zod.number().int().min(getVaultAiStatusResponseLocalQuotaItemRemainingMin),
+  "retryAfterSeconds": zod.number().int().min(getVaultAiStatusResponseLocalQuotaItemRetryAfterSecondsMin),
+  "resetAt": zod.coerce.date().nullable()
+})).optional().describe('Session owner\'s application limits only. Absent for anonymous callers. Process-local advisory snapshot, not provider balance or permission to send.'),
   "diagnostics": zod.object({
   "reason": zod.string(),
   "providerStatus": zod.number().int().optional()

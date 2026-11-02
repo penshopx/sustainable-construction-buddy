@@ -436,6 +436,8 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/VaultAnswer" }
+        "429":
+          $ref: "#/components/responses/ChatRateLimited"
   /ruang-simpan/assistants:
     post:
       operationId: createVaultAssistant
@@ -765,7 +767,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/AiReadiness"
         "401":
-          description: Diagnostics require a verified member session
+          description: Supplied member session is invalid, or diagnostics require a verified member session
         "403":
           description: Diagnostics require a current admin role
         "503":
@@ -1562,6 +1564,15 @@ components:
       properties:
         error:
           type: string
+        retryAfterSeconds:
+          type: integer
+          minimum: 1
+          description: Local application cooldown when available, also sent in Retry-After.
+        localQuota:
+          type: array
+          description: Present only for a verified owner's local quota rejection; never public or aggregate usage.
+          items:
+            $ref: "#/components/schemas/AiLocalQuota"
     PublicChatbot:
       type: object
       required: [id, name, description, avatar_url, mode, welcome_message]
@@ -1589,6 +1600,11 @@ components:
         message: { type: string }
         checkedAt: { type: string, format: date-time }
         recheckAt: { type: string, format: date-time }
+        localQuota:
+          type: array
+          description: Session owner's application limits only. Absent for anonymous callers. Process-local advisory snapshot, not provider balance or permission to send.
+          items:
+            $ref: "#/components/schemas/AiLocalQuota"
         diagnostics:
           type: object
           description: Admin only. No key, label, raw response, or monetary amounts.
@@ -1596,6 +1612,19 @@ components:
           properties:
             reason: { type: string }
             providerStatus: { type: integer }
+    AiLocalQuota:
+      type: object
+      required: [scope, limit, remaining, retryAfterSeconds, resetAt]
+      properties:
+        scope:
+          type: string
+          enum: [helpdesk, claude, vault]
+        limit: { type: integer, minimum: 1 }
+        remaining: { type: integer, minimum: 0 }
+        retryAfterSeconds: { type: integer, minimum: 0 }
+        resetAt:
+          type: [string, "null"]
+          format: date-time
     HealthStatus:
       type: object
       properties:

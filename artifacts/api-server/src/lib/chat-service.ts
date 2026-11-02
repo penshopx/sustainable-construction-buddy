@@ -210,7 +210,7 @@ export function createChatService(options: ChatServiceOptions = {}) {
     }
   }
 
-  async function requireAdmin(authorization?: string): Promise<void> {
+  async function requireAdmin(authorization?: string): Promise<string> {
     const member = await requireMember(authorization);
     const url = new URL(env.SUPABASE_URL || env.VITE_SUPABASE_URL!);
     url.pathname = "/rest/v1/user_roles";
@@ -225,6 +225,7 @@ export function createChatService(options: ChatServiceOptions = {}) {
     if (!rows.some(row => row && typeof row === "object" && row.role === "admin")) {
       throw new ChatServiceError(403, "admin_required", "Rincian diagnostik hanya tersedia untuk admin.");
     }
+    return member;
   }
 
   return { findBot, reply, requireMember, requireAdmin, readiness };
