@@ -71,7 +71,10 @@ jobs:
       - name: Verify admin cannot read or replace member drafts through Auth and PostgREST
         run: bash scripts/test-submit-assessment-concurrency.sh --admin-draft-privacy
 
-      - name: Test concurrent submits, unfinished admin denial and owner completion, expired stranger denial, HTTP replay and admin revocation
+      - name: Verify expired assessments with valid, missing and corrupt drafts reveal only Unauthorized to a different Auth user
+        run: bash scripts/test-submit-assessment-concurrency.sh --expired-draft-privacy
+
+      - name: Test concurrent submits, expired stranger denial with valid, missing and corrupt drafts, HTTP replay and admin revocation
         run: bash scripts/test-submit-assessment-concurrency.sh
 
       - name: Stop disposable local Supabase

@@ -209,6 +209,9 @@ SQL
   exit 0
 fi
 
+# Run expiry privacy independently of legacy concurrency fixtures, which have
+# separate coverage for compatibility with the latest question-authority schema.
+if [[ "${1:-}" != "--expired-draft-privacy" ]]; then
 # Hold the target row so both submit statements are active and waiting before
 # either can complete. Releasing this transaction lets PostgreSQL serialize them.
 "${PSQL[@]}" >/dev/null <<SQL &
@@ -722,6 +725,8 @@ END;
 \$\$;
 SQL
 
+fi
+
 # Obtain a real owner session before the first submission. Unlike a replay of
 # an already completed assessment, this exercises scoring and writes through
 # PostgREST with the authenticated role, not a privileged SQL connection.
@@ -762,6 +767,7 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
 fi
 OTHER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/other-session.json")"
 
+if [[ "${1:-}" != "--expired-draft-privacy" ]]; then
 # Keep the SQL concurrency cases above; additionally exercise real overlapping
 # authenticated requests through the local Auth/PostgREST gateway.
 source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-http-concurrency.sh"
@@ -1489,6 +1495,8 @@ END;
 ROLLBACK;
 SQL
 
+fi
+
 # Expiry can finalize an assessment from a saved draft, even when the request
 # supplies a different answer. Ownership must be checked BEFORE that path runs.
 # Use a separate fixture so the unexpired/replay cases above stay independent.
@@ -1602,4 +1610,89 @@ END;
 SQL
 echo "Owner HTTP finalization of the same expired assessment used the saved draft successfully."
 
-echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger, anonymous and admin unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, direct table RLS including admin revocation, and stranger expired HTTP denial with unchanged assessment, answers, draft and profile followed by owner finalization tests passed."
+# Missing/corrupt drafts must not reveal whether another user's expired
+# assessment can be recovered. Keep the valid-draft owner control above and
+# the question-authority suite independent: these fixtures have valid rosters.
+for DRAFT_CASE in missing corrupt; do
+  if [[ "$DRAFT_CASE" == "missing" ]]; then
+    BROKEN_DRAFT_PRE_TEST_ID="00000000-0000-4000-8000-000000000184"
+  else
+    BROKEN_DRAFT_PRE_TEST_ID="00000000-0000-4000-8000-000000000185"
+  fi
+  "${PSQL[@]}" >/dev/null <<SQL
+INSERT INTO public.pre_tests (
+  id, user_id, total_questions, status, started_at, deadline_at,
+  authorized_question_ids
+)
+VALUES (
+  '$BROKEN_DRAFT_PRE_TEST_ID', '$TEST_USER_ID', 1, 'in_progress',
+  clock_timestamp() - interval '3 minutes',
+  clock_timestamp() - interval '90 seconds', ARRAY['$TEST_QUESTION_ID'::uuid]
+);
+-- Only the privileged fixture connection writes malformed server state.
+INSERT INTO public.assessment_drafts (pre_test_id, draft, updated_at)
+SELECT '$BROKEN_DRAFT_PRE_TEST_ID', '[]'::jsonb,
+       clock_timestamp() - interval '2 minutes'
+WHERE '$DRAFT_CASE' = 'corrupt';
+DO \$\$
+DECLARE
+  expired_test public.pre_tests%ROWTYPE;
+  saved_draft public.assessment_drafts%ROWTYPE;
+  has_draft boolean;
+BEGIN
+  SELECT * INTO STRICT expired_test FROM public.pre_tests
+    WHERE id = '$BROKEN_DRAFT_PRE_TEST_ID';
+  SELECT * INTO saved_draft FROM public.assessment_drafts
+    WHERE pre_test_id = expired_test.id;
+  has_draft := FOUND;
+  IF expired_test.user_id IS DISTINCT FROM '$TEST_USER_ID'::uuid
+     OR expired_test.status IS DISTINCT FROM 'in_progress'
+     OR expired_test.completed_at IS NOT NULL
+     OR public.assessment_deadline_passed(expired_test.deadline_at, clock_timestamp()) IS NOT TRUE
+     OR expired_test.authorized_question_ids IS DISTINCT FROM ARRAY['$TEST_QUESTION_ID'::uuid]
+     OR expired_test.total_questions IS DISTINCT FROM 1
+     OR public.assessment_answers_match_roster(
+       jsonb_build_array(jsonb_build_object(
+         'question_id', '$TEST_QUESTION_ID', 'selected_answer', 0
+       )), expired_test.authorized_question_ids
+     ) IS NOT TRUE
+     OR EXISTS (SELECT 1 FROM public.pre_test_answers WHERE pre_test_id = expired_test.id)
+     OR ('$DRAFT_CASE' = 'missing' AND has_draft)
+     OR ('$DRAFT_CASE' = 'corrupt' AND (
+       NOT has_draft OR saved_draft.draft IS DISTINCT FROM '[]'::jsonb
+       OR saved_draft.updated_at >= expired_test.deadline_at
+       OR public.validate_assessment_draft(saved_draft.draft) IS NOT FALSE
+     )) THEN
+    RAISE EXCEPTION 'Expired $DRAFT_CASE draft fixture has invalid preconditions';
+  END IF;
+END;
+\$\$;
+SQL
+
+  BEFORE_BROKEN_DRAFT_HTTP_STATE="$(assessment_http_state "$BROKEN_DRAFT_PRE_TEST_ID")"
+  HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/other-expired-$DRAFT_CASE-rpc-response.json" --write-out '%{http_code}' \
+    --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $OTHER_TOKEN" \
+    --header 'Content-Type: application/json' \
+    --data "{\"_pre_test_id\":\"$BROKEN_DRAFT_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
+  if [[ "$HTTP_STATUS" != "200" ]] ||
+     ! jq -e '. == {"error":"Unauthorized"}' \
+       "$TMP_DIR/other-expired-$DRAFT_CASE-rpc-response.json" >/dev/null 2>&1; then
+    echo "Stranger HTTP submission of expired assessment with $DRAFT_CASE draft did not return only Unauthorized (HTTP $HTTP_STATUS)" >&2
+    exit 1
+  fi
+  if [[ "$(assessment_http_state "$BROKEN_DRAFT_PRE_TEST_ID")" != "$BEFORE_BROKEN_DRAFT_HTTP_STATE" ]]; then
+    echo "Stranger HTTP submission with $DRAFT_CASE draft changed the assessment, answers, draft, or full owner profile" >&2
+    exit 1
+  fi
+  echo "Stranger HTTP submission with $DRAFT_CASE draft returned only Unauthorized without changing owner data."
+done
+
+if [[ "${1:-}" == "--expired-draft-privacy" ]]; then
+  echo "Expired assessment HTTP privacy passed for valid, missing and corrupt server drafts."
+  exit 0
+fi
+
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger, anonymous and admin unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, direct table RLS including admin revocation, stranger expired HTTP denial with unchanged assessment, answers, draft and profile followed by owner finalization, and stranger expired HTTP denial with missing and corrupt drafts tests passed."
