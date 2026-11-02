@@ -75,6 +75,11 @@ export default function PortalPage() {
   const [previewSelection, setPreviewDoc] = useState<VaultDocument | null>(null);
   const [ocrDoc, setOcrDoc] = useState<VaultDocument | null>(null);
   const [ocrConsent, setOcrConsent] = useState(false);
+  const [ocrStart, setOcrStart] = useState('1');
+  const [ocrEnd, setOcrEnd] = useState('1');
+  const rangeStart = Number(ocrStart), rangeEnd = Number(ocrEnd);
+  const ocrRangeValid = Number.isSafeInteger(rangeStart) && Number.isSafeInteger(rangeEnd)
+    && rangeStart >= 1 && rangeEnd >= rangeStart && rangeEnd <= 100000 && rangeEnd - rangeStart < 30;
   const [ocrRequestError, setOcrRequestError] = useState('');
   const [deleteDoc, setDeleteDoc] = useState<VaultDocument | null>(null);
 
@@ -169,7 +174,7 @@ export default function PortalPage() {
     return <div className="mt-3 space-y-2">
       {doc.ocrError && <p role="alert" className="text-xs text-amber-200">{doc.ocrError}</p>}
       <Button size="sm" variant="secondary" disabled={doc.status === 'processing'} data-testid={`button-ocr-${doc.id}`}
-        onClick={() => { setOcrDoc(doc); setOcrConsent(false); setOcrRequestError(''); }}>
+        onClick={() => { setOcrDoc(doc); setOcrConsent(false); setOcrStart('1'); setOcrEnd('1'); setOcrRequestError(''); }}>
         {doc.status === 'processing' ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Memproses OCR</> : doc.ocrAttemptedAt ? 'Coba ulang OCR' : 'Baca teks dengan OCR'}
       </Button>
     </div>;
@@ -243,7 +248,7 @@ export default function PortalPage() {
         <div className="flex flex-col md:flex-row md:items-center gap-4">
           <div className="flex-1">
             <p className="text-lg font-bold">Seret beberapa file ke sini</p>
-            <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, XLSX, TXT, MD, CSV, JPG, PNG. Maks 50 MiB per file, sesuai sisa total kuota 50 MiB gratis. Teks dokumen dibaca lokal saat unggah. Foto/PDF scan hanya dikirim untuk OCR setelah persetujuan Anda per percobaan. OCR maksimal 15 MiB, 30 halaman PDF, dan 60 detik pemrosesan. Indeks maksimal 100.000 karakter; pembacaan lokal maksimal 150 halaman PDF atau 20 lembar XLSX × 2.000 baris.</p>
+            <p className="text-sm text-muted-foreground mt-1">PDF, DOCX, XLSX, TXT, MD, CSV, JPG, PNG. Maks 50 MiB per file, sesuai sisa total kuota 50 MiB gratis. Teks dokumen dibaca lokal saat unggah. Foto/PDF scan hanya dikirim untuk OCR setelah persetujuan Anda per percobaan. Pilih maksimal 30 halaman PDF; salinan yang dikirim atau gambar maksimal 15 MiB, dengan batas proses 60 detik. Indeks maksimal 100.000 karakter; pembacaan lokal maksimal 150 halaman PDF atau 20 lembar XLSX × 2.000 baris.</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">Simpan ke</span>
@@ -514,18 +519,26 @@ export default function PortalPage() {
             <DialogTitle>Izinkan OCR dokumen ini?</DialogTitle>
             <DialogDescription className="break-words">{ocrDoc?.name}</DialogDescription>
           </DialogHeader>
-          <p className="text-sm">Seluruh isi file ini akan dikirim secara privat ke OpenRouter dan Anthropic Claude Sonnet 4.5 untuk membaca teks. Ini layanan eksternal berbiaya; kebijakan penyedia tetap berlaku. Aplikasi meminta agar data tidak dikumpulkan dan tidak memakai model cadangan. File tidak dijadikan tautan publik.</p>
-          <p className="text-sm text-muted-foreground">Hanya file yang dipilih, tanpa dokumen lain. Maksimal 15 MiB, 30 halaman PDF, 60 detik pemrosesan, dan 100.000 karakter hasil. Hasil terpotong ditolak. Tidak ada pengiriman ulang otomatis. Teks baru siap dicari dan ditanya setelah tersimpan; OCR dapat keliru.</p>
+          {ocrDoc?.type === 'PDF' && <fieldset className="space-y-2" disabled={processOcr.isPending}>
+            <legend className="text-sm font-medium">Pilih halaman sebelum menyetujui OCR</legend>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-sm">Halaman awal<Input type="number" min={1} max={100000} value={ocrStart} data-testid="input-ocr-start" onChange={e => { setOcrStart(e.target.value); setOcrConsent(false); setOcrRequestError(''); }} /></label>
+              <label className="text-sm">Halaman akhir<Input type="number" min={1} max={100000} value={ocrEnd} data-testid="input-ocr-end" onChange={e => { setOcrEnd(e.target.value); setOcrConsent(false); setOcrRequestError(''); }} /></label>
+            </div>
+            <p className="text-xs text-muted-foreground">{ocrRangeValid ? `${rangeEnd - rangeStart + 1} halaman dipilih: ${rangeStart}–${rangeEnd}.` : 'Masukkan rentang valid, maksimal 30 halaman.'} Gunakan nomor urut halaman PDF asli, bukan nomor cetak. Pilih sedikit halaman untuk menghemat biaya dan menghindari hasil terpotong.</p>
+          </fieldset>}
+          <p className="text-sm">{ocrDoc?.type === 'PDF' ? 'Hanya halaman dalam rentang pilihan, bukan seluruh PDF, akan' : 'Gambar ini akan'} dikirim secara privat ke OpenRouter dan Anthropic Claude Sonnet 4.5 untuk membaca teks. Ini layanan eksternal berbiaya; kebijakan penyedia tetap berlaku. Aplikasi meminta agar data tidak dikumpulkan dan tidak memakai model cadangan. File tidak dijadikan tautan publik.</p>
+          <p className="text-sm text-muted-foreground">PDF asli maksimal 50 MiB dirender lokal di server dalam pekerja terisolasi (batas heap 128 MiB, persiapan 15 detik); hanya gambar visual halaman pilihan dalam PDF baru, maksimal 30 halaman dan 15 MiB, yang dikirim. Anotasi, lampiran, dan data tersembunyi PDF tidak disertakan; detail kecil dapat berkurang. Gambar maksimal 15 MiB. Batas proses OCR 60 detik dan hasil 100.000 karakter. File asli dan kuota penyimpanan tidak berubah. Hasil terpotong ditolak; coba rentang lebih kecil dengan persetujuan baru. Tidak ada pengiriman ulang otomatis. Teks baru siap dicari dan ditanya setelah tersimpan; OCR dapat keliru.</p>
           <label className="flex items-start gap-3 text-sm">
-            <input type="checkbox" checked={ocrConsent} onChange={e => setOcrConsent(e.target.checked)} data-testid="checkbox-ocr-consent" className="mt-1" />
-            Saya menyetujui pengiriman file ini ke OpenRouter dan Anthropic untuk satu percobaan OCR.
+            <input type="checkbox" checked={ocrConsent} disabled={processOcr.isPending || (ocrDoc?.type === 'PDF' && !ocrRangeValid)} onChange={e => setOcrConsent(e.target.checked)} data-testid="checkbox-ocr-consent" className="mt-1" />
+            Saya menyetujui pengiriman {ocrDoc?.type === 'PDF' ? `halaman asli ${ocrStart}–${ocrEnd} saja` : 'gambar ini'} ke OpenRouter dan Anthropic untuk satu percobaan OCR.
           </label>
           {ocrRequestError && <p role="alert" className="text-sm text-destructive">{ocrRequestError}</p>}
           <DialogFooter>
             <Button variant="secondary" disabled={processOcr.isPending} onClick={() => setOcrDoc(null)}>Batal</Button>
-            <Button disabled={!ocrConsent || processOcr.isPending} data-testid="button-confirm-ocr" onClick={() => {
-              if (!ocrDoc || !ocrConsent) return;
-              processOcr.mutate({ id: ocrDoc.id, data: { consent: true, provider: 'openrouter-anthropic-v1' } }, {
+            <Button disabled={!ocrConsent || processOcr.isPending || (ocrDoc?.type === 'PDF' && !ocrRangeValid)} data-testid="button-confirm-ocr" onClick={() => {
+              if (!ocrDoc || !ocrConsent || (ocrDoc.type === 'PDF' && !ocrRangeValid)) return;
+              processOcr.mutate({ id: ocrDoc.id, data: { consent: true, provider: 'openrouter-anthropic-v1', ...(ocrDoc.type === 'PDF' ? { pageRange: { start: rangeStart, end: rangeEnd } } : {}) } }, {
                 onSuccess: () => { setOcrDoc(null); invalidate(); toast({ title: 'OCR dimulai', description: 'Status akan diperbarui setelah teks tersimpan.' }); },
                 onError: e => { setOcrConsent(false); setOcrRequestError(errorMessage(e)); invalidate(); },
               });

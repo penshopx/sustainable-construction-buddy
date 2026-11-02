@@ -2,6 +2,8 @@ import { Storage } from "@google-cloud/storage";
 import { randomUUID } from "node:crypto";
 import { Worker } from "node:worker_threads";
 import { fail } from "./vault-store";
+import type { OcrPageRange } from "./vault-pdf-range";
+import type { VaultOcrPage } from "@workspace/api-zod";
 
 const storage = new Storage({
   credentials: {
@@ -45,10 +47,13 @@ export function reserveExtractionWorker() {
   let released = false;
   return () => { if (!released) { released = true; extractionCount--; } };
 }
-export function runExtractionWorker(bytes: Buffer, type: string, apiKey?: string): Promise<string> {
+export function runExtractionWorker(bytes: Buffer, type: string, apiKey?: string, options?: {
+  pageRange?: OcrPageRange;
+  onPages?: (pages: VaultOcrPage[]) => void;
+}): Promise<string> {
   return new Promise((resolve, reject) => {
     const worker = new Worker(new URL("./vault-extractor.cjs", import.meta.url), {
-      workerData: { bytes, type, apiKey },
+      workerData: { bytes, type, apiKey, pageRange: options?.pageRange },
       env: {},
       resourceLimits: { maxOldGenerationSizeMb: 128, maxYoungGenerationSizeMb: 16 },
     });
@@ -57,13 +62,20 @@ export function runExtractionWorker(bytes: Buffer, type: string, apiKey?: string
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearTimeout(preparationTimer);
       // Keep the slot reserved until termination actually finishes.
       void worker.terminate().finally(() => error ? reject(error) : resolve(text));
     };
     const timer = setTimeout(() => finish(new Error("OCR_TIMEOUT")), apiKey ? 60_000 : 15_000);
-    worker.once("message", (result: { text?: string; error?: boolean; code?: string }) => {
+    const preparationTimer = apiKey && type === "PDF"
+      ? setTimeout(() => finish(new Error("OCR_TIMEOUT")), 15_000) : undefined;
+    worker.on("message", (result: { text?: string; error?: boolean; code?: string; pages?: VaultOcrPage[]; prepared?: boolean }) => {
+      if (result.prepared) { clearTimeout(preparationTimer); return; }
       if (result.error || typeof result.text !== "string") finish(new Error(result.code ?? "OCR_FAILED"));
-      else finish(undefined, result.text);
+      else {
+        if (result.pages) options?.onPages?.(result.pages);
+        finish(undefined, result.text);
+      }
     });
     worker.once("error", () => finish(new Error("Extraction failed")));
     worker.once("exit", () => finish(new Error("Extraction stopped")));

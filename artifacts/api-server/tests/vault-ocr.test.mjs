@@ -12,13 +12,17 @@ const blobs = new Map();
 let workerCalls = 0, releaseJob;
 let workerResult = "SERTIFIKAT SINTETIS\nNomor UJI-7319\nNilai Rp 815 juta";
 let workerFailure = false;
+let workerOptions;
+let workerPages;
 let busy = false;
 globalThis.__vaultOcrTest = {
   memory, blobs,
-  async worker() {
+  async worker(_bytes, _type, _key, options) {
     workerCalls++;
+    workerOptions = options;
     await new Promise(resolve => { releaseJob = resolve; });
     if (workerFailure) throw new Error("secret upstream details");
+    if (workerPages) options?.onPages?.(workerPages);
     return workerResult;
   },
   reserve() { if (busy) { const e = new Error("busy"); e.status = 429; throw e; } return () => {}; },
@@ -212,6 +216,40 @@ test("failure, retry, cooldown, full worker pool, interrupted job and deletion n
   await finish();
   await new Promise(r => setTimeout(r, 20));
   assert.ok(!memory.get("account-A").documents.some(d => d.id === "failure"));
+});
+
+test("PDF range is consent-bound, owner-isolated, audited and cited using original page numbers", async () => {
+  const state = memory.get("account-A");
+  const original = state.documents[0];
+  blobs.set(original.objectPath, Buffer.alloc(original.size));
+  state.documents.push({ ...original, id: "pdf-range", name: "long.pdf", type: "PDF", status: "stored", text: "", ocrAttemptedAt: undefined });
+  const path = "/documents/pdf-range/ocr";
+  const calls = workerCalls;
+  for (const pageRange of [undefined, { start: 0, end: 1 }, { start: 8, end: 7 }, { start: 1, end: 31 }, { start: 1.2, end: 2 }]) {
+    assert.equal((await api(path, "POST", { ...consent, pageRange })).status, 400);
+  }
+  assert.equal(workerCalls, calls);
+  assert.equal((await api(path, "POST", { ...consent, pageRange: { start: 51, end: 52 } }, "B")).status, 404);
+  const used = (await (await api("/workspace")).json()).usedBytes;
+  workerResult = "KONTRAK UJI HALAMAN LIMA PULUH SATU\n\nIZIN UJI HALAMAN LIMA PULUH DUA";
+  const split = workerResult.indexOf("\n\n");
+  workerPages = [{ page: 51, start: 0, end: split }, { page: 52, start: split + 2, end: workerResult.length }];
+  assert.equal((await api(path, "POST", { ...consent, pageRange: { start: 51, end: 52 } })).status, 202);
+  await finish();
+  const doc = await waitForJob("pdf-range");
+  assert.equal(doc.status, "ready");
+  assert.deepEqual(workerOptions.pageRange, { start: 51, end: 52 });
+  assert.deepEqual(doc.ocrPages, workerPages);
+  workerPages = undefined;
+  const ws = await (await api("/workspace")).json();
+  assert.equal(ws.usedBytes, used);
+  assert.ok(ws.activities.some(a => a.action.includes("Persetujuan OCR") && a.action.includes("51–52")));
+  assert.ok(ws.activities.some(a => a.action.includes("teks tersimpan") && a.action.includes("51–52")));
+  const reply = await (await api("/questions", "POST", { question: "kontrak izin", consent: true, documentIds: ["pdf-range"] })).json();
+  assert.equal(reply.sources.length, 2);
+  assert.ok(reply.sources.some(s => s.name.endsWith("halaman 51") && s.quote.startsWith("KONTRAK") && !s.quote.includes("IZIN")));
+  assert.ok(reply.sources.some(s => s.name.endsWith("halaman 52") && s.quote.startsWith("IZIN") && !s.quote.includes("KONTRAK")));
+  assert.equal((await api("/questions", "POST", { question: "izin", consent: true, documentIds: ["pdf-range"] }, "B")).status, 400);
 });
 
 test("provider payload uses private inline bytes, explicit native PDF and pinned provider without fallbacks", async () => {

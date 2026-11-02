@@ -29,6 +29,8 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      "@napi-rs/canvas",
+      "pdfjs-dist",
       "sharp",
       "better-sqlite3",
       "sqlite3",
@@ -124,7 +126,7 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     platform: "node",
     bundle: true,
     format: "cjs",
-    external: ["pdf-parse", "mammoth", "xlsx"],
+    external: ["pdf-parse", "mammoth", "xlsx", "pdfjs-dist", "@napi-rs/canvas"],
     logLevel: "info",
   });
 }

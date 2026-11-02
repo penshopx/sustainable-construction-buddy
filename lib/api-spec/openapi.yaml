@@ -1139,12 +1139,29 @@ components:
         text: { type: string }
         ocrError: { type: string }
         ocrAttemptedAt: { type: string }
+        ocrPages:
+          type: array
+          items: { $ref: "#/components/schemas/VaultOcrPage" }
+    VaultOcrPage:
+      type: object
+      required: [page, start, end]
+      properties:
+        page: { type: integer, minimum: 1 }
+        start: { type: integer, minimum: 0 }
+        end: { type: integer, minimum: 0 }
+    VaultOcrRange:
+      type: object
+      required: [start, end]
+      properties:
+        start: { type: integer, minimum: 1, maximum: 100000 }
+        end: { type: integer, minimum: 1, maximum: 100000 }
     VaultOcrInput:
       type: object
       required: [consent, provider]
       properties:
         consent: { type: boolean, enum: [true] }
         provider: { type: string, enum: [openrouter-anthropic-v1] }
+        pageRange: { $ref: "#/components/schemas/VaultOcrRange" }
     VaultDocumentUpdate:
       type: object
       properties:

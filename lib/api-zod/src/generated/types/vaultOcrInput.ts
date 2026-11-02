@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { VaultOcrInputProvider } from './vaultOcrInputProvider';
+import type { VaultOcrRange } from './vaultOcrRange';
 
 export interface VaultOcrInput {
   consent: true;
   provider: VaultOcrInputProvider;
+  pageRange?: VaultOcrRange;
 }

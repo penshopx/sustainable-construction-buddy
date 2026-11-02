@@ -485,6 +485,13 @@ export const UploadVaultExternalDocumentQueryParams = zod.object({
   "folderId": zod.coerce.string()
 })
 
+
+export const uploadVaultExternalDocumentResponseOcrPagesItemStartMin = 0;
+
+export const uploadVaultExternalDocumentResponseOcrPagesItemEndMin = 0;
+
+
+
 export const UploadVaultExternalDocumentResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -496,7 +503,12 @@ export const UploadVaultExternalDocumentResponse = zod.object({
   "starred": zod.boolean(),
   "text": zod.string(),
   "ocrError": zod.string().optional(),
-  "ocrAttemptedAt": zod.string().optional()
+  "ocrAttemptedAt": zod.string().optional(),
+  "ocrPages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(uploadVaultExternalDocumentResponseOcrPagesItemStartMin),
+  "end": zod.number().int().min(uploadVaultExternalDocumentResponseOcrPagesItemEndMin)
+})).optional()
 })
 
 
@@ -509,6 +521,11 @@ export const DownloadVaultExternalDocumentParams = zod.object({
 
 export const DownloadVaultExternalDocumentResponse = zod.unknown()
 
+
+
+export const getVaultWorkspaceResponseDocumentsItemOcrPagesItemStartMin = 0;
+
+export const getVaultWorkspaceResponseDocumentsItemOcrPagesItemEndMin = 0;
 
 export const getVaultWorkspaceResponseProfileNameMax = 200;
 
@@ -544,7 +561,12 @@ export const GetVaultWorkspaceResponse = zod.object({
   "starred": zod.boolean(),
   "text": zod.string(),
   "ocrError": zod.string().optional(),
-  "ocrAttemptedAt": zod.string().optional()
+  "ocrAttemptedAt": zod.string().optional(),
+  "ocrPages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(getVaultWorkspaceResponseDocumentsItemOcrPagesItemStartMin),
+  "end": zod.number().int().min(getVaultWorkspaceResponseDocumentsItemOcrPagesItemEndMin)
+})).optional()
 })),
   "profile": zod.object({
   "name": zod.string().max(getVaultWorkspaceResponseProfileNameMax),
@@ -642,6 +664,13 @@ export const UploadVaultDocumentQueryParams = zod.object({
   "folderId": zod.coerce.string()
 })
 
+
+export const uploadVaultDocumentResponseOcrPagesItemStartMin = 0;
+
+export const uploadVaultDocumentResponseOcrPagesItemEndMin = 0;
+
+
+
 export const UploadVaultDocumentResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -653,7 +682,12 @@ export const UploadVaultDocumentResponse = zod.object({
   "starred": zod.boolean(),
   "text": zod.string(),
   "ocrError": zod.string().optional(),
-  "ocrAttemptedAt": zod.string().optional()
+  "ocrAttemptedAt": zod.string().optional(),
+  "ocrPages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(uploadVaultDocumentResponseOcrPagesItemStartMin),
+  "end": zod.number().int().min(uploadVaultDocumentResponseOcrPagesItemEndMin)
+})).optional()
 })
 
 
@@ -674,6 +708,13 @@ export const ImportVaultDocumentBody = zod.object({
   "folderId": zod.string().min(1).max(importVaultDocumentBodyFolderIdMax)
 })
 
+
+export const importVaultDocumentResponseOcrPagesItemStartMin = 0;
+
+export const importVaultDocumentResponseOcrPagesItemEndMin = 0;
+
+
+
 export const ImportVaultDocumentResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -685,7 +726,12 @@ export const ImportVaultDocumentResponse = zod.object({
   "starred": zod.boolean(),
   "text": zod.string(),
   "ocrError": zod.string().optional(),
-  "ocrAttemptedAt": zod.string().optional()
+  "ocrAttemptedAt": zod.string().optional(),
+  "ocrPages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(importVaultDocumentResponseOcrPagesItemStartMin),
+  "end": zod.number().int().min(importVaultDocumentResponseOcrPagesItemEndMin)
+})).optional()
 })
 
 
@@ -703,6 +749,13 @@ export const UpdateVaultDocumentBody = zod.object({
   "starred": zod.boolean().optional()
 })
 
+
+export const updateVaultDocumentResponseOcrPagesItemStartMin = 0;
+
+export const updateVaultDocumentResponseOcrPagesItemEndMin = 0;
+
+
+
 export const UpdateVaultDocumentResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -714,7 +767,12 @@ export const UpdateVaultDocumentResponse = zod.object({
   "starred": zod.boolean(),
   "text": zod.string(),
   "ocrError": zod.string().optional(),
-  "ocrAttemptedAt": zod.string().optional()
+  "ocrAttemptedAt": zod.string().optional(),
+  "ocrPages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(updateVaultDocumentResponseOcrPagesItemStartMin),
+  "end": zod.number().int().min(updateVaultDocumentResponseOcrPagesItemEndMin)
+})).optional()
 })
 
 
@@ -733,10 +791,27 @@ export const ProcessVaultOcrParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const processVaultOcrBodyPageRangeStartMax = 100000;
+
+export const processVaultOcrBodyPageRangeEndMax = 100000;
+
+
+
 export const ProcessVaultOcrBody = zod.object({
   "consent": zod.literal(true),
-  "provider": zod.enum(['openrouter-anthropic-v1'])
+  "provider": zod.enum(['openrouter-anthropic-v1']),
+  "pageRange": zod.object({
+  "start": zod.number().int().min(1).max(processVaultOcrBodyPageRangeStartMax),
+  "end": zod.number().int().min(1).max(processVaultOcrBodyPageRangeEndMax)
+}).optional()
 })
+
+
+export const processVaultOcrResponseOcrPagesItemStartMin = 0;
+
+export const processVaultOcrResponseOcrPagesItemEndMin = 0;
+
+
 
 export const ProcessVaultOcrResponse = zod.object({
   "id": zod.string(),
@@ -749,7 +824,12 @@ export const ProcessVaultOcrResponse = zod.object({
   "starred": zod.boolean(),
   "text": zod.string(),
   "ocrError": zod.string().optional(),
-  "ocrAttemptedAt": zod.string().optional()
+  "ocrAttemptedAt": zod.string().optional(),
+  "ocrPages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(processVaultOcrResponseOcrPagesItemStartMin),
+  "end": zod.number().int().min(processVaultOcrResponseOcrPagesItemEndMin)
+})).optional()
 })
 
 

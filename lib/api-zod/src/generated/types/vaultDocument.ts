@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { VaultDocumentStatus } from './vaultDocumentStatus';
+import type { VaultOcrPage } from './vaultOcrPage';
 
 export interface VaultDocument {
   id: string;
@@ -19,4 +20,5 @@ export interface VaultDocument {
   text: string;
   ocrError?: string;
   ocrAttemptedAt?: string;
+  ocrPages?: VaultOcrPage[];
 }

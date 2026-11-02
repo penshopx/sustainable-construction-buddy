@@ -13,6 +13,7 @@ import {
 import { workspace, publicWorkspace, ownDocument, ownFolder, activity, fail, tokenHash, VaultError, QUOTA } from "../lib/vault-store";
 import { privateFile } from "../lib/vault-files";
 import { startVaultOcr, expireOcrJobs } from "../lib/vault-ocr";
+import { vaultSourceWindows } from "../lib/vault-sources";
 import { requestVaultAnswer, vaultAiReadiness } from "../lib/vault-ai";
 import { createChatService, ChatServiceError } from "../lib/chat-service";
 import { GetVaultAiStatusResponse } from "@workspace/api-zod";
@@ -86,8 +87,8 @@ vaultRouter.post("/documents/import", async (req, res) => {
 });
 vaultRouter.post("/documents/:id/ocr", async (req, res) => {
   const { id } = ProcessVaultOcrParams.parse(req.params);
-  ProcessVaultOcrBody.parse(req.body);
-  res.status(202).json(ProcessVaultOcrResponse.parse(await startVaultOcr(owner(req), id)));
+  const body = ProcessVaultOcrBody.parse(req.body);
+  res.status(202).json(ProcessVaultOcrResponse.parse(await startVaultOcr(owner(req), id, body.pageRange)));
 });
 vaultRouter.patch("/documents/:id", async (req, res) => {
   const input = UpdateVaultDocumentBody.parse(req.body);
@@ -192,13 +193,9 @@ vaultRouter.post("/questions", async (req, res) => {
     const words = input.question.toLowerCase().split(/\W+/).filter(w => w.length > 2);
     // Select bounded text windows. Sources include the exact evidence sent to AI.
     const candidates = docs.flatMap(d => {
-      const chunks = [];
-      for (let i = 0; i < d.text.length; i += 1800) {
-        const quote = d.text.slice(i, i + 2200);
-        const score = words.reduce((n, w) => n + (quote.toLowerCase().includes(w) ? 1 : 0), 0);
-        chunks.push({ id: d.id, name: d.name, quote, score });
-      }
-      return chunks;
+      return vaultSourceWindows(d).map(s => ({
+        ...s, score: words.reduce((n, w) => n + Number(s.quote.toLowerCase().includes(w)), 0),
+      }));
     }).sort((a, b) => b.score - a.score).slice(0, 8);
     return { sources: candidates.map(({ score: _score, ...s }) => s), instructions: assistant?.instructions ?? "" };
   });

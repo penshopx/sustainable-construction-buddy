@@ -1,16 +1,14 @@
 import type { VaultSource } from "@workspace/api-zod";
 import { workspace } from "./vault-store";
+import { vaultSourceWindows } from "./vault-sources";
 
 export async function pubVaultContext(owner: string, question: string) {
   return workspace(owner, state => {
     const words = question.toLowerCase().split(/\W+/).filter(w => w.length > 2);
     const sources: VaultSource[] = state.documents.filter(d => d.status === "ready").flatMap(d => {
-      const result = [];
-      for (let i = 0; i < d.text.length; i += 1800) {
-        const quote = d.text.slice(i, i + 2200);
-        result.push({ id: d.id, name: d.name, quote, score: words.reduce((n, w) => n + Number(quote.toLowerCase().includes(w)), 0) });
-      }
-      return result;
+      return vaultSourceWindows(d).map(s => ({
+        ...s, score: words.reduce((n, w) => n + Number(s.quote.toLowerCase().includes(w)), 0),
+      }));
     }).sort((a, b) => b.score - a.score).slice(0, 6).map(({ score: _score, ...s }) => s);
     return {
       sources,

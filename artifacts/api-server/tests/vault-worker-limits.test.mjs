@@ -76,3 +76,20 @@ test("text/image uploads never launch paid OCR implicitly", async () => {
   assert.equal(await extractText(Buffer.from("image"), "PNG"), "");
   assert.equal(instances.length, count);
 });
+
+test("PDF preparation phase does not settle OCR early and forwards the consent range and page map", async () => {
+  let pages;
+  const pageRange = { start: 51, end: 52 };
+  const promise = runExtractionWorker(Buffer.from("synthetic PDF"), "PDF", "test-only-key", {
+    pageRange, onPages: value => { pages = value; },
+  });
+  const worker = instances.at(-1);
+  assert.deepEqual(worker.options.workerData.pageRange, pageRange);
+  worker.emit("message", { prepared: true });
+  assert.equal(worker.finishTermination, undefined);
+  const map = [{ page: 51, start: 0, end: 4 }];
+  worker.emit("message", { text: "TEST", pages: map });
+  worker.finishTermination(0);
+  assert.equal(await promise, "TEST");
+  assert.deepEqual(pages, map);
+});

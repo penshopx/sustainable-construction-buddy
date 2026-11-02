@@ -138,6 +138,8 @@ export * from './vaultFolderInput';
 export * from './vaultLinkInput';
 export * from './vaultOcrInput';
 export * from './vaultOcrInputProvider';
+export * from './vaultOcrPage';
+export * from './vaultOcrRange';
 export * from './vaultProfile';
 export * from './vaultQuestionInput';
 export * from './vaultSource';

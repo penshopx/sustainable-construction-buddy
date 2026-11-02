@@ -353,6 +353,15 @@ export const VaultDocumentStatus = {
   processing: 'processing',
 } as const;
 
+export interface VaultOcrPage {
+  /** @minimum 1 */
+  page: number;
+  /** @minimum 0 */
+  start: number;
+  /** @minimum 0 */
+  end: number;
+}
+
 export interface VaultDocument {
   id: string;
   name: string;
@@ -365,6 +374,20 @@ export interface VaultDocument {
   text: string;
   ocrError?: string;
   ocrAttemptedAt?: string;
+  ocrPages?: VaultOcrPage[];
+}
+
+export interface VaultOcrRange {
+  /**
+     * @minimum 1
+     * @maximum 100000
+     */
+  start: number;
+  /**
+     * @minimum 1
+     * @maximum 100000
+     */
+  end: number;
 }
 
 export type VaultOcrInputProvider = typeof VaultOcrInputProvider[keyof typeof VaultOcrInputProvider];
@@ -377,6 +400,7 @@ export const VaultOcrInputProvider = {
 export interface VaultOcrInput {
   consent: true;
   provider: VaultOcrInputProvider;
+  pageRange?: VaultOcrRange;
 }
 
 export interface VaultDocumentUpdate {
