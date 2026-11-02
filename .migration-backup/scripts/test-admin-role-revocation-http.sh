@@ -35,6 +35,7 @@ assert_admin_role_unchanged() {
 }
 
 test_admin_http_role_revocation() {
+  local scope="${1:-all}"
   local versions status super_password super_token admin_token baseline user_role_id role payload method path
   # Refuse a partial schema: denial by a missing table/function is not evidence.
   versions="$(find "$(dirname "${BASH_SOURCE[0]}")/../supabase/migrations" \
@@ -121,6 +122,14 @@ SQL
        "$TMP_DIR/admin-role-response.json" >/dev/null; then
     echo "Admin token did not have the granted role before revocation (HTTP $status)" >&2
     exit 1
+  fi
+
+  if [[ "$scope" != "revocation" ]]; then
+    test_active_admin_http_role_escalation "$admin_token" "$super_token"
+    if [[ "$scope" == "active" ]]; then
+      # The parent EXIT trap removes all Auth users and their role rows.
+      return
+    fi
   fi
 
   # Commit revocation with the privileged fixture; keep the exact same token.

@@ -76,6 +76,78 @@ assert_admin_role_unchanged "$EXPECTED" "snapshot unit check"
                 )
                 self.assertEqual(result.returncode == 0, succeeds, result.stderr)
 
+    def test_active_admin_snapshot_detects_hidden_writes_and_bad_fixture_privileges(self):
+        import json
+        baseline = {
+            "roles": [
+                {"id": "actor-row", "user_id": "actor", "role": "admin"},
+                {"id": "member-row", "user_id": "member", "role": "user"},
+            ],
+            "actor_admin": True, "actor_super": False,
+            "member_admin": False, "member_super": False,
+            "bootstrap_admin": True, "bootstrap_super": True,
+        }
+        mutations = [
+            ("hidden insert", {**baseline, "roles": baseline["roles"] + [
+                {"id": "injected", "user_id": "actor", "role": "super_admin"}]}),
+            ("hidden update", {**baseline, "roles": [
+                baseline["roles"][0], {"id": "member-row", "user_id": "member", "role": "admin"}
+            ]}),
+            *[(key, {**baseline, key: not baseline[key]}) for key in baseline if key != "roles"],
+        ]
+        cases = [("unchanged", baseline, baseline, True)]
+        for label, mutated in mutations:
+            cases.append((label, mutated, baseline, False))
+            if label not in ("hidden insert", "hidden update"):
+                cases.append(("bad baseline " + label, mutated, mutated, False))
+        for label, actual, expected, succeeds in cases:
+            with self.subTest(label=label):
+                result = subprocess.run(
+                    ["bash", "-c", """
+set -euo pipefail
+source "$1"
+active_admin_role_state() { printf '%s\\n' "$ACTUAL"; }
+assert_active_admin_roles_unchanged "$EXPECTED" "snapshot unit check"
+""", "snapshot-check", str(SCRIPTS / "test-active-admin-role-escalation-http.sh")],
+                    env={**os.environ, "ACTUAL": json.dumps(actual),
+                         "EXPECTED": json.dumps(expected)},
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(result.returncode == 0, succeeds, result.stderr)
+
+    def test_active_admin_runner_rejects_hosted_targets_before_any_io(self):
+        with tempfile.TemporaryDirectory() as directory:
+            log = Path(directory) / "called"
+            for name in ("psql", "curl"):
+                fake = Path(directory) / name
+                fake.write_text('#!/bin/sh\ntouch "$CALL_LOG"\nexit 99\n')
+                fake.chmod(0o755)
+            local = {
+                **os.environ, "PATH": directory + os.pathsep + os.environ["PATH"],
+                "CALL_LOG": str(log),
+                "TEST_DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+                "TEST_SUPABASE_URL": "http://127.0.0.1:54321",
+                "TEST_SUPABASE_ANON_KEY": "dummy",
+                "TEST_SUPABASE_SERVICE_ROLE_KEY": "dummy",
+            }
+            for key, value in (
+                ("TEST_DATABASE_URL", "postgresql://postgres:pw@hosted.invalid:54322/postgres"),
+                ("TEST_DATABASE_URL", local["TEST_DATABASE_URL"] + "?host=hosted.invalid"),
+                ("TEST_DATABASE_URL", local["TEST_DATABASE_URL"] + "#fragment"),
+                ("TEST_SUPABASE_URL", "https://hosted.invalid"),
+                ("TEST_SUPABASE_URL", "http://127.0.0.1:54321@hosted.invalid"),
+                ("TEST_SUPABASE_URL", "http://127.0.0.1:54321/path"),
+            ):
+                with self.subTest(key=key, value=value):
+                    result = subprocess.run(
+                        ["bash", str(SCRIPTS / "test-submit-assessment-concurrency.sh"),
+                         "--admin-role-escalation"],
+                        env={**local, key: value}, capture_output=True, text=True, timeout=10,
+                    )
+                    self.assertEqual(result.returncode, 1)
+                    self.assertIn("requires a local Supabase", result.stderr)
+                    self.assertFalse(log.exists(), "Unsafe target reached psql or curl")
+
     def test_all_migrations_staged_once_in_order(self):
         spec = importlib.util.spec_from_file_location(
             "prepare", SCRIPTS / "prepare-supabase-test-project.py"

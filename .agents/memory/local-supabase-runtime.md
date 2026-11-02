@@ -39,6 +39,16 @@ Pada image database Supabase, nama role `postgres` tidak menjamin hak superuser 
 
 **How to apply:** Saat menyiapkan kontainer lokal langsung, gunakan role pemilik Auth/Storage masing-masing untuk migrasi provider. Jangan mengatasi kegagalan bootstrap dengan grant luas atau skema pengganti minimal.
 
+Pada image database yang dijalankan langsung, pengaturan password database utama
+belum tentu mengatur password role pemilik Auth/Storage atau `authenticator`.
+
+**Why:** Provider pernah gagal dengan autentikasi password meski koneksi
+`supabase_admin` berhasil; ini berbeda dari kegagalan hak skema.
+
+**How to apply:** Untuk stack lokal sementara buatan sendiri, konfigurasikan
+kredensial role provider secara eksplisit sebelum menyalakan layanan. Jangan
+mengganti koneksi provider menjadi superuser atau melonggarkan grant aplikasi.
+
 Fixture SQL yang membuat trigger audit juga harus memakai koneksi pemilik migrasi aplikasi, bukan sekadar role bernama `postgres`. Bootstrap manual dengan `supabase_admin` dapat menghasilkan kepemilikan tabel berbeda dari startup CLI biasa.
 
 **Why:** Pembacaan dan penskoran dapat berhasil sementara pembuatan trigger fixture gagal dengan `must be owner of relation`. Kegagalan cleanup yang berhenti pada DDL itu juga dapat meninggalkan pengguna Auth uji sehingga email fixture tidak dapat dipakai pada percobaan berikutnya.

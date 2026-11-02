@@ -62,6 +62,9 @@ jobs:
       - name: Verify assessment question authority through real Auth and PostgREST on the full schema
         run: python3 scripts/test-assessment-question-authority-http.py
 
+      - name: Verify active admin cannot self-promote or delegate admin via INSERT, UPDATE or RPC
+        run: bash scripts/test-submit-assessment-concurrency.sh --admin-role-escalation
+
       - name: Verify revoked admin cannot restore roles with unchanged token and legitimate super-admin can grant
         run: bash scripts/test-submit-assessment-concurrency.sh --admin-role-revocation
 

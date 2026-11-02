@@ -166,6 +166,7 @@ TEST_ADMIN_USER_ID="$(jq -r '.id' "$TMP_DIR/admin-created.json")"
 
 source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/test-admin-role-revocation-http.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/test-active-admin-role-escalation-http.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/test-admin-certificate-revocation-http.sh"
 if [[ -z "${1:-}" || "${1:-}" == "--admin-certificate-revocation" ]]; then
   test_admin_http_certificate_revocation
@@ -173,8 +174,15 @@ if [[ -z "${1:-}" || "${1:-}" == "--admin-certificate-revocation" ]]; then
     exit 0
   fi
 fi
-if [[ -z "${1:-}" || "${1:-}" == "--admin-role-revocation" ]]; then
-  test_admin_http_role_revocation
+if [[ -z "${1:-}" || "${1:-}" == "--admin-role-revocation" || "${1:-}" == "--admin-role-escalation" ]]; then
+  if [[ "${1:-}" == "--admin-role-escalation" ]]; then
+    test_admin_http_role_revocation active
+    exit 0
+  elif [[ "${1:-}" == "--admin-role-revocation" ]]; then
+    test_admin_http_role_revocation revocation
+  else
+    test_admin_http_role_revocation
+  fi
   if [[ "${1:-}" == "--admin-role-revocation" ]]; then
     exit 0
   fi
