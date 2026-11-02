@@ -28,3 +28,14 @@ kutipan melintasi halaman dan memperoleh nomor sumber yang keliru.
 
 **How to apply:** Pertahankan persiapan lokal yang dibatasi waktu/memori, reset
 persetujuan ketika rentang berubah, dan tolak keluaran tanpa daftar halaman lengkap.
+
+Pengukuran akurasi OCR berbayar hanya boleh dijalankan setelah persetujuan
+eksplisit pengujian berbayar dan konfirmasi kredit/batas provider memadai,
+tanpa data anggota. Respons provider tiruan bukan bukti akurasi.
+
+**Why:** Pengguna menetapkan batas tersebut setelah uji live tertahan HTTP 402.
+Keberhasilan mekanisme pengujian offline tidak membuktikan kemampuan OCR nyata.
+
+**How to apply:** Pisahkan hasil pemeriksaan protokol dari pengukuran provider
+nyata; gunakan acuan teks dan bukti kutipan independen, dan laporkan uji live
+yang belum berjalan sebagai belum diukur, bukan lulus.
