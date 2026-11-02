@@ -5,6 +5,8 @@ import { PassThrough } from "node:stream";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { build } from "esbuild";
 import express from "express";
 
@@ -254,4 +256,20 @@ test("one pending import per owner; a failed import releases its slot for retry"
   assert.equal((await first).status, 400);
   networkHandler = () => ({});
   assert.equal((await api("/documents/import", input)).status, 200);
+});
+
+test("opt-in: real Node HTTPS transport against isolated TLS fixtures", {
+  skip: process.env.VAULT_LINK_REAL_TLS !== "1" && "Set VAULT_LINK_REAL_TLS=1 (requires OpenSSL; IPv6 checked when available)",
+  timeout: 45_000,
+}, async t => {
+  const { stdout } = await promisify(execFile)(process.execPath, [
+    "--test", fileURLToPath(new URL("./helpers/vault-link-tls.mjs", import.meta.url)),
+    ...(process.env.VAULT_LINK_TLS_REQUIRE_IPV6 === "1" ? ["--require-ipv6"] : []),
+  ], {
+    // No application credentials, NODE_OPTIONS, custom CA, or TLS-disable flags.
+    env: { PATH: process.env.PATH },
+    timeout: 40_000,
+    maxBuffer: 1024 * 1024,
+  });
+  t.diagnostic(stdout);
 });
