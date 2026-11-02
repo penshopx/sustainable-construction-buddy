@@ -44,3 +44,9 @@ Fixture SQL yang membuat trigger audit juga harus memakai koneksi pemilik migras
 **Why:** Pembacaan dan penskoran dapat berhasil sementara pembuatan trigger fixture gagal dengan `must be owner of relation`. Kegagalan cleanup yang berhenti pada DDL itu juga dapat meninggalkan pengguna Auth uji sehingga email fixture tidak dapat dipakai pada percobaan berikutnya.
 
 **How to apply:** Samakan koneksi fixture dengan pemilik yang menerapkan migrasi pada database lokal sementara. Pertahankan pemeriksaan akses melalui sesi Auth asli atau `SET ROLE authenticated`; jangan memberi grant baru pada tabel aplikasi untuk menyamakan bootstrap manual dengan CLI.
+
+Pada bootstrap Auth manual, login sukses belum membuktikan sesi dapat dipakai oleh PostgREST. Token bertanda tangan valid dapat membawa role kosong bila konfigurasi grup bawaan Auth tidak sesuai versi layanan.
+
+**Why:** Auth pernah menerbitkan sesi HTTP 200, tetapi PostgREST menolak role kosong dengan HTTP 401. Ini masalah konfigurasi fixture, bukan bukti pencabutan izin berhasil.
+
+**How to apply:** Pertahankan kontrol positif memakai token yang sama untuk operasi yang memang diizinkan. Jika kontrol itu gagal, periksa kode kesalahan PostgREST dan hanya metadata role/algoritma token, tanpa mencetak token atau mengubah kebijakan aplikasi.

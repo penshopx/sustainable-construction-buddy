@@ -425,6 +425,7 @@ test_admin_http_expired() {
 
 test_admin_http_profile_revocation() {
   local admin_token status expected_before expected_own profiles_before filter
+  local member_before own_before own_after payload own_name
 
   # Auth's signup trigger supplies both profiles. Fail rather than accepting
   # empty fixture data as evidence that the profile policy works.
@@ -441,6 +442,10 @@ test_admin_http_profile_revocation() {
   expected_before="$(jq 'map({id,user_id}) | sort_by(.user_id)' <<<"$profiles_before")"
   expected_own="$(jq --arg admin "$TEST_ADMIN_USER_ID" \
     'map(select(.user_id == $admin) | {id,user_id})' <<<"$profiles_before")"
+  member_before="$(jq -c --arg owner "$TEST_USER_ID" \
+    '.[] | select(.user_id == $owner)' <<<"$profiles_before")"
+  own_before="$(jq -c --arg admin "$TEST_ADMIN_USER_ID" \
+    '.[] | select(.user_id == $admin)' <<<"$profiles_before")"
   "${PSQL[@]}" >/dev/null <<SQL
 BEGIN;
 INSERT INTO public.user_roles (user_id, role)
@@ -504,8 +509,73 @@ SQL
     echo "Profile revocation checks changed or removed a fixture profile" >&2
     exit 1
   fi
+
+  # A valid, changed editable field ensures validation cannot masquerade as
+  # revoked UPDATE access. Inspect the whole persisted victim row via the
+  # privileged fixture, never via the now-filtered HTTP SELECT or service role.
+  payload="$(jq -nc --arg name "$(jq -r '.full_name' <<<"$member_before") (blocked edit)" \
+    '{full_name:$name}')"
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/revoked-admin-patch-member-profile.json" --write-out '%{http_code}' \
+    --request PATCH "${TEST_SUPABASE_URL%/}/rest/v1/profiles?user_id=eq.$TEST_USER_ID" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token" \
+    --header 'Prefer: return=representation' \
+    --header 'Content-Type: application/json' --data "$payload")"
+  if [[ "$status" == "403" ]]; then
+    if ! jq -e '.code == "42501" and
+      (.message == "permission denied for table profiles" or
+       .message == "new row violates row-level security policy for table \"profiles\"")' \
+      "$TMP_DIR/revoked-admin-patch-member-profile.json" >/dev/null 2>&1; then
+      echo "Revoked admin profile PATCH failed for an unexpected reason" >&2
+      exit 1
+    fi
+  elif [[ "$status" != "200" ]] ||
+       ! jq -e '. == []' "$TMP_DIR/revoked-admin-patch-member-profile.json" >/dev/null 2>&1; then
+    echo "Revoked admin member profile PATCH was not denied or a row-free no-op (HTTP $status)" >&2
+    exit 1
+  fi
+  if [[ "$("${PSQL[@]}" -Atq -c "
+    SELECT COALESCE(jsonb_agg(to_jsonb(p) ORDER BY p.user_id), '[]'::jsonb)
+    FROM public.profiles p
+    WHERE p.user_id IN ('$TEST_USER_ID', '$TEST_ADMIN_USER_ID')")" != "$profiles_before" ]]; then
+    echo "Revoked admin member profile PATCH changed or removed a full fixture row" >&2
+    exit 1
+  fi
+
+  # Positive UPDATE control with the exact same token after COMMIT: a stale
+  # session, malformed payload, or deny-all UPDATE policy must not pass.
+  own_name="$(jq -r '.full_name' <<<"$own_before") (allowed self edit)"
+  payload="$(jq -nc --arg name "$own_name" '{full_name:$name}')"
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/revoked-admin-patch-own-profile.json" --write-out '%{http_code}' \
+    --request PATCH "${TEST_SUPABASE_URL%/}/rest/v1/profiles?user_id=eq.$TEST_ADMIN_USER_ID" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token" \
+    --header 'Prefer: return=representation' \
+    --header 'Content-Type: application/json' --data "$payload")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --argjson before "$own_before" --arg name "$own_name" \
+       'length == 1 and
+        (.[0] | del(.updated_at)) == ($before | .full_name = $name | del(.updated_at))' \
+       "$TMP_DIR/revoked-admin-patch-own-profile.json" >/dev/null 2>&1; then
+    echo "Revoked admin's unchanged HTTP token could not edit only their own profile name (HTTP $status)" >&2
+    exit 1
+  fi
+  own_after="$("${PSQL[@]}" -Atq -c "
+    SELECT to_jsonb(p) FROM public.profiles p WHERE p.user_id = '$TEST_ADMIN_USER_ID'")"
+  if ! jq -e --argjson persisted "$own_after" '. == [$persisted]' \
+       "$TMP_DIR/revoked-admin-patch-own-profile.json" >/dev/null 2>&1; then
+    echo "Own-profile HTTP PATCH did not persist its returned full row" >&2
+    exit 1
+  fi
+  if [[ "$("${PSQL[@]}" -Atq -c "
+    SELECT to_jsonb(p) FROM public.profiles p WHERE p.user_id = '$TEST_USER_ID'" | jq -c .)" != "$member_before" ]]; then
+    echo "Own-profile HTTP PATCH changed or removed the member's full profile row" >&2
+    exit 1
+  fi
   unset admin_token
-  echo "Admin HTTP read both profiles before revocation; the unchanged token then hid the member profile while preserving own-profile access."
+  echo "Admin HTTP read both profiles before revocation; the unchanged token then hid and could not PATCH the member profile, preserved the full member row, and successfully updated only its own profile name."
 }
 
 test_admin_http_replay() {
