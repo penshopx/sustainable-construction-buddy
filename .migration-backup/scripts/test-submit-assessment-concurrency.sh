@@ -1576,8 +1576,11 @@ if [[ "$(assessment_http_state "$TEST_EXPIRED_PRE_TEST_ID")" != "$BEFORE_EXPIRED
 fi
 echo "Stranger HTTP submission of expired assessment was denied without changing owner data or draft."
 
+test_admin_http_expired
+
 # A denial alone could pass if expiry were broken for everyone. Prove the same
-# assessment still finalizes for its owner, using the saved correct answer (1),
+# assessment still finalizes for its owner after both stranger and admin denial,
+# using the saved correct answer (1),
 # not the deliberately incorrect late payload (0).
 HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --output "$TMP_DIR/owner-expired-rpc-response.json" --write-out '%{http_code}' \
@@ -1703,8 +1706,8 @@ SQL
 done
 
 if [[ "${1:-}" == "--expired-draft-privacy" ]]; then
-  echo "Expired assessment HTTP privacy passed for valid, missing and corrupt server drafts."
+  echo "Expired assessment HTTP privacy passed for stranger valid/missing/corrupt drafts and admin valid draft; owner finalized the same assessment from its draft."
   exit 0
 fi
 
-echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger, anonymous and admin unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, direct table RLS including admin revocation, stranger expired HTTP denial with unchanged assessment, answers, draft and profile followed by owner finalization, and stranger expired HTTP denial with missing and corrupt drafts tests passed."
+echo "Concurrent SQL and owner HTTP submit_assessment, single answer/completion writes, stranger, anonymous and admin unfinished HTTP denial with unchanged owner data and subsequent owner completion, owner first HTTP submission and persisted result, anonymous HTTP table reads, anonymous, stranger and owner HTTP replay, admin HTTP summary access and replay denial with unchanged owner data, same-token HTTP admin revocation with preserved own-result access, direct table RLS including admin revocation, stranger and admin expired HTTP denial with unchanged assessment, answers, draft and profile followed by owner finalization, and stranger expired HTTP denial with missing and corrupt drafts tests passed."

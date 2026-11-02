@@ -238,6 +238,90 @@ SQL
   echo "Admin HTTP submission of unfinished assessment returned only Unauthorized without changing owner data."
 }
 
+test_admin_http_expired() {
+  local status admin_token before_state
+  "${PSQL[@]}" >/dev/null -c "
+    INSERT INTO public.user_roles (user_id, role) VALUES ('$TEST_ADMIN_USER_ID', 'admin')"
+  admin_token="$(assessment_admin_http_token)"
+  before_state="$(assessment_http_state "$TEST_EXPIRED_PRE_TEST_ID")"
+  if ! jq -e --arg owner "$TEST_USER_ID" --arg id "$TEST_EXPIRED_PRE_TEST_ID" \
+    '.pre_test.id == $id and .pre_test.user_id == $owner and
+     .pre_test.status == "in_progress" and .pre_test.completed_at == null and
+     .answers == [] and .draft.pre_test_id == $id and .profile.user_id == $owner' \
+    >/dev/null <<<"$before_state"; then
+    echo "Admin expired HTTP submission requires an unfinished member assessment, draft and profile" >&2
+    exit 1
+  fi
+  # Verify the real database clock, valid roster/draft and pre-deadline save.
+  # A missing draft or invalid payload must not disguise an ownership failure.
+  if [[ "$("${PSQL[@]}" -Atq -c "
+    SELECT pt.deadline_at IS NOT NULL
+      AND public.assessment_deadline_passed(pt.deadline_at, clock_timestamp()) IS TRUE
+      AND ad.updated_at < pt.deadline_at
+      AND public.validate_assessment_draft(ad.draft) IS TRUE
+      AND pt.authorized_question_ids = ARRAY['$TEST_QUESTION_ID'::uuid]
+      AND pt.total_questions = 1
+      AND ad.draft->>'preTestId' = pt.id::text
+      AND ad.draft->'questions' = jsonb_build_array(jsonb_build_object('id', '$TEST_QUESTION_ID'))
+      AND ad.draft->'answers'->>'$TEST_QUESTION_ID' = '1'
+      AND public.assessment_answers_match_roster(
+        jsonb_build_array(jsonb_build_object(
+          'question_id', '$TEST_QUESTION_ID', 'selected_answer', 0
+        )), pt.authorized_question_ids
+      ) IS TRUE
+    FROM public.pre_tests pt JOIN public.assessment_drafts ad ON ad.pre_test_id = pt.id
+    WHERE pt.id = '$TEST_EXPIRED_PRE_TEST_ID'")" != "t" ]]; then
+    echo "Admin expired HTTP submission requires a passed deadline and valid pre-deadline draft/roster" >&2
+    exit 1
+  fi
+
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-expired-role.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/user_roles?user_id=eq.$TEST_ADMIN_USER_ID&role=eq.admin&select=user_id,role" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --arg admin "$TEST_ADMIN_USER_ID" '. == [{"user_id":$admin,"role":"admin"}]' \
+       "$TMP_DIR/admin-expired-role.json" >/dev/null 2>&1; then
+    echo "Admin expired HTTP submission lacks the application admin role (HTTP $status)" >&2
+    exit 1
+  fi
+  # Positive control with the very same token used to submit below.
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-expired-summary.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/pre_tests?id=eq.$TEST_EXPIRED_PRE_TEST_ID&select=id,user_id,status,score,determined_level,correct_answers,total_questions" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --argjson state "$before_state" \
+       '. == [$state.pre_test | {id,user_id,status,score,determined_level,correct_answers,total_questions}]' \
+       "$TMP_DIR/admin-expired-summary.json" >/dev/null 2>&1; then
+    echo "Admin cannot read the expired member summary (HTTP $status)" >&2
+    exit 1
+  fi
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-expired-rpc.json" --write-out '%{http_code}' \
+    --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $admin_token" \
+    --header 'Content-Type: application/json' \
+    --data "$(jq -nc --arg id "$TEST_EXPIRED_PRE_TEST_ID" --arg question "$TEST_QUESTION_ID" \
+      '{_pre_test_id:$id,_answers:[{question_id:$question,selected_answer:0}]}')")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e '. == {"error":"Unauthorized"}' "$TMP_DIR/admin-expired-rpc.json" >/dev/null 2>&1; then
+    echo "Admin expired HTTP submission did not return only Unauthorized (HTTP $status)" >&2
+    exit 1
+  fi
+  if [[ "$(assessment_http_state "$TEST_EXPIRED_PRE_TEST_ID")" != "$before_state" ]]; then
+    echo "Admin expired HTTP submission changed the assessment, answers, draft, or full owner profile" >&2
+    exit 1
+  fi
+  "${PSQL[@]}" >/dev/null -c "
+    DELETE FROM public.user_roles WHERE user_id = '$TEST_ADMIN_USER_ID' AND role = 'admin'"
+  unset admin_token ADMIN_PASSWORD
+  echo "Admin HTTP read the expired member summary but submission returned only Unauthorized without changing assessment, answers, draft or profile."
+}
+
 test_admin_http_profile_revocation() {
   local admin_token status expected_before expected_own profiles_before filter
 
@@ -349,7 +433,6 @@ SQL
     ) FROM public.pre_tests WHERE id = '$own_pre_test_id'")"
 
   admin_token="$(assessment_admin_http_token)"
-  unset ADMIN_PASSWORD
   before_state="$(assessment_http_state)"
   if ! jq -e --arg owner "$TEST_USER_ID" \
     '.pre_test.user_id == $owner and .pre_test.status == "completed" and

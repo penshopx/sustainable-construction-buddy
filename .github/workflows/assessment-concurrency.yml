@@ -71,7 +71,7 @@ jobs:
       - name: Verify admin cannot read or replace member drafts through Auth and PostgREST
         run: bash scripts/test-submit-assessment-concurrency.sh --admin-draft-privacy
 
-      - name: Verify expired assessments with valid, missing and corrupt drafts reveal only Unauthorized to a different Auth user
+      - name: Verify expired stranger and admin denial preserves all member data and owner can finalize from draft
         run: bash scripts/test-submit-assessment-concurrency.sh --expired-draft-privacy
 
       - name: Verify two overlapping expired owner RPCs finalize once from the server draft
