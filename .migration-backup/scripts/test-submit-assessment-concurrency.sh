@@ -43,6 +43,8 @@ DROP TABLE IF EXISTS public.assessment_http_write_audit;
 DROP TRIGGER IF EXISTS submit_assessment_concurrency_audit_trigger ON public.pre_tests;
 DROP FUNCTION IF EXISTS public.record_submit_assessment_completion();
 DROP TABLE IF EXISTS public.submit_assessment_concurrency_audit;
+-- Certificates have no auth.users FK cascade; remove only this run's fixtures.
+DELETE FROM public.certificates WHERE user_id IN ('$TEST_USER_ID', '$TEST_ADMIN_USER_ID');
 DELETE FROM auth.users WHERE id IN ('$TEST_USER_ID', '$TEST_OTHER_USER_ID', '$TEST_ADMIN_USER_ID', '$TEST_SUPER_ADMIN_USER_ID');
 DELETE FROM public.competency_domains WHERE id = '$TEST_DOMAIN_ID';
 SQL
@@ -164,6 +166,13 @@ TEST_ADMIN_USER_ID="$(jq -r '.id' "$TMP_DIR/admin-created.json")"
 
 source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-admin-http.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/test-admin-role-revocation-http.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/test-admin-certificate-revocation-http.sh"
+if [[ -z "${1:-}" || "${1:-}" == "--admin-certificate-revocation" ]]; then
+  test_admin_http_certificate_revocation
+  if [[ "${1:-}" == "--admin-certificate-revocation" ]]; then
+    exit 0
+  fi
+fi
 if [[ -z "${1:-}" || "${1:-}" == "--admin-role-revocation" ]]; then
   test_admin_http_role_revocation
   if [[ "${1:-}" == "--admin-role-revocation" ]]; then

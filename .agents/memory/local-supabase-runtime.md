@@ -50,3 +50,28 @@ Pada bootstrap Auth manual, login sukses belum membuktikan sesi dapat dipakai ol
 **Why:** Auth pernah menerbitkan sesi HTTP 200, tetapi PostgREST menolak role kosong dengan HTTP 401. Ini masalah konfigurasi fixture, bukan bukti pencabutan izin berhasil.
 
 **How to apply:** Pertahankan kontrol positif memakai token yang sama untuk operasi yang memang diizinkan. Jika kontrol itu gagal, periksa kode kesalahan PostgREST dan hanya metadata role/algoritma token, tanpa mencetak token atau mengubah kebijakan aplikasi.
+
+Bootstrap image database Supabase dapat memakai port socket `5432` secara
+eksplisit dalam skrip migrasi bawaan, walaupun `PGPORT` diubah. Mengubah port
+server sejak inisialisasi pertama dapat menggagalkan migrasi provider.
+
+**Why:** Pada bootstrap jaringan host, server sementara berhasil hidup pada
+port baru tetapi skrip bawaan tetap mencari socket port `5432`.
+
+**How to apply:** Pertahankan port bawaan selama inisialisasi image, atau
+selesaikan inisialisasi dahulu sebelum mengubah port. Untuk CLI yang memasang
+migrasi melalui URL loopback tanpa TLS, tambahkan `sslmode=disable` pada URL
+khusus perintah itu; jangan melonggarkan koneksi hosted atau pengaman URL runner.
+
+CLI pemasang migrasi dapat beralih ke role `postgres` walaupun URL koneksi
+memakai `supabase_admin`. Pada bootstrap manual, kepemilikan provider belum
+tentu mendukung jalur ini.
+
+**Why:** Migrasi tabel aplikasi dibuat atas nama `postgres`, lalu pembuatan
+kebijakan pada tabel Storage milik provider ditolak meskipun session user
+adalah superuser.
+
+**How to apply:** Jangan mengubah grant aplikasi demi meloloskan setup uji.
+Alternatif lokal adalah menerapkan seluruh SQL staging sebagai pemilik migrasi
+berhak, tiap berkas dalam transaksi bersama pencatatan ledger setelah SQL-nya
+berhasil. Laporkan bahwa pemasangan ini manual, bukan startup CLI standar.
