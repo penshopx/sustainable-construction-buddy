@@ -38,3 +38,9 @@ Pada image database Supabase, nama role `postgres` tidak menjamin hak superuser 
 **Why:** Menjalankan layanan provider dengan role aplikasi `postgres` pernah menolak migrasi skema bawaan; role pemilik provider menjalankan migrasi aslinya tanpa melonggarkan grant.
 
 **How to apply:** Saat menyiapkan kontainer lokal langsung, gunakan role pemilik Auth/Storage masing-masing untuk migrasi provider. Jangan mengatasi kegagalan bootstrap dengan grant luas atau skema pengganti minimal.
+
+Fixture SQL yang membuat trigger audit juga harus memakai koneksi pemilik migrasi aplikasi, bukan sekadar role bernama `postgres`. Bootstrap manual dengan `supabase_admin` dapat menghasilkan kepemilikan tabel berbeda dari startup CLI biasa.
+
+**Why:** Pembacaan dan penskoran dapat berhasil sementara pembuatan trigger fixture gagal dengan `must be owner of relation`. Kegagalan cleanup yang berhenti pada DDL itu juga dapat meninggalkan pengguna Auth uji sehingga email fixture tidak dapat dipakai pada percobaan berikutnya.
+
+**How to apply:** Samakan koneksi fixture dengan pemilik yang menerapkan migrasi pada database lokal sementara. Pertahankan pemeriksaan akses melalui sesi Auth asli atau `SET ROLE authenticated`; jangan memberi grant baru pada tabel aplikasi untuk menyamakan bootstrap manual dengan CLI.

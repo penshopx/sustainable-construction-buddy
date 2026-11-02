@@ -68,6 +68,43 @@ SELECT jsonb_build_object(
 SQL
 }
 
+# Seed the server snapshot before launching workers, never from a submit
+# payload. Each fixture's expected choice is fixed even when replay/device
+# payloads disagree. Use the assessment's own start time for historical cases.
+seed_assessment_draft() {
+  local pre_test_id="$1" answer="$2"
+  "${PSQL[@]}" -v pre_test_id="$pre_test_id" -v answer="$answer" >/dev/null <<'SQL'
+INSERT INTO public.assessment_drafts (pre_test_id, draft, updated_at)
+SELECT id, jsonb_build_object(
+  'version', 1, 'revision', 0, 'preTestId', id,
+  'questions', (SELECT jsonb_agg(jsonb_build_object('id', q.id) ORDER BY q.position)
+    FROM unnest(authorized_question_ids) WITH ORDINALITY q(id, position)),
+  'answers', (SELECT jsonb_object_agg(q.id::text, :'answer'::integer)
+    FROM unnest(authorized_question_ids) q(id)),
+  'answerResults', '{}'::jsonb, 'phase', 'review'
+), started_at
+FROM public.pre_tests WHERE id = :'pre_test_id'::uuid;
+SELECT set_config('test.seed_pre_test_id', :'pre_test_id', false);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pre_tests pt
+    JOIN public.assessment_drafts ad ON ad.pre_test_id = pt.id
+    WHERE pt.id = current_setting('test.seed_pre_test_id')::uuid
+      AND pt.status = 'in_progress' AND pt.completed_at IS NULL
+      AND cardinality(pt.authorized_question_ids) = pt.total_questions
+      AND public.validate_assessment_draft(ad.draft) IS TRUE
+      AND public.assessment_question_ids(ad.draft->'questions') = pt.authorized_question_ids
+      AND ad.updated_at < pt.deadline_at
+      AND NOT EXISTS (SELECT 1 FROM public.pre_test_answers WHERE pre_test_id = pt.id)
+  ) THEN
+    RAISE EXCEPTION 'Scoring fixture requires a fixed roster and a valid pre-deadline server draft';
+  END IF;
+END;
+$$;
+SQL
+}
+
 cleanup
 
 mkdir -p "$TMP_DIR"
@@ -149,8 +186,8 @@ VALUES (
   1
 );
 
-INSERT INTO public.pre_tests (id, user_id, total_questions)
-VALUES ('$TEST_PRE_TEST_ID', '$TEST_USER_ID', 1);
+INSERT INTO public.pre_tests (id, user_id, total_questions, authorized_question_ids)
+VALUES ('$TEST_PRE_TEST_ID', '$TEST_USER_ID', 1, ARRAY['$TEST_QUESTION_ID'::uuid]);
 
 CREATE TABLE public.submit_assessment_concurrency_audit (
   pre_test_id uuid NOT NULL,
@@ -179,6 +216,7 @@ AFTER UPDATE ON public.pre_tests
 FOR EACH ROW
 EXECUTE FUNCTION public.record_submit_assessment_completion();
 SQL
+seed_assessment_draft "$TEST_PRE_TEST_ID" 1
 
 # Independently runnable on the latest complete schema, even if an earlier
 # legacy concurrency scenario fails before reaching the admin HTTP checks.
@@ -214,8 +252,8 @@ SQL
   exit 0
 fi
 
-# Run expiry privacy/concurrency independently of legacy concurrency fixtures,
-# which have separate coverage for the latest question-authority schema.
+# Dedicated privacy/concurrency modes skip unrelated scenarios; the default
+# run exercises all fixtures against the same current question-authority schema.
 if [[ "${1:-}" != "--expired-draft-privacy" && "${1:-}" != "--expired-http-concurrency" && "${1:-}" != "--admin-http-concurrency" ]]; then
 # Hold the target row so both submit statements are active and waiting before
 # either can complete. Releasing this transaction lets PostgreSQL serialize them.
@@ -295,7 +333,9 @@ wait "$SECOND_PID"
 FIRST_RESULT="$(grep '^{' "$TMP_DIR/first.out")"
 SECOND_RESULT="$(grep '^{' "$TMP_DIR/second.out")"
 
-if [[ -z "$FIRST_RESULT" || "$FIRST_RESULT" != "$SECOND_RESULT" ]]; then
+if [[ "$FIRST_RESULT" != "$SECOND_RESULT" ]] ||
+   ! jq -e '. == {"score":100,"level":"Utama","correct":1,"total":1}' \
+     <<<"$FIRST_RESULT" >/dev/null; then
   printf 'Concurrent submissions returned different results:\nfirst: %s\nsecond: %s\n' \
     "$FIRST_RESULT" "$SECOND_RESULT" >&2
   exit 1
@@ -317,7 +357,7 @@ BEGIN
   FROM public.pre_test_answers
   WHERE pre_test_id = '$TEST_PRE_TEST_ID';
 
-  IF answer_count <> 1 THEN
+  IF answer_count <> 1 OR stored_answer IS DISTINCT FROM 1 THEN
     RAISE EXCEPTION 'Concurrent submissions created % answer rows instead of 1',
       answer_count;
   END IF;
@@ -337,6 +377,15 @@ BEGIN
   FROM public.pre_tests
   WHERE id = '$TEST_PRE_TEST_ID';
 
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pre_tests WHERE id = '$TEST_PRE_TEST_ID'
+      AND status = 'completed' AND completed_at IS NOT NULL
+      AND score = 100 AND correct_answers = 1 AND total_questions = 1
+      AND determined_level = 'Utama'
+  ) THEN
+    RAISE EXCEPTION 'Concurrent SQL submissions did not score the saved server draft';
+  END IF;
+
   IF completion_write_count <> 1 THEN
     RAISE EXCEPTION 'completed_at was written % times instead of once',
       completion_write_count;
@@ -354,11 +403,13 @@ SQL
 "${PSQL[@]}" >/dev/null <<SQL
 DELETE FROM public.pre_tests WHERE id = '$TEST_PRE_TEST_ID';
 
-INSERT INTO public.pre_tests (id, user_id, total_questions, started_at)
+INSERT INTO public.pre_tests (id, user_id, total_questions, started_at, authorized_question_ids)
 VALUES
-  ('$TEST_OLD_PRE_TEST_ID', '$TEST_USER_ID', 1, '2026-09-10 10:00:00+00'),
-  ('$TEST_NEW_PRE_TEST_ID', '$TEST_USER_ID', 1, '2026-09-10 10:05:00+00');
+  ('$TEST_OLD_PRE_TEST_ID', '$TEST_USER_ID', 1, '2026-09-10 10:00:00+00', ARRAY['$TEST_QUESTION_ID'::uuid]),
+  ('$TEST_NEW_PRE_TEST_ID', '$TEST_USER_ID', 1, '2026-09-10 10:05:00+00', ARRAY['$TEST_QUESTION_ID'::uuid]);
 SQL
+seed_assessment_draft "$TEST_OLD_PRE_TEST_ID" 0
+seed_assessment_draft "$TEST_NEW_PRE_TEST_ID" 1
 
 "${PSQL[@]}" >/dev/null <<SQL &
 BEGIN;
@@ -469,7 +520,10 @@ SQL
 # the profile owned by the newer-started assessment.
 OLDER_RESULT="$(grep '^{' "$TMP_DIR/older.out")"
 NEWER_RESULT="$(grep '^{' "$TMP_DIR/newer.out")"
-if [[ -z "$OLDER_RESULT" || -z "$NEWER_RESULT" || "$OLDER_RESULT" == "$NEWER_RESULT" ]]; then
+if ! jq -e '. == {"score":0,"level":"Pemula","correct":0,"total":1}' \
+     <<<"$OLDER_RESULT" >/dev/null ||
+   ! jq -e '. == {"score":100,"level":"Utama","correct":1,"total":1}' \
+     <<<"$NEWER_RESULT" >/dev/null; then
   printf 'Cross-pre-test submissions did not produce distinct results:\nolder: %s\nnewer: %s\n' \
     "$OLDER_RESULT" "$NEWER_RESULT" >&2
   exit 1
@@ -560,14 +614,16 @@ run_tie_case() {
 
   "${PSQL[@]}" >/dev/null <<SQL
 DELETE FROM public.pre_tests WHERE id IN ('$TEST_TIE_LOW_ID', '$TEST_TIE_HIGH_ID');
-INSERT INTO public.pre_tests (id, user_id, total_questions, started_at)
+INSERT INTO public.pre_tests (id, user_id, total_questions, started_at, authorized_question_ids)
 VALUES
-  ('$TEST_TIE_LOW_ID', '$TEST_USER_ID', 1, '2026-09-10 11:00:00+00'),
-  ('$TEST_TIE_HIGH_ID', '$TEST_USER_ID', 1, '2026-09-10 11:00:00+00');
+  ('$TEST_TIE_LOW_ID', '$TEST_USER_ID', 1, '2026-09-10 11:00:00+00', ARRAY['$TEST_QUESTION_ID'::uuid]),
+  ('$TEST_TIE_HIGH_ID', '$TEST_USER_ID', 1, '2026-09-10 11:00:00+00', ARRAY['$TEST_QUESTION_ID'::uuid]);
 UPDATE public.profiles
 SET current_level = 'Pemula', total_score = 0
 WHERE user_id = '$TEST_USER_ID';
 SQL
+  seed_assessment_draft "$TEST_TIE_LOW_ID" 0
+  seed_assessment_draft "$TEST_TIE_HIGH_ID" 1
 
   "${PSQL[@]}" >/dev/null <<SQL &
 BEGIN;
@@ -626,6 +682,22 @@ SQL
   wait "$locker_pid"
   wait "$blocked_pid"
 
+  local low_result high_result
+  if [[ "$blocked_id" == "$TEST_TIE_LOW_ID" ]]; then
+    low_result="$(grep '^{' "$TMP_DIR/tie-blocked-$label.out")"
+    high_result="$(grep '^{' "$TMP_DIR/tie-first-$label.out")"
+  else
+    low_result="$(grep '^{' "$TMP_DIR/tie-first-$label.out")"
+    high_result="$(grep '^{' "$TMP_DIR/tie-blocked-$label.out")"
+  fi
+  if ! jq -e '. == {"score":0,"level":"Pemula","correct":0,"total":1}' \
+       <<<"$low_result" >/dev/null ||
+     ! jq -e '. == {"score":100,"level":"Utama","correct":1,"total":1}' \
+       <<<"$high_result" >/dev/null; then
+    echo "Tie-case submissions did not score both saved drafts ($label)." >&2
+    exit 1
+  fi
+
   "${PSQL[@]}" >/dev/null <<SQL
 DO \$\$
 DECLARE
@@ -678,8 +750,11 @@ run_tie_case "$TEST_TIE_LOW_ID" "$TEST_TIE_HIGH_ID" high_first
 # unfinished assessment. Compare complete rows before and after the attempt,
 # then prove the owner can still submit the same pre-test successfully.
 "${PSQL[@]}" >/dev/null <<SQL
-INSERT INTO public.pre_tests (id, user_id, total_questions)
-VALUES ('$TEST_OWNERSHIP_PRE_TEST_ID', '$TEST_USER_ID', 1);
+INSERT INTO public.pre_tests (id, user_id, total_questions, authorized_question_ids)
+VALUES ('$TEST_OWNERSHIP_PRE_TEST_ID', '$TEST_USER_ID', 1, ARRAY['$TEST_QUESTION_ID'::uuid]);
+
+-- test_admin_http_draft_privacy seeds this owner's valid draft before the
+-- first owner HTTP submission; do not insert a duplicate snapshot here.
 
 UPDATE public.profiles
 SET current_level = 'Muda', total_score = 73
@@ -752,8 +827,7 @@ if [[ "$HTTP_STATUS" != "200" ]] ||
 fi
 OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
 
-# Run independently of legacy SQL fixtures that predate the fixed question
-# roster. This is two overlapping first submissions, not a lost-response replay.
+# This is two overlapping first submissions, not a lost-response replay.
 source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-http-concurrency.sh"
 if [[ "${1:-}" == "--admin-http-concurrency" ]]; then
   test_admin_http_concurrent_submit
@@ -1169,7 +1243,7 @@ HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --header "Authorization: Bearer $OTHER_TOKEN" \
   --header 'Content-Type: application/json' \
   --data "{\"_pre_test_id\":\"$TEST_OWNERSHIP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
-unset OTHER_TOKEN
+# Keep the same stranger session for the expired-draft checks below.
 if [[ "$HTTP_STATUS" != "200" ]] ||
    ! jq -e '. == {"error":"Unauthorized"}' \
      "$TMP_DIR/other-rpc-response.json" >/dev/null 2>&1; then
@@ -1219,7 +1293,7 @@ HTTP_STATUS="$(curl --silent --show-error --max-time 15 \
   --header "Authorization: Bearer $OWNER_TOKEN" \
   --header 'Content-Type: application/json' \
   --data "{\"_pre_test_id\":\"$TEST_OWNERSHIP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":0}]}")"
-unset OWNER_TOKEN
+# Keep the same owner session for expired-draft finalization below.
 if [[ "$HTTP_STATUS" != "200" ]] ||
    ! jq -e --argjson expected "$OWNER_RESULT" '. == $expected' \
      "$TMP_DIR/owner-rpc-response.json" >/dev/null 2>&1; then
@@ -1272,7 +1346,6 @@ SELECT set_config('request.jwt.claim.sub', '$TEST_USER_ID', true);
 SELECT set_config('request.jwt.claim.role', 'authenticated', true);
 DO \$\$
 DECLARE
-  affected integer;
   visible_pre_test public.pre_tests%ROWTYPE;
   visible_answer public.pre_test_answers%ROWTYPE;
 BEGIN
@@ -1294,22 +1367,44 @@ BEGIN
     RAISE EXCEPTION 'Owner cannot read the saved completed result and answer directly';
   END IF;
 
-  UPDATE public.pre_tests SET total_questions = total_questions
-  WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
-  GET DIAGNOSTICS affected = ROW_COUNT;
-  IF affected <> 1 THEN
-    RAISE EXCEPTION 'Owner cannot update their own pre-test';
-  END IF;
-
-  INSERT INTO public.pre_tests (id, user_id, total_questions)
-  VALUES ('00000000-0000-4000-8000-000000000173', '$TEST_USER_ID', 1);
-  INSERT INTO public.pre_test_answers (id, pre_test_id, question_id, selected_answer)
-  VALUES ('00000000-0000-4000-8000-000000000174',
-          '00000000-0000-4000-8000-000000000173', '$TEST_QUESTION_ID', 1);
-  IF (SELECT count(*) FROM public.pre_test_answers
-      WHERE id = '00000000-0000-4000-8000-000000000174') <> 1 THEN
-    RAISE EXCEPTION 'Owner cannot create and read their own answer';
-  END IF;
+  -- Server-deadline authority revoked direct writes even for the owner.
+  -- The positive write control is the successful owner RPC above, not a
+  -- client-side result insert that bypasses the authorized roster/draft.
+  BEGIN
+    UPDATE public.pre_tests SET total_questions = total_questions
+    WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+    RAISE EXCEPTION 'Owner directly updated their pre-test';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO public.pre_tests (id, user_id, total_questions)
+    VALUES ('00000000-0000-4000-8000-000000000173', '$TEST_USER_ID', 1);
+    RAISE EXCEPTION 'Owner directly created a pre-test';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    DELETE FROM public.pre_tests WHERE id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+    RAISE EXCEPTION 'Owner directly deleted their pre-test';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO public.pre_test_answers (id, pre_test_id, question_id, selected_answer)
+    VALUES ('00000000-0000-4000-8000-000000000174',
+            '$TEST_OWNERSHIP_PRE_TEST_ID', '$TEST_QUESTION_ID', 1);
+    RAISE EXCEPTION 'Owner directly created an answer';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    UPDATE public.pre_test_answers SET selected_answer = 0
+    WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+    RAISE EXCEPTION 'Owner directly updated their answer';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    DELETE FROM public.pre_test_answers WHERE pre_test_id = '$TEST_OWNERSHIP_PRE_TEST_ID';
+    RAISE EXCEPTION 'Owner directly deleted their answer';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
 END;
 \$\$;
 
@@ -1710,6 +1805,8 @@ SQL
   fi
   echo "Stranger HTTP submission with $DRAFT_CASE draft returned only Unauthorized without changing owner data."
 done
+
+unset OWNER_TOKEN OTHER_TOKEN
 
 if [[ "${1:-}" == "--expired-draft-privacy" ]]; then
   echo "Expired assessment HTTP privacy passed for stranger valid/missing/corrupt drafts and admin valid draft; owner finalized the same assessment from its draft."

@@ -85,10 +85,11 @@ INSERT INTO public.pre_tests (id, user_id, total_questions, authorized_question_
 VALUES ('$TEST_HTTP_PRE_TEST_ID', '$TEST_USER_ID', 1, ARRAY['$TEST_QUESTION_ID'::uuid]);
 SQL
   fi
-  if [[ "$admin_race" == true ]]; then
+  if [[ "$mode" != "expired" ]]; then
     # Current submission authority reads choices from the owner's saved draft,
     # not from either submit array. Keep that draft valid and aligned with the
-    # owner's correct choice, deliberately different from the admin's payload.
+    # owner's correct choice, deliberately different from stale device/admin
+    # payloads. Unexpired submissions also require this snapshot.
     "${PSQL[@]}" >/dev/null <<SQL
 INSERT INTO public.assessment_drafts (pre_test_id, draft)
 VALUES ('$TEST_HTTP_PRE_TEST_ID', jsonb_build_object(
@@ -103,7 +104,7 @@ BEGIN
       WHERE pre_test_id = '$TEST_HTTP_PRE_TEST_ID'
         AND public.validate_assessment_draft(draft) IS TRUE
         AND draft->'answers'->>'$TEST_QUESTION_ID' = '1') THEN
-    RAISE EXCEPTION 'Admin race requires a valid saved owner draft';
+    RAISE EXCEPTION 'HTTP race requires a valid saved owner draft';
   END IF;
 END;
 \$\$;
@@ -114,15 +115,21 @@ SQL
 DO \$\$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM public.pre_tests
-    WHERE id = '$TEST_HTTP_PRE_TEST_ID' AND user_id = '$TEST_USER_ID'
-      AND status = 'in_progress' AND completed_at IS NULL
-      AND authorized_question_ids = ARRAY['$TEST_QUESTION_ID'::uuid]
-      AND deadline_at IS NOT NULL
-      AND (public.assessment_deadline_passed(deadline_at, clock_timestamp()) = ('$mode' = 'expired'))
+    SELECT 1 FROM public.pre_tests pt
+    JOIN public.assessment_drafts ad ON ad.pre_test_id = pt.id
+    WHERE pt.id = '$TEST_HTTP_PRE_TEST_ID' AND pt.user_id = '$TEST_USER_ID'
+      AND pt.status = 'in_progress' AND pt.completed_at IS NULL
+      AND pt.total_questions = 1
+      AND pt.authorized_question_ids = ARRAY['$TEST_QUESTION_ID'::uuid]
+      AND pt.deadline_at IS NOT NULL
+      AND (public.assessment_deadline_passed(pt.deadline_at, clock_timestamp()) = ('$mode' = 'expired'))
+      AND public.validate_assessment_draft(ad.draft) IS TRUE
+      AND public.assessment_question_ids(ad.draft->'questions') = pt.authorized_question_ids
+      AND ad.draft->'answers'->>'$TEST_QUESTION_ID' = '1'
+      AND ad.updated_at < pt.deadline_at
       AND NOT EXISTS (SELECT 1 FROM public.pre_test_answers WHERE pre_test_id = '$TEST_HTTP_PRE_TEST_ID')
   ) THEN
-    RAISE EXCEPTION 'HTTP concurrency requires a valid unfinished owner fixture with the expected deadline';
+    RAISE EXCEPTION 'HTTP concurrency requires an unfinished owner fixture with a fixed roster, saved draft and expected deadline';
   END IF;
 END;
 \$\$;
@@ -277,9 +284,7 @@ SQL
       continue
     fi
     if [[ "$(cat "$TMP_DIR/http-$label.status")" != "200" ]] ||
-       ! jq -e 'type == "object" and
-         (. == {"score":100,"level":"Utama","correct":1,"total":1} or
-          . == {"score":0,"level":"Pemula","correct":0,"total":1})' \
+       ! jq -e '. == {"score":100,"level":"Utama","correct":1,"total":1}' \
          "$TMP_DIR/http-$label.json" >/dev/null 2>&1; then
       echo "Concurrent owner HTTP submission ($label) failed or returned an invalid result." >&2
       exit 1
