@@ -77,6 +77,9 @@ jobs:
       - name: Verify two overlapping expired owner RPCs finalize once from the server draft
         run: bash scripts/test-submit-assessment-concurrency.sh --expired-http-concurrency
 
+      - name: Verify overlapping admin denial and owner-only completion in both queue orders
+        run: bash scripts/test-submit-assessment-concurrency.sh --admin-http-concurrency
+
       - name: Test concurrent submits, expired stranger denial with valid, missing and corrupt drafts, HTTP replay and admin revocation
         run: bash scripts/test-submit-assessment-concurrency.sh
 

@@ -156,6 +156,31 @@ SQL
   echo "Admin HTTP recovered only its own draft; member draft SELECT/save were blocked, owner rows stayed unchanged and owner recovery succeeded."
 }
 
+# Both queue orders use distinct real Auth sessions and the same valid roster,
+# but opposing answers. The shared worker proves overlap at the database lock.
+test_admin_http_concurrent_submit() (
+  set -euo pipefail
+  local ADMIN_RACE_TOKEN status
+  "${PSQL[@]}" >/dev/null -c "
+    INSERT INTO public.user_roles (user_id, role) VALUES ('$TEST_ADMIN_USER_ID', 'admin')"
+  ADMIN_RACE_TOKEN="$(assessment_admin_http_token)"
+  status="$(curl --silent --show-error --max-time 15 \
+    --output "$TMP_DIR/admin-race-role.json" --write-out '%{http_code}' \
+    "${TEST_SUPABASE_URL%/}/rest/v1/user_roles?user_id=eq.$TEST_ADMIN_USER_ID&role=eq.admin&select=user_id,role" \
+    --header "apikey: $TEST_SUPABASE_ANON_KEY" \
+    --header "Authorization: Bearer $ADMIN_RACE_TOKEN")"
+  if [[ "$status" != "200" ]] ||
+     ! jq -e --arg admin "$TEST_ADMIN_USER_ID" '. == [{"user_id":$admin,"role":"admin"}]' \
+       "$TMP_DIR/admin-race-role.json" >/dev/null 2>&1; then
+    echo "Concurrent admin Auth session lacks the application admin role (HTTP $status)" >&2
+    exit 1
+  fi
+  test_concurrent_http_submissions admin-first
+  test_concurrent_http_submissions owner-first
+  "${PSQL[@]}" >/dev/null -c "
+    DELETE FROM public.user_roles WHERE user_id = '$TEST_ADMIN_USER_ID' AND role = 'admin'"
+)
+
 test_admin_http_unfinished() {
   local status admin_token before_state
   # Commit the role so the real Auth/PostgREST session sees admin privileges.

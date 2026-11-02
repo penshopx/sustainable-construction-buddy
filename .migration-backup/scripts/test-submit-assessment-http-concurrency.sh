@@ -6,8 +6,21 @@ test_concurrent_http_submissions() (
   local mode="${1:-unexpired}"
   local TEST_HTTP_PRE_TEST_ID="$TEST_HTTP_PRE_TEST_ID" TEST_QUESTION_ID="$TEST_QUESTION_ID"
   local first_answer=1 second_answer=0
+  local first_token="$OWNER_TOKEN" second_token="$OWNER_TOKEN" owner_label=first
+  local admin_race=false
   case "$mode" in
     unexpired) ;;
+    admin-first)
+      admin_race=true
+      first_token="$ADMIN_RACE_TOKEN"
+      first_answer=0
+      second_answer=1
+      owner_label=second
+      ;;
+    owner-first)
+      admin_race=true
+      second_token="$ADMIN_RACE_TOKEN"
+      ;;
     expired)
       TEST_HTTP_PRE_TEST_ID="$TEST_HTTP_EXPIRED_PRE_TEST_ID"
       TEST_QUESTION_ID="$TEST_HTTP_EXPIRED_QUESTION_ID"
@@ -68,30 +81,76 @@ END;
 SQL
   else
     "${PSQL[@]}" >/dev/null <<SQL
-INSERT INTO public.pre_tests (id, user_id, total_questions)
-VALUES ('$TEST_HTTP_PRE_TEST_ID', '$TEST_USER_ID', 1);
+INSERT INTO public.pre_tests (id, user_id, total_questions, authorized_question_ids)
+VALUES ('$TEST_HTTP_PRE_TEST_ID', '$TEST_USER_ID', 1, ARRAY['$TEST_QUESTION_ID'::uuid]);
+SQL
+  fi
+  if [[ "$admin_race" == true ]]; then
+    # Current submission authority reads choices from the owner's saved draft,
+    # not from either submit array. Keep that draft valid and aligned with the
+    # owner's correct choice, deliberately different from the admin's payload.
+    "${PSQL[@]}" >/dev/null <<SQL
+INSERT INTO public.assessment_drafts (pre_test_id, draft)
+VALUES ('$TEST_HTTP_PRE_TEST_ID', jsonb_build_object(
+  'version', 1, 'revision', 0, 'preTestId', '$TEST_HTTP_PRE_TEST_ID',
+  'questions', jsonb_build_array(jsonb_build_object('id', '$TEST_QUESTION_ID')),
+  'answers', jsonb_build_object('$TEST_QUESTION_ID', 1),
+  'answerResults', '{}'::jsonb, 'phase', 'review'
+));
+DO \$\$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.assessment_drafts
+      WHERE pre_test_id = '$TEST_HTTP_PRE_TEST_ID'
+        AND public.validate_assessment_draft(draft) IS TRUE
+        AND draft->'answers'->>'$TEST_QUESTION_ID' = '1') THEN
+    RAISE EXCEPTION 'Admin race requires a valid saved owner draft';
+  END IF;
+END;
+\$\$;
 SQL
   fi
 
   "${PSQL[@]}" >/dev/null <<SQL
+DO \$\$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.pre_tests
+    WHERE id = '$TEST_HTTP_PRE_TEST_ID' AND user_id = '$TEST_USER_ID'
+      AND status = 'in_progress' AND completed_at IS NULL
+      AND authorized_question_ids = ARRAY['$TEST_QUESTION_ID'::uuid]
+      AND deadline_at IS NOT NULL
+      AND (public.assessment_deadline_passed(deadline_at, clock_timestamp()) = ('$mode' = 'expired'))
+      AND NOT EXISTS (SELECT 1 FROM public.pre_test_answers WHERE pre_test_id = '$TEST_HTTP_PRE_TEST_ID')
+  ) THEN
+    RAISE EXCEPTION 'HTTP concurrency requires a valid unfinished owner fixture with the expected deadline';
+  END IF;
+END;
+\$\$;
 -- Audit actual writes, not only the final row count: deleting and reinserting
 -- an answer (or overwriting it) must not pass as "saved once".
-CREATE TABLE public.assessment_http_write_audit (kind text NOT NULL);
+CREATE TABLE public.assessment_http_write_audit (
+  kind text NOT NULL, actor uuid, subject uuid
+);
 CREATE FUNCTION public.record_assessment_http_write()
 RETURNS trigger LANGUAGE plpgsql AS \$\$
 BEGIN
-  IF TG_TABLE_NAME = 'pre_tests' THEN
+  IF TG_TABLE_NAME = 'profiles' THEN
+    IF OLD.user_id IN ('$TEST_USER_ID'::uuid, '$TEST_ADMIN_USER_ID'::uuid) THEN
+      INSERT INTO public.assessment_http_write_audit
+      VALUES ('profile_' || TG_OP, auth.uid(), OLD.user_id);
+    END IF;
+  ELSIF TG_TABLE_NAME = 'pre_tests' THEN
     IF NEW.id = '$TEST_HTTP_PRE_TEST_ID'::uuid
        AND (NEW.status = 'completed'
             OR NEW.completed_at IS DISTINCT FROM OLD.completed_at) THEN
-      INSERT INTO public.assessment_http_write_audit VALUES ('completion');
+      INSERT INTO public.assessment_http_write_audit VALUES ('completion', auth.uid(), NEW.user_id);
     END IF;
   ELSIF TG_OP = 'DELETE' THEN
     IF OLD.pre_test_id = '$TEST_HTTP_PRE_TEST_ID'::uuid THEN
-      INSERT INTO public.assessment_http_write_audit VALUES ('answer_DELETE');
+      INSERT INTO public.assessment_http_write_audit VALUES ('answer_DELETE', auth.uid(), NULL);
     END IF;
   ELSIF NEW.pre_test_id = '$TEST_HTTP_PRE_TEST_ID'::uuid THEN
-    INSERT INTO public.assessment_http_write_audit VALUES ('answer_' || TG_OP);
+    INSERT INTO public.assessment_http_write_audit VALUES ('answer_' || TG_OP, auth.uid(), NULL);
   END IF;
   RETURN NULL;
 END;
@@ -101,6 +160,20 @@ FOR EACH ROW EXECUTE FUNCTION public.record_assessment_http_write();
 CREATE TRIGGER assessment_http_answer_audit AFTER INSERT OR UPDATE OR DELETE ON public.pre_test_answers
 FOR EACH ROW EXECUTE FUNCTION public.record_assessment_http_write();
 SQL
+  local admin_profile_before=""
+  if [[ "$admin_race" == true ]]; then
+    admin_profile_before="$("${PSQL[@]}" -Atq -c "
+      SELECT to_jsonb(p) FROM public.profiles p WHERE user_id = '$TEST_ADMIN_USER_ID'")"
+    if ! jq -e --arg admin "$TEST_ADMIN_USER_ID" '.user_id == $admin' \
+        <<<"$admin_profile_before" >/dev/null; then
+      echo "Admin race requires the admin's existing profile." >&2
+      exit 1
+    fi
+    "${PSQL[@]}" >/dev/null <<SQL
+CREATE TRIGGER assessment_http_profile_audit AFTER UPDATE OR DELETE ON public.profiles
+FOR EACH ROW EXECUTE FUNCTION public.record_assessment_http_write();
+SQL
+  fi
 
   # Hold this unfinished assessment until BOTH requests wait on its lock.
   # Release immediately after observation, before the gateway statement timeout.
@@ -127,21 +200,40 @@ SQL
   fi
 
   submit_http() {
-    local answer="$1" label="$2"
+    local answer="$1" label="$2" token="$3"
     curl --silent --show-error --max-time 25 \
       --output "$TMP_DIR/http-$label.json" --write-out '%{http_code}' \
       --request POST "${TEST_SUPABASE_URL%/}/rest/v1/rpc/submit_assessment" \
       --header "apikey: $TEST_SUPABASE_ANON_KEY" \
-      --header "Authorization: Bearer $OWNER_TOKEN" \
+      --header "Authorization: Bearer $token" \
       --header 'Content-Type: application/json' \
       --data "{\"_pre_test_id\":\"$TEST_HTTP_PRE_TEST_ID\",\"_answers\":[{\"question_id\":\"$TEST_QUESTION_ID\",\"selected_answer\":$answer}]}" \
       >"$TMP_DIR/http-$label.status"
   }
-  submit_http "$first_answer" first &
+  submit_http "$first_answer" first "$first_token" &
   first_pid=$!
-  submit_http "$second_answer" second &
-  second_pid=$!
 
+  # Queue the first actor before launching the second. Both must still be
+  # blocked together below: neither launch order nor sleeps prove overlap.
+  if [[ "$admin_race" == true ]]; then
+    for _ in {1..100}; do
+      blocked="$("${PSQL[@]}" -Atq -c "
+        SELECT count(*) FROM pg_stat_activity a
+        WHERE a.query LIKE '%submit_assessment%' AND a.state = 'active'
+          AND a.wait_event_type = 'Lock'
+          AND EXISTS (SELECT 1 FROM pg_stat_activity locker
+            WHERE locker.application_name = 'assessment_http_concurrency_locker'
+              AND locker.pid = ANY(pg_blocking_pids(a.pid)))")"
+      [[ "$blocked" == "1" ]] && break
+      sleep 0.05
+    done
+    if [[ "$blocked" != "1" ]]; then
+      echo "First $mode HTTP actor did not wait on the unfinished assessment." >&2
+      exit 1
+    fi
+  fi
+  submit_http "$second_answer" second "$second_token" &
+  second_pid=$!
   for _ in {1..100}; do
     # Follow the blocker tree: the second call can wait on the first call's
     # tuple lock, rather than directly on the coordinating transaction.
@@ -175,6 +267,15 @@ SQL
 
   local label
   for label in first second; do
+    if [[ "$admin_race" == true && "$label" != "$owner_label" ]]; then
+      if [[ "$(cat "$TMP_DIR/http-$label.status")" != "200" ]] ||
+         ! jq -e '. == {"error":"Unauthorized"}' \
+           "$TMP_DIR/http-$label.json" >/dev/null 2>&1; then
+        echo "Overlapping admin RPC ($mode) must return exactly Unauthorized." >&2
+        exit 1
+      fi
+      continue
+    fi
     if [[ "$(cat "$TMP_DIR/http-$label.status")" != "200" ]] ||
        ! jq -e 'type == "object" and
          (. == {"score":100,"level":"Utama","correct":1,"total":1} or
@@ -184,9 +285,15 @@ SQL
       exit 1
     fi
   done
-  if ! jq -e --slurp '.[0] == .[1]' \
+  if [[ "$admin_race" == false ]] && ! jq -e --slurp '.[0] == .[1]' \
       "$TMP_DIR/http-first.json" "$TMP_DIR/http-second.json" >/dev/null; then
     echo "Concurrent owner HTTP submissions returned different scores/results." >&2
+    exit 1
+  fi
+  if [[ "$admin_race" == true ]] &&
+     ! jq -e '. == {"score":100,"level":"Utama","correct":1,"total":1}' \
+       "$TMP_DIR/http-$owner_label.json" >/dev/null; then
+    echo "Overlapping owner RPC must succeed using the owner's answer, not the admin's." >&2
     exit 1
   fi
   if [[ "$mode" == "expired" ]] &&
@@ -196,8 +303,10 @@ SQL
     exit 1
   fi
 
-  "${PSQL[@]}" -v expected_result="$(cat "$TMP_DIR/http-first.json")" >/dev/null <<SQL
+  "${PSQL[@]}" -v expected_result="$(cat "$TMP_DIR/http-$owner_label.json")" \
+    -v admin_profile_before="${admin_profile_before:-null}" >/dev/null <<SQL
 SELECT set_config('test.http_result', :'expected_result', false);
+SELECT set_config('test.admin_profile_before', :'admin_profile_before', false);
 DO \$\$
 DECLARE
   result jsonb := current_setting('test.http_result')::jsonb;
@@ -218,8 +327,22 @@ BEGIN
   END IF;
   IF (SELECT count(*) FROM public.assessment_http_write_audit WHERE kind = 'completion') <> 1
      OR (SELECT count(*) FROM public.assessment_http_write_audit WHERE kind = 'answer_INSERT') <> 1
-     OR (SELECT count(*) FROM public.assessment_http_write_audit) <> 2 THEN
+     OR (SELECT count(*) FROM public.assessment_http_write_audit
+         WHERE kind NOT LIKE 'profile_%') <> 2
+     OR EXISTS (SELECT 1 FROM public.assessment_http_write_audit
+                WHERE actor IS DISTINCT FROM '$TEST_USER_ID'::uuid) THEN
     RAISE EXCEPTION 'Concurrent HTTP submissions must write the answer and completion exactly once';
+  END IF;
+  IF '$admin_race'::boolean THEN
+    IF (SELECT count(*) FROM public.assessment_http_write_audit) <> 3
+       OR (SELECT count(*) FROM public.assessment_http_write_audit
+           WHERE kind = 'profile_UPDATE' AND subject = '$TEST_USER_ID'::uuid) <> 1
+       OR NOT EXISTS (SELECT 1 FROM public.profiles
+          WHERE user_id = '$TEST_USER_ID' AND current_level = 'Utama' AND total_score = 100)
+       OR (SELECT to_jsonb(p) FROM public.profiles p WHERE user_id = '$TEST_ADMIN_USER_ID')
+          IS DISTINCT FROM current_setting('test.admin_profile_before')::jsonb THEN
+      RAISE EXCEPTION 'Admin race must leave only one owner-authored profile update and the admin profile unchanged';
+    END IF;
   END IF;
 END;
 \$\$;
@@ -228,9 +351,14 @@ END;
 -- precedence assertions for the separate first-owner-submit fixture.
 DROP TRIGGER assessment_http_answer_audit ON public.pre_test_answers;
 DROP TRIGGER assessment_http_completion_audit ON public.pre_tests;
+DROP TRIGGER IF EXISTS assessment_http_profile_audit ON public.profiles;
 DROP FUNCTION public.record_assessment_http_write();
 DROP TABLE public.assessment_http_write_audit;
 DELETE FROM public.pre_tests WHERE id = '$TEST_HTTP_PRE_TEST_ID';
 SQL
-  echo "Two overlapping $mode owner HTTP RPCs returned identical results and saved the answer/completion once."
+  if [[ "$admin_race" == true ]]; then
+    echo "Overlapping $mode Auth RPCs: admin Unauthorized; owner answer, completion and profile saved once by owner only."
+  else
+    echo "Two overlapping $mode owner HTTP RPCs returned identical results and saved the answer/completion once."
+  fi
 )

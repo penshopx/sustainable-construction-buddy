@@ -37,6 +37,7 @@ cleanup() {
   "${PSQL[@]}" >/dev/null 2>&1 <<SQL || true
 DROP TRIGGER IF EXISTS assessment_http_answer_audit ON public.pre_test_answers;
 DROP TRIGGER IF EXISTS assessment_http_completion_audit ON public.pre_tests;
+DROP TRIGGER IF EXISTS assessment_http_profile_audit ON public.profiles;
 DROP FUNCTION IF EXISTS public.record_assessment_http_write();
 DROP TABLE IF EXISTS public.assessment_http_write_audit;
 DROP TRIGGER IF EXISTS submit_assessment_concurrency_audit_trigger ON public.pre_tests;
@@ -181,7 +182,7 @@ SQL
 
 # Independently runnable on the latest complete schema, even if an earlier
 # legacy concurrency scenario fails before reaching the admin HTTP checks.
-if [[ "${1:-}" != "--expired-http-concurrency" ]]; then
+if [[ "${1:-}" != "--expired-http-concurrency" && "${1:-}" != "--admin-http-concurrency" ]]; then
   test_admin_http_profile_revocation
 fi
 if [[ "${1:-}" == "--admin-profile-revocation" ]]; then
@@ -215,7 +216,7 @@ fi
 
 # Run expiry privacy/concurrency independently of legacy concurrency fixtures,
 # which have separate coverage for the latest question-authority schema.
-if [[ "${1:-}" != "--expired-draft-privacy" && "${1:-}" != "--expired-http-concurrency" ]]; then
+if [[ "${1:-}" != "--expired-draft-privacy" && "${1:-}" != "--expired-http-concurrency" && "${1:-}" != "--admin-http-concurrency" ]]; then
 # Hold the target row so both submit statements are active and waiting before
 # either can complete. Releasing this transaction lets PostgreSQL serialize them.
 "${PSQL[@]}" >/dev/null <<SQL &
@@ -754,6 +755,10 @@ OWNER_TOKEN="$(jq -r '.access_token' "$TMP_DIR/owner-session.json")"
 # Run independently of legacy SQL fixtures that predate the fixed question
 # roster. This is two overlapping first submissions, not a lost-response replay.
 source "$(dirname "${BASH_SOURCE[0]}")/test-submit-assessment-http-concurrency.sh"
+if [[ "${1:-}" == "--admin-http-concurrency" ]]; then
+  test_admin_http_concurrent_submit
+  exit 0
+fi
 if [[ "${1:-}" == "--expired-http-concurrency" ]]; then
   test_concurrent_http_submissions expired
   exit 0
@@ -784,6 +789,7 @@ if [[ "${1:-}" != "--expired-draft-privacy" ]]; then
 # authenticated requests through the local Auth/PostgREST gateway.
 test_concurrent_http_submissions
 test_concurrent_http_submissions expired
+test_admin_http_concurrent_submit
 
 "${PSQL[@]}" >/dev/null <<SQL
 DO \$\$
