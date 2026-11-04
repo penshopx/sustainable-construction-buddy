@@ -206,7 +206,13 @@ export const ListDocumentAnalysesResponseItem = zod.object({
   "id": zod.string().uuid(),
   "role": zod.enum(['user', 'assistant']),
   "content": zod.string().max(listDocumentAnalysesResponseMessagesItemContentMax),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "compareRegulations": zod.boolean().optional(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quote": zod.string()
+})).optional()
 }))
 })
 export const ListDocumentAnalysesResponse = zod.array(ListDocumentAnalysesResponseItem)
@@ -421,7 +427,13 @@ export const AnalyzeVaultDocumentResponse = zod.object({
   "id": zod.string().uuid(),
   "role": zod.enum(['user', 'assistant']),
   "content": zod.string().max(analyzeVaultDocumentResponseMessagesItemContentMax),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "compareRegulations": zod.boolean().optional(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quote": zod.string()
+})).optional()
 }))
 })
 
@@ -432,11 +444,12 @@ export const ChatDocumentAnalysisParams = zod.object({
 
 export const chatDocumentAnalysisBodyQuestionMax = 2000;
 
-
+export const chatDocumentAnalysisBodyCompareRegulationsDefault = false;
 
 export const ChatDocumentAnalysisBody = zod.object({
   "question": zod.string().min(1).max(chatDocumentAnalysisBodyQuestionMax),
-  "consent": zod.literal(true)
+  "consent": zod.literal(true),
+  "compareRegulations": zod.boolean().default(chatDocumentAnalysisBodyCompareRegulationsDefault)
 })
 
 export const chatDocumentAnalysisResponsePartsItemIndexMin = 0;
@@ -637,7 +650,13 @@ export const ChatDocumentAnalysisResponse = zod.object({
   "id": zod.string().uuid(),
   "role": zod.enum(['user', 'assistant']),
   "content": zod.string().max(chatDocumentAnalysisResponseMessagesItemContentMax),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "compareRegulations": zod.boolean().optional(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "quote": zod.string()
+})).optional()
 }))
 })
 

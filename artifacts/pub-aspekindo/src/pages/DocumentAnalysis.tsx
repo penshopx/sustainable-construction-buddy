@@ -83,7 +83,13 @@ function reportMarkdown(a: Analysis) {
   r.risks.length ? r.risks.forEach(k => L.push(`### ${k.title} (${SEVERITY[k.severity]?.label ?? k.severity})`, ``, `Bukti: ${k.evidence || "-"} (${sourceLabel(k.source)})`, ``, `Rekomendasi: ${k.recommendation || "-"}`, ``)) : L.push(`Tidak ada risiko yang dicatat.`);
   L.push(``, `## Regulasi Terkait`, ``);
   r.regulations.length ? r.regulations.forEach(g => L.push(`- **${g.title}**${g.evidence ? ` — ${g.evidence}` : ""}${g.note ? ` (${g.note})` : ""}${g.source ? ` (${sourceLabel(g.source)})` : ""}`)) : L.push(`Tidak ada regulasi yang dicatat.`);
-  if (a.messages.length) { L.push(``, `## Tanya Jawab`, ``); a.messages.forEach(m => L.push(`**${m.role === "user" ? "Pertanyaan" : "Jawaban AI"}** (${formatDate(m.createdAt)})`, ``, m.content, ``)); }
+  if (a.messages.length) {
+    L.push(``, `## Tanya Jawab`, ``);
+    a.messages.forEach(m => {
+      L.push(`**${m.role === "user" ? "Pertanyaan" : "Jawaban AI"}** (${formatDate(m.createdAt)})${m.compareRegulations ? " — Perbandingan referensi" : ""}`, ``, m.content, ``);
+      m.sources?.forEach((s, i) => L.push(`[${i + 1}] ${s.name}`, "", s.quote, ""));
+    });
+  }
   L.push(``, `---`, `Dihasilkan AI melalui PUB ASPEKINDO Bedah Dokumen. Wajib diverifikasi terhadap dokumen asli. Bukan sertifikasi resmi maupun nasihat hukum.`);
   return L.join("\n");
 }
@@ -197,6 +203,8 @@ function Workspace() {
   const [ocrConsent, setOcrConsent] = useState(false);
   const [autoConsent, setAutoConsent] = useState(false);
   const [question, setQuestion] = useState("");
+  const [compareRegulations, setCompareRegulations] = useState(false);
+  useEffect(() => { setCompareRegulations(false); }, [docId, current?.id]);
   const [chatError, setChatError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -263,7 +271,7 @@ function Workspace() {
     const sendingDoc = docId;
     if (!current || !aiConsent || !q || chat.isPending) return;
     setChatError(null);
-    try { await chat.mutateAsync({ id: current.id, question: q }); if (alive.current && selectedId.current === sendingDoc) setQuestion(value => value.trim() === q ? "" : value); }
+    try { await chat.mutateAsync({ id: current.id, question: q, compareRegulations }); if (alive.current && selectedId.current === sendingDoc) setQuestion(value => value.trim() === q ? "" : value); }
     catch (err) { if (alive.current && selectedId.current === sendingDoc) setChatError(analysisError(err)); }
   };
 
@@ -559,7 +567,16 @@ function Workspace() {
                         : current.messages.map(m => (
                           <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`} data-testid={`message-${m.role}-${m.id}`}>
                             <div className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "rounded-br-sm bg-pub-navy text-white" : "rounded-bl-sm bg-muted"}`}>
+                              {m.compareRegulations && <p className="mb-2 text-xs font-semibold">Perbandingan referensi · bukan keputusan kepatuhan</p>}
                               {m.role === "user" ? <p className="whitespace-pre-wrap">{m.content}</p> : <MarkdownRenderer className="prose prose-sm max-w-none dark:prose-invert">{m.content}</MarkdownRenderer>}
+                              {!!m.sources?.length && <details className="mt-3 border-t border-border pt-2">
+                                <summary className="cursor-pointer text-xs font-semibold">Lihat kutipan dokumen dan referensi yang dikirim ke AI</summary>
+                                <p className="mt-2 text-xs text-muted-foreground">Daftar ini menunjukkan bahan yang diberikan, bukan bukti bahwa setiap kesimpulan AI benar. Periksa kecocokan kutipannya.</p>
+                                {m.sources.map((source, i) => <div key={`${source.id}:${i}`} className="mt-3">
+                                  <p className="break-words text-xs font-semibold">[{i + 1}] {source.name}</p>
+                                  <pre className="mt-1 max-h-48 overflow-y-auto whitespace-pre-wrap break-words font-sans text-xs">{source.quote}</pre>
+                                </div>)}
+                              </details>}
                               <p className={`mt-1 font-mono text-[10px] ${m.role === "user" ? "text-white/50" : "text-muted-foreground"}`}>{formatDate(m.createdAt)}</p>
                             </div>
                           </div>
@@ -568,6 +585,15 @@ function Workspace() {
                       <div ref={chatEnd} />
                     </div>
                     <form onSubmit={sendChat} className="border-t border-border p-4">
+                      <label className="mb-2 flex items-start gap-2 text-sm">
+                        <Checkbox checked={compareRegulations} onCheckedChange={value => setCompareRegulations(value === true)} disabled={chat.isPending} data-testid="checkbox-compare-regulations" />
+                        <span>Bandingkan dengan referensi regulasi</span>
+                      </label>
+                      {compareRegulations && <p className="mb-3 text-xs text-muted-foreground">
+                        Sebutkan topik dan sumber, misalnya “Bandingkan ketentuan PUB dalam dokumen dengan KB18 dan KB46”.
+                        Kirim hanya jika Anda menyetujui pemrosesan AI di bawah. Kutipan eksternal dipisahkan dari dokumen Anda;
+                        korpus bukan jaminan regulasi terkini. Tidak mengubah hasil analisis utama.
+                      </p>}
                       {!aiConsent && <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3 w-3" />Centang persetujuan AI pada kartu dokumen di atas untuk bertanya.</p>}
                       {chatError && <p role="alert" className="mb-2 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive" data-testid="text-chat-error">{chatError}</p>}
                       <div className="flex gap-2">

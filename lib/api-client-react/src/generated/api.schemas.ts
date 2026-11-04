@@ -34,6 +34,7 @@ export interface DocumentAnalysisChatInput {
      */
   question: string;
   consent: true;
+  compareRegulations?: boolean;
 }
 
 export type DocumentAnalysisChecklistStatus = typeof DocumentAnalysisChecklistStatus[keyof typeof DocumentAnalysisChecklistStatus];
@@ -127,12 +128,20 @@ export const DocumentAnalysisMessageRole = {
   assistant: 'assistant',
 } as const;
 
+export interface VaultSource {
+  id: string;
+  name: string;
+  quote: string;
+}
+
 export interface DocumentAnalysisMessage {
   id: string;
   role: DocumentAnalysisMessageRole;
   /** @maxLength 32000 */
   content: string;
   createdAt: string;
+  compareRegulations?: boolean;
+  sources?: VaultSource[];
 }
 
 export type DocumentAnalysisPartStatus = typeof DocumentAnalysisPartStatus[keyof typeof DocumentAnalysisPartStatus];
@@ -495,12 +504,6 @@ export interface VaultQuestionInput {
   assistantId?: string;
   /** @maxItems 10 */
   documentIds?: string[];
-}
-
-export interface VaultSource {
-  id: string;
-  name: string;
-  quote: string;
 }
 
 export interface VaultAnswer {

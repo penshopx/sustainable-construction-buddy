@@ -63,8 +63,8 @@ export function useDocumentAnalysis() {
     onSettled: refresh,
   });
   const chat = useMutation({
-    mutationFn: async ({ id, question }: { id: string; question: string }) =>
-      chatDocumentAnalysis(id, { question, consent: true }, await auth()),
+    mutationFn: async ({ id, question, compareRegulations = false }: { id: string; question: string; compareRegulations?: boolean }) =>
+      chatDocumentAnalysis(id, { question, consent: true, compareRegulations }, await auth()),
     onSettled: refresh,
   });
   const remove = useMutation({

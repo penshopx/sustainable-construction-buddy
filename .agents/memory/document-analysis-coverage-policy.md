@@ -14,3 +14,9 @@ Pengujian analisis dokumen panjang memakai dokumen sintetis lokal, bukan dokumen
 **Why:** Pengguna menetapkan batas data pengujian tersebut. Fixture penyedia menguji protokol dan retensi bukti, bukan akurasi model nyata.
 
 **How to apply:** Pisahkan bukti ekstraksi parser asli, pengujian kontrak dengan penyedia tiruan, dan pengukuran model berbayar. Yang terakhir membutuhkan persetujuan biaya tersendiri.
+
+Perbandingan dengan knowledge base adalah pilihan eksplisit, terpisah dari telaah isi dokumen. Bahan eksternal tidak boleh dianggap sebagai klausul dokumen pengguna atau mengubah temuan analisis utama secara diam-diam.
+
+**Why:** Pengguna menyetujui penambahan perbandingan dengan kutipan dokumen dan referensi yang dipisahkan; materi implementasi hanya salah satu rujukan, bukan keputusan kepatuhan.
+
+**How to apply:** Pertahankan mode dokumen-saja sebagai bawaan dan simpan bahan perbandingan sebagai snapshot privat agar kutipan historis tidak berubah saat korpus diperbarui. Daftar bahan yang dikirim bukan bukti ketepatan kesimpulan model.

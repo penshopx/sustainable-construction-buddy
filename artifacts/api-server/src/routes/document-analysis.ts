@@ -17,7 +17,7 @@ documentAnalysisRouter.post("/", async (req, res) => {
 documentAnalysisRouter.post("/:id/chat", async (req, res) => {
   const { id } = ChatDocumentAnalysisParams.parse(req.params);
   const input = ChatDocumentAnalysisBody.parse(req.body);
-  res.json(AnalyzeVaultDocumentResponse.parse(await chatAnalysis(res.locals.vaultOwner, id, input.question)));
+  res.json(AnalyzeVaultDocumentResponse.parse(await chatAnalysis(res.locals.vaultOwner, id, input.question, input.compareRegulations)));
 });
 documentAnalysisRouter.delete("/:id", async (req, res) => {
   const { id } = DeleteDocumentAnalysisParams.parse(req.params);

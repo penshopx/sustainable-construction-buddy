@@ -264,7 +264,7 @@ export const chatDocumentAnalysis = async (id: string,
 
 
 
-export const getChatDocumentAnalysisMutationOptions = <TError = ErrorType<unknown>,
+export const getChatDocumentAnalysisMutationOptions = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chatDocumentAnalysis>>, TError,{id: string;data: BodyType<DocumentAnalysisChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof chatDocumentAnalysis>>, TError,{id: string;data: BodyType<DocumentAnalysisChatInput>}, TContext> => {
 
@@ -293,9 +293,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type ChatDocumentAnalysisMutationResult = NonNullable<Awaited<ReturnType<typeof chatDocumentAnalysis>>>
     export type ChatDocumentAnalysisMutationBody = BodyType<DocumentAnalysisChatInput>
-    export type ChatDocumentAnalysisMutationError = ErrorType<unknown>
+    export type ChatDocumentAnalysisMutationError = ErrorType<void>
 
-    export const useChatDocumentAnalysis = <TError = ErrorType<unknown>,
+    export const useChatDocumentAnalysis = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof chatDocumentAnalysis>>, TError,{id: string;data: BodyType<DocumentAnalysisChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof chatDocumentAnalysis>>,

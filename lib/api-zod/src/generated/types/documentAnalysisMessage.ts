@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DocumentAnalysisMessageRole } from './documentAnalysisMessageRole';
+import type { VaultSource } from './vaultSource';
 
 export interface DocumentAnalysisMessage {
   id: string;
@@ -13,4 +14,6 @@ export interface DocumentAnalysisMessage {
   /** @maxLength 32000 */
   content: string;
   createdAt: Date;
+  compareRegulations?: boolean;
+  sources?: VaultSource[];
 }

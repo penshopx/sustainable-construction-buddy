@@ -57,6 +57,10 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DocumentAnalysis" }
+        "422":
+          description: No matching reference excerpts; no AI request was sent
+        "502":
+          description: Invalid AI response or unavailable citation; no messages persisted
   /ruang-simpan/bedah-dokumen/{id}:
     delete:
       operationId: deleteDocumentAnalysis
@@ -973,6 +977,7 @@ components:
       properties:
         question: { type: string, minLength: 1, maxLength: 2000 }
         consent: { type: boolean, enum: [true] }
+        compareRegulations: { type: boolean, default: false }
     DocumentAnalysisChecklist:
       type: object
       required: [item, status, evidence]
@@ -1024,6 +1029,10 @@ components:
         role: { type: string, enum: [user, assistant] }
         content: { type: string, maxLength: 32000 }
         createdAt: { type: string, format: date-time }
+        compareRegulations: { type: boolean }
+        sources:
+          type: array
+          items: { $ref: "#/components/schemas/VaultSource" }
     DocumentAnalysis:
       type: object
       required: [id, documentId, documentName, createdAt, model, sourceCharacters, analyzedCharacters, truncated, result, messages]

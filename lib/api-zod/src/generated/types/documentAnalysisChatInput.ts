@@ -13,4 +13,5 @@ export interface DocumentAnalysisChatInput {
      */
   question: string;
   consent: true;
+  compareRegulations?: boolean;
 }

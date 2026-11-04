@@ -180,6 +180,64 @@ test("deleted or changed documents cannot receive an in-flight analysis", async 
   }
 });
 
+test("comparison is explicit, separates source snapshots and survives reload without changing the report", async t => {
+  const h = fixture(), request = await api(t, h);
+  const a = await service.analyzeDocument("owner", h.id);
+  h.calls.length = 0;
+  h.ai = async (...args) => {
+    h.calls.push(args);
+    return "## Isi dokumen pengguna\nMasa pelaksanaan 90 hari [1].\n## Referensi eksternal\nPeriksa kutipan [2].\n## Hal yang perlu diverifikasi\nBukan keputusan kepatuhan.";
+  };
+  const response = await request(`/${a.id}/chat`, "owner", "POST", {
+    question: "Bandingkan KB46 dan KB18 terkait PUB dalam dokumen ini.", consent: true, compareRegulations: true,
+  });
+  assert.equal(response.status, 200);
+  const updated = await response.json();
+  assert.deepEqual(updated.result, a.result);
+  const [user, reply] = updated.messages;
+  assert.equal(user.compareRegulations, true);
+  assert.equal(reply.compareRegulations, true);
+  assert.equal(reply.sources[0].quote, h.doc.text);
+  assert.match(reply.sources[0].name, /DOKUMEN PENGGUNA/);
+  assert.ok(reply.sources.slice(1).every(s => /REFERENSI EKSTERNAL.*halaman PDF fisik/.test(s.name)));
+  for (const id of ["KB46", "KB18"]) assert.ok(reply.sources.some(s => s.name.includes(id)));
+  assert.ok(reply.sources.slice(1).reduce((sum, s) => sum + s.quote.length, 0) <= 5000);
+  assert.deepEqual(h.calls[0][2], reply.sources);
+  // The provider only receives the first 2,000 instruction characters.
+  const sentPolicy = h.calls[0][1].slice(0, 2000);
+  assert.match(sentPolicy, /Pisahkan jawaban/);
+  assert.match(sentPolicy, /tidak otomatis turunan/);
+  assert.match(sentPolicy, /bukan keputusan resmi/);
+  assert.deepEqual((await (await request()).json())[0].messages, updated.messages);
+  assert.deepEqual(await (await request("", "other")).json(), []);
+  const privateRead = await request(`/${a.id}/chat`, "admin", "POST", {
+    question: "KB46", consent: true, compareRegulations: true,
+  });
+  assert.equal(privateRead.status, 404);
+  assert.equal(h.calls.length, 1);
+});
+
+test("missing comparison evidence, invalid options and provider failures do not persist messages", async t => {
+  const h = fixture(), request = await api(t, h);
+  const a = await service.analyzeDocument("owner", h.id);
+  h.calls.length = 0;
+  for (const [body, status] of [
+    [{ question: "KB999 halaman 1", consent: true, compareRegulations: true }, 422],
+    [{ question: "KB46", consent: false, compareRegulations: true }, 400],
+    [{ question: "KB46", consent: true, compareRegulations: "true" }, 400],
+  ]) assert.equal((await request(`/${a.id}/chat`, "owner", "POST", body)).status, status);
+  assert.equal(h.calls.length, 0, "missing evidence must not invoke the paid provider");
+  h.ai = async () => "Klaim dengan sumber tidak tersedia [99].";
+  assert.equal((await request(`/${a.id}/chat`, "owner", "POST", {
+    question: "KB46 implementasi", consent: true, compareRegulations: true,
+  })).status, 502);
+  h.ai = async () => { throw Object.assign(new Error("Provider unavailable"), { status: 503 }); };
+  assert.equal((await request(`/${a.id}/chat`, "owner", "POST", {
+    question: "KB46 implementasi", consent: true, compareRegulations: true,
+  })).status, 503);
+  assert.equal((await (await request()).json())[0].messages.length, 0);
+});
+
 test("chat persists only after success, respects source ownership and can be exported after reload", async t => {
   const h = fixture(), request = await api(t, h);
   const a = await service.analyzeDocument("owner", h.id);
@@ -190,6 +248,8 @@ test("chat persists only after success, respects source ownership and can be exp
   const updated = await response.json();
   assert.deepEqual(updated.messages.map(m => m.role), ["user", "assistant"]);
   assert.equal(updated.messages[1].content, "Masa pelaksanaan 90 hari [1].");
+  assert.equal(updated.messages[1].compareRegulations, false);
+  assert.equal(updated.messages[1].sources, undefined);
   const reloaded = await (await request()).json();
   assert.deepEqual(reloaded[0].messages, updated.messages);
   h.ai = async () => { throw Object.assign(new Error("Provider unavailable"), { status: 503 }); };
