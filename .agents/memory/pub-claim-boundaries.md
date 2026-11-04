@@ -21,3 +21,9 @@ Sertifikat yang diterbitkan aplikasi harus disebut sertifikat pembelajaran atau 
 **Why:** Semua aplikasi terkait memang dikembangkan dalam satu ekosistem dan direncanakan untuk terintegrasi, tetapi materi komunikasi harus tetap membedakan kepemilikan pengembangan dari integrasi teknis yang sudah berfungsi.
 
 **How to apply:** Saat mengubah landing page, presentasi, proposal, atau copy pemasaran, gunakan posisi “satu ekosistem pengembangan, integrasi bertahap”; tetap gunakan “PUB sebagai kompas, bukan kanal resmi” dan labeli integrasi masa depan sebagai roadmap.
+
+Materi diskusi implementasi Permen PU 6/2025 yang diunggah pengguna merupakan salah satu referensi implementasi, bersama regulasi turunannya dan Permen PUPR 7/2024 tentang PUB, bukan sumber tunggal.
+
+**Why:** Pengguna menegaskan bahwa file tersebut menjadi “salah satu referensi”, termasuk untuk pembacaan bersama Permen 7/2024.
+
+**How to apply:** Bedakan paparan dari naskah normatif; jangan menyimpulkan bahwa Permen PUPR 7/2024 adalah turunan Permen PU 6/2025 hanya dari keterkaitan pembahasannya.

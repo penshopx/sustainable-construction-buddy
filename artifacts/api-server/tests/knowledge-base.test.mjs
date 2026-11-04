@@ -243,6 +243,21 @@ test("scanned decision pages are honestly labelled visual summaries and presenta
   assert.match(corpus.documents.find(doc => doc.id === "KB06").note, /KPTS\/M\/2026/);
 });
 
+test("implementation reference complements the PU rules, implementing decision and PUB without inventing legal hierarchy", () => {
+  const context = knowledgeContext("Bandingkan KB46 KB19 KB04 KB18 terkait implementasi, standar sertifikasi dan PUB");
+  assert.match(context, /bukan rujukan tunggal atau pengganti naskah resmi/);
+  assert.match(context, /Permen PUPR 7\/2024 \(KB18\)/);
+  assert.match(context, /Jangan menyebut Permen PUPR 7\/2024 sebagai turunan/);
+  assert.match(context, /didukung kutipan substantif masing-masing sumber/);
+  // Compare each legal source with the discussion separately: four full excerpts
+  // plus the catalog can exceed the bounded chat context.
+  for (const id of ["KB19", "KB04", "KB18"]) {
+    const sources = contextSources(`Bandingkan KB46 ${id} terkait implementasi, standar sertifikasi dan PUB`);
+    assert.deepEqual(new Set(sources.map(source => source.id)), new Set(["KB46", id]));
+    assert.ok(sources.every(source => source.text.length > 0 && source.page > 0));
+  }
+});
+
 test("retrieval returns bounded original page excerpts, never nonexistent pages or synthetic summaries", () => {
   const results = retrieveKnowledge("kapan konversi SBU enam bulan surat pemberlakuan penyesuaian skema LSBU");
   assert.ok(results.length > 0 && results.length <= 6);
