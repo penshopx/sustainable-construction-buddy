@@ -531,17 +531,33 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
         await route.abort("failed");
         return;
       }
-      assessment.successfulSubmissions = (assessment.successfulSubmissions ?? 0) + 1;
-      assessment.submitted = true;
       const answers = assessment.submission?._answers;
-      if (assessment.submission?._pre_test_id === assessmentId &&
-          Array.isArray(answers) && answers.length === assessmentQuestions.length &&
-          answers.every((answer, index) => answer.question_id === assessmentQuestions[index].id &&
-            Number.isInteger(answer.selected_answer) &&
-            answer.selected_answer >= -1 && answer.selected_answer < assessmentQuestions[index].options.length)) {
-        const correct = answers.filter((answer, index) => answer.selected_answer === index).length;
+      const matchesRoster = Array.isArray(answers) &&
+        answers.length === assessmentQuestions.length &&
+        new Set(answers.map((answer) => answer?.question_id)).size === assessmentQuestions.length &&
+        answers.every((answer) => {
+          const question = assessmentQuestions.find((item) => item.id === answer?.question_id);
+          return question && Number.isInteger(answer.selected_answer) &&
+            answer.selected_answer >= -1 && answer.selected_answer < question.options.length;
+        });
+      if (assessment.submission?._pre_test_id !== assessmentId || !assessment.started) {
+        data = { error: "Pre-test not found" };
+      } else if (!matchesRoster) {
+        data = { error: "Invalid assessment questions" };
+      } else if (assessment.submitted) {
+        data = assessment.result;
+      } else if (!assessment.draft) {
+        data = { error: "Assessment draft unavailable; restart assessment" };
+      } else {
+        // Match the server authority boundary: the payload validates the roster,
+        // but only the last committed draft supplies choices, even after expiry.
+        const effectiveAnswers = assessmentQuestions.map((question) =>
+          assessment.draft.answers?.[question.id] ?? -1);
+        const correct = effectiveAnswers.filter((answer, index) => answer === index).length;
         const score = Math.round(correct / assessmentQuestions.length * 100);
         assessment.result = { score, level: "Pemula", correct, total: assessmentQuestions.length };
+        assessment.successfulSubmissions = (assessment.successfulSubmissions ?? 0) + 1;
+        assessment.submitted = true;
         data = assessment.result;
       }
     } else if (url.pathname.startsWith("/rest/v1/") &&
@@ -1201,6 +1217,50 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     });
     expect(unexpected).toEqual([]);
   });
+
+  for (const expired of [false, true]) {
+    test(`nilai memakai draf server meski payload browser berbeda ${expired ? "setelah" : "sebelum"} tenggat`, async ({ page }) => {
+      const assessment = { started: null, checks: [], submissions: [], submitted: false };
+      const unexpected = await installAuthenticatedFixture(page, { assessment });
+      await page.goto("/assessment");
+      await page.getByRole("button", { name: "Mulai Assessment" }).click();
+      await page.getByRole("button", { name: /Dokumen legalitas/ }).click();
+      await page.getByRole("button", { name: "Selanjutnya" }).click();
+      await page.getByRole("button", { name: /Lewati evaluasi/ }).click();
+      await page.getByRole("button", { name: "Review Jawaban" }).click();
+      await expect(page.getByRole("heading", { name: "Review Jawaban" })).toBeVisible();
+      const savedAnswers = Object.fromEntries(assessmentQuestions.map((question) => [question.id, 0]));
+      await expect.poll(() => assessment.draft?.answers).toEqual(savedAnswers);
+
+      // Alter the wire payload only, after the UI has synchronized its draft.
+      // Moving server time here also avoids relying on the browser's countdown.
+      const changedPayloads = [];
+      await page.route(`https://${SUPABASE_HOST}/rest/v1/rpc/submit_assessment`, async (route) => {
+        const payload = route.request().postDataJSON();
+        if (expired) assessment.serverTimeOffset = Date.parse(assessment.deadlineAt) - Date.now() + 1_000;
+        expect(Date.now() + (assessment.serverTimeOffset ?? 0) >= Date.parse(assessment.deadlineAt)).toBe(expired);
+        const changed = {
+          ...payload,
+          _answers: assessmentQuestions.map((question, index) => ({
+            question_id: question.id, selected_answer: index,
+          })),
+        };
+        changedPayloads.push(changed);
+        await route.fallback({ postData: JSON.stringify(changed) });
+      });
+      await page.getByRole("button", { name: "Selesai & Lihat Hasil" }).click();
+      await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+      await expect(page.getByText("Skor: 50", { exact: true })).toBeVisible();
+      await expect(page.getByText("1 dari 2 jawaban benar", { exact: true })).toBeVisible();
+      expect(changedPayloads).toHaveLength(1);
+      expect(assessment.submissions).toEqual(changedPayloads);
+      expect(assessment.submission._answers.map((answer) => answer.selected_answer)).toEqual([0, 1]);
+      expect(assessment.draft.answers).toEqual(savedAnswers);
+      expect(assessment.result).toEqual({ score: 50, level: "Pemula", correct: 1, total: 2 });
+      expect(assessment.successfulSubmissions).toBe(1);
+      expect(unexpected).toEqual([]);
+    });
+  }
 
   test("jawaban tetap tersedia dan submit dapat diulang setelah jaringan gagal", async ({ page }) => {
     const assessment = {
