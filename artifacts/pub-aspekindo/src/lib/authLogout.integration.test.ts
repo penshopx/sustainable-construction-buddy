@@ -50,6 +50,11 @@ test.after(async () => {
   delete (globalThis as any).__authLogoutRouter;
 });
 
+test.beforeEach(() => {
+  navigations.length = 0;
+  (globalThis as any).__authLogoutRouter.params = new URLSearchParams("logout=1&next=/dashboard");
+});
+
 function deferred() {
   let resolve!: () => void;
   let reject!: (error: Error) => void;
@@ -123,6 +128,47 @@ test("menunggu pemuatan auth dan mengabaikan hasil logout setelah halaman diting
   await act(async () => { pending.resolve(); });
   assert.equal(navigations.length, 0);
 });
+
+for (const outcome of ["resolve", "reject"] as const) {
+  test(`logout lama ${outcome === "resolve" ? "berhasil" : "ditolak"} tidak mengganggu tujuan baru saat query berubah tanpa unmount`, async (t) => {
+    const pending = deferred();
+    let calls = 0;
+    const signOut = () => { calls++; return pending.promise; };
+    let root!: ReactTestRenderer;
+    t.after(async () => { if (root) await act(async () => { root.unmount(); }); });
+
+    await act(async () => { root = create(view(signOut)); });
+    const authInstance = root.root.findByType(modules.Auth);
+    assert.equal(calls, 1);
+    assert.match(JSON.stringify(root.toJSON()), /Sedang keluar/);
+    assert.deepEqual(navigations, []);
+
+    // React Router can change search params while retaining the same Auth instance.
+    await act(async () => {
+      (globalThis as any).__authLogoutRouter.params = new URLSearchParams("next=/courses&confirmed=1");
+      root.update(view(signOut));
+    });
+    assert.strictEqual(root.root.findByType(modules.Auth), authInstance, "Auth must not be remounted");
+    assert.deepEqual(navigations, [["/courses", { replace: true }]], "the new query chooses the destination");
+    assert.equal(root.root.findAllByType("form").length, 1);
+    assert.match(JSON.stringify(root.toJSON()), /Email berhasil dikonfirmasi/);
+    assert.doesNotMatch(JSON.stringify(root.toJSON()), /Sedang keluar/);
+    assert.equal(root.root.findAllByProps({ role: "alert" }).length, 0);
+    const destinationScreen = root.toJSON();
+
+    await act(async () => {
+      if (outcome === "resolve") pending.resolve();
+      else pending.reject(new Error("late logout rejection"));
+    });
+
+    assert.strictEqual(root.root.findByType(modules.Auth), authInstance);
+    assert.equal(calls, 1, "changing the query must not restart logout");
+    assert.deepEqual(navigations, [["/courses", { replace: true }]], "late logout must not redirect to /auth");
+    assert.equal(root.root.findAllByProps({ role: "alert" }).length, 0, "late rejection must not show an error");
+    assert.doesNotMatch(JSON.stringify(root.toJSON()), /Logout belum terkonfirmasi|Sesi mungkin masih aktif|late logout rejection/);
+    assert.deepEqual(root.toJSON(), destinationScreen, "the new screen must remain unchanged");
+  });
+}
 
 test("timeout menampilkan status sesi belum pasti; retry menunggu operasi SDK yang sama", async (t) => {
   navigations.length = 0;
