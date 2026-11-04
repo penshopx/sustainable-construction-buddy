@@ -150,6 +150,12 @@ async function mount(options: {
     }).then(resolve);
     return query;
   };
+  await renderAssessment();
+}
+
+// Render a fresh component without resetting the server fixture or browser storage.
+// Reload tests must retain the RPC closure, saved draft, and storage failure.
+async function renderAssessment() {
   await act(async () => {
     root = create(React.createElement(AuthContext.Provider, { value: {
       user: { id: "owner" }, refreshProfile: async () => undefined,
@@ -326,6 +332,71 @@ test("perubahan ketika simpan berjalan ikut disimpan sebelum indikator tersimpan
 });
 
 for (const storageFailure of ["security-access", "security-methods", "quota"] as const) {
+  for (const confirmed of [true, false]) {
+    test(`${storageFailure}: setelah remount jawaban ${confirmed ? "terkonfirmasi pulih dari server" : "belum terkonfirmasi tidak dianggap tersimpan"}`, async (t) => {
+      t.mock.timers.enable({ apis: ["setTimeout"] });
+      try {
+        await mount({ storageFailure, unanswered: true });
+        const originalRpc = api.rpc;
+        api.rpc = async (name: string, args: any) => name === "check_question_answer"
+          ? { data: { is_correct: true, correct_answer: 0, explanation: "Jawaban A benar" } }
+          : originalRpc(name, args);
+
+        await act(async () => { await buttonNamed("AA").props.onClick(); });
+        assert.equal(buttonNamed("AA").props.disabled, true);
+        assert.match(buttonNamed("AA").props.className, /bg-pub-emerald\/5/);
+        assert.equal(buttonNamed("Review Jawaban").props.disabled, false);
+        assert.deepEqual(saved.answers, {}, "answer feedback is not a draft-save acknowledgement");
+        assert.match(text(), /Penyimpanan tertunda/);
+        assert.equal(storage.size, 0, "failed browser writes cannot provide a reload backup");
+
+        if (confirmed) {
+          fail = false;
+          await online();
+          assert.deepEqual(saved.answers, { q1: 0 });
+          assert.equal(saved.answerResults.q1.selected, 0);
+          assert.match(text(), /Progres tersimpan di server/);
+        } else {
+          assert.doesNotMatch(text(), /Progres tersimpan di server/);
+        }
+        const persistedDraft = structuredClone(saved);
+        const savesBeforeReload = calls;
+        const storageAttemptsBeforeReload = { ...storageAttempts };
+        assert.equal(storage.size, 0);
+
+        await act(async () => { root.unmount(); });
+        // Block fresh saves so restoration cannot be mistaken for a new acknowledgement.
+        fail = true;
+        await renderAssessment();
+        assert.equal(rpcNames.filter(name => name === "get_active_assessment_draft").length, 2);
+        assert.equal(calls, savesBeforeReload + 1);
+        assert.deepEqual(saved, persistedDraft, "remount must preserve the server's actual acknowledged snapshot");
+        assert.equal(storage.size, 0);
+        if (storageFailure === "security-access") {
+          assert.ok(storageAttempts.access > storageAttemptsBeforeReload.access);
+        } else {
+          assert.ok(storageAttempts.read > storageAttemptsBeforeReload.read);
+          assert.ok(storageAttempts.write > storageAttemptsBeforeReload.write);
+        }
+        assert.doesNotMatch(text(), /Assessment lama perlu dimulai ulang/);
+        assert.doesNotMatch(text(), /Progres tersimpan di server/);
+        assert.equal(buttonNamed("AA").props.disabled, confirmed);
+        assert.equal(buttonNamed("BB").props.disabled, confirmed);
+        assert.equal(buttonNamed("Review Jawaban").props.disabled, !confirmed);
+        if (confirmed) {
+          assert.match(buttonNamed("AA").props.className, /bg-pub-emerald\/5/);
+          assert.doesNotMatch(buttonNamed("BB").props.className, /bg-pub-emerald\/5/);
+        } else {
+          assert.doesNotMatch(buttonNamed("AA").props.className, /bg-pub-emerald\/5/);
+          assert.doesNotMatch(buttonNamed("BB").props.className, /bg-pub-emerald\/5/);
+        }
+      } finally {
+        if (root) await act(async () => { root.unmount(); });
+        t.mock.timers.reset();
+      }
+    });
+  }
+
   test(`${storageFailure}: cadangan gagal tidak menghentikan retry atau mendahului konfirmasi jawaban terbaru`, async (t) => {
     t.mock.timers.enable({ apis: ["setTimeout"] });
     try {
