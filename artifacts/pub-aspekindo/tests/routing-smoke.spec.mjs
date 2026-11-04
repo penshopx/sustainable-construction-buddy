@@ -894,6 +894,108 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     });
   }
 
+  test("storage logout lama tanpa BroadcastChannel tidak menutup identitas baru", async ({ page, context }) => {
+    await context.addInitScript(() => {
+      Object.defineProperty(window, "BroadcastChannel", { value: undefined, configurable: true });
+    });
+    const accounts = new Map([
+      [member.id, { user: member, assessment: {} }],
+      [secondMember.id, { user: secondMember, assessment: {} }],
+    ]);
+    const unexpected = await installAuthenticatedFixture(page, { accounts });
+    let logoutRequests = 0;
+    context.on("request", request => {
+      if (request.url().startsWith(`https://${SUPABASE_HOST}/auth/v1/logout`) &&
+          request.method() === "POST") logoutRequests++;
+    });
+    await page.goto("/dashboard");
+    await expect(page.getByRole("heading", { name: member.user_metadata.full_name, exact: true })).toBeVisible();
+    const other = await context.newPage();
+    try {
+      const otherUnexpected = await installAuthenticatedFixture(other, { accounts });
+      await other.addInitScript(() => {
+        window.__heldTokenRemovals = [];
+        window.__deliveredTokenRemovals = 0;
+        window.__releaseTokenRemoval = () => {
+          const event = window.__heldTokenRemovals.shift();
+          if (!event) throw new Error("No queued token removal");
+          // Replay the captured cross-tab event, not an SDK auth callback.
+          window.__replayingTokenRemoval = true;
+          try {
+            window.dispatchEvent(new StorageEvent("storage", { ...event, storageArea: localStorage }));
+          }
+          finally { window.__replayingTokenRemoval = false; }
+        };
+        // Registered before AuthProvider: defer only token-removal delivery,
+        // while shared storage itself changes normally in the other tab.
+        window.addEventListener("storage", event => {
+          if (event.storageArea !== localStorage ||
+              event.key !== "sb-ci-playwright-auth-token" || event.newValue !== null) return;
+          if (window.__replayingTokenRemoval) {
+            window.__deliveredTokenRemovals++;
+            return;
+          }
+          window.__heldRemovalWasTrusted = event.isTrusted;
+          // Copy payload while the native event is being dispatched; do not
+          // retain the browser-owned Storage wrapper for later redispatch.
+          window.__heldTokenRemovals.push({
+            key: event.key, oldValue: event.oldValue, newValue: event.newValue, url: event.url,
+          });
+          event.stopImmediatePropagation();
+        });
+      });
+      await other.goto("/dashboard");
+      await expect(other.getByRole("heading", { name: member.user_metadata.full_name, exact: true })).toBeVisible();
+      expect(await other.evaluate(() => typeof BroadcastChannel)).toBe("undefined");
+
+      await page.getByRole("button", { name: /Keluar/ }).click();
+      await expect(page).toHaveURL(/\/auth$/);
+      await expect.poll(() => other.evaluate(() => window.__heldTokenRemovals.length)).toBe(1);
+      expect(await other.evaluate(() => ({
+        trusted: window.__heldRemovalWasTrusted,
+        oldUser: JSON.parse(window.__heldTokenRemovals[0].oldValue).user.id,
+        token: localStorage.getItem("sb-ci-playwright-auth-token"),
+        delivered: window.__deliveredTokenRemovals,
+      }))).toEqual({ trusted: true, oldUser: member.id, token: null, delivered: 0 });
+      // The receiver has not processed the old notification yet.
+      await expect(other.getByRole("heading", { name: member.user_metadata.full_name, exact: true })).toBeVisible();
+      expect(logoutRequests).toBe(1);
+
+      // Finish an explicit local logout before logging in B. No SDK request
+      // or navigation callback is held: only the cross-tab storage event is.
+      await other.getByRole("button", { name: /Keluar/ }).click();
+      await expect(other).toHaveURL(/\/auth$/);
+      // The token is already absent, so the SDK's local signOut has no
+      // session to revoke and must not send another HTTP logout request.
+      expect(logoutRequests).toBe(1);
+      await other.locator('input[type="email"]').fill(secondMember.email);
+      await other.locator('input[type="password"]').fill("test-only-password");
+      await other.getByRole("button", { name: "Masuk", exact: true }).click();
+      await expect(other).toHaveURL(/\/dashboard$/);
+      await expect(other.getByRole("heading", { name: secondMember.user_metadata.full_name, exact: true })).toBeVisible();
+      const newToken = await other.evaluate(() => localStorage.getItem("sb-ci-playwright-auth-token"));
+      expect(JSON.parse(newToken).user.id).toBe(secondMember.id);
+
+      await other.evaluate(() => window.__releaseTokenRemoval());
+      expect(await other.evaluate(() => window.__deliveredTokenRemovals)).toBe(1);
+      await expect(other).toHaveURL(/\/dashboard$/);
+      await expect(other.getByRole("heading", { name: secondMember.user_metadata.full_name, exact: true })).toBeVisible();
+      await expect(other.getByRole("heading", { name: member.user_metadata.full_name, exact: true })).toHaveCount(0);
+      expect(await other.evaluate(() => localStorage.getItem("sb-ci-playwright-auth-token"))).toBe(newToken);
+      // Cross a protected client-side navigation too: B must remain signed in
+      // with the same mounted provider, not be restored by a full page reload.
+      await other.getByText("Mulai Pre-test", { exact: true }).click();
+      await expect(other).toHaveURL(/\/assessment$/);
+      await expect(other.getByRole("heading", { name: "Pre-test Assessment" })).toBeVisible();
+      await expect(other.getByText(secondMember.user_metadata.full_name, { exact: true })).toBeVisible();
+      expect(logoutRequests).toBe(1);
+      expect(unexpected).toEqual([]);
+      expect(otherUnexpected).toEqual([]);
+    } finally {
+      await other.close();
+    }
+  });
+
   for (const channelMode of ["available", "unavailable", "throws"]) {
   test(`logout dua tab (${channelMode}) menghapus draf meskipun penyimpanan masih tertunda`, async ({ page, context }) => {
     // Each test owns an isolated browser context. Both tabs share only this

@@ -20,3 +20,9 @@ Pengujian privasi pergantian akun harus mengamati penulisan lokal sementara, buk
 **Why:** Penyimpanan akhir yang bersih dapat menyembunyikan kebocoran sementara yang kemudian ditimpa, sedangkan reload dapat membatalkan respons lama sehingga perlindungan sesi sebenarnya tidak pernah diuji.
 
 **How to apply:** Tahan respons akun lama sampai akun baru mempunyai draf sendiri; pastikan setiap penulisan sesudah logout hanya milik akun baru, lalu buktikan penyimpanan berikutnya tetap berhasil.
+
+Untuk regresi notifikasi storage yang tertunda, tangkap payload peristiwa asli dari tab lain dan kirim objek `StorageEvent` baru ketika antrean dilepas; jangan mendispatch ulang objek peristiwa yang sudah dihentikan dengan `stopImmediatePropagation`.
+
+**Why:** Dalam browser pengujian, pengiriman ulang objek yang dihentikan tidak mencapai pengamat penerima. Mengantrekan payload menjaga urutan yang diuji tanpa bergantung pada keadaan dispatch internal objek browser.
+
+**How to apply:** Buktikan notifikasi awal berasal dari browser, tahan hanya penghapusan token, tulis sesi baru lewat login, lalu lepaskan payload dengan `storageArea: localStorage` dan pastikan pengamat penerima benar-benar berjalan.
