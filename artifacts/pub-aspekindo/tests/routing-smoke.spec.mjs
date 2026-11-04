@@ -996,8 +996,9 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     }
   });
 
-  for (const channelMode of ["available", "unavailable", "throws"]) {
-  test(`logout dua tab (${channelMode}) menghapus draf meskipun penyimpanan masih tertunda`, async ({ page, context }) => {
+  for (const logoutMode of ["available", "unavailable", "throws", "storage-clear"]) {
+  const channelMode = logoutMode === "storage-clear" ? "unavailable" : logoutMode;
+  test(`logout dua tab (${logoutMode}) menghapus draf meskipun penyimpanan masih tertunda`, async ({ page, context }) => {
     // Each test owns an isolated browser context. Both tabs share only this
     // fake session; no requests may escape to a hosted Supabase project.
     await context.addInitScript((mode) => {
@@ -1022,9 +1023,11 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     const saveGate = new Promise((resolve) => { releaseSave = resolve; });
     try {
       const otherUnexpected = await installAuthenticatedFixture(other, { assessment });
-      await other.addInitScript((mode) => {
+      await other.addInitScript(({ mode, clearStorage }) => {
         window.__logoutBroadcasts = 0;
         window.__logoutStorageEvents = 0;
+        window.__receivedLogoutStorageEvents = [];
+        window.__unrelatedStorageRemovals = 0;
         window.__draftWritesAfterLogout = [];
         const originalSetItem = Storage.prototype.setItem;
         Storage.prototype.setItem = function (key, value) {
@@ -1036,12 +1039,20 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
         };
         if (mode !== "available") {
           window.addEventListener("storage", (event) => {
+            if (event.storageArea === localStorage && event.isTrusted &&
+                event.key === "pub_test_unrelated" && event.newValue === null) {
+              window.__unrelatedStorageRemovals++;
+            }
             if (event.storageArea === localStorage &&
-                event.key === "sb-ci-playwright-auth-token" && event.newValue === null) {
+                event.key === (clearStorage ? null : "sb-ci-playwright-auth-token") &&
+                event.newValue === null) {
               // Seed a late leftover before the provider's listener runs.
               // Shared storage removal alone must not make the test pass.
               originalSetItem.call(localStorage, "pub_assessment_draft_v1:late-leftover",
                 JSON.stringify({ answers: { soal: 1 }, questions: ["Rahasia"] }));
+              window.__receivedLogoutStorageEvents.push({
+                key: event.key, newValue: event.newValue, isTrusted: event.isTrusted,
+              });
               window.__logoutStorageEvents++;
             }
           });
@@ -1065,7 +1076,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
             return listener.call(this, event);
           }, options);
         };
-      }, channelMode);
+      }, { mode: channelMode, clearStorage: logoutMode === "storage-clear" });
       await other.goto("/assessment");
       await other.getByRole("button", { name: "Mulai Assessment" }).click();
       await expect.poll(() => assessment.draft?.revision).toBeGreaterThan(0);
@@ -1090,14 +1101,38 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
         return draft?.answers;
       }, MEMBER_ID)).toEqual({ [assessmentQuestions[0].id]: 0 });
 
-      await page.getByRole("button", { name: /Keluar/ }).click();
-      await expect(page).toHaveURL(/\/auth$/);
+      if (logoutMode === "storage-clear") {
+        // The same native event path must ignore a non-auth key removal.
+        // Wait for delivery before checking identity and the in-flight draft.
+        await page.evaluate(() => {
+          localStorage.setItem("pub_test_unrelated", "1");
+          localStorage.removeItem("pub_test_unrelated");
+        });
+        await expect.poll(() => other.evaluate(() => window.__unrelatedStorageRemovals)).toBe(1);
+        await expect(other).toHaveURL(/\/assessment$/);
+        await expect(other.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
+        await expect(other.getByRole("button", { name: /Keluar/ })).toBeVisible();
+        expect(await other.evaluate(() => localStorage.getItem("sb-ci-playwright-auth-token"))).not.toBeNull();
+        expect(await localDrafts()).toEqual([`pub_assessment_draft_v1:${MEMBER_ID}`]);
+        expect(saveRequests).toBe(1);
+
+        // No SDK signOut or synthetic StorageEvent: clearing in tab one
+        // produces the real key=null event consumed by tab two's provider.
+        await page.evaluate(() => localStorage.clear());
+      } else {
+        await page.getByRole("button", { name: /Keluar/ }).click();
+        await expect(page).toHaveURL(/\/auth$/);
+      }
       await expect.poll(() => other.evaluate(() =>
         localStorage.getItem("sb-ci-playwright-auth-token"))).toBeNull();
       if (channelMode === "available") {
         await expect.poll(() => other.evaluate(() => window.__logoutBroadcasts)).toBe(1);
       } else {
         await expect.poll(() => other.evaluate(() => window.__logoutStorageEvents)).toBe(1);
+        expect(await other.evaluate(() => window.__receivedLogoutStorageEvents)).toEqual([{
+          key: logoutMode === "storage-clear" ? null : "sb-ci-playwright-auth-token",
+          newValue: null, isTrusted: true,
+        }]);
         expect(await other.evaluate(() => window.__logoutBroadcasts)).toBe(0);
         expect(await other.evaluate(() => typeof BroadcastChannel)).toBe(
           channelMode === "unavailable" ? "undefined" : "function");
@@ -1105,6 +1140,7 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await expect(other).toHaveURL(/\/auth$/);
       await expect(other.getByRole("heading", { name: "Masuk ke Akun" })).toBeVisible();
       await expect(other.getByRole("heading", { name: assessmentQuestions[0].question_text })).toHaveCount(0);
+      await expect(other.getByRole("button", { name: /Keluar/ })).toHaveCount(0);
       await expect.poll(localDrafts).toEqual([]);
 
       const lateResponse = other.waitForResponse((response) =>
@@ -1117,7 +1153,8 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
       await other.waitForTimeout(2200);
       expect(await localDrafts()).toEqual([]);
       expect(await other.evaluate(() => window.__draftWritesAfterLogout)).toEqual([]);
-      expect(await other.evaluate(() => localStorage.getItem("pub_onboarding_done"))).toBe("1");
+      expect(await other.evaluate(() => localStorage.getItem("pub_onboarding_done"))).toBe(
+        logoutMode === "storage-clear" ? null : "1");
       expect(saveRequests).toBe(1);
       expect(unexpected).toEqual([]);
       expect(otherUnexpected).toEqual([]);
