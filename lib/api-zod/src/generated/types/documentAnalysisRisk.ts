@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DocumentAnalysisEvidence } from './documentAnalysisEvidence';
 import type { DocumentAnalysisRiskSeverity } from './documentAnalysisRiskSeverity';
 
 export interface DocumentAnalysisRisk {
@@ -18,4 +19,5 @@ export interface DocumentAnalysisRisk {
   evidence: string;
   /** @maxLength 1200 */
   recommendation: string;
+  source?: DocumentAnalysisEvidence;
 }

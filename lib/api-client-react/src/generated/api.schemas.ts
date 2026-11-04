@@ -8,6 +8,23 @@
 export interface DocumentAnalysisInput {
   documentId: string;
   consent: true;
+  /**
+     * Explicit section to process; retrying a completed section reuses its result without billing.
+     * @minimum 0
+     * @maximum 19
+     */
+  partIndex?: number;
+}
+
+export interface DocumentAnalysisEvidence {
+  /** @minimum 1 */
+  part: number;
+  /** @minimum 0 */
+  start: number;
+  /** @minimum 0 */
+  end: number;
+  /** @minimum 1 */
+  page?: number;
 }
 
 export interface DocumentAnalysisChatInput {
@@ -37,6 +54,7 @@ export interface DocumentAnalysisChecklist {
   status: DocumentAnalysisChecklistStatus;
   /** @maxLength 1200 */
   evidence: string;
+  source?: DocumentAnalysisEvidence;
 }
 
 export type DocumentAnalysisRiskSeverity = typeof DocumentAnalysisRiskSeverity[keyof typeof DocumentAnalysisRiskSeverity];
@@ -59,6 +77,7 @@ export interface DocumentAnalysisRisk {
   evidence: string;
   /** @maxLength 1200 */
   recommendation: string;
+  source?: DocumentAnalysisEvidence;
 }
 
 export interface DocumentAnalysisRegulation {
@@ -71,6 +90,7 @@ export interface DocumentAnalysisRegulation {
   evidence: string;
   /** @maxLength 1200 */
   note: string;
+  source?: DocumentAnalysisEvidence;
 }
 
 export type DocumentAnalysisResultCategory = typeof DocumentAnalysisResultCategory[keyof typeof DocumentAnalysisResultCategory];
@@ -88,14 +108,14 @@ export interface DocumentAnalysisResult {
   category: DocumentAnalysisResultCategory;
   /**
      * @minLength 1
-     * @maxLength 8000
+     * @maxLength 16000
      */
   summary: string;
-  /** @maxItems 20 */
+  /** @maxItems 80 */
   checklist: DocumentAnalysisChecklist[];
-  /** @maxItems 15 */
+  /** @maxItems 40 */
   risks: DocumentAnalysisRisk[];
-  /** @maxItems 20 */
+  /** @maxItems 40 */
   regulations: DocumentAnalysisRegulation[];
 }
 
@@ -115,6 +135,33 @@ export interface DocumentAnalysisMessage {
   createdAt: string;
 }
 
+export type DocumentAnalysisPartStatus = typeof DocumentAnalysisPartStatus[keyof typeof DocumentAnalysisPartStatus];
+
+
+export const DocumentAnalysisPartStatus = {
+  pending: 'pending',
+  processing: 'processing',
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export interface DocumentAnalysisPart {
+  /** @minimum 0 */
+  index: number;
+  /** @minimum 0 */
+  start: number;
+  /** @minimum 0 */
+  end: number;
+  status: DocumentAnalysisPartStatus;
+  /**
+     * @minimum 0
+     * @maximum 3
+     */
+  attempts: number;
+  error?: string;
+  result?: DocumentAnalysisResult;
+}
+
 export interface DocumentAnalysis {
   id: string;
   documentId: string;
@@ -124,6 +171,9 @@ export interface DocumentAnalysis {
   sourceCharacters: number;
   analyzedCharacters: number;
   truncated: boolean;
+  coverageNote?: string;
+  /** @maxItems 20 */
+  parts?: DocumentAnalysisPart[];
   /** Whether this historical analysis matches the current readable source in the owner's Ruang Simpan. */
   sourceCurrent?: boolean;
   result: DocumentAnalysisResult;
@@ -362,6 +412,12 @@ export interface VaultOcrPage {
   end: number;
 }
 
+export interface VaultExtraction {
+  complete: boolean;
+  note: string;
+  pages?: VaultOcrPage[];
+}
+
 export interface VaultDocument {
   id: string;
   name: string;
@@ -372,6 +428,7 @@ export interface VaultDocument {
   status: VaultDocumentStatus;
   starred: boolean;
   text: string;
+  extraction?: VaultExtraction;
   ocrError?: string;
   ocrAttemptedAt?: string;
   ocrPages?: VaultOcrPage[];

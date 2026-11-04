@@ -12,7 +12,7 @@ documentAnalysisRouter.get("/", async (_req, res) => {
 });
 documentAnalysisRouter.post("/", async (req, res) => {
   const input = AnalyzeVaultDocumentBody.parse(req.body);
-  res.json(AnalyzeVaultDocumentResponse.parse(await analyzeDocument(res.locals.vaultOwner, input.documentId)));
+  res.json(AnalyzeVaultDocumentResponse.parse(await analyzeDocument(res.locals.vaultOwner, input.documentId, input.partIndex)));
 });
 documentAnalysisRouter.post("/:id/chat", async (req, res) => {
   const { id } = ChatDocumentAnalysisParams.parse(req.params);

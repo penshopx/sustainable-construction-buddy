@@ -77,6 +77,17 @@ test("text/image uploads never launch paid OCR implicitly", async () => {
   assert.equal(instances.length, count);
 });
 
+test("local TXT extraction declares character truncation and never silently loses its coverage boundary", async () => {
+  let extraction;
+  const text = await extractText(Buffer.from("A".repeat(600000) + "BUKTI AKHIR"), "TXT", value => { extraction = value; });
+  assert.equal(text.length, 600000);
+  assert.equal(extraction.complete, false);
+  assert.match(extraction.note, /akhir file belum terbaca/);
+  const complete = await extractText(Buffer.from("Sumber utuh"), "TXT", value => { extraction = value; });
+  assert.equal(complete, "Sumber utuh");
+  assert.equal(extraction.complete, true);
+});
+
 test("PDF preparation phase does not settle OCR early and forwards the consent range and page map", async () => {
   let pages;
   const pageRange = { start: 51, end: 52 };

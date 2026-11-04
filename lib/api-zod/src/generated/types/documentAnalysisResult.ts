@@ -14,13 +14,13 @@ export interface DocumentAnalysisResult {
   category: DocumentAnalysisResultCategory;
   /**
      * @minLength 1
-     * @maxLength 8000
+     * @maxLength 16000
      */
   summary: string;
-  /** @maxItems 20 */
+  /** @maxItems 80 */
   checklist: DocumentAnalysisChecklist[];
-  /** @maxItems 15 */
+  /** @maxItems 40 */
   risks: DocumentAnalysisRisk[];
-  /** @maxItems 20 */
+  /** @maxItems 40 */
   regulations: DocumentAnalysisRegulation[];
 }

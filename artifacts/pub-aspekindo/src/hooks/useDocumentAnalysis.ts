@@ -58,8 +58,8 @@ export function useDocumentAnalysis() {
     }, onSuccess: refresh,
   });
   const analyze = useMutation({
-    mutationFn: async (documentId: string) =>
-      analyzeVaultDocument({ documentId, consent: true }, await auth()),
+    mutationFn: async ({ documentId, partIndex = 0 }: { documentId: string; partIndex?: number }) =>
+      analyzeVaultDocument({ documentId, consent: true, partIndex }, await auth()),
     onSettled: refresh,
   });
   const chat = useMutation({

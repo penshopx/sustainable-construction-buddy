@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DocumentAnalysisChecklistStatus } from './documentAnalysisChecklistStatus';
+import type { DocumentAnalysisEvidence } from './documentAnalysisEvidence';
 
 export interface DocumentAnalysisChecklist {
   /**
@@ -16,4 +17,5 @@ export interface DocumentAnalysisChecklist {
   status: DocumentAnalysisChecklistStatus;
   /** @maxLength 1200 */
   evidence: string;
+  source?: DocumentAnalysisEvidence;
 }

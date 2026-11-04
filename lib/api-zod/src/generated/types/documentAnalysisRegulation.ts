@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { DocumentAnalysisEvidence } from './documentAnalysisEvidence';
 
 export interface DocumentAnalysisRegulation {
   /**
@@ -16,4 +17,5 @@ export interface DocumentAnalysisRegulation {
   evidence: string;
   /** @maxLength 1200 */
   note: string;
+  source?: DocumentAnalysisEvidence;
 }

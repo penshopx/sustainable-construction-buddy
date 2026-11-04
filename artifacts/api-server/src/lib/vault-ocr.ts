@@ -73,6 +73,10 @@ export async function startVaultOcr(owner: string, id: string, pageRange?: OcrPa
         const current = state.documents.find(d => d.id === id && d.ocrJob === job && d.status === "processing");
         if (!current) return;
         current.text = error ? "" : text;
+        // OCR covers only the selected range, not necessarily the original file.
+        current.extraction = { complete: false, note: error
+          ? "OCR gagal; tidak ada klaim cakupan dokumen."
+          : `Teks OCR${pageRange ? ` halaman ${pageRange.start}–${pageRange.end}` : ""} saja; bukan bukti seluruh file terbaca. Akurasi wajib diperiksa.` };
         if (!error && pages) current.ocrPages = pages;
         else delete current.ocrPages;
         current.status = error ? "failed" : "ready";

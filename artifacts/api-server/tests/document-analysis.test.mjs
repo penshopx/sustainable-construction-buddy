@@ -50,6 +50,7 @@ function fixture() {
   const doc = { id, name: "kontrak-uji.txt", status: "ready", type: "TXT",
     text: "Masa pelaksanaan 90 hari.\nDenda keterlambatan 1 permil per hari.\nUU 2 Tahun 2017",
     objectPath: "DO-NOT-EXPOSE", size: 100, createdAt: new Date().toISOString(),
+    extraction: { complete: true, note: "Seluruh teks file tersedia." },
     folderId: "default-6", starred: false };
   const states = new Map([["owner", { documents: [doc], activities: [] }],
     ["other", { documents: [], activities: [] }], ["admin", { documents: [], activities: [] }]]);
@@ -153,11 +154,14 @@ test("partial context is disclosed and exact source evidence is enforced", async
   assert.throws(() => service.parseAnalysis('{"summary":"Tidak lengkap"}', h.doc.text), e => e.status === 502);
 });
 
-test("failed AI is explicit, not saved, and can be retried", async () => {
+test("failed AI persists safe partial coverage and can be explicitly retried", async () => {
   const h = fixture();
   h.ai = async () => { throw Object.assign(new Error("Provider unavailable"), { status: 503 }); };
-  await assert.rejects(service.analyzeDocument("owner", h.id), e => e.status === 503);
-  assert.deepEqual(h.states.get("owner").documentAnalyses, []);
+  const failed = await service.analyzeDocument("owner", h.id);
+  assert.equal(failed.parts[0].status, "failed");
+  assert.equal(failed.analyzedCharacters, 0);
+  assert.equal(failed.truncated, true);
+  assert.ok(!JSON.stringify(failed).includes("Provider unavailable"));
   h.ai = async () => JSON.stringify(result());
   assert.ok((await service.analyzeDocument("owner", h.id)).id);
 });
@@ -171,7 +175,8 @@ test("deleted or changed documents cannot receive an in-flight analysis", async 
       return JSON.stringify(result());
     };
     await assert.rejects(service.analyzeDocument("owner", h.id), e => e.status === (change === "delete" ? 404 : 409));
-    assert.deepEqual(h.states.get("owner").documentAnalyses, []);
+    assert.equal(h.states.get("owner").documentAnalyses[0].parts[0].status, "processing");
+    assert.notEqual(h.states.get("owner").documentAnalyses[0].parts[0].status, "completed");
   }
 });
 
@@ -250,4 +255,168 @@ test("deleted source hides analysis and changed text blocks chat", async () => {
   assert.deepEqual(await service.listAnalyses("owner"), []);
   await assert.rejects(service.removeAnalysis("owner", a.id), e => e.status === 404);
   assert.equal(h.calls.length, 1);
+});
+
+function sectionResult(quote, summary = quote) {
+  return { category: "Kontrak", summary,
+    checklist: [{ item: "Klausul", status: "ada", evidence: quote }],
+    risks: [], regulations: [] };
+}
+
+test("long synthetic source retains evidence AFTER 100,000 characters and replays every section for free", async t => {
+  const h = fixture(), request = await api(t, h);
+  const text = ("Isi pendahuluan. ".repeat(7500)) + "\nJAMINAN AKHIR WAJIB 730 HARI.";
+  const doc = h.states.get("owner").documents[0];
+  doc.text = text;
+  doc.extraction.pages = [{ page: 151, start: 0, end: text.length - 28 },
+    { page: 161, start: text.lastIndexOf("JAMINAN"), end: text.length }];
+  h.ai = async (...args) => {
+    h.calls.push(args);
+    const part = args[2][0].quote;
+    const quote = part.includes("JAMINAN AKHIR") ? "JAMINAN AKHIR WAJIB 730 HARI." : "Isi pendahuluan.";
+    return JSON.stringify(sectionResult(quote));
+  };
+  let saved = await service.analyzeDocument("owner", h.id, 0);
+  assert.equal(h.calls.length, 1, "one explicit action, one paid call");
+  for (let index = 1; index < saved.parts.length; index++) {
+    saved = await service.analyzeDocument("owner", h.id, index);
+  }
+  assert.equal(saved.truncated, false);
+  assert.equal(saved.analyzedCharacters, text.length);
+  assert.ok(saved.result.summary.includes("730 HARI"));
+  const evidence = saved.result.checklist.at(-1);
+  assert.equal(evidence.source.page, 161);
+  assert.ok(evidence.source.start > 100000);
+  assert.equal(text.slice(evidence.source.start, evidence.source.end), evidence.evidence);
+  const calls = h.calls.length;
+  for (let i = 0; i < saved.parts.length; i++) {
+    assert.deepEqual(await service.analyzeDocument("owner", h.id, i), saved);
+  }
+  assert.equal(h.calls.length, calls);
+  assert.deepEqual(await (await request()).json(), [saved], "reload restores entire manifest and tail evidence");
+  for (const call of h.calls) {
+    assert.equal(call[3].maxTokens, 1400);
+    assert.ok(call[2][0].quote.length <= service.ANALYSIS_TEXT_LIMIT);
+    assert.equal(call[2].length, 1);
+  }
+});
+
+test("partial failure is retained across reload, later sections still run, retry merges without dropping the tail", async () => {
+  const h = fixture();
+  h.states.get("owner").documents[0].text = "A".repeat(30000) + "B".repeat(30000) + "PENTING AKHIR";
+  h.ai = async (...args) => {
+    h.calls.push(args);
+    const text = args[2][0].quote;
+    if (text.startsWith("B")) throw new Error("private provider response / token NOT-PERSISTED");
+    return JSON.stringify(sectionResult(text.startsWith("A") ? "AAAA" : "PENTING AKHIR"));
+  };
+  await service.analyzeDocument("owner", h.id, 0);
+  let failed = await service.analyzeDocument("owner", h.id, 1);
+  assert.equal(failed.parts[1].status, "failed");
+  let tail = await service.analyzeDocument("owner", h.id, 2);
+  assert.deepEqual(tail.parts.map(p => p.status), ["completed", "failed", "completed"]);
+  assert.equal(tail.analyzedCharacters, 30000 + "PENTING AKHIR".length);
+  assert.equal(tail.truncated, true);
+  const serialized = JSON.stringify(h.states.get("owner"));
+  assert.ok(!serialized.includes("NOT-PERSISTED"));
+  h.states.set("owner", JSON.parse(serialized));
+  assert.deepEqual((await service.listAnalyses("owner"))[0], tail);
+  h.ai = async (...args) => { h.calls.push(args); return JSON.stringify(sectionResult("BBBB")); };
+  const recovered = await service.analyzeDocument("owner", h.id, 1);
+  assert.equal(recovered.truncated, false);
+  assert.equal(recovered.parts[1].attempts, 2);
+  assert.deepEqual(recovered.result.checklist.map(c => c.source.part), [1, 2, 3]);
+  assert.ok(recovered.result.summary.endsWith("PENTING AKHIR"));
+  assert.equal(h.calls.length, 4);
+});
+
+test("invalid per-section evidence is never laundered through the merge and attempts are bounded", async () => {
+  const h = fixture();
+  h.states.get("owner").documents[0].text = "A".repeat(30000) + "B".repeat(30000);
+  h.ai = async () => JSON.stringify(sectionResult("AAAA"));
+  await service.analyzeDocument("owner", h.id, 0);
+  for (let i = 0; i < 3; i++) {
+    const a = await service.analyzeDocument("owner", h.id, 1);
+    assert.equal(a.parts[1].status, "failed");
+    assert.equal(a.parts[1].result, undefined);
+    assert.equal(a.result.checklist.length, 1);
+    assert.equal(a.truncated, true);
+  }
+  await assert.rejects(service.analyzeDocument("owner", h.id, 1), e => e.status === 409);
+  await assert.rejects(service.analyzeDocument("owner", h.id, 20), e => e.status === 400);
+});
+
+test("persisted processing lease recovers interruption without automatically resending or erasing successful sections", async () => {
+  const h = fixture();
+  const a = await service.analyzeDocument("owner", h.id);
+  const stored = h.states.get("owner").documentAnalyses[0];
+  stored.parts[0].status = "processing";
+  delete stored.parts[0].result;
+  stored.result = { category: "Dokumen Proyek", summary: "Belum ada bagian yang berhasil dianalisis.", checklist: [], risks: [], regulations: [] };
+  stored.processingUntil = Date.now() + 10000;
+  await assert.rejects(service.analyzeDocument("owner", h.id), e => e.status === 409);
+  assert.equal(h.calls.length, 1);
+  stored.processingUntil = Date.now() - 1;
+  const [expired] = await service.listAnalyses("owner");
+  assert.equal(expired.parts[0].status, "failed");
+  assert.match(expired.parts[0].error, /terputus/);
+  assert.equal(h.calls.length, 1);
+  const retried = await service.analyzeDocument("owner", h.id);
+  assert.equal(retried.id, a.id);
+  assert.equal(retried.parts[0].status, "completed");
+  assert.equal(h.calls.length, 2);
+});
+
+test("old, truncated and scanned sources never claim complete file coverage", async () => {
+  for (const extraction of [undefined,
+    { complete: false, note: "PDF: 150/200 halaman; 50 halaman belum terbaca." },
+    { complete: false, note: "OCR hanya halaman 151–160; bukan seluruh file." }]) {
+    const h = fixture();
+    h.states.get("owner").documents[0].extraction = extraction;
+    const saved = await service.analyzeDocument("owner", h.id);
+    assert.equal(saved.analyzedCharacters, h.doc.text.length);
+    assert.equal(saved.parts[0].status, "completed");
+    assert.equal(saved.truncated, true);
+    assert.ok(saved.coverageNote);
+  }
+  const h = fixture();
+  const doc = h.states.get("owner").documents[0];
+  doc.status = "stored"; doc.text = "\n\n";
+  await assert.rejects(service.analyzeDocument("owner", h.id), e => e.status === 409);
+  assert.equal(h.calls.length, 0, "scan never starts OCR or AI without separate consent");
+});
+
+test("coverage changes invalidate source even if OCR text is identical", async () => {
+  const h = fixture();
+  await service.analyzeDocument("owner", h.id);
+  h.states.get("owner").documents[0].extraction = { complete: false, note: "Cakupan baru" };
+  assert.equal((await service.listAnalyses("owner"))[0].sourceCurrent, false);
+});
+
+test("oversized plans and out-of-order parts are rejected before provider calls", async () => {
+  const h = fixture();
+  h.states.get("owner").documents[0].text = "x".repeat(600001);
+  await assert.rejects(service.analyzeDocument("owner", h.id), e => e.status === 413);
+  assert.equal(h.calls.length, 0);
+  h.states.get("owner").documents[0].text = "x".repeat(90000);
+  h.ai = async () => JSON.stringify(sectionResult("xxxx"));
+  await service.analyzeDocument("owner", h.id, 0);
+  await assert.rejects(service.analyzeDocument("owner", h.id, 2), e => e.status === 409);
+});
+
+test("legacy prefix reports are labeled unverified and never silently rerun or billed", async () => {
+  const h = fixture();
+  const a = await service.analyzeDocument("owner", h.id);
+  const stored = h.states.get("owner").documentAnalyses[0];
+  delete stored.parts;
+  delete stored.coverageNote;
+  stored.sourceHash = (await import("node:crypto")).createHash("sha256").update(h.doc.text).digest("hex");
+  const reused = await service.analyzeDocument("owner", h.id, 0);
+  assert.equal(reused.id, a.id);
+  assert.equal(reused.truncated, true);
+  assert.match(reused.coverageNote, /Laporan lama/);
+  assert.equal(h.calls.length, 1);
+  const [listed] = await service.listAnalyses("owner");
+  assert.equal(listed.truncated, true);
+  assert.match(listed.coverageNote, /belum diverifikasi/);
 });

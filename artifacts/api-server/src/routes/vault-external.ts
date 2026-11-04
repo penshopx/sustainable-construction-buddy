@@ -8,6 +8,7 @@ import {
 import { objectPath, privateFile, validateFile, extractText } from "../lib/vault-files";
 import { randomUUID } from "node:crypto";
 import { fetchPublicFile, importFileName } from "../lib/vault-link";
+import type { VaultExtraction } from "@workspace/api-zod";
 
 const activeImports = new Set<string>();
 export async function importDocument(owner: string, input: { url: string; name: string; folderId: string }) {
@@ -35,7 +36,8 @@ export async function uploadDocument(owner: string, bytes: Buffer, rawName: unkn
   const name = rawName.trim();
   const { type, mime } = validateFile(name, bytes);
   let text = "", status: StoredDocument["status"] = "stored";
-  try { text = await extractText(bytes, type); status = text ? "ready" : "stored"; }
+  let extraction: VaultExtraction | undefined;
+  try { text = await extractText(bytes, type, value => { extraction = value; }); status = text.trim() ? "ready" : "stored"; }
   catch { status = "failed"; }
   const path = objectPath(owner);
   let uploaded = false;
@@ -50,6 +52,7 @@ export async function uploadDocument(owner: string, bytes: Buffer, rawName: unkn
       const doc: StoredDocument = {
         id: randomUUID(), name, folderId: rawFolder, type, size: bytes.length,
         createdAt: new Date().toISOString(), starred: false, status, text, objectPath: path,
+        ...(extraction ? { extraction } : {}),
       };
       state.documents.unshift(doc); activity(state, `Dokumen diunggah: ${name}${connectionId ? " (aplikasi eksternal)" : ""}`);
       const { objectPath: _path, ...safe } = doc; return safe;

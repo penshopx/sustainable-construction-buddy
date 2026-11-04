@@ -5,6 +5,7 @@ import * as XLSX from "xlsx";
 import { requestOcr, OCR_ERRORS } from "./vault-ocr-provider";
 import { validOcrRange } from "./vault-pdf-range";
 import { selectPdfPages } from "./vault-pdf-render";
+import type { VaultExtraction } from "@workspace/api-zod";
 
 async function extract() {
   const bytes = Buffer.from(workerData.bytes);
@@ -42,13 +43,44 @@ async function extract() {
   // Allocate this copy only for local PDF parsing, not OCR range preparation.
   const pdfBytes = workerData.type === "PDF" ? new Uint8Array(bytes) as Buffer : bytes;
   let text = "";
-  if (workerData.type === "PDF") text = (await pdf(pdfBytes, { max: 150 })).text;
-  if (workerData.type === "DOCX") text = (await mammoth.extractRawText({ buffer: bytes })).value;
+  let extraction: VaultExtraction = { complete: false, note: "Cakupan format ini dibatasi; periksa file asli." };
+  if (workerData.type === "PDF") {
+    const pages: NonNullable<VaultExtraction["pages"]> = [];
+    let rendered = 0, blank = 0;
+    const parsed = await pdf(pdfBytes, {
+      max: 600,
+      pagerender: async (page: { pageIndex: number; getTextContent: (options: object) => Promise<{ items: { str: string; transform: number[] }[] }> }) => {
+        const content = await page.getTextContent({ normalizeWhitespace: false, disableCombineTextItems: false });
+        let previousY: number | undefined, value = "";
+        for (const item of content.items) {
+          value += (previousY !== undefined && previousY !== item.transform[5] ? "\n" : "") + item.str;
+          previousY = item.transform[5];
+        }
+        value = value.replace(/\0/g, "").trim();
+        if (!value) blank++;
+        rendered++;
+        const start = text.length;
+        text += value + "\n\n";
+        pages.push({ page: page.pageIndex + 1, start, end: text.length - 2 });
+        return ""; // Accumulate our own normalized text and offsets, not parser separators.
+      },
+    });
+    extraction = {
+      complete: rendered === parsed.numpages && blank === 0 && text.length <= 600_000,
+      note: `PDF: ${rendered}/${parsed.numpages} halaman diekstrak; ${blank} halaman tanpa teks (kosong/scan). Batas lokal 600 halaman/600.000 karakter. Halaman gagal atau tanpa teks tidak dianalisis; OCR memerlukan persetujuan terpisah.`,
+      pages: pages.filter(p => p.start < 600_000).map(p => ({ ...p, end: Math.min(p.end, 600_000) })),
+    };
+  }
+  if (workerData.type === "DOCX") {
+    text = (await mammoth.extractRawText({ buffer: bytes })).value.replace(/\0/g, "").trim();
+    // Text extraction does not establish coverage of drawings/embedded objects.
+    extraction.note = "Teks DOCX diekstrak hingga 600.000 karakter; gambar/objek tertanam tidak dibaca.";
+  }
   if (workerData.type === "XLSX") {
     const book = XLSX.read(bytes, { type: "buffer", sheetRows: 2000, bookVBA: false, cellHTML: false });
     text = book.SheetNames.slice(0, 20).map(name => `${name}\n${XLSX.utils.sheet_to_csv(book.Sheets[name])}`).join("\n");
   }
-  parentPort?.postMessage({ text: text.replace(/\0/g, "").trim().slice(0, 100_000) });
+  parentPort?.postMessage({ text: text.replace(/\0/g, "").slice(0, 600_000), extraction });
 }
 extract().catch((error: unknown) => parentPort?.postMessage({
   error: true,

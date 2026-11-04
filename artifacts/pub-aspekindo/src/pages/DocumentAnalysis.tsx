@@ -54,6 +54,12 @@ const hasText = (d: VaultDocument) => d.status === "ready" && d.text.trim().leng
 const ocrEligible = (d: VaultDocument) => (isImage(d) || isPdf(d)) && !hasText(d) && d.status !== "processing";
 
 const grid = { backgroundImage: "repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 48px), repeating-linear-gradient(0deg, currentColor 0 1px, transparent 1px 48px)" };
+const partStatus = { pending: "Belum diproses", processing: "Sedang diproses", completed: "Berhasil", failed: "Gagal" };
+type EvidenceSource = Analysis["result"]["checklist"][number]["source"];
+const sourceLabel = (s: EvidenceSource) => s ? `Bagian ${s.part} · ${s.page ? `halaman fisik ${s.page} · ` : ""}karakter ${s.start + 1}–${s.end}` : "";
+function EvidenceLocation({ source }: { source: EvidenceSource }) {
+  return source ? <p className="mt-1 font-mono text-[11px] text-muted-foreground">{sourceLabel(source)}</p> : null;
+}
 
 /* ------------------------------------------------------------------ report */
 function reportMarkdown(a: Analysis) {
@@ -65,12 +71,18 @@ function reportMarkdown(a: Analysis) {
   ];
   if (a.sourceCurrent === false) L.push(``, `> SUMBER BERUBAH: laporan historis ini belum ditelaah ulang terhadap teks terbaru di Ruang Simpan.`);
   if (a.truncated) L.push(``, `> PERHATIAN: Analisis hanya mencakup sebagian teks sumber. Bagian yang tidak terbaca tidak tercermin dalam laporan ini.`);
+  if (a.coverageNote) L.push(``, `> Cakupan ekstraksi: ${a.coverageNote}`);
+  if (a.parts) {
+    L.push("", "## Cakupan per Bagian", "");
+    a.parts.forEach(p => L.push(`- Bagian ${p.index + 1}, karakter ${p.start + 1}–${p.end}: ${partStatus[p.status]} (${p.attempts}/3 percobaan)${p.error ? ` — ${p.error}` : ""}`));
+    L.push("", "Temuan dan ringkasan digabung dari bagian berhasil. Kategori mengikuti bagian berhasil pertama. Tidak ditemukan pada satu bagian bukan bukti ketiadaan di seluruh file.");
+  }
   L.push(``, `## Ringkasan`, ``, r.summary, ``, `## Checklist Kelengkapan`, ``);
-  r.checklist.length ? r.checklist.forEach(c => L.push(`- [${CHECK[c.status]?.label ?? c.status}] ${c.item}${c.evidence ? ` — ${c.evidence}` : ""}`)) : L.push(`Tidak ada butir.`);
+  r.checklist.length ? r.checklist.forEach(c => L.push(`- [${CHECK[c.status]?.label ?? c.status}] ${c.item}${c.evidence ? ` — ${c.evidence}` : ""}${c.source ? ` (${sourceLabel(c.source)})` : ""}`)) : L.push(`Tidak ada butir.`);
   L.push(``, `## Risiko`, ``);
-  r.risks.length ? r.risks.forEach(k => L.push(`### ${k.title} (${SEVERITY[k.severity]?.label ?? k.severity})`, ``, `Bukti: ${k.evidence || "-"}`, ``, `Rekomendasi: ${k.recommendation || "-"}`, ``)) : L.push(`Tidak ada risiko yang dicatat.`);
+  r.risks.length ? r.risks.forEach(k => L.push(`### ${k.title} (${SEVERITY[k.severity]?.label ?? k.severity})`, ``, `Bukti: ${k.evidence || "-"} (${sourceLabel(k.source)})`, ``, `Rekomendasi: ${k.recommendation || "-"}`, ``)) : L.push(`Tidak ada risiko yang dicatat.`);
   L.push(``, `## Regulasi Terkait`, ``);
-  r.regulations.length ? r.regulations.forEach(g => L.push(`- **${g.title}**${g.evidence ? ` — ${g.evidence}` : ""}${g.note ? ` (${g.note})` : ""}`)) : L.push(`Tidak ada regulasi yang dicatat.`);
+  r.regulations.length ? r.regulations.forEach(g => L.push(`- **${g.title}**${g.evidence ? ` — ${g.evidence}` : ""}${g.note ? ` (${g.note})` : ""}${g.source ? ` (${sourceLabel(g.source)})` : ""}`)) : L.push(`Tidak ada regulasi yang dicatat.`);
   if (a.messages.length) { L.push(``, `## Tanya Jawab`, ``); a.messages.forEach(m => L.push(`**${m.role === "user" ? "Pertanyaan" : "Jawaban AI"}** (${formatDate(m.createdAt)})`, ``, m.content, ``)); }
   L.push(``, `---`, `Dihasilkan AI melalui PUB ASPEKINDO Bedah Dokumen. Wajib diverifikasi terhadap dokumen asli. Bukan sertifikasi resmi maupun nasihat hukum.`);
   return L.join("\n");
@@ -140,7 +152,7 @@ function Intro() {
         </section>
         <section className="border-y border-border bg-muted/40">
           <div className="container mx-auto grid gap-10 px-4 py-14 md:grid-cols-2">
-            <div className="flex gap-4"><Lock className="h-7 w-7 shrink-0 text-pub-emerald" /><div><h2 className="font-heading text-xl font-bold">Apa yang dikirim, dan ke mana</h2><p className="mt-2 text-sm text-muted-foreground">Teks hasil ekstraksi dokumen yang Anda pilih dikirim ke Claude Sonnet melalui OpenRouter, tanpa model cadangan otomatis. Ekstraksi dibatasi 150 halaman PDF dan 100.000 karakter; bila lebih panjang, laporan menandai bahwa hanya sebagian yang dianalisis.</p></div></div>
+            <div className="flex gap-4"><Lock className="h-7 w-7 shrink-0 text-pub-emerald" /><div><h2 className="font-heading text-xl font-bold">Apa yang dikirim, dan ke mana</h2><p className="mt-2 text-sm text-muted-foreground">Teks hasil ekstraksi dikirim ke Claude Sonnet melalui OpenRouter, tanpa model cadangan otomatis. Analisis bertahap hingga 20 bagian; satu klik mengirim satu bagian dengan maksimal 1.400 token keluaran. Ekstraksi lokal dibatasi 600 halaman PDF/600.000 karakter. Cakupan yang tidak lengkap selalu ditandai.</p></div></div>
             <div className="flex gap-4"><ScanText className="h-7 w-7 shrink-0 text-pub-sky" /><div><h2 className="font-heading text-xl font-bold">Gambar dan PDF hasil pindai</h2><p className="mt-2 text-sm text-muted-foreground">Berkas tanpa teks perlu OCR terlebih dahulu, dengan persetujuan terpisah. OCR memakai Claude melalui OpenRouter, maksimal 15 MiB dan 30 halaman PDF, dan bisa memakan waktu sekitar satu menit.</p></div></div>
           </div>
         </section>
@@ -217,9 +229,9 @@ function Workspace() {
     setParams(next, { replace: false });
   };
 
-  const runAnalyze = async (id: string) => {
+  const runAnalyze = async (id: string, partIndex = 0) => {
     setActionError(null);
-    try { const res = await analyze.mutateAsync(id); if (alive.current && selectedId.current === id) { select(res.documentId, res.id); toast.success("Analisis tersimpan."); } }
+    try { const res = await analyze.mutateAsync({ documentId: id, partIndex }); if (alive.current && selectedId.current === id) { select(res.documentId, res.id); if (res.parts?.some(p => p.status === "failed")) toast.warning("Hasil tersimpan dengan bagian gagal. Periksa cakupan."); else toast.success("Hasil bagian tersimpan."); } }
     catch (e) { if (alive.current && selectedId.current === id) setActionError(analysisError(e)); }
   };
   const runOcr = async (id: string) => {
@@ -265,6 +277,8 @@ function Workspace() {
   const picker = docs.filter(d => d.name.toLowerCase().includes(pickerQuery.trim().toLowerCase()));
   const quota = documents.data;
   const busy = analyze.isPending || ocr.isPending;
+  const nextPart = current?.sourceCurrent !== false ? current?.parts?.find(p => p.status === "pending") : undefined;
+  const processing = current?.sourceCurrent !== false && current?.parts?.some(p => p.status === "processing");
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 pb-12">
@@ -320,7 +334,7 @@ function Workspace() {
             </label>
             <label className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
               <Checkbox checked={autoConsent} onCheckedChange={v => setAutoConsent(v === true)} data-testid="checkbox-auto-analyze" className="mt-0.5" />
-              <span>Saya setuju teks berkas yang akan saya unggah langsung dikirim ke Claude Sonnet melalui OpenRouter untuk dianalisis setelah unggah selesai (hanya bila teksnya sudah terbaca; gambar dan PDF pindaian tetap perlu OCR terpisah).</span>
+              <span>Saya setuju bagian pertama teks berkas yang akan saya unggah langsung dikirim ke Claude Sonnet melalui OpenRouter (maksimal 1.400 token keluaran). Bagian berikutnya dijalankan lewat klik terpisah; gambar dan PDF pindaian tetap perlu persetujuan OCR terpisah.</span>
             </label>
             {uploadError && <p role="alert" className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive" data-testid="text-upload-error">{uploadError}</p>}
             <Button variant="outline" className="mt-3 w-full" onClick={() => setPickerOpen(true)} disabled={!documents.data} data-testid="button-open-picker"><FolderOpen className="mr-2 h-4 w-4" />Ambil dari Ruang Simpan</Button>
@@ -413,14 +427,15 @@ function Workspace() {
                         <Checkbox checked={aiConsent} onCheckedChange={v => setAiConsent(v === true)} className="mt-0.5" data-testid="checkbox-ai-consent" />
                         <span>Saya setuju teks terekstrak dari <strong>{doc.name}</strong> dikirim ke <strong>Claude Sonnet melalui OpenRouter</strong> (tanpa model cadangan otomatis) untuk analisis dan tanya jawab. Saya paham hasil AI wajib diverifikasi dan bukan sertifikasi resmi atau nasihat hukum.</span>
                       </label>
-                      <p className="mt-2 pl-7 text-xs text-muted-foreground">Ekstraksi dibatasi 150 halaman PDF dan 100.000 karakter. Persetujuan ini hilang saat Anda berganti dokumen atau akun.</p>
+                      <p className="mt-2 pl-7 text-xs text-muted-foreground">Ekstraksi lokal maksimal 600 halaman PDF/600.000 karakter. Satu klik memproses satu bagian hingga 30.000 karakter, maksimal 1.400 token keluaran berbayar; hingga 20 bagian, tiga percobaan per bagian. Tidak ada pengiriman bagian berikutnya atau pengulangan otomatis. Penggabungan lokal tanpa biaya AI tambahan. Persetujuan hilang saat berganti dokumen atau akun.</p>
+                      <p className="mt-2 pl-7 text-xs text-muted-foreground">{doc.extraction?.note ?? "Cakupan ekstraksi lama/OCR belum diketahui. Unggah ulang sumber lama untuk membaca lebih dari batas sebelumnya."}</p>
                       <div className="mt-3 flex flex-wrap gap-2 pl-7">
-                        <Button onClick={() => void runAnalyze(doc.id)} disabled={!aiConsent || busy} className="bg-pub-navy text-white hover:bg-pub-navy-light" data-testid="button-analyze">
+                        <Button onClick={() => void runAnalyze(doc.id, nextPart?.index ?? 0)} disabled={!aiConsent || busy || !!processing} className="bg-pub-navy text-white hover:bg-pub-navy-light" data-testid="button-analyze">
                           {analyze.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ScanText className="mr-2 h-4 w-4" />}
-                          {current ? "Periksa / buka analisis" : "Analisis dokumen"}
+                          {nextPart ? `Analisis bagian ${nextPart.index + 1}` : current?.sourceCurrent !== false && current ? "Periksa / buka analisis" : "Analisis bagian pertama"}
                         </Button>
                       </div>
-                      {current && <p className="mt-2 pl-7 text-xs text-muted-foreground">Jika teks belum berubah, hasil tersimpan digunakan kembali tanpa permintaan AI baru. Untuk memulai ulang, ekspor lalu hapus analisis lama.</p>}
+                      {current && <p className="mt-2 pl-7 text-xs text-muted-foreground">Bagian berhasil digunakan kembali tanpa biaya AI baru. Bagian gagal dapat dicoba ulang secara terpisah di daftar cakupan. Laporan lama tanpa daftar bagian: ekspor lalu hapus dan mulai ulang untuk analisis bertahap.</p>}
                     </div>
                   ) : doc.status === "processing" ? (
                     <p className="mt-5 flex items-center gap-2 rounded-xl bg-pub-sky/10 p-4 text-sm text-pub-sky"><Loader2 className="h-4 w-4 animate-spin" />Ruang Simpan sedang memproses berkas ini. Status diperbarui otomatis.</p>
@@ -451,7 +466,7 @@ function Workspace() {
 
                 {analyze.isPending && (
                   <div className="space-y-3 rounded-2xl border border-border bg-card p-5" aria-busy="true">
-                    <p className="flex items-center gap-2 text-sm font-medium"><Loader2 className="h-4 w-4 animate-spin text-pub-amber" />Menganalisis. Jangan tutup halaman ini.</p>
+                    <p className="flex items-center gap-2 text-sm font-medium"><Loader2 className="h-4 w-4 animate-spin text-pub-amber" />Menganalisis satu bagian. Hasil tersimpan di server; muat ulang untuk melihat kemajuan jika koneksi terputus.</p>
                     <Skel className="h-4 w-2/3" /><Skel className="h-4 w-full" /><Skel className="h-4 w-5/6" /><Skel className="h-24 w-full" />
                   </div>
                 )}
@@ -480,9 +495,18 @@ function Workspace() {
                     {current.truncated && (
                       <div role="alert" className="flex gap-3 border-b border-pub-amber/40 bg-pub-amber/15 px-5 py-3 text-sm" data-testid="banner-truncated">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-pub-amber" />
-                        <p><strong>Analisis sebagian.</strong> Hanya {current.analyzedCharacters.toLocaleString("id-ID")} dari {current.sourceCharacters.toLocaleString("id-ID")} karakter teks sumber yang dianalisis. Persyaratan di bagian lain dokumen tidak tercermin di sini; baca dokumen aslinya.</p>
+                        <p><strong>Analisis sebagian / cakupan file belum lengkap.</strong> {current.analyzedCharacters.toLocaleString("id-ID")} dari {current.sourceCharacters.toLocaleString("id-ID")} karakter terekstrak berhasil dianalisis. Ini bukan jumlah karakter seluruh file. Bagian gagal, belum diproses, atau tidak terekstrak tidak tercermin dalam temuan.</p>
                       </div>
                     )}
+                    <div className="space-y-2 border-b border-border px-5 py-4 text-sm" data-testid="analysis-coverage">
+                      <p>{current.coverageNote ?? "Laporan lama; cakupan ekstraksi file belum diketahui."}</p>
+                      <p className="text-xs text-muted-foreground">Ringkasan dan temuan digabung dari bagian berhasil tanpa membuang bagian akhir. “Tidak ditemukan” pada satu bagian bukan bukti ketiadaan di seluruh dokumen. Kategori mengikuti bagian berhasil pertama.</p>
+                      {current.parts?.map(p => <div key={p.index} className="rounded-lg border border-border p-3" data-testid={`analysis-part-${p.index}`}>
+                        <p className="font-medium">Bagian {p.index + 1}: {partStatus[p.status]} · karakter {p.start + 1}–{p.end} · {p.attempts}/3 percobaan</p>
+                        {p.error && <p role="alert" className="mt-1 text-xs text-destructive">{p.error}</p>}
+                        {p.status === "failed" && p.attempts < 3 && current.sourceCurrent !== false && <Button size="sm" variant="outline" className="mt-2" disabled={!aiConsent || busy || !!processing} onClick={() => void runAnalyze(doc.id, p.index)} data-testid={`retry-part-${p.index}`}>Coba ulang bagian {p.index + 1} (berbayar)</Button>}
+                      </div>)}
+                    </div>
                     <div role="tablist" aria-label="Bagian analisis" className="flex gap-1 overflow-x-auto border-b border-border px-3">
                       {([["ringkasan", "Ringkasan", null], ["checklist", "Checklist", current.result.checklist.length], ["risiko", "Risiko", current.result.risks.length], ["regulasi", "Regulasi", current.result.regulations.length]] as const).map(([k, l, n]) => (
                         <button key={k} role="tab" aria-selected={tab === k} onClick={() => setTab(k)} data-testid={`tab-${k}`}
@@ -497,7 +521,7 @@ function Workspace() {
                       {tab === "checklist" && (current.result.checklist.length === 0 ? <p className="text-sm text-muted-foreground">Tidak ada butir checklist.</p> : (
                         <ul className="divide-y divide-border">
                           {current.result.checklist.map((c, i) => { const s = CHECK[c.status] ?? CHECK.perlu_dicek; return (
-                            <li key={i} className="flex gap-3 py-3" data-testid={`row-checklist-${i}`}><s.icon className={`mt-0.5 h-4 w-4 shrink-0 ${s.cls}`} /><div><p className="text-sm font-medium">{c.item} <span className={`ml-1 font-mono text-[10px] uppercase ${s.cls}`}>{s.label}</span></p>{c.evidence && <p className="mt-1 text-xs text-muted-foreground">{c.evidence}</p>}</div></li>
+                            <li key={i} className="flex gap-3 py-3" data-testid={`row-checklist-${i}`}><s.icon className={`mt-0.5 h-4 w-4 shrink-0 ${s.cls}`} /><div><p className="text-sm font-medium">{c.item} <span className={`ml-1 font-mono text-[10px] uppercase ${s.cls}`}>{s.label}</span></p>{c.evidence && <p className="mt-1 text-xs text-muted-foreground">{c.evidence}</p>}<EvidenceLocation source={c.source} /></div></li>
                           ); })}
                         </ul>
                       ))}
@@ -507,6 +531,7 @@ function Workspace() {
                             <li key={i} className="rounded-xl border border-border p-4" data-testid={`row-risk-${i}`}>
                               <div className="flex items-start justify-between gap-3"><p className="flex gap-2 font-semibold"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />{k.title}</p><span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${s.cls}`}>{s.label}</span></div>
                               {k.evidence && <p className="mt-2 text-sm text-muted-foreground"><span className="font-mono text-[10px] uppercase">Bukti</span> {k.evidence}</p>}
+                              <EvidenceLocation source={k.source} />
                               {k.recommendation && <p className="mt-1.5 text-sm"><span className="font-mono text-[10px] uppercase text-pub-emerald">Rekomendasi</span> {k.recommendation}</p>}
                             </li>
                           ); })}
@@ -515,7 +540,7 @@ function Workspace() {
                       {tab === "regulasi" && (current.result.regulations.length === 0 ? <p className="text-sm text-muted-foreground">Tidak ada regulasi yang dicatat.</p> : (
                         <ul className="divide-y divide-border">
                           {current.result.regulations.map((g, i) => (
-                            <li key={i} className="py-3" data-testid={`row-regulation-${i}`}><p className="text-sm font-semibold">{g.title}</p>{g.evidence && <p className="mt-1 text-xs text-muted-foreground">{g.evidence}</p>}{g.note && <p className="mt-1 text-xs">{g.note}</p>}</li>
+                            <li key={i} className="py-3" data-testid={`row-regulation-${i}`}><p className="text-sm font-semibold">{g.title}</p>{g.evidence && <p className="mt-1 text-xs text-muted-foreground">{g.evidence}</p>}<EvidenceLocation source={g.source} />{g.note && <p className="mt-1 text-xs">{g.note}</p>}</li>
                           ))}
                           <li className="pt-3 text-xs text-muted-foreground">Rujukan regulasi berasal dari AI; cek nomor dan berlakunya pada sumber resmi.</li>
                         </ul>
@@ -529,7 +554,8 @@ function Workspace() {
                   <section aria-labelledby="h-chat" className="rounded-2xl border border-border bg-card shadow-card">
                     <div className="flex items-center gap-2 border-b border-border px-5 py-3"><MessageSquare className="h-4 w-4 text-pub-amber" /><h2 id="h-chat" className="font-heading text-sm font-bold uppercase tracking-wider">Tanya dokumen</h2></div>
                     <div className="max-h-[460px] space-y-4 overflow-y-auto px-5 py-4">
-                      {current.messages.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada pertanyaan. Jawaban berdasar pada teks dokumen yang dianalisis.</p>
+                      <p className="text-xs text-muted-foreground">Chat hanya menerima 30.000 karakter awal, bukan seluruh analisis bertahap. Untuk bukti bagian akhir, gunakan temuan beserta lokasi sumber di laporan.</p>
+                      {current.messages.length === 0 ? <p className="text-sm text-muted-foreground">Belum ada pertanyaan.</p>
                         : current.messages.map(m => (
                           <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`} data-testid={`message-${m.role}-${m.id}`}>
                             <div className={`max-w-[88%] rounded-2xl px-4 py-2.5 text-sm ${m.role === "user" ? "rounded-br-sm bg-pub-navy text-white" : "rounded-bl-sm bg-muted"}`}>

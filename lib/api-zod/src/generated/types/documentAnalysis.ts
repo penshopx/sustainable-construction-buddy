@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DocumentAnalysisMessage } from './documentAnalysisMessage';
+import type { DocumentAnalysisPart } from './documentAnalysisPart';
 import type { DocumentAnalysisResult } from './documentAnalysisResult';
 
 export interface DocumentAnalysis {
@@ -17,6 +18,9 @@ export interface DocumentAnalysis {
   sourceCharacters: number;
   analyzedCharacters: number;
   truncated: boolean;
+  coverageNote?: string;
+  /** @maxItems 20 */
+  parts?: DocumentAnalysisPart[];
   /** Whether this historical analysis matches the current readable source in the owner's Ruang Simpan. */
   sourceCurrent?: boolean;
   result: DocumentAnalysisResult;

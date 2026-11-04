@@ -9,4 +9,10 @@
 export interface DocumentAnalysisInput {
   documentId: string;
   consent: true;
+  /**
+     * Explicit section to process; retrying a completed section reuses its result without billing.
+     * @minimum 0
+     * @maximum 19
+     */
+  partIndex?: number;
 }

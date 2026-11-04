@@ -8,13 +8,72 @@
 import * as zod from 'zod';
 
 
-export const listDocumentAnalysesResponseResultSummaryMax = 8000;
+export const listDocumentAnalysesResponsePartsItemIndexMin = 0;
+
+export const listDocumentAnalysesResponsePartsItemStartMin = 0;
+
+export const listDocumentAnalysesResponsePartsItemEndMin = 0;
+
+export const listDocumentAnalysesResponsePartsItemAttemptsMin = 0;
+export const listDocumentAnalysesResponsePartsItemAttemptsMax = 3;
+
+export const listDocumentAnalysesResponsePartsItemResultSummaryMax = 16000;
+
+export const listDocumentAnalysesResponsePartsItemResultChecklistItemItemMax = 400;
+
+export const listDocumentAnalysesResponsePartsItemResultChecklistItemEvidenceMax = 1200;
+
+
+export const listDocumentAnalysesResponsePartsItemResultChecklistItemSourceStartMin = 0;
+
+export const listDocumentAnalysesResponsePartsItemResultChecklistItemSourceEndMin = 0;
+
+
+export const listDocumentAnalysesResponsePartsItemResultChecklistMax = 80;
+
+export const listDocumentAnalysesResponsePartsItemResultRisksItemTitleMax = 400;
+
+export const listDocumentAnalysesResponsePartsItemResultRisksItemEvidenceMax = 1200;
+
+export const listDocumentAnalysesResponsePartsItemResultRisksItemRecommendationMax = 1200;
+
+
+export const listDocumentAnalysesResponsePartsItemResultRisksItemSourceStartMin = 0;
+
+export const listDocumentAnalysesResponsePartsItemResultRisksItemSourceEndMin = 0;
+
+
+export const listDocumentAnalysesResponsePartsItemResultRisksMax = 40;
+
+export const listDocumentAnalysesResponsePartsItemResultRegulationsItemTitleMax = 400;
+
+export const listDocumentAnalysesResponsePartsItemResultRegulationsItemEvidenceMax = 1200;
+
+export const listDocumentAnalysesResponsePartsItemResultRegulationsItemNoteMax = 1200;
+
+
+export const listDocumentAnalysesResponsePartsItemResultRegulationsItemSourceStartMin = 0;
+
+export const listDocumentAnalysesResponsePartsItemResultRegulationsItemSourceEndMin = 0;
+
+
+export const listDocumentAnalysesResponsePartsItemResultRegulationsMax = 40;
+
+export const listDocumentAnalysesResponsePartsMax = 20;
+
+export const listDocumentAnalysesResponseResultSummaryMax = 16000;
 
 export const listDocumentAnalysesResponseResultChecklistItemItemMax = 400;
 
 export const listDocumentAnalysesResponseResultChecklistItemEvidenceMax = 1200;
 
-export const listDocumentAnalysesResponseResultChecklistMax = 20;
+
+export const listDocumentAnalysesResponseResultChecklistItemSourceStartMin = 0;
+
+export const listDocumentAnalysesResponseResultChecklistItemSourceEndMin = 0;
+
+
+export const listDocumentAnalysesResponseResultChecklistMax = 80;
 
 export const listDocumentAnalysesResponseResultRisksItemTitleMax = 400;
 
@@ -22,7 +81,13 @@ export const listDocumentAnalysesResponseResultRisksItemEvidenceMax = 1200;
 
 export const listDocumentAnalysesResponseResultRisksItemRecommendationMax = 1200;
 
-export const listDocumentAnalysesResponseResultRisksMax = 15;
+
+export const listDocumentAnalysesResponseResultRisksItemSourceStartMin = 0;
+
+export const listDocumentAnalysesResponseResultRisksItemSourceEndMin = 0;
+
+
+export const listDocumentAnalysesResponseResultRisksMax = 40;
 
 export const listDocumentAnalysesResponseResultRegulationsItemTitleMax = 400;
 
@@ -30,7 +95,13 @@ export const listDocumentAnalysesResponseResultRegulationsItemEvidenceMax = 1200
 
 export const listDocumentAnalysesResponseResultRegulationsItemNoteMax = 1200;
 
-export const listDocumentAnalysesResponseResultRegulationsMax = 20;
+
+export const listDocumentAnalysesResponseResultRegulationsItemSourceStartMin = 0;
+
+export const listDocumentAnalysesResponseResultRegulationsItemSourceEndMin = 0;
+
+
+export const listDocumentAnalysesResponseResultRegulationsMax = 40;
 
 export const listDocumentAnalysesResponseMessagesItemContentMax = 32000;
 
@@ -45,6 +116,53 @@ export const ListDocumentAnalysesResponseItem = zod.object({
   "sourceCharacters": zod.number().int(),
   "analyzedCharacters": zod.number().int(),
   "truncated": zod.boolean(),
+  "coverageNote": zod.string().optional(),
+  "parts": zod.array(zod.object({
+  "index": zod.number().int().min(listDocumentAnalysesResponsePartsItemIndexMin),
+  "start": zod.number().int().min(listDocumentAnalysesResponsePartsItemStartMin),
+  "end": zod.number().int().min(listDocumentAnalysesResponsePartsItemEndMin),
+  "status": zod.enum(['pending', 'processing', 'completed', 'failed']),
+  "attempts": zod.number().int().min(listDocumentAnalysesResponsePartsItemAttemptsMin).max(listDocumentAnalysesResponsePartsItemAttemptsMax),
+  "error": zod.string().optional(),
+  "result": zod.object({
+  "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
+  "summary": zod.string().min(1).max(listDocumentAnalysesResponsePartsItemResultSummaryMax),
+  "checklist": zod.array(zod.object({
+  "item": zod.string().min(1).max(listDocumentAnalysesResponsePartsItemResultChecklistItemItemMax),
+  "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
+  "evidence": zod.string().max(listDocumentAnalysesResponsePartsItemResultChecklistItemEvidenceMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(listDocumentAnalysesResponsePartsItemResultChecklistItemSourceStartMin),
+  "end": zod.number().int().min(listDocumentAnalysesResponsePartsItemResultChecklistItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(listDocumentAnalysesResponsePartsItemResultChecklistMax),
+  "risks": zod.array(zod.object({
+  "title": zod.string().min(1).max(listDocumentAnalysesResponsePartsItemResultRisksItemTitleMax),
+  "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
+  "evidence": zod.string().max(listDocumentAnalysesResponsePartsItemResultRisksItemEvidenceMax),
+  "recommendation": zod.string().max(listDocumentAnalysesResponsePartsItemResultRisksItemRecommendationMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(listDocumentAnalysesResponsePartsItemResultRisksItemSourceStartMin),
+  "end": zod.number().int().min(listDocumentAnalysesResponsePartsItemResultRisksItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(listDocumentAnalysesResponsePartsItemResultRisksMax),
+  "regulations": zod.array(zod.object({
+  "title": zod.string().min(1).max(listDocumentAnalysesResponsePartsItemResultRegulationsItemTitleMax),
+  "evidence": zod.string().max(listDocumentAnalysesResponsePartsItemResultRegulationsItemEvidenceMax),
+  "note": zod.string().max(listDocumentAnalysesResponsePartsItemResultRegulationsItemNoteMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(listDocumentAnalysesResponsePartsItemResultRegulationsItemSourceStartMin),
+  "end": zod.number().int().min(listDocumentAnalysesResponsePartsItemResultRegulationsItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(listDocumentAnalysesResponsePartsItemResultRegulationsMax)
+}).optional()
+})).max(listDocumentAnalysesResponsePartsMax).optional(),
   "sourceCurrent": zod.boolean().optional().describe('Whether this historical analysis matches the current readable source in the owner\'s Ruang Simpan.'),
   "result": zod.object({
   "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
@@ -52,18 +170,36 @@ export const ListDocumentAnalysesResponseItem = zod.object({
   "checklist": zod.array(zod.object({
   "item": zod.string().min(1).max(listDocumentAnalysesResponseResultChecklistItemItemMax),
   "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
-  "evidence": zod.string().max(listDocumentAnalysesResponseResultChecklistItemEvidenceMax)
+  "evidence": zod.string().max(listDocumentAnalysesResponseResultChecklistItemEvidenceMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(listDocumentAnalysesResponseResultChecklistItemSourceStartMin),
+  "end": zod.number().int().min(listDocumentAnalysesResponseResultChecklistItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(listDocumentAnalysesResponseResultChecklistMax),
   "risks": zod.array(zod.object({
   "title": zod.string().min(1).max(listDocumentAnalysesResponseResultRisksItemTitleMax),
   "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
   "evidence": zod.string().max(listDocumentAnalysesResponseResultRisksItemEvidenceMax),
-  "recommendation": zod.string().max(listDocumentAnalysesResponseResultRisksItemRecommendationMax)
+  "recommendation": zod.string().max(listDocumentAnalysesResponseResultRisksItemRecommendationMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(listDocumentAnalysesResponseResultRisksItemSourceStartMin),
+  "end": zod.number().int().min(listDocumentAnalysesResponseResultRisksItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(listDocumentAnalysesResponseResultRisksMax),
   "regulations": zod.array(zod.object({
   "title": zod.string().min(1).max(listDocumentAnalysesResponseResultRegulationsItemTitleMax),
   "evidence": zod.string().max(listDocumentAnalysesResponseResultRegulationsItemEvidenceMax),
-  "note": zod.string().max(listDocumentAnalysesResponseResultRegulationsItemNoteMax)
+  "note": zod.string().max(listDocumentAnalysesResponseResultRegulationsItemNoteMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(listDocumentAnalysesResponseResultRegulationsItemSourceStartMin),
+  "end": zod.number().int().min(listDocumentAnalysesResponseResultRegulationsItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(listDocumentAnalysesResponseResultRegulationsMax)
 }),
   "messages": zod.array(zod.object({
@@ -76,18 +212,83 @@ export const ListDocumentAnalysesResponseItem = zod.object({
 export const ListDocumentAnalysesResponse = zod.array(ListDocumentAnalysesResponseItem)
 
 
+export const analyzeVaultDocumentBodyPartIndexMin = 0;
+export const analyzeVaultDocumentBodyPartIndexMax = 19;
+
+
+
 export const AnalyzeVaultDocumentBody = zod.object({
   "documentId": zod.string().uuid(),
-  "consent": zod.literal(true)
+  "consent": zod.literal(true),
+  "partIndex": zod.number().int().min(analyzeVaultDocumentBodyPartIndexMin).max(analyzeVaultDocumentBodyPartIndexMax).optional().describe('Explicit section to process; retrying a completed section reuses its result without billing.')
 })
 
-export const analyzeVaultDocumentResponseResultSummaryMax = 8000;
+export const analyzeVaultDocumentResponsePartsItemIndexMin = 0;
+
+export const analyzeVaultDocumentResponsePartsItemStartMin = 0;
+
+export const analyzeVaultDocumentResponsePartsItemEndMin = 0;
+
+export const analyzeVaultDocumentResponsePartsItemAttemptsMin = 0;
+export const analyzeVaultDocumentResponsePartsItemAttemptsMax = 3;
+
+export const analyzeVaultDocumentResponsePartsItemResultSummaryMax = 16000;
+
+export const analyzeVaultDocumentResponsePartsItemResultChecklistItemItemMax = 400;
+
+export const analyzeVaultDocumentResponsePartsItemResultChecklistItemEvidenceMax = 1200;
+
+
+export const analyzeVaultDocumentResponsePartsItemResultChecklistItemSourceStartMin = 0;
+
+export const analyzeVaultDocumentResponsePartsItemResultChecklistItemSourceEndMin = 0;
+
+
+export const analyzeVaultDocumentResponsePartsItemResultChecklistMax = 80;
+
+export const analyzeVaultDocumentResponsePartsItemResultRisksItemTitleMax = 400;
+
+export const analyzeVaultDocumentResponsePartsItemResultRisksItemEvidenceMax = 1200;
+
+export const analyzeVaultDocumentResponsePartsItemResultRisksItemRecommendationMax = 1200;
+
+
+export const analyzeVaultDocumentResponsePartsItemResultRisksItemSourceStartMin = 0;
+
+export const analyzeVaultDocumentResponsePartsItemResultRisksItemSourceEndMin = 0;
+
+
+export const analyzeVaultDocumentResponsePartsItemResultRisksMax = 40;
+
+export const analyzeVaultDocumentResponsePartsItemResultRegulationsItemTitleMax = 400;
+
+export const analyzeVaultDocumentResponsePartsItemResultRegulationsItemEvidenceMax = 1200;
+
+export const analyzeVaultDocumentResponsePartsItemResultRegulationsItemNoteMax = 1200;
+
+
+export const analyzeVaultDocumentResponsePartsItemResultRegulationsItemSourceStartMin = 0;
+
+export const analyzeVaultDocumentResponsePartsItemResultRegulationsItemSourceEndMin = 0;
+
+
+export const analyzeVaultDocumentResponsePartsItemResultRegulationsMax = 40;
+
+export const analyzeVaultDocumentResponsePartsMax = 20;
+
+export const analyzeVaultDocumentResponseResultSummaryMax = 16000;
 
 export const analyzeVaultDocumentResponseResultChecklistItemItemMax = 400;
 
 export const analyzeVaultDocumentResponseResultChecklistItemEvidenceMax = 1200;
 
-export const analyzeVaultDocumentResponseResultChecklistMax = 20;
+
+export const analyzeVaultDocumentResponseResultChecklistItemSourceStartMin = 0;
+
+export const analyzeVaultDocumentResponseResultChecklistItemSourceEndMin = 0;
+
+
+export const analyzeVaultDocumentResponseResultChecklistMax = 80;
 
 export const analyzeVaultDocumentResponseResultRisksItemTitleMax = 400;
 
@@ -95,7 +296,13 @@ export const analyzeVaultDocumentResponseResultRisksItemEvidenceMax = 1200;
 
 export const analyzeVaultDocumentResponseResultRisksItemRecommendationMax = 1200;
 
-export const analyzeVaultDocumentResponseResultRisksMax = 15;
+
+export const analyzeVaultDocumentResponseResultRisksItemSourceStartMin = 0;
+
+export const analyzeVaultDocumentResponseResultRisksItemSourceEndMin = 0;
+
+
+export const analyzeVaultDocumentResponseResultRisksMax = 40;
 
 export const analyzeVaultDocumentResponseResultRegulationsItemTitleMax = 400;
 
@@ -103,7 +310,13 @@ export const analyzeVaultDocumentResponseResultRegulationsItemEvidenceMax = 1200
 
 export const analyzeVaultDocumentResponseResultRegulationsItemNoteMax = 1200;
 
-export const analyzeVaultDocumentResponseResultRegulationsMax = 20;
+
+export const analyzeVaultDocumentResponseResultRegulationsItemSourceStartMin = 0;
+
+export const analyzeVaultDocumentResponseResultRegulationsItemSourceEndMin = 0;
+
+
+export const analyzeVaultDocumentResponseResultRegulationsMax = 40;
 
 export const analyzeVaultDocumentResponseMessagesItemContentMax = 32000;
 
@@ -118,6 +331,53 @@ export const AnalyzeVaultDocumentResponse = zod.object({
   "sourceCharacters": zod.number().int(),
   "analyzedCharacters": zod.number().int(),
   "truncated": zod.boolean(),
+  "coverageNote": zod.string().optional(),
+  "parts": zod.array(zod.object({
+  "index": zod.number().int().min(analyzeVaultDocumentResponsePartsItemIndexMin),
+  "start": zod.number().int().min(analyzeVaultDocumentResponsePartsItemStartMin),
+  "end": zod.number().int().min(analyzeVaultDocumentResponsePartsItemEndMin),
+  "status": zod.enum(['pending', 'processing', 'completed', 'failed']),
+  "attempts": zod.number().int().min(analyzeVaultDocumentResponsePartsItemAttemptsMin).max(analyzeVaultDocumentResponsePartsItemAttemptsMax),
+  "error": zod.string().optional(),
+  "result": zod.object({
+  "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
+  "summary": zod.string().min(1).max(analyzeVaultDocumentResponsePartsItemResultSummaryMax),
+  "checklist": zod.array(zod.object({
+  "item": zod.string().min(1).max(analyzeVaultDocumentResponsePartsItemResultChecklistItemItemMax),
+  "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
+  "evidence": zod.string().max(analyzeVaultDocumentResponsePartsItemResultChecklistItemEvidenceMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(analyzeVaultDocumentResponsePartsItemResultChecklistItemSourceStartMin),
+  "end": zod.number().int().min(analyzeVaultDocumentResponsePartsItemResultChecklistItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(analyzeVaultDocumentResponsePartsItemResultChecklistMax),
+  "risks": zod.array(zod.object({
+  "title": zod.string().min(1).max(analyzeVaultDocumentResponsePartsItemResultRisksItemTitleMax),
+  "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
+  "evidence": zod.string().max(analyzeVaultDocumentResponsePartsItemResultRisksItemEvidenceMax),
+  "recommendation": zod.string().max(analyzeVaultDocumentResponsePartsItemResultRisksItemRecommendationMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(analyzeVaultDocumentResponsePartsItemResultRisksItemSourceStartMin),
+  "end": zod.number().int().min(analyzeVaultDocumentResponsePartsItemResultRisksItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(analyzeVaultDocumentResponsePartsItemResultRisksMax),
+  "regulations": zod.array(zod.object({
+  "title": zod.string().min(1).max(analyzeVaultDocumentResponsePartsItemResultRegulationsItemTitleMax),
+  "evidence": zod.string().max(analyzeVaultDocumentResponsePartsItemResultRegulationsItemEvidenceMax),
+  "note": zod.string().max(analyzeVaultDocumentResponsePartsItemResultRegulationsItemNoteMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(analyzeVaultDocumentResponsePartsItemResultRegulationsItemSourceStartMin),
+  "end": zod.number().int().min(analyzeVaultDocumentResponsePartsItemResultRegulationsItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(analyzeVaultDocumentResponsePartsItemResultRegulationsMax)
+}).optional()
+})).max(analyzeVaultDocumentResponsePartsMax).optional(),
   "sourceCurrent": zod.boolean().optional().describe('Whether this historical analysis matches the current readable source in the owner\'s Ruang Simpan.'),
   "result": zod.object({
   "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
@@ -125,18 +385,36 @@ export const AnalyzeVaultDocumentResponse = zod.object({
   "checklist": zod.array(zod.object({
   "item": zod.string().min(1).max(analyzeVaultDocumentResponseResultChecklistItemItemMax),
   "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
-  "evidence": zod.string().max(analyzeVaultDocumentResponseResultChecklistItemEvidenceMax)
+  "evidence": zod.string().max(analyzeVaultDocumentResponseResultChecklistItemEvidenceMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(analyzeVaultDocumentResponseResultChecklistItemSourceStartMin),
+  "end": zod.number().int().min(analyzeVaultDocumentResponseResultChecklistItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(analyzeVaultDocumentResponseResultChecklistMax),
   "risks": zod.array(zod.object({
   "title": zod.string().min(1).max(analyzeVaultDocumentResponseResultRisksItemTitleMax),
   "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
   "evidence": zod.string().max(analyzeVaultDocumentResponseResultRisksItemEvidenceMax),
-  "recommendation": zod.string().max(analyzeVaultDocumentResponseResultRisksItemRecommendationMax)
+  "recommendation": zod.string().max(analyzeVaultDocumentResponseResultRisksItemRecommendationMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(analyzeVaultDocumentResponseResultRisksItemSourceStartMin),
+  "end": zod.number().int().min(analyzeVaultDocumentResponseResultRisksItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(analyzeVaultDocumentResponseResultRisksMax),
   "regulations": zod.array(zod.object({
   "title": zod.string().min(1).max(analyzeVaultDocumentResponseResultRegulationsItemTitleMax),
   "evidence": zod.string().max(analyzeVaultDocumentResponseResultRegulationsItemEvidenceMax),
-  "note": zod.string().max(analyzeVaultDocumentResponseResultRegulationsItemNoteMax)
+  "note": zod.string().max(analyzeVaultDocumentResponseResultRegulationsItemNoteMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(analyzeVaultDocumentResponseResultRegulationsItemSourceStartMin),
+  "end": zod.number().int().min(analyzeVaultDocumentResponseResultRegulationsItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(analyzeVaultDocumentResponseResultRegulationsMax)
 }),
   "messages": zod.array(zod.object({
@@ -161,13 +439,72 @@ export const ChatDocumentAnalysisBody = zod.object({
   "consent": zod.literal(true)
 })
 
-export const chatDocumentAnalysisResponseResultSummaryMax = 8000;
+export const chatDocumentAnalysisResponsePartsItemIndexMin = 0;
+
+export const chatDocumentAnalysisResponsePartsItemStartMin = 0;
+
+export const chatDocumentAnalysisResponsePartsItemEndMin = 0;
+
+export const chatDocumentAnalysisResponsePartsItemAttemptsMin = 0;
+export const chatDocumentAnalysisResponsePartsItemAttemptsMax = 3;
+
+export const chatDocumentAnalysisResponsePartsItemResultSummaryMax = 16000;
+
+export const chatDocumentAnalysisResponsePartsItemResultChecklistItemItemMax = 400;
+
+export const chatDocumentAnalysisResponsePartsItemResultChecklistItemEvidenceMax = 1200;
+
+
+export const chatDocumentAnalysisResponsePartsItemResultChecklistItemSourceStartMin = 0;
+
+export const chatDocumentAnalysisResponsePartsItemResultChecklistItemSourceEndMin = 0;
+
+
+export const chatDocumentAnalysisResponsePartsItemResultChecklistMax = 80;
+
+export const chatDocumentAnalysisResponsePartsItemResultRisksItemTitleMax = 400;
+
+export const chatDocumentAnalysisResponsePartsItemResultRisksItemEvidenceMax = 1200;
+
+export const chatDocumentAnalysisResponsePartsItemResultRisksItemRecommendationMax = 1200;
+
+
+export const chatDocumentAnalysisResponsePartsItemResultRisksItemSourceStartMin = 0;
+
+export const chatDocumentAnalysisResponsePartsItemResultRisksItemSourceEndMin = 0;
+
+
+export const chatDocumentAnalysisResponsePartsItemResultRisksMax = 40;
+
+export const chatDocumentAnalysisResponsePartsItemResultRegulationsItemTitleMax = 400;
+
+export const chatDocumentAnalysisResponsePartsItemResultRegulationsItemEvidenceMax = 1200;
+
+export const chatDocumentAnalysisResponsePartsItemResultRegulationsItemNoteMax = 1200;
+
+
+export const chatDocumentAnalysisResponsePartsItemResultRegulationsItemSourceStartMin = 0;
+
+export const chatDocumentAnalysisResponsePartsItemResultRegulationsItemSourceEndMin = 0;
+
+
+export const chatDocumentAnalysisResponsePartsItemResultRegulationsMax = 40;
+
+export const chatDocumentAnalysisResponsePartsMax = 20;
+
+export const chatDocumentAnalysisResponseResultSummaryMax = 16000;
 
 export const chatDocumentAnalysisResponseResultChecklistItemItemMax = 400;
 
 export const chatDocumentAnalysisResponseResultChecklistItemEvidenceMax = 1200;
 
-export const chatDocumentAnalysisResponseResultChecklistMax = 20;
+
+export const chatDocumentAnalysisResponseResultChecklistItemSourceStartMin = 0;
+
+export const chatDocumentAnalysisResponseResultChecklistItemSourceEndMin = 0;
+
+
+export const chatDocumentAnalysisResponseResultChecklistMax = 80;
 
 export const chatDocumentAnalysisResponseResultRisksItemTitleMax = 400;
 
@@ -175,7 +512,13 @@ export const chatDocumentAnalysisResponseResultRisksItemEvidenceMax = 1200;
 
 export const chatDocumentAnalysisResponseResultRisksItemRecommendationMax = 1200;
 
-export const chatDocumentAnalysisResponseResultRisksMax = 15;
+
+export const chatDocumentAnalysisResponseResultRisksItemSourceStartMin = 0;
+
+export const chatDocumentAnalysisResponseResultRisksItemSourceEndMin = 0;
+
+
+export const chatDocumentAnalysisResponseResultRisksMax = 40;
 
 export const chatDocumentAnalysisResponseResultRegulationsItemTitleMax = 400;
 
@@ -183,7 +526,13 @@ export const chatDocumentAnalysisResponseResultRegulationsItemEvidenceMax = 1200
 
 export const chatDocumentAnalysisResponseResultRegulationsItemNoteMax = 1200;
 
-export const chatDocumentAnalysisResponseResultRegulationsMax = 20;
+
+export const chatDocumentAnalysisResponseResultRegulationsItemSourceStartMin = 0;
+
+export const chatDocumentAnalysisResponseResultRegulationsItemSourceEndMin = 0;
+
+
+export const chatDocumentAnalysisResponseResultRegulationsMax = 40;
 
 export const chatDocumentAnalysisResponseMessagesItemContentMax = 32000;
 
@@ -198,6 +547,53 @@ export const ChatDocumentAnalysisResponse = zod.object({
   "sourceCharacters": zod.number().int(),
   "analyzedCharacters": zod.number().int(),
   "truncated": zod.boolean(),
+  "coverageNote": zod.string().optional(),
+  "parts": zod.array(zod.object({
+  "index": zod.number().int().min(chatDocumentAnalysisResponsePartsItemIndexMin),
+  "start": zod.number().int().min(chatDocumentAnalysisResponsePartsItemStartMin),
+  "end": zod.number().int().min(chatDocumentAnalysisResponsePartsItemEndMin),
+  "status": zod.enum(['pending', 'processing', 'completed', 'failed']),
+  "attempts": zod.number().int().min(chatDocumentAnalysisResponsePartsItemAttemptsMin).max(chatDocumentAnalysisResponsePartsItemAttemptsMax),
+  "error": zod.string().optional(),
+  "result": zod.object({
+  "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
+  "summary": zod.string().min(1).max(chatDocumentAnalysisResponsePartsItemResultSummaryMax),
+  "checklist": zod.array(zod.object({
+  "item": zod.string().min(1).max(chatDocumentAnalysisResponsePartsItemResultChecklistItemItemMax),
+  "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
+  "evidence": zod.string().max(chatDocumentAnalysisResponsePartsItemResultChecklistItemEvidenceMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(chatDocumentAnalysisResponsePartsItemResultChecklistItemSourceStartMin),
+  "end": zod.number().int().min(chatDocumentAnalysisResponsePartsItemResultChecklistItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(chatDocumentAnalysisResponsePartsItemResultChecklistMax),
+  "risks": zod.array(zod.object({
+  "title": zod.string().min(1).max(chatDocumentAnalysisResponsePartsItemResultRisksItemTitleMax),
+  "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
+  "evidence": zod.string().max(chatDocumentAnalysisResponsePartsItemResultRisksItemEvidenceMax),
+  "recommendation": zod.string().max(chatDocumentAnalysisResponsePartsItemResultRisksItemRecommendationMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(chatDocumentAnalysisResponsePartsItemResultRisksItemSourceStartMin),
+  "end": zod.number().int().min(chatDocumentAnalysisResponsePartsItemResultRisksItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(chatDocumentAnalysisResponsePartsItemResultRisksMax),
+  "regulations": zod.array(zod.object({
+  "title": zod.string().min(1).max(chatDocumentAnalysisResponsePartsItemResultRegulationsItemTitleMax),
+  "evidence": zod.string().max(chatDocumentAnalysisResponsePartsItemResultRegulationsItemEvidenceMax),
+  "note": zod.string().max(chatDocumentAnalysisResponsePartsItemResultRegulationsItemNoteMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(chatDocumentAnalysisResponsePartsItemResultRegulationsItemSourceStartMin),
+  "end": zod.number().int().min(chatDocumentAnalysisResponsePartsItemResultRegulationsItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
+})).max(chatDocumentAnalysisResponsePartsItemResultRegulationsMax)
+}).optional()
+})).max(chatDocumentAnalysisResponsePartsMax).optional(),
   "sourceCurrent": zod.boolean().optional().describe('Whether this historical analysis matches the current readable source in the owner\'s Ruang Simpan.'),
   "result": zod.object({
   "category": zod.enum(['Dokumen Tender', 'SKK/SBU', 'Kontrak', 'Gambar Teknis', 'Dokumen Proyek']),
@@ -205,18 +601,36 @@ export const ChatDocumentAnalysisResponse = zod.object({
   "checklist": zod.array(zod.object({
   "item": zod.string().min(1).max(chatDocumentAnalysisResponseResultChecklistItemItemMax),
   "status": zod.enum(['ada', 'perlu_dicek', 'tidak_ditemukan']),
-  "evidence": zod.string().max(chatDocumentAnalysisResponseResultChecklistItemEvidenceMax)
+  "evidence": zod.string().max(chatDocumentAnalysisResponseResultChecklistItemEvidenceMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(chatDocumentAnalysisResponseResultChecklistItemSourceStartMin),
+  "end": zod.number().int().min(chatDocumentAnalysisResponseResultChecklistItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(chatDocumentAnalysisResponseResultChecklistMax),
   "risks": zod.array(zod.object({
   "title": zod.string().min(1).max(chatDocumentAnalysisResponseResultRisksItemTitleMax),
   "severity": zod.enum(['tinggi', 'sedang', 'rendah']),
   "evidence": zod.string().max(chatDocumentAnalysisResponseResultRisksItemEvidenceMax),
-  "recommendation": zod.string().max(chatDocumentAnalysisResponseResultRisksItemRecommendationMax)
+  "recommendation": zod.string().max(chatDocumentAnalysisResponseResultRisksItemRecommendationMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(chatDocumentAnalysisResponseResultRisksItemSourceStartMin),
+  "end": zod.number().int().min(chatDocumentAnalysisResponseResultRisksItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(chatDocumentAnalysisResponseResultRisksMax),
   "regulations": zod.array(zod.object({
   "title": zod.string().min(1).max(chatDocumentAnalysisResponseResultRegulationsItemTitleMax),
   "evidence": zod.string().max(chatDocumentAnalysisResponseResultRegulationsItemEvidenceMax),
-  "note": zod.string().max(chatDocumentAnalysisResponseResultRegulationsItemNoteMax)
+  "note": zod.string().max(chatDocumentAnalysisResponseResultRegulationsItemNoteMax),
+  "source": zod.object({
+  "part": zod.number().int().min(1),
+  "start": zod.number().int().min(chatDocumentAnalysisResponseResultRegulationsItemSourceStartMin),
+  "end": zod.number().int().min(chatDocumentAnalysisResponseResultRegulationsItemSourceEndMin),
+  "page": zod.number().int().min(1).optional()
+}).optional()
 })).max(chatDocumentAnalysisResponseResultRegulationsMax)
 }),
   "messages": zod.array(zod.object({
@@ -486,6 +900,11 @@ export const UploadVaultExternalDocumentQueryParams = zod.object({
 })
 
 
+export const uploadVaultExternalDocumentResponseExtractionPagesItemStartMin = 0;
+
+export const uploadVaultExternalDocumentResponseExtractionPagesItemEndMin = 0;
+
+
 export const uploadVaultExternalDocumentResponseOcrPagesItemStartMin = 0;
 
 export const uploadVaultExternalDocumentResponseOcrPagesItemEndMin = 0;
@@ -502,6 +921,15 @@ export const UploadVaultExternalDocumentResponse = zod.object({
   "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
   "text": zod.string(),
+  "extraction": zod.object({
+  "complete": zod.boolean(),
+  "note": zod.string(),
+  "pages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(uploadVaultExternalDocumentResponseExtractionPagesItemStartMin),
+  "end": zod.number().int().min(uploadVaultExternalDocumentResponseExtractionPagesItemEndMin)
+})).optional()
+}).optional(),
   "ocrError": zod.string().optional(),
   "ocrAttemptedAt": zod.string().optional(),
   "ocrPages": zod.array(zod.object({
@@ -521,6 +949,11 @@ export const DownloadVaultExternalDocumentParams = zod.object({
 
 export const DownloadVaultExternalDocumentResponse = zod.unknown()
 
+
+
+export const getVaultWorkspaceResponseDocumentsItemExtractionPagesItemStartMin = 0;
+
+export const getVaultWorkspaceResponseDocumentsItemExtractionPagesItemEndMin = 0;
 
 
 export const getVaultWorkspaceResponseDocumentsItemOcrPagesItemStartMin = 0;
@@ -560,6 +993,15 @@ export const GetVaultWorkspaceResponse = zod.object({
   "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
   "text": zod.string(),
+  "extraction": zod.object({
+  "complete": zod.boolean(),
+  "note": zod.string(),
+  "pages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(getVaultWorkspaceResponseDocumentsItemExtractionPagesItemStartMin),
+  "end": zod.number().int().min(getVaultWorkspaceResponseDocumentsItemExtractionPagesItemEndMin)
+})).optional()
+}).optional(),
   "ocrError": zod.string().optional(),
   "ocrAttemptedAt": zod.string().optional(),
   "ocrPages": zod.array(zod.object({
@@ -665,6 +1107,11 @@ export const UploadVaultDocumentQueryParams = zod.object({
 })
 
 
+export const uploadVaultDocumentResponseExtractionPagesItemStartMin = 0;
+
+export const uploadVaultDocumentResponseExtractionPagesItemEndMin = 0;
+
+
 export const uploadVaultDocumentResponseOcrPagesItemStartMin = 0;
 
 export const uploadVaultDocumentResponseOcrPagesItemEndMin = 0;
@@ -681,6 +1128,15 @@ export const UploadVaultDocumentResponse = zod.object({
   "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
   "text": zod.string(),
+  "extraction": zod.object({
+  "complete": zod.boolean(),
+  "note": zod.string(),
+  "pages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(uploadVaultDocumentResponseExtractionPagesItemStartMin),
+  "end": zod.number().int().min(uploadVaultDocumentResponseExtractionPagesItemEndMin)
+})).optional()
+}).optional(),
   "ocrError": zod.string().optional(),
   "ocrAttemptedAt": zod.string().optional(),
   "ocrPages": zod.array(zod.object({
@@ -709,6 +1165,11 @@ export const ImportVaultDocumentBody = zod.object({
 })
 
 
+export const importVaultDocumentResponseExtractionPagesItemStartMin = 0;
+
+export const importVaultDocumentResponseExtractionPagesItemEndMin = 0;
+
+
 export const importVaultDocumentResponseOcrPagesItemStartMin = 0;
 
 export const importVaultDocumentResponseOcrPagesItemEndMin = 0;
@@ -725,6 +1186,15 @@ export const ImportVaultDocumentResponse = zod.object({
   "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
   "text": zod.string(),
+  "extraction": zod.object({
+  "complete": zod.boolean(),
+  "note": zod.string(),
+  "pages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(importVaultDocumentResponseExtractionPagesItemStartMin),
+  "end": zod.number().int().min(importVaultDocumentResponseExtractionPagesItemEndMin)
+})).optional()
+}).optional(),
   "ocrError": zod.string().optional(),
   "ocrAttemptedAt": zod.string().optional(),
   "ocrPages": zod.array(zod.object({
@@ -750,6 +1220,11 @@ export const UpdateVaultDocumentBody = zod.object({
 })
 
 
+export const updateVaultDocumentResponseExtractionPagesItemStartMin = 0;
+
+export const updateVaultDocumentResponseExtractionPagesItemEndMin = 0;
+
+
 export const updateVaultDocumentResponseOcrPagesItemStartMin = 0;
 
 export const updateVaultDocumentResponseOcrPagesItemEndMin = 0;
@@ -766,6 +1241,15 @@ export const UpdateVaultDocumentResponse = zod.object({
   "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
   "text": zod.string(),
+  "extraction": zod.object({
+  "complete": zod.boolean(),
+  "note": zod.string(),
+  "pages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(updateVaultDocumentResponseExtractionPagesItemStartMin),
+  "end": zod.number().int().min(updateVaultDocumentResponseExtractionPagesItemEndMin)
+})).optional()
+}).optional(),
   "ocrError": zod.string().optional(),
   "ocrAttemptedAt": zod.string().optional(),
   "ocrPages": zod.array(zod.object({
@@ -807,6 +1291,11 @@ export const ProcessVaultOcrBody = zod.object({
 })
 
 
+export const processVaultOcrResponseExtractionPagesItemStartMin = 0;
+
+export const processVaultOcrResponseExtractionPagesItemEndMin = 0;
+
+
 export const processVaultOcrResponseOcrPagesItemStartMin = 0;
 
 export const processVaultOcrResponseOcrPagesItemEndMin = 0;
@@ -823,6 +1312,15 @@ export const ProcessVaultOcrResponse = zod.object({
   "status": zod.enum(['ready', 'stored', 'failed', 'processing']),
   "starred": zod.boolean(),
   "text": zod.string(),
+  "extraction": zod.object({
+  "complete": zod.boolean(),
+  "note": zod.string(),
+  "pages": zod.array(zod.object({
+  "page": zod.number().int().min(1),
+  "start": zod.number().int().min(processVaultOcrResponseExtractionPagesItemStartMin),
+  "end": zod.number().int().min(processVaultOcrResponseExtractionPagesItemEndMin)
+})).optional()
+}).optional(),
   "ocrError": zod.string().optional(),
   "ocrAttemptedAt": zod.string().optional(),
   "ocrPages": zod.array(zod.object({

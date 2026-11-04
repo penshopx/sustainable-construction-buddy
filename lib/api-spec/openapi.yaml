@@ -954,6 +954,19 @@ components:
       properties:
         documentId: { type: string, format: uuid }
         consent: { type: boolean, enum: [true] }
+        partIndex:
+          type: integer
+          minimum: 0
+          maximum: 19
+          description: Explicit section to process; retrying a completed section reuses its result without billing.
+    DocumentAnalysisEvidence:
+      type: object
+      required: [part, start, end]
+      properties:
+        part: { type: integer, minimum: 1 }
+        start: { type: integer, minimum: 0 }
+        end: { type: integer, minimum: 0 }
+        page: { type: integer, minimum: 1 }
     DocumentAnalysisChatInput:
       type: object
       required: [question, consent]
@@ -967,6 +980,7 @@ components:
         item: { type: string, minLength: 1, maxLength: 400 }
         status: { type: string, enum: [ada, perlu_dicek, tidak_ditemukan] }
         evidence: { type: string, maxLength: 1200 }
+        source: { $ref: "#/components/schemas/DocumentAnalysisEvidence" }
     DocumentAnalysisRisk:
       type: object
       required: [title, severity, evidence, recommendation]
@@ -975,6 +989,7 @@ components:
         severity: { type: string, enum: [tinggi, sedang, rendah] }
         evidence: { type: string, maxLength: 1200 }
         recommendation: { type: string, maxLength: 1200 }
+        source: { $ref: "#/components/schemas/DocumentAnalysisEvidence" }
     DocumentAnalysisRegulation:
       type: object
       required: [title, evidence, note]
@@ -982,23 +997,24 @@ components:
         title: { type: string, minLength: 1, maxLength: 400 }
         evidence: { type: string, maxLength: 1200 }
         note: { type: string, maxLength: 1200 }
+        source: { $ref: "#/components/schemas/DocumentAnalysisEvidence" }
     DocumentAnalysisResult:
       type: object
       required: [category, summary, checklist, risks, regulations]
       properties:
         category: { type: string, enum: [Dokumen Tender, SKK/SBU, Kontrak, Gambar Teknis, Dokumen Proyek] }
-        summary: { type: string, minLength: 1, maxLength: 8000 }
+        summary: { type: string, minLength: 1, maxLength: 16000 }
         checklist:
           type: array
-          maxItems: 20
+          maxItems: 80
           items: { $ref: "#/components/schemas/DocumentAnalysisChecklist" }
         risks:
           type: array
-          maxItems: 15
+          maxItems: 40
           items: { $ref: "#/components/schemas/DocumentAnalysisRisk" }
         regulations:
           type: array
-          maxItems: 20
+          maxItems: 40
           items: { $ref: "#/components/schemas/DocumentAnalysisRegulation" }
     DocumentAnalysisMessage:
       type: object
@@ -1020,6 +1036,11 @@ components:
         sourceCharacters: { type: integer }
         analyzedCharacters: { type: integer }
         truncated: { type: boolean }
+        coverageNote: { type: string }
+        parts:
+          type: array
+          maxItems: 20
+          items: { $ref: "#/components/schemas/DocumentAnalysisPart" }
         sourceCurrent:
           type: boolean
           description: Whether this historical analysis matches the current readable source in the owner's Ruang Simpan.
@@ -1027,6 +1048,17 @@ components:
         messages:
           type: array
           items: { $ref: "#/components/schemas/DocumentAnalysisMessage" }
+    DocumentAnalysisPart:
+      type: object
+      required: [index, start, end, status, attempts]
+      properties:
+        index: { type: integer, minimum: 0 }
+        start: { type: integer, minimum: 0 }
+        end: { type: integer, minimum: 0 }
+        status: { type: string, enum: [pending, processing, completed, failed] }
+        attempts: { type: integer, minimum: 0, maximum: 3 }
+        error: { type: string }
+        result: { $ref: "#/components/schemas/DocumentAnalysisResult" }
     ClinicTopic:
       type: string
       enum: [sbu, lsbu-abu, pub-lkut, perizinan, tender, kontraktor, konsultan, suplai, pelaksanaan-proyek, brain-project, personel-manajerial, smap, pancek, uji-kompetensi, skk, skk-k3, bimtek, pkb, askom, lisensi-bnsp, akreditasi-kan, ajj-nirkertas]
@@ -1139,9 +1171,20 @@ components:
         status: { type: string, enum: [ready, stored, failed, processing] }
         starred: { type: boolean }
         text: { type: string }
+        extraction:
+          $ref: "#/components/schemas/VaultExtraction"
         ocrError: { type: string }
         ocrAttemptedAt: { type: string }
         ocrPages:
+          type: array
+          items: { $ref: "#/components/schemas/VaultOcrPage" }
+    VaultExtraction:
+      type: object
+      required: [complete, note]
+      properties:
+        complete: { type: boolean }
+        note: { type: string }
+        pages:
           type: array
           items: { $ref: "#/components/schemas/VaultOcrPage" }
     VaultOcrPage:
