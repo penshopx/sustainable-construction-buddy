@@ -100,18 +100,6 @@ const assessmentQuestions = [
   },
 ];
 
-async function advanceAssessmentClock(page, milliseconds) {
-  await page.evaluate((elapsed) => {
-    window.__assessmentElapsed = (window.__assessmentElapsed ?? 0) + elapsed;
-    const originalNow = window.__assessmentOriginalNow ?? performance.now.bind(performance);
-    window.__assessmentOriginalNow = originalNow;
-    Object.defineProperty(performance, "now", {
-      configurable: true, value: () => originalNow() + window.__assessmentElapsed,
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-    Object.defineProperty(performance, "now", { configurable: true, value: originalNow });
-  }, milliseconds);
-}
 const member = {
   id: MEMBER_ID,
   aud: "authenticated",
@@ -472,9 +460,10 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
         { id: assessmentQuestions[0].domain_id, name: "Legalitas" },
         { id: assessmentQuestions[1].domain_id, name: "Manajemen" },
       ];
-    } else if (assessment && url.pathname === "/rest/v1/rpc/get_active_assessment_draft" && request.method() === "POST") {
-      if (assessment.started) assessment.recoveryChecks = (assessment.recoveryChecks ?? 0) + 1;
-      data = assessment.draft && !assessment.submitted ? {
+    } else if (url.pathname === "/rest/v1/rpc/get_active_assessment_draft" && request.method() === "POST") {
+      // Even an account with no assessment must check for a remote draft.
+      if (assessment?.started) assessment.recoveryChecks = (assessment.recoveryChecks ?? 0) + 1;
+      data = assessment?.draft && !assessment.submitted ? {
         preTestId: assessmentId, totalQuestions: assessmentQuestions.length,
         startedAt: assessment.startedAt, deadlineAt: assessment.deadlineAt,
         serverNow: new Date(Date.now() + (assessment.serverTimeOffset ?? 0)).toISOString(), draft: assessment.draft,
@@ -511,7 +500,8 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
       data = { id: assessmentId, ...assessment.started, status: "in_progress" };
     } else if (assessment && url.pathname === "/rest/v1/pre_tests" && request.method() === "GET") {
       if (url.searchParams.has("id")) {
-        assessment.recoveryChecks = (assessment.recoveryChecks ?? 0) + 1;
+        // Browser-only backups need a separate completed/in-progress lookup.
+        assessment.legacyRecoveryChecks = (assessment.legacyRecoveryChecks ?? 0) + 1;
         data = assessment.started ? [{
           id: assessmentId, user_id: requestUser.id, status: assessment.submitted ? "completed" : "in_progress",
         }] : [];
@@ -1318,6 +1308,9 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     await expect(page.getByRole("button", { name: "Mulai Assessment" })).toBeEnabled();
     await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toHaveCount(0);
     expect(assessment.recoveryChecks).toBe(1);
+    expect(assessment.legacyRecoveryChecks).toBe(1);
+    await expect(page.getByText("Skor: 50")).toBeVisible();
+    expect(assessment.starts ?? 0).toBe(0);
     expect(unexpected).toEqual([]);
   });
 
@@ -1326,7 +1319,10 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
     { scenario: "tidak ada jawaban", answerFirst: false, expectedScore: 0 },
   ]) {
     test(`waktu habis: ${scenario} dikirim dan hasil sesuai jumlah soal`, async ({ page }) => {
-      const assessment = { started: null, checks: [], submissions: [], submitted: false };
+      const assessment = {
+        started: null, checks: [], submissions: [], submitted: false,
+        durationMs: 8_000, liveCountdown: true,
+      };
       const unexpected = await installAuthenticatedFixture(page, { assessment });
       await page.goto("/assessment");
       await page.getByRole("button", { name: "Mulai Assessment" }).click();
@@ -1340,8 +1336,18 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
         await expect(page.getByRole("button", { name: "Selanjutnya" })).toBeDisabled();
       }
 
-      await advanceAssessmentClock(page, 181_000);
-      await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
+      // Keep browser monotonic time, async submission, and server time aligned.
+      // A temporary performance.now override expires only the rendered timer,
+      // not the subsequent save/submit work, and can wrongly renew the draft.
+      const deadline = assessment.deadlineAt;
+      const expectedAnswers = answerFirst ? { [assessmentQuestions[0].id]: 0 } : {};
+      await expect.poll(() => assessment.draft?.answers).toEqual(expectedAnswers);
+      expect(Date.now()).toBeLessThan(Date.parse(deadline));
+      expect(assessment.submissions).toEqual([]);
+      await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible({ timeout: 12_000 });
+      expect(Date.now()).toBeGreaterThanOrEqual(Date.parse(deadline));
+      expect(assessment.deadlineAt).toBe(deadline);
+      expect(assessment.draft.answers).toEqual(expectedAnswers);
       await expect(page.getByText(`Skor: ${expectedScore}`)).toBeVisible();
       await expect(page.getByText(`${answerFirst ? 1 : 0} dari 2 jawaban benar`)).toBeVisible();
       expect(assessment.submissions).toEqual([{
@@ -1567,25 +1573,45 @@ test.describe("halaman anggota dengan sesi tiruan", () => {
   });
 
   test("tab yang ditinggalkan tidak mendapat tambahan waktu dari interval tertunda", async ({ page }) => {
-    const assessment = { started: null, checks: [], submissions: [], submitted: false };
+    const assessment = {
+      started: null, checks: [], submissions: [], submitted: false, durationMs: 12_000,
+    };
     const unexpected = await installAuthenticatedFixture(page, { assessment });
-    // Simulate a throttled background tab: the countdown interval won't fire
-    // before we return, but visibilitychange must reconcile with wall time.
-    await page.addInitScript(() => {
-      const originalSetInterval = window.setInterval.bind(window);
-      window.setInterval = ((handler, delay, ...args) =>
-        originalSetInterval(handler, delay === 1000 ? 600_000 : delay, ...args));
-    });
+    // The shared fixture suspends one-second intervals. Let real monotonic time
+    // elapse: returning to the tab must reconcile without any countdown ticks.
     await page.goto("/assessment");
     await page.getByRole("button", { name: "Mulai Assessment" }).click();
     await expect(page.getByRole("heading", { name: assessmentQuestions[0].question_text })).toBeVisible();
-    await expect(page.getByText("Sisa waktu: 3:00")).toBeVisible();
-    await advanceAssessmentClock(page, 30_000);
-    await expect(page.getByText("Sisa waktu: 2:30")).toBeVisible();
-    await advanceAssessmentClock(page, 151_000);
+    const countdown = page.getByText(/^Sisa waktu:/);
+    const deadline = assessment.deadlineAt;
+    const initialCountdown = await countdown.innerText();
+    await expect.poll(() => Date.now(), { timeout: 5_000 })
+      .toBeGreaterThanOrEqual(Date.parse(deadline) - 9_000);
+    await expect(countdown).toHaveText(initialCountdown);
+    expect(assessment.submissions).toEqual([]);
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await expect(countdown).toHaveText(/Sisa waktu: 0:0[1-9]$/);
+    const reconciledCountdown = await countdown.innerText();
+    expect(Date.now()).toBeLessThan(Date.parse(deadline));
+    expect(assessment.submissions).toEqual([]);
+
+    await expect.poll(() => Date.now(), { timeout: 12_000 })
+      .toBeGreaterThanOrEqual(Date.parse(deadline) + 100);
+    // No periodic update or early submission occurred while the tab was away.
+    await expect(countdown).toHaveText(reconciledCountdown);
+    expect(assessment.submissions).toEqual([]);
+    await page.evaluate(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      window.dispatchEvent(new Event("focus"));
+    });
     await expect(page.getByRole("heading", { name: "Assessment Selesai!" })).toBeVisible();
-    expect(assessment.submissions).toHaveLength(1);
-    expect(assessment.submissions[0]._answers.map(({ selected_answer }) => selected_answer)).toEqual([-1, -1]);
+    expect(assessment.deadlineAt).toBe(deadline);
+    expect(assessment.starts).toBe(1);
+    expect(assessment.successfulSubmissions).toBe(1);
+    expect(assessment.submissions).toEqual([{
+      _pre_test_id: ASSESSMENT_ID,
+      _answers: assessmentQuestions.map((q) => ({ question_id: q.id, selected_answer: -1 })),
+    }]);
     expect(unexpected).toEqual([]);
   });
 
