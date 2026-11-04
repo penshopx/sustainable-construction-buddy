@@ -271,8 +271,12 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
     }
     if (url.hostname === "127.0.0.1" && url.pathname === "/api/ruang-simpan/company-names" && request.method() === "POST") {
       const { userIds } = request.postDataJSON();
-      await route.fulfill({ contentType: "application/json",
-        body: JSON.stringify({ companies: userIds.map(userId => ({ userId, name: "BUJK Uji" })) }) });
+      // Only the fixture user's workspace exists; do not invent companies for
+      // arbitrary IDs. Match the API's { companies: [{ userId, name }] } contract.
+      await route.fulfill({
+        status: 200, contentType: "application/json",
+        body: JSON.stringify({ companies: userIds.includes(user.id) ? [{ userId: user.id, name: "BUJK Uji" }] : [] }),
+      });
       return;
     }
     if (url.hostname === "127.0.0.1" &&
@@ -576,7 +580,7 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
       data = [];
     } else if (url.pathname === "/rest/v1/profiles") {
       const profile = {
-        user_id: requestUser.id, full_name: requestUser.user_metadata.full_name, company: "BUJK Uji",
+        user_id: requestUser.id, full_name: requestUser.user_metadata.full_name, company: "Perusahaan Profil Lama",
         position: "Anggota", current_level: "Pemula", total_score: 0,
         created_at: "2026-09-01T00:00:00.000Z",
       };
@@ -2508,15 +2512,26 @@ test.describe("halaman admin dengan sesi tiruan", () => {
   test("admin membuka panel dan pengelolaan pengguna", async ({ page }) => {
     const unexpected = await installAuthenticatedFixture(page, { asAdmin: true });
 
-    await page.goto("/admin");
-    await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByRole("heading", { name: "Panel Admin" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Data Pengguna" })).toBeVisible();
-
-    await page.goto("/admin/users");
-    await expect(page).toHaveURL(/\/admin\/users$/);
-    await expect(page.getByRole("heading", { name: "Data Pengguna" })).toBeVisible();
-    await expect(page.getByRole("cell", { name: "Anggota Uji" })).toBeVisible();
+    for (const path of ["/admin", "/admin/users"]) {
+      const companyResponse = page.waitForResponse(response =>
+        new URL(response.url()).pathname === "/api/ruang-simpan/company-names" &&
+        response.request().method() === "POST");
+      await page.goto(path);
+      await expect(page).toHaveURL(new RegExp(`${path}$`));
+      if (path === "/admin") {
+        await expect(page.getByRole("heading", { name: "Panel Admin" })).toBeVisible();
+      }
+      await expect(page.getByRole("heading", { name: "Data Pengguna" })).toBeVisible();
+      const response = await companyResponse;
+      expect(response.status()).toBe(200);
+      expect(response.request().postDataJSON()).toEqual({ userIds: [MEMBER_ID] });
+      expect(response.request().headers().authorization).toBe(`Bearer ${fixtureSession(member).access_token}`);
+      expect(await response.json()).toEqual({ companies: [{ userId: MEMBER_ID, name: "BUJK Uji" }] });
+      const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Anggota Uji", exact: true }) });
+      await expect(row).toHaveCount(1);
+      await expect(row.getByRole("cell", { name: "BUJK Uji", exact: true })).toBeVisible();
+      await expect(page.getByRole("cell", { name: "Perusahaan Profil Lama", exact: true })).toHaveCount(0);
+    }
     expect(unexpected).toEqual([]);
   });
 
