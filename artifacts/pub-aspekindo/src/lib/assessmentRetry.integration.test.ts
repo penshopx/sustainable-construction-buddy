@@ -332,6 +332,105 @@ test("perubahan ketika simpan berjalan ikut disimpan sebelum indikator tersimpan
 });
 
 for (const storageFailure of ["security-access", "security-methods", "quota"] as const) {
+  for (const useRemote of [false, true]) {
+    test(`${storageFailure}: konflik wajib dipilih (${useRemote ? "perangkat lain" : "perangkat ini"}) dan dikonfirmasi server sebelum tersimpan atau dikirim`, async (t) => {
+      t.mock.timers.enable({ apis: ["setTimeout"] });
+      try {
+        await mount({ storageFailure, unanswered: true });
+        await act(async () => { await buttonNamed("AA").props.onClick(); });
+        await act(async () => { buttonNamed("Review Jawaban").props.onClick(); });
+        assert.deepEqual(saved.answers, {}, "the local answer has not been acknowledged");
+
+        const originalRpc = api.rpc;
+        let rejectStaleSave = true;
+        const submittedAnswers: unknown[] = [];
+        const resolutionWrites: any[] = [];
+        api.rpc = async (name: string, args: any) => {
+          if (name === "save_assessment_draft" && rejectStaleSave) {
+            calls++;
+            rejectStaleSave = false;
+            assert.equal(args._draft.revision, 0);
+            assert.deepEqual(args._draft.answers, { q1: 0 });
+            // Another device answered the same previously unanswered question.
+            // A successful RPC with saved:false is not a save acknowledgement.
+            saved = { ...saved, revision: 1, answers: { q1: 1 } };
+            return { data: { saved: false, draft: structuredClone(saved) } };
+          }
+          if (name === "save_assessment_draft") resolutionWrites.push(structuredClone(args._draft));
+          if (name === "submit_assessment") {
+            submittedAnswers.push(structuredClone(args._answers));
+            assert.deepEqual(saved.answers, { q1: useRemote ? 1 : 0 },
+              "the server must acknowledge the chosen alternative before submission");
+          }
+          return originalRpc(name, args);
+        };
+        await online();
+        assert.match(text(), /Ada jawaban berbeda di perangkat lain/);
+        assert.equal(childText(buttonNamed("Gunakan jawaban perangkat ini:").props.children),
+          "Gunakan jawaban perangkat ini: A");
+        assert.equal(childText(buttonNamed("Gunakan jawaban perangkat lain:").props.children),
+          "Gunakan jawaban perangkat lain: B");
+        assert.match(text(), /pilih jawaban yang berbeda terlebih dahulu/);
+        assert.doesNotMatch(text(), /Progres tersimpan di server/);
+        assert.equal(buttonNamed("Selesai & Lihat Hasil").props.disabled, true);
+        assert.deepEqual(saved.answers, { q1: 1 }, "neither alternative may silently overwrite the other");
+        const conflictCalls = calls;
+        await online();
+        await act(async () => { t.mock.timers.tick(30000); });
+        // Exercise the submit guard as well as the disabled review button.
+        await act(async () => { await buttonNamed("Selesai & Lihat Hasil").props.onClick(); });
+        assert.equal(calls, conflictCalls, "retry and submit must wait for an explicit choice");
+        assert.deepEqual(submittedAnswers, []);
+        assert.match(text(), /Gunakan jawaban perangkat ini:/);
+        assert.match(text(), /Gunakan jawaban perangkat lain:/);
+
+        await act(async () => {
+          buttonNamed(useRemote ? "Gunakan jawaban perangkat lain:" : "Gunakan jawaban perangkat ini:").props.onClick();
+        });
+        const expectedAnswers = { q1: useRemote ? 1 : 0 };
+        assert.doesNotMatch(text(), /Ada jawaban berbeda di perangkat lain/);
+        assert.match(text(), /Penyimpanan tertunda/);
+        assert.doesNotMatch(text(), /Progres tersimpan di server/);
+        assert.deepEqual(saved.answers, { q1: 1 }, "choosing alone is not a server confirmation");
+        assert.ok(resolutionWrites.length > 0, "resolving must attempt a server save even without browser storage");
+        assert.deepEqual(resolutionWrites.at(-1).answers, expectedAnswers);
+        assert.equal(resolutionWrites.at(-1).revision, 1, "retry must use the remote concurrency token");
+        await act(async () => { await buttonNamed("Selesai & Lihat Hasil").props.onClick(); });
+        assert.deepEqual(submittedAnswers, [], "a failed resolution save must block final submission");
+        assert.doesNotMatch(text(), /Assessment Selesai|Progres tersimpan di server/);
+
+        fail = false;
+        hold = () => undefined;
+        await online();
+        assert.match(text(), /Menyimpan progres/);
+        assert.doesNotMatch(text(), /Progres tersimpan di server/);
+        assert.deepEqual(submittedAnswers, []);
+        const pendingCalls = calls;
+        await online();
+        assert.equal(calls, pendingCalls, "reconnect must not duplicate the in-flight resolution");
+        await act(async () => { hold!(); hold = null; });
+        assert.deepEqual(saved.answers, expectedAnswers);
+        assert.equal(saved.revision, 2);
+        assert.match(text(), /Progres tersimpan di server/);
+        assert.equal(buttonNamed("Selesai & Lihat Hasil").props.disabled, false);
+        assert.equal(storage.size, 0, "the entire conflict flow must work without a browser backup");
+        if (storageFailure === "security-access") assert.ok(storageAttempts.access > 0);
+        else {
+          assert.ok(storageAttempts.read > 0);
+          assert.ok(storageAttempts.write > 0);
+        }
+        await act(async () => { t.mock.timers.tick(30000); });
+        assert.equal(calls, pendingCalls, "confirmation must stop retries despite failed browser storage");
+        await act(async () => { await buttonNamed("Selesai & Lihat Hasil").props.onClick(); });
+        assert.deepEqual(submittedAnswers, [[{ question_id: "q1", selected_answer: useRemote ? 1 : 0 }]]);
+        assert.match(text(), /Assessment Selesai/);
+      } finally {
+        if (root) await act(async () => { root.unmount(); });
+        t.mock.timers.reset();
+      }
+    });
+  }
+
   for (const confirmed of [true, false]) {
     test(`${storageFailure}: setelah remount jawaban ${confirmed ? "terkonfirmasi pulih dari server" : "belum terkonfirmasi tidak dianggap tersimpan"}`, async (t) => {
       t.mock.timers.enable({ apis: ["setTimeout"] });
