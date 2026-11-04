@@ -28,6 +28,8 @@ const mainRouteExpectations = {
   "/budget-tracker": "proyek",
   "/k3-checklist": "proyek",
   "/generator": "proyek",
+  "/brain-project": "proyek",
+  "/konsultasi": "proyek",
   "/lkut": "lkut",
   "/grading": "empat-siap",
   "/compliance": "empat-siap",
@@ -43,6 +45,8 @@ const mainRouteExpectations = {
   "/marketplace": "layanan",
   "/direktori": "layanan",
   "/helpdesk": "layanan",
+  "/bedah-dokumen": "layanan",
+  "/klinik-konsultasi": "layanan",
   "/pesanan": "layanan",
   "/produk-saya": "layanan",
 } as const;
@@ -119,11 +123,22 @@ test("rute detail mengikuti panduan modul induknya", () => {
     "/inovasi/proposal/proposal-123": "layanan",
     "/program-kegiatan/kegiatan-123": "layanan",
     "/direktori/perusahaan-123": "layanan",
+    "/klinik-konsultasi/sbu": "layanan",
   } as const;
 
   for (const [pathname, expectedSection] of Object.entries(detailRoutes)) {
     assert.equal(getHelpSectionForPath(pathname), expectedSection, pathname);
   }
+});
+
+test("Bedah Dokumen dan loket klinik menautkan petunjuk layanan yang relevan", () => {
+  for (const pathname of ["/bedah-dokumen", "/klinik-konsultasi", "/klinik-konsultasi/sbu"]) {
+    assert.equal(getHelpHrefForPath(pathname), "/bantuan#layanan", pathname);
+  }
+
+  const services = helpSections.find(({ id }) => id === "layanan");
+  assert.ok(services?.steps.some((step) => step.includes("Bedah Dokumen") && step.includes("persetujuan")));
+  assert.ok(services?.steps.some((step) => step.includes("Klinik Konsultasi") && step.includes("loket")));
 });
 
 test("rute yang tidak dikenal aman mengarah ke panduan mulai", () => {
