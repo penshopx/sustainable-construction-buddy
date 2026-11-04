@@ -198,10 +198,10 @@ test("annex sections select the right part, including combined letter ranges", (
   }
 });
 
-test("forty-six sources retain 15734 physical PDF pages and separate original text lines", () => {
-  assert.equal(corpus.documents.length, 46);
-  assert.equal(new Set(corpus.documents.map(doc => doc.sha256)).size, 46);
-  assert.equal(corpus.documents.reduce((sum, doc) => sum + doc.pageCount, 0), 15734);
+test("forty-seven sources retain 15874 physical PDF pages and separate original text lines", () => {
+  assert.equal(corpus.documents.length, 47);
+  assert.equal(new Set(corpus.documents.map(doc => doc.sha256)).size, 47);
+  assert.equal(corpus.documents.reduce((sum, doc) => sum + doc.pageCount, 0), 15874);
   for (const doc of corpus.documents) {
     assert.match(doc.sha256, /^[a-f0-9]{64}$/);
     assert.equal(doc.pages.length, doc.pageCount);
@@ -210,6 +210,43 @@ test("forty-six sources retain 15734 physical PDF pages and separate original te
     const { pages, lines, ...metadata } = doc;
     assert.deepEqual(catalog.documents.find(item => item.id === doc.id), metadata);
   }
+});
+
+test("Permendagri amendment preserves its identity, pages and actual BMD clauses", () => {
+  const doc = corpus.documents.find(doc => doc.id === "KB47");
+  assert.equal(doc.pageCount, 140);
+  assert.equal(doc.textPageCount, 140);
+  assert.match(doc.note, /bukan konsolidasi lengkap/);
+  assert.match(doc.note, /bukan OCR atau verifikasi baru/);
+  const cover = contextSources("KB47 halaman PDF 1").find(s => s.page === 1);
+  assert.match(cover.text, /MENTERI DALAM NEGERI/);
+  assert.match(cover.text, /PEDOMAN PENGELOLAAN/);
+  const clause = contextSources("KB47 halaman PDF 46 peminjaman dokumen asli kepemilikan").find(s => /Pasal 297F/.test(s.text));
+  assert.ok(clause, "the actual BMD clause must survive final context budgeting");
+  assert.match(clause.text, /Peminjaman dokumen bukti kepemilikan/);
+  assert.equal(clause.page, 46);
+  assert.ok(contextSources("KB47 halaman PDF 140").some(s => s.page === 140 && /Petunjuk Pengisian/.test(s.text)));
+  assert.deepEqual(retrieveKnowledge("KB47 halaman PDF 141"), []);
+});
+
+test("ministry names distinguish Permendagri 7/2024 from Permen PUPR 7/2024", () => {
+  for (const query of [
+    "Permendagri No. 7 Tahun 2024 pengelolaan barang milik daerah",
+    "Peraturan Menteri Dalam Negeri Republik Indonesia Nomor 7 Tahun 2024",
+    "Permen Dalam Negeri 7/2024 Pasal 297F",
+  ]) {
+    const sources = contextSources(query);
+    assert.ok(sources.length > 0, query);
+    assert.ok(sources.every(s => s.id === "KB47"), query);
+  }
+  const pub = contextSources("Permen PUPR 7/2024 tujuan PUB");
+  assert.ok(pub.some(s => s.id === "KB18" && /bertujuan/.test(s.text)));
+  assert.ok(pub.every(s => s.id === "KB18"));
+  assert.deepEqual(retrieveKnowledge("Permendagri 19/2016 barang milik daerah"), [],
+    "the amendment is not the unavailable original regulation");
+  assert.deepEqual(retrieveKnowledge("Permendagri 6/2025"), [],
+    "an explicit other ministry must not fall back to Permen PU 6/2025");
+  assert.match(knowledgeContext("Permen 7/2024"), /minta penjelasan kementerian/);
 });
 
 test("implementation discussion slides retain OCR, provenance and physical page citations", () => {
@@ -297,7 +334,7 @@ test("context preserves reference types, untrusted-data and timing boundaries, w
   assert.match(prompt, /surat pemberlakuan/);
   assert.match(prompt, /\[KB04, hlm\. 4\]/);
   assert.match(prompt, /Ringkasan visual bukan kutipan verbatim/);
-  assert.match(prompt, /45 PDF dan 1 berkas teks unggahan/);
+  assert.match(prompt, /46 PDF dan 1 berkas teks unggahan/);
   assert.match(prompt, /bukan bukti penerbitan SBU/);
 });
 

@@ -11,13 +11,25 @@ export function stripKnowledgeGreeting(query: string) {
 }
 
 function legalReferences(text: string) {
-  const pattern = /\b(perpres|peraturan\s+presiden|pp|peraturan\s+pemerintah|permen(?:\s+pupr|\s+pu)?|peraturan\s+menteri(?:\s+pekerjaan\s+umum(?:\s+dan\s+perumahan\s+rakyat)?)?|peraturan\s+(?:lkpp|lembaga)(?:\s+lkpp)?)\s*(?:nomor|no\.?)?\s*(\d{1,3})\s*(?:\/|\s+(?:tahun\s+)?)(20\d{2})\b/g;
+  const pattern = /\b(perpres|peraturan\s+presiden|pp|peraturan\s+pemerintah|permendagri|permen(?:\s+pupr|\s+pu|\s+dalam\s+negeri)?|peraturan\s+menteri(?:\s+pekerjaan\s+umum(?:\s+dan\s+perumahan\s+rakyat)?|\s+dalam\s+negeri)?|peraturan\s+(?:lkpp|lembaga)(?:\s+lkpp)?)(?:\s+republik\s+indonesia)?\s*(?:nomor|no\.?)?\s*(\d{1,3})\s*(?:\/|\s+(?:tahun\s+)?)(20\d{2})\b/g;
   return [...normalize(text).matchAll(pattern)].map(match => {
     const prefix = match[1];
     const kind = /presiden|perpres/.test(prefix) ? "peraturan_presiden"
       : /menteri|permen/.test(prefix) ? "peraturan_menteri"
       : /lkpp|lembaga/.test(prefix) ? "peraturan_lembaga" : "peraturan_pemerintah";
-    return `${kind}:${Number(match[2])}:${match[3]}`;
+    const issuer = /dagri|dalam\s+negeri/.test(prefix) ? "dagri"
+      : /pupr|perumahan\s+rakyat/.test(prefix) ? "pupr"
+      : /\bpu\b|pekerjaan\s+umum/.test(prefix) ? "pu" : "";
+    return `${kind}:${Number(match[2])}:${match[3]}:${issuer}`;
+  });
+}
+
+function matchesReference(references: string[], title: string) {
+  const own = legalReferences(title)[0]?.split(":");
+  return own && references.some(reference => {
+    const requested = reference.split(":");
+    return requested.slice(0, 3).every((part, i) => part === own[i]) &&
+      (!requested[3] || requested[3] === own[3]);
   });
 }
 
@@ -60,7 +72,7 @@ export function knowledgeSelectors(query: string, documents: Document[]) {
       if (requestedSections.size) return [...requestedSections].some(section => ownSections.has(section));
       const ownNumber = normalize(doc.title).match(/\blampiran\s+(iv|iii|ii|i)\b/)?.[1];
       return ownNumber && annexNumbers.includes(ownNumber);
-    }).filter(doc => !references.length || references.includes(legalReferences(doc.title)[0])).map(doc => doc.id));
+    }).filter(doc => !references.length || matchesReference(references, doc.title)).map(doc => doc.id));
   } else if (references.length) {
     const wantsAnnex = /\blampiran\b/.test(normalized);
     const wantsDiscussion = /\b(?:materi\s+diskusi|paparan\s+implementasi|materi\s+implementasi)\b/.test(normalized);
@@ -68,7 +80,7 @@ export function knowledgeSelectors(query: string, documents: Document[]) {
       if (wantsAnnex ? doc.kind !== "lampiran_peraturan"
         : wantsDiscussion ? doc.kind !== "paparan" : !doc.kind.startsWith("peraturan_")) return false;
       // An amendment mentioning an older regulation is not the older regulation's complete text.
-      return references.includes(legalReferences(doc.title)[0]);
+      return matchesReference(references, doc.title);
     }).map(doc => doc.id));
   } else if (!/\b(?:bandingkan|perbedaan|dibandingkan)\b/.test(normalized)) {
     // An exact, multi-word regulation topic is stronger evidence than generic business terms.

@@ -699,6 +699,21 @@
       "lineCount": 0,
       "entryCount": 0,
       "note": "Materi diskusi/paparan implementasi Permen PU Nomor 6 Tahun 2025, bukan naskah peraturan atau keputusan resmi dan bukan bukti status hukum terkini. Nama file PK-2026-1 tidak mengubah tahun peraturan pada sampul (2025). Teks diekstrak menggunakan OCR lokal bahasa Indonesia/Inggris dan lapisan teks bawaan; belum diverifikasi kata demi kata, dapat salah membaca angka, tabel, dan urutan kolom. Rujukan memakai nomor halaman PDF fisik 1–91; periksa gambar asli untuk rincian dan bandingkan dengan naskah peraturan KB19 sebelum keputusan resmi."
+    },
+    {
+      "id": "KB47",
+      "title": "Permendagri Nomor 7 Tahun 2024 — Perubahan atas Permendagri Nomor 19 Tahun 2016 tentang Pedoman Pengelolaan Barang Milik Daerah",
+      "kind": "peraturan_menteri",
+      "fileName": "Permendagri_No_7_Tahun_2024_OCR_1793788420273.pdf",
+      "sha256": "0d15baeb2bfeb2d245dbb2b2b00d72375630d74994103b5124aa74594f776a37",
+      "pageCount": 140,
+      "textPageCount": 140,
+      "pagesNeedingReview": [],
+      "visualSummaryPages": [],
+      "format": "pdf",
+      "lineCount": 0,
+      "entryCount": 0,
+      "note": "Naskah perubahan Permendagri 19/2016 tentang Pedoman Pengelolaan Barang Milik Daerah, bukan konsolidasi lengkap dan bukan Permen PUPR 7/2024 tentang PUB (KB18). Referensi tambahan khusus pengelolaan barang milik daerah; bukan pengganti regulasi PUB. Teks diambil dari lapisan teks PDF yang diunggah (nama berkas menyebut OCR), bukan OCR atau verifikasi baru. Dapat mengandung kesalahan OCR, angka, tabel, dan urutan kolom. Kutipan memakai nomor halaman PDF fisik 1–140. Periksa naskah asli dan regulasi dasar/perubahan terkait sebelum keputusan resmi; unggahan ini tidak membuktikan status hukum terkini."
     }
   ]
 }

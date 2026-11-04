@@ -213,3 +213,4 @@ for offset in range(0, len(thumbnails), 8):
 # This separate importer uses local Tesseract rather than a paid OCR provider.
 import runpy
 runpy.run_path(str(ROOT / ".agents/scripts/ingest_implementation_discussion.py"), run_name="__main__")
+runpy.run_path(str(ROOT / ".agents/scripts/ingest_permendagri_reference.py"), run_name="__main__")

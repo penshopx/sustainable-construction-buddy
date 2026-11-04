@@ -27,3 +27,9 @@ Materi diskusi implementasi Permen PU 6/2025 yang diunggah pengguna merupakan sa
 **Why:** Pengguna menegaskan bahwa file tersebut menjadi “salah satu referensi”, termasuk untuk pembacaan bersama Permen 7/2024.
 
 **How to apply:** Bedakan paparan dari naskah normatif; jangan menyimpulkan bahwa Permen PUPR 7/2024 adalah turunan Permen PU 6/2025 hanya dari keterkaitan pembahasannya.
+
+Referensi pengelolaan barang milik daerah boleh menjadi rujukan tambahan aplikasi, tanpa diposisikan sebagai regulasi PUB.
+
+**Why:** Pengguna menyetujui penambahan Permendagri 7/2024 setelah dijelaskan bahwa dokumen tersebut berbeda dari Permen PUPR 7/2024 dan tidak menggantikan sumber tabel subklasifikasi yang hilang.
+
+**How to apply:** Pertahankan identitas kementerian dan ruang lingkup setiap sumber meskipun nomor serta tahunnya sama; jangan menyamakan naskah perubahan dengan peraturan dasar yang lengkap.
