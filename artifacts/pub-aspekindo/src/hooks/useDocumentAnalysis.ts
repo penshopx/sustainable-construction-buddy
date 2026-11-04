@@ -7,7 +7,7 @@ import {
 } from "@workspace/api-client-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { usePubWorkspace, pubWorkspaceKey } from "@/hooks/usePubWorkspace";
+import { usePubWorkspace, pubWorkspaceKey, pubWorkspaceSummaryKey } from "@/hooks/usePubWorkspace";
 
 export type { DocumentAnalysis, VaultDocument } from "@workspace/api-client-react";
 const ROOT = "bedah-dokumen";
@@ -36,6 +36,7 @@ export function useDocumentAnalysis() {
   const refresh = () => Promise.all([
     qc.invalidateQueries({ queryKey: [ROOT, userId] }),
     qc.invalidateQueries({ queryKey: pubWorkspaceKey(userId) }),
+    qc.invalidateQueries({ queryKey: pubWorkspaceSummaryKey(userId) }),
   ]);
   const analyses = useQuery({
     queryKey: [ROOT, userId, "analyses"], enabled: !!userId,

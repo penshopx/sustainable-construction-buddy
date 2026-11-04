@@ -150,3 +150,5 @@ export * from './vaultProfile';
 export * from './vaultQuestionInput';
 export * from './vaultSource';
 export * from './vaultWorkspace';
+export * from './vaultWorkspaceSummary';
+export * from './vaultWorkspaceSummaryProfile';

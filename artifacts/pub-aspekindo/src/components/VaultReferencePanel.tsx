@@ -1,8 +1,8 @@
 import { RefreshCw } from "lucide-react";
-import { usePubWorkspace } from "@/hooks/usePubWorkspace";
+import { usePubWorkspaceSummary } from "@/hooks/usePubWorkspace";
 
 export default function VaultReferencePanel() {
-  const workspace = usePubWorkspace();
+  const workspace = usePubWorkspaceSummary();
   if (!workspace.userId) return null;
   const data = workspace.data;
   return (
@@ -16,10 +16,10 @@ export default function VaultReferencePanel() {
       </div>
       <div aria-live="polite" className="mt-2">
         {workspace.isError ? <p role="alert">Acuan belum dapat dimuat. Data lama tidak ditampilkan; muat ulang untuk memeriksa sumber terbaru.</p>
-          : !data ? <p>Memuat profil dan daftar dokumen milik akun Anda…</p>
+          : !data ? <p>Memuat ringkasan acuan milik akun Anda…</p>
           : <p><a href="/ruang-simpan/profile" className="underline">{data.profile.name || "Profil perusahaan belum diisi"}</a>
-            {" · "}profil v{data.profile.version}{" · "}{data.documents.filter(d => d.status === "ready").length}/{data.documents.length} dokumen memiliki teks siap AI.
-            <span className="block mt-1 text-xs text-muted-foreground">Diperiksa {new Date(workspace.dataUpdatedAt).toLocaleTimeString("id-ID")}. Pembaruan diperiksa berkala dan saat kembali ke halaman.</span></p>}
+            {" · "}profil v{data.profile.version}{" · "}{data.readyDocumentCount}/{data.documentCount} dokumen memiliki teks siap AI.
+            <span className="block mt-1 text-xs text-muted-foreground">Diperiksa {new Date(data.checkedAt).toLocaleTimeString("id-ID")}. Pembaruan diperiksa berkala dan saat kembali ke halaman.</span></p>}
       </div>
       <p className="mt-2 text-xs text-muted-foreground">Profil dan dokumen dikelola sekali di Ruang Simpan. Konteks privat hanya dikirim ke AI sesuai persetujuan pada fitur ini. Jawaban dan laporan terdahulu adalah catatan saat dibuat, bukan pembaruan otomatis.</p>
     </section>

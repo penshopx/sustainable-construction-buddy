@@ -280,6 +280,22 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/VaultWorkspace" }
+  /ruang-simpan/workspace/summary:
+    get:
+      operationId: getVaultWorkspaceSummary
+      tags: [vault]
+      security: [{ memberBearer: [] }, { pubSession: [] }]
+      summary: Read only the signed-in owner's reference metadata, never document contents
+      responses:
+        "200":
+          description: Private reference summary; never cached
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/VaultWorkspaceSummary" }
+        "401":
+          description: Missing or invalid member session
+        "403":
+          description: Member access denied
   /ruang-simpan/folders:
     post:
       operationId: createVaultFolder
@@ -903,6 +919,10 @@ components:
         type: string
         pattern: "^[A-Za-z0-9_-]{8,80}$"
   securitySchemes:
+    pubSession:
+      type: apiKey
+      in: cookie
+      name: rs_pub_session
     vaultToken:
       type: http
       scheme: bearer
@@ -1291,6 +1311,21 @@ components:
         id: { type: string }
         action: { type: string }
         createdAt: { type: string }
+    VaultWorkspaceSummary:
+      type: object
+      additionalProperties: false
+      required: [profile, documentCount, readyDocumentCount, checkedAt]
+      properties:
+        profile:
+          type: object
+          additionalProperties: false
+          required: [name, version]
+          properties:
+            name: { type: string }
+            version: { type: integer, minimum: 0 }
+        documentCount: { type: integer, minimum: 0 }
+        readyDocumentCount: { type: integer, minimum: 0 }
+        checkedAt: { type: string, format: date-time }
     VaultWorkspace:
       type: object
       required: [folders, documents, profile, assistants, connections, activities, usedBytes, limitBytes]

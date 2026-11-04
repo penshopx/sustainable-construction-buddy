@@ -551,6 +551,21 @@ export interface VaultActivity {
   createdAt: string;
 }
 
+export type VaultWorkspaceSummaryProfile = {
+  name: string;
+  /** @minimum 0 */
+  version: number;
+};
+
+export interface VaultWorkspaceSummary {
+  profile: VaultWorkspaceSummaryProfile;
+  /** @minimum 0 */
+  documentCount: number;
+  /** @minimum 0 */
+  readyDocumentCount: number;
+  checkedAt: string;
+}
+
 export interface VaultWorkspace {
   folders: VaultFolder[];
   documents: VaultDocument[];

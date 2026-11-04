@@ -20,6 +20,7 @@ import { GetVaultAiStatusResponse } from "@workspace/api-zod";
 import { vaultExternalRouter, uploadDocument, streamDocument, importDocument } from "./vault-external";
 import { documentAnalysisRouter } from "./document-analysis";
 import { createSlidingLimiter } from "../lib/chat-limits";
+import { workspaceSummary } from "../lib/vault-summary";
 
 const aiRequests = createSlidingLimiter(60_000, 5);
 const ownerQuota = (req: Request) => [{ scope: "vault", ...aiRequests.inspect(req.res!.locals.vaultOwner as string) }];
@@ -51,6 +52,9 @@ vaultRouter.post("/company-names", async (req, res) => {
 });
 const owner = (req: Request) => req.res!.locals.vaultOwner as string;
 const idParam = (req: Request) => String(req.params.id);
+vaultRouter.get("/workspace/summary", async (req, res): Promise<void> => {
+  res.json(await workspaceSummary(owner(req)));
+});
 vaultRouter.get("/workspace", async (req, res) => {
   res.json(await workspace(owner(req), state => { expireOcrJobs(state); return publicWorkspace(state); }));
 });

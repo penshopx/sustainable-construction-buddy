@@ -1063,6 +1063,28 @@ export const GetVaultWorkspaceResponse = zod.object({
 })
 
 
+/**
+ * @summary Read only the signed-in owner's reference metadata, never document contents
+ */
+export const getVaultWorkspaceSummaryResponseProfileVersionMin = 0;
+
+export const getVaultWorkspaceSummaryResponseDocumentCountMin = 0;
+
+export const getVaultWorkspaceSummaryResponseReadyDocumentCountMin = 0;
+
+
+
+export const GetVaultWorkspaceSummaryResponse = zod.object({
+  "profile": zod.object({
+  "name": zod.string(),
+  "version": zod.number().int().min(getVaultWorkspaceSummaryResponseProfileVersionMin)
+}),
+  "documentCount": zod.number().int().min(getVaultWorkspaceSummaryResponseDocumentCountMin),
+  "readyDocumentCount": zod.number().int().min(getVaultWorkspaceSummaryResponseReadyDocumentCountMin),
+  "checkedAt": zod.coerce.date()
+})
+
+
 export const createVaultFolderBodyNameMax = 80;
 
 

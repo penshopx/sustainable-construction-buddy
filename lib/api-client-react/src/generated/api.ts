@@ -74,7 +74,8 @@ import type {
   VaultOcrInput,
   VaultProfile,
   VaultQuestionInput,
-  VaultWorkspace
+  VaultWorkspace,
+  VaultWorkspaceSummary
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -1362,6 +1363,83 @@ export function useGetVaultWorkspace<TData = Awaited<ReturnType<typeof getVaultW
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetVaultWorkspaceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetVaultWorkspaceSummaryUrl = () => {
+
+
+
+
+  return `/api/ruang-simpan/workspace/summary`
+}
+
+/**
+ * @summary Read only the signed-in owner's reference metadata, never document contents
+ */
+export const getVaultWorkspaceSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<VaultWorkspaceSummary> => {
+
+  return customFetch<VaultWorkspaceSummary>(getGetVaultWorkspaceSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVaultWorkspaceSummaryQueryKey = () => {
+    return [
+    `/api/ruang-simpan/workspace/summary`
+    ] as const;
+    }
+
+
+export const getGetVaultWorkspaceSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getVaultWorkspaceSummary>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVaultWorkspaceSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVaultWorkspaceSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVaultWorkspaceSummary>>> = ({ signal }) => getVaultWorkspaceSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVaultWorkspaceSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVaultWorkspaceSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getVaultWorkspaceSummary>>>
+export type GetVaultWorkspaceSummaryQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read only the signed-in owner's reference metadata, never document contents
+ */
+
+export function useGetVaultWorkspaceSummary<TData = Awaited<ReturnType<typeof getVaultWorkspaceSummary>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVaultWorkspaceSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVaultWorkspaceSummaryQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
