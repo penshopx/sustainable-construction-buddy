@@ -41,6 +41,7 @@ jobs:
           python3 scripts/test-lms-quiz-http-runner.py
           python3 scripts/test-draft-conflicts-runner.py
           python3 scripts/test-question-authority-runner.py
+          python3 scripts/test-bootstrap-super-admin-runner.py
           python3 scripts/prepare-supabase-test-project.py "$RUNNER_TEMP/aspekindo-supabase"
 
       - name: Start local Supabase and apply every repository migration
@@ -64,6 +65,9 @@ jobs:
 
       - name: Verify active admin cannot self-promote or delegate admin via INSERT, UPDATE or RPC
         run: bash scripts/test-submit-assessment-concurrency.sh --admin-role-escalation
+
+      - name: Verify bootstrap super-admin cannot revoke itself or DELETE/PATCH its permanent role
+        run: python3 scripts/test-bootstrap-super-admin-http.py
 
       - name: Verify revoked admin cannot restore roles with unchanged token and legitimate super-admin can grant
         run: bash scripts/test-submit-assessment-concurrency.sh --admin-role-revocation
