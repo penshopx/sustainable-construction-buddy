@@ -208,3 +208,8 @@ for offset in range(0, len(thumbnails), 8):
     name = "covers.png" if offset == 0 else f"covers-{offset // 8 + 1}.png"
     page.get_pixmap().save(str(out / name))
     sheet.close()
+
+# Keep the image-heavy implementation slides when rebuilding the shared corpus.
+# This separate importer uses local Tesseract rather than a paid OCR provider.
+import runpy
+runpy.run_path(str(ROOT / ".agents/scripts/ingest_implementation_discussion.py"), run_name="__main__")

@@ -63,8 +63,10 @@ export function knowledgeSelectors(query: string, documents: Document[]) {
     }).filter(doc => !references.length || references.includes(legalReferences(doc.title)[0])).map(doc => doc.id));
   } else if (references.length) {
     const wantsAnnex = /\blampiran\b/.test(normalized);
+    const wantsDiscussion = /\b(?:materi\s+diskusi|paparan\s+implementasi|materi\s+implementasi)\b/.test(normalized);
     documentIds = new Set(documents.filter(doc => {
-      if (wantsAnnex ? doc.kind !== "lampiran_peraturan" : !doc.kind.startsWith("peraturan_")) return false;
+      if (wantsAnnex ? doc.kind !== "lampiran_peraturan"
+        : wantsDiscussion ? doc.kind !== "paparan" : !doc.kind.startsWith("peraturan_")) return false;
       // An amendment mentioning an older regulation is not the older regulation's complete text.
       return references.includes(legalReferences(doc.title)[0]);
     }).map(doc => doc.id));

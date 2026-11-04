@@ -680,6 +680,25 @@
       "lineCount": 79,
       "entryCount": 76,
       "note": "Teks salinan tabel unggahan pengguna; URL, tanggal, versi KBLI, dan penerbit asal belum tersedia. Bukan peraturan atau tabel konversi resmi ke KBLI 2025, dan bukan bukti penerbitan SBU. Header TKK/peralatan/penyetaraan tidak membuktikan adanya nilai atau izin merangkap pada baris yang kosong. Gunakan kutipan baris teks asli, bukan halaman PDF; periksa aturan dan skema yang berlaku sebelum keputusan resmi."
+    },
+    {
+      "id": "KB46",
+      "title": "Materi Diskusi — Implementasi Permen PU Nomor 6 Tahun 2025",
+      "kind": "paparan",
+      "fileName": "NEW_PK-2026-1._Implementasi_Permen_PU_6_OK_1793783111438.pdf",
+      "sha256": "d73f21bdf0432577b7d1daa7f1f7afc1c8a3217ef8b348cdc2f8283db4b60041",
+      "pageCount": 91,
+      "textPageCount": 91,
+      "pagesNeedingReview": [
+        10,
+        90,
+        91
+      ],
+      "visualSummaryPages": [],
+      "format": "pdf",
+      "lineCount": 0,
+      "entryCount": 0,
+      "note": "Materi diskusi/paparan implementasi Permen PU Nomor 6 Tahun 2025, bukan naskah peraturan atau keputusan resmi dan bukan bukti status hukum terkini. Nama file PK-2026-1 tidak mengubah tahun peraturan pada sampul (2025). Teks diekstrak menggunakan OCR lokal bahasa Indonesia/Inggris dan lapisan teks bawaan; belum diverifikasi kata demi kata, dapat salah membaca angka, tabel, dan urutan kolom. Rujukan memakai nomor halaman PDF fisik 1–91; periksa gambar asli untuk rincian dan bandingkan dengan naskah peraturan KB19 sebelum keputusan resmi."
     }
   ]
 }

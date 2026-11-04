@@ -198,18 +198,40 @@ test("annex sections select the right part, including combined letter ranges", (
   }
 });
 
-test("forty-five sources retain 15643 physical PDF pages and separate original text lines", () => {
-  assert.equal(corpus.documents.length, 45);
-  assert.equal(new Set(corpus.documents.map(doc => doc.sha256)).size, 45);
-  assert.equal(corpus.documents.reduce((sum, doc) => sum + doc.pageCount, 0), 15643);
+test("forty-six sources retain 15734 physical PDF pages and separate original text lines", () => {
+  assert.equal(corpus.documents.length, 46);
+  assert.equal(new Set(corpus.documents.map(doc => doc.sha256)).size, 46);
+  assert.equal(corpus.documents.reduce((sum, doc) => sum + doc.pageCount, 0), 15734);
   for (const doc of corpus.documents) {
     assert.match(doc.sha256, /^[a-f0-9]{64}$/);
     assert.equal(doc.pages.length, doc.pageCount);
     assert.deepEqual(doc.pages.map(page => page.page), Array.from({ length: doc.pageCount }, (_, index) => index + 1));
-    assert.ok(doc.pages.every(page => page.text.length > 0));
+    assert.ok(doc.pages.every(page => page.text.length > 0 || doc.pagesNeedingReview.includes(page.page)));
     const { pages, lines, ...metadata } = doc;
     assert.deepEqual(catalog.documents.find(item => item.id === doc.id), metadata);
   }
+});
+
+test("implementation discussion slides retain OCR, provenance and physical page citations", () => {
+  const doc = corpus.documents.find(doc => doc.id === "KB46");
+  assert.equal(doc.kind, "paparan");
+  assert.equal(doc.pageCount, 91);
+  assert.match(doc.note, /bukan naskah peraturan/);
+  assert.match(doc.pages[0].text, /2025/);
+  assert.ok(doc.pages.every(page => page.method === "local_ocr_and_text_layer"));
+  const cover = contextSources("KB46 halaman PDF 1 implementasi Permen PU").find(source => source.id === "KB46" && source.page === 1);
+  assert.ok(cover);
+  assert.match(cover.text, /IMPLEMENTASI/i);
+  const ending = contextSources("KB46 halaman PDF 91").find(source => source.id === "KB46" && source.page === 91);
+  assert.ok(ending);
+  assert.match(ending.text, /Terima\s*kasih/i);
+  assert.deepEqual(retrieveKnowledge("KB46 halaman PDF 92"), []);
+  const financial = contextSources("KB46 halaman PDF 60 kemampuan keuangan").find(source => source.id === "KB46" && source.page === 60);
+  assert.ok(financial);
+  assert.match(financial.text, /Tanah\s*&\s*Bangunan/i);
+  const discussion = retrieveKnowledge("materi diskusi implementasi Permen PU 6 Tahun 2025 kemampuan keuangan");
+  assert.ok(discussion.some(source => source.id === "KB46"));
+  assert.ok(discussion.every(source => source.kind === "paparan"));
 });
 
 test("scanned decision pages are honestly labelled visual summaries and presentation discrepancies remain visible", () => {
@@ -260,7 +282,7 @@ test("context preserves reference types, untrusted-data and timing boundaries, w
   assert.match(prompt, /surat pemberlakuan/);
   assert.match(prompt, /\[KB04, hlm\. 4\]/);
   assert.match(prompt, /Ringkasan visual bukan kutipan verbatim/);
-  assert.match(prompt, /44 PDF dan 1 berkas teks unggahan/);
+  assert.match(prompt, /45 PDF dan 1 berkas teks unggahan/);
   assert.match(prompt, /bukan bukti penerbitan SBU/);
 });
 
