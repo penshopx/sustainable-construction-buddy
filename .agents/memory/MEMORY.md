@@ -41,3 +41,4 @@
 - [Batas kuota AI anggota](ai-member-quota-boundary.md) — kuota pribadi bukan saldo provider; server tetap berwenang tanpa penggantian model atau pemendekan jawaban otomatis.
 - [Privasi diagnostik AI admin](admin-ai-diagnostic-privacy.md) — cache metadata tidak membuktikan izin; panduan hanya dari kode aman, bukan respons penyedia.
 - [Cakupan analisis dokumen panjang](document-analysis-coverage-policy.md) — penggabungan lokal menjaga temuan akhir; tiap bagian berbayar eksplisit, kelengkapan ekstraksi terpisah.
+- [Prasyarat navigasi uji Auth](auth-test-preconditions.md) — tuntaskan redirect/onboarding akun disposable sebelum menilai request privat; suffix URL dapat cocok dengan parameter redirect.

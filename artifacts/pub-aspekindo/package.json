@@ -10,6 +10,7 @@
     "test": "node --experimental-strip-types --test --test-concurrency=1 src/lib/*.test.ts",
     "test:routing": "playwright test --config playwright.config.mjs",
     "test:media": "playwright test --config playwright.media.config.mjs",
+    "test:bedah:integration": "node tests/run-bedah-integration.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
