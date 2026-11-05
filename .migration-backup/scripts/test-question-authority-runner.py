@@ -92,6 +92,27 @@ class RunnerSafety(unittest.TestCase):
                     "message": "permission denied for table pre_tests",
                 }), "permission denied for table pre_tests", "before")
 
+    def test_start_denial_requires_question_authority_error_and_unchanged_state(self):
+        case = module.QuestionAuthorityHTTP()
+        denied = (400, {
+            "code": "P0001", "details": None, "hint": None,
+            "message": "Invalid assessment questions",
+        })
+        with patch.object(case, "snapshot", return_value="unchanged"):
+            case.assert_start_rejected(denied, "unchanged")
+            for response in (
+                (200, {"preTestId": "unexpected success"}),
+                (401, {"message": "Expired JWT"}),
+                (404, {"code": "PGRST202"}),
+                (400, {**denied[1], "message": "Invalid assessment draft"}),
+            ):
+                with self.subTest(response=response):
+                    with self.assertRaises(AssertionError):
+                        case.assert_start_rejected(response, "unchanged")
+        with patch.object(case, "snapshot", return_value="changed"):
+            with self.assertRaisesRegex(AssertionError, "persistent state"):
+                case.assert_start_rejected(denied, "before")
+
     def test_postgrest_grant_hint_does_not_change_the_security_assertion(self):
         case = module.QuestionAuthorityHTTP()
         with patch.object(case, "snapshot", return_value="unchanged"):

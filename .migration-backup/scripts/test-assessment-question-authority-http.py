@@ -3,6 +3,9 @@
 
 Uses the existing local-only transport, never application/hosted credentials.
 This is assessment coverage, not LMS quiz coverage.
+Start attacks exercise both a fresh member and a member with saved answers and
+completed history; whole-row snapshots detect inserts, updates and deletions.
+Valid controls include every question of a disposable two-question domain.
 """
 import importlib.util
 import json
@@ -52,32 +55,43 @@ class QuestionAuthorityHTTP(unittest.TestCase):
 
         cls.users = []
         cls.domain = str(uuid.uuid4())
+        cls.small_domain = str(uuid.uuid4())
         cls.questions = [str(uuid.uuid4()) for _ in range(5)]
+        cls.small_questions = [str(uuid.uuid4()) for _ in range(2)]
         cls.addClassCleanup(cls.cleanup)
         cls.owner, cls.owner_token = cls.create_user("owner")
         cls.stranger, cls.stranger_token = cls.create_user("stranger")
+        cls.newcomer, cls.newcomer_token = cls.create_user("newcomer")
         cls.db.sql(f"""
             INSERT INTO public.competency_domains(id,name)
-              VALUES ({literal(cls.domain)}, 'Disposable roster authority test');
+              VALUES ({literal(cls.domain)}, 'Disposable roster authority test'),
+                     ({literal(cls.small_domain)}, 'Disposable two-question domain');
             INSERT INTO public.questions(id,domain_id,question_text,options,correct_answer)
               VALUES {','.join(
-                  f"({literal(q)}, {literal(cls.domain)}, 'Roster authority fixture', "
-                  "'[\"A\",\"B\"]'::jsonb, 1)" for q in cls.questions)};
+                  f"({literal(q)}, {literal(domain)}, 'Roster authority fixture', "
+                  "'[\"A\",\"B\"]'::jsonb, 1)"
+                  for domain, questions in ((cls.domain, cls.questions),
+                                            (cls.small_domain, cls.small_questions))
+                  for q in questions)};
         """)
         # Preserve seeded questions and meet four-per-domain quotas everywhere.
         seeded = json.loads(cls.db.sql(f"""
             SELECT COALESCE(jsonb_agg(jsonb_build_object('id',id,'options',options,
                      'question_text',question_text) ORDER BY domain_id,id), '[]'::jsonb)
             FROM (SELECT q.*, row_number() OVER (PARTITION BY domain_id ORDER BY id) rn
-                  FROM public.questions q WHERE domain_id <> {literal(cls.domain)}) ranked
+                  FROM public.questions q WHERE domain_id NOT IN
+                    ({literal(cls.domain)}, {literal(cls.small_domain)})) ranked
             WHERE rn <= 4;
         """))
         own = [{"id": q, "options": ["A", "B"], "question_text": "Roster authority fixture"}
                for q in cls.questions]
-        cls.roster = seeded + own[:4]
-        cls.foreign_roster = seeded + own[:3] + own[4:]
-        if not 4 <= len(cls.roster) <= 100:
-            raise AssertionError("Fixture requires a complete assessment roster of <=100")
+        small = [{"id": q, "options": ["A", "B"], "question_text": "Roster authority fixture"}
+                 for q in cls.small_questions]
+        cls.seeded_roster, cls.own_roster, cls.small_roster = seeded, own, small
+        cls.roster = seeded + own[:4] + small
+        cls.foreign_roster = seeded + own[:3] + own[4:] + small
+        if not seeded or not 6 <= len(cls.roster) <= 99:
+            raise AssertionError("Fixture requires seeded domains and room for one extra question")
 
         # Nonempty historical answers/profile detect destructive writes too.
         historical, _ = cls.start(cls.owner_token, cls.roster)
@@ -121,7 +135,8 @@ class QuestionAuthorityHTTP(unittest.TestCase):
                                       privileged=True, method="DELETE")
             if status != 200:
                 failures.append(user)
-        cls.db.sql(f"DELETE FROM public.competency_domains WHERE id={literal(cls.domain)};")
+        cls.db.sql("DELETE FROM public.competency_domains WHERE id IN "
+                   f"({literal(cls.domain)}, {literal(cls.small_domain)});")
         if failures:
             raise AssertionError("Could not remove disposable Auth fixtures")
 
@@ -130,12 +145,16 @@ class QuestionAuthorityHTTP(unittest.TestCase):
         return [{"question_id": q["id"], "selected_answer": -1} for q in roster]
 
     @classmethod
-    def start(cls, token, roster):
-        status, result = cls.db.rpc("start_assessment_draft", token, {"_draft": {
+    def start_payload(cls, roster):
+        return {"_draft": {
             "version": 1, "preTestId": "pending", "questions": roster,
             "answers": {}, "answerResults": {}, "phase": "test",
             "currentQ": 0, "timeLeft": 180, "timedOut": False,
-        }})
+        }}
+
+    @classmethod
+    def start(cls, token, roster):
+        status, result = cls.db.rpc("start_assessment_draft", token, cls.start_payload(roster))
         if status != 200 or not isinstance(result, dict) or not result.get("preTestId"):
             raise AssertionError(f"Real start RPC failed: HTTP {status}")
         test_id = str(uuid.UUID(result["preTestId"]))
@@ -200,6 +219,81 @@ class QuestionAuthorityHTTP(unittest.TestCase):
         # New PostgREST versions add a GRANT hint to table denials. The hint
         # is diagnostic wording, not part of the permission boundary.
         self.assertEqual(self.snapshot(), before, "Denied request changed persistent state")
+
+    def assert_start_rejected(self, response, before):
+        # A missing RPC, expired token, or generic draft validation failure is
+        # not evidence that the question-authority migration rejected the roster.
+        self.assertEqual(response, (400, {
+            "code": "P0001", "details": None, "hint": None,
+            "message": "Invalid assessment questions",
+        }))
+        self.assertEqual(self.snapshot(), before, "Rejected start changed persistent state")
+
+    def test_start_rejects_favorable_or_incomplete_rosters_atomically(self):
+        seeded, own, small = self.seeded_roster, self.own_roster, self.small_roster
+        unknown = {**own[0], "id": str(uuid.uuid4())}
+        cases = (
+            ("single known-correct question", own[:1]),
+            ("only known-correct fixture domains", own[:4] + small),
+            ("too many in large domain", seeded + own + small),
+            ("too few in large domain", seeded + own[:3] + small),
+            ("large domain omitted", seeded + small),
+            ("small domain omitted", seeded + own[:4]),
+            ("too few in small domain", seeded + own[:4] + small[:1]),
+            # Same total as a valid roster: total-count validation alone fails.
+            ("balanced wrong domain quotas", seeded + own + small[:1]),
+            ("unknown UUID", seeded + own[:3] + [unknown] + small),
+            ("malformed ID", seeded + own[:3] + [{**unknown, "id": "not-a-uuid"}] + small),
+            ("duplicate replacing question", seeded + own[:3] + own[:1] + small),
+            ("extra duplicate", self.roster + own[:1]),
+        )
+        self.assertEqual(self.db.sql(
+            "SELECT count(*) FROM public.pre_tests "
+            f"WHERE user_id={literal(self.newcomer)};"), "0")
+        # Auth itself creates a profile. It must remain unchanged, not disappear.
+        self.assertEqual(self.db.sql(
+            "SELECT count(*) FROM public.profiles "
+            f"WHERE user_id={literal(self.newcomer)};"), "1")
+        for token in (self.newcomer_token, self.owner_token):
+            for label, roster in cases:
+                with self.subTest(attack=label, existing_history=token == self.owner_token):
+                    payload = self.start_payload(roster)
+                    # These fixtures really have key 1, so accepting the subset
+                    # would allow the member to manufacture a favorable score.
+                    payload["_draft"]["answers"] = {
+                        q["id"]: 1 for q in roster
+                        if q["id"] in self.questions + self.small_questions
+                    }
+                    before = self.snapshot()
+                    self.assert_start_rejected(self.db.rpc(
+                        "start_assessment_draft", token, payload), before)
+        # Same real Auth token must also succeed; auth/transport outages must
+        # never turn every denial above into a false positive.
+        self.assert_small_domain_start(self.newcomer_token, self.newcomer)
+
+    def assert_small_domain_start(self, token, user):
+        roster = list(reversed(self.roster))
+        test_id, draft = self.start(token, roster)
+        ids = [q["id"] for q in roster]
+        self.assertEqual([q["id"] for q in draft["questions"]], ids)
+        self.assertEqual(json.loads(self.db.sql(f"""
+            SELECT jsonb_build_object(
+              'owner', user_id, 'status', status, 'total', total_questions,
+              'ids', authorized_question_ids,
+              'small_count', (SELECT count(*) FROM public.questions q
+                WHERE q.domain_id={literal(self.small_domain)}
+                  AND q.id=ANY(p.authorized_question_ids)),
+              'drafts', (SELECT count(*) FROM public.assessment_drafts d
+                        WHERE d.pre_test_id=p.id))
+            FROM public.pre_tests p WHERE id={literal(test_id)};
+        """)), {
+            "owner": user, "status": "in_progress", "total": len(roster),
+            "ids": ids, "small_count": 2, "drafts": 1,
+        })
+        return test_id
+
+    def test_start_accepts_complete_roster_with_less_than_four_in_domain(self):
+        self.assert_small_domain_start(self.owner_token, self.owner)
 
     def test_postgrest_cannot_replace_frozen_roster(self):
         for token in (self.owner_token, self.stranger_token):
