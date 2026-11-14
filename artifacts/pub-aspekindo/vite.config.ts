@@ -37,7 +37,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'pwa-192x192.png', 'pwa-512x512.png'],
       workbox: {
-        navigateFallbackDenylist: [/^\/~oauth/],
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/ruang-simpan(?:\/|$)/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,jpg,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },

@@ -15,6 +15,19 @@ test("rute publik utama dari build aplikasi aktif dapat dibuka", async ({ page }
   await expect(page.getByRole("heading", { name: "Ruang kolaborasi untuk BUJK yang terus bertumbuh.", level: 1 })).toBeVisible();
 });
 
+test("Ruang Simpan dimuat dari bundle sendiri pada jalur PUB", async ({ page }) => {
+  const response = await page.goto("/ruang-simpan/");
+  expect(response?.status()).toBe(200);
+  await expect(page).toHaveTitle("Ruang Simpan");
+  await expect(page.getByRole("heading", { name: "Pusat data bisnis PUB ASPEKINDO" })).toBeVisible();
+
+  const entryScript = await page.locator('script[type="module"]').getAttribute("src");
+  expect(entryScript).toMatch(/^\/ruang-simpan\/assets\/.+\.js$/);
+  const assetResponse = await page.request.get(new URL(entryScript, page.url()).href);
+  expect(assetResponse.status()).toBe(200);
+  expect(assetResponse.headers()["content-type"]).toMatch(/javascript/);
+});
+
 test("ponsel dapat melompat ke daftar bagian dan membuka-tutup accordion", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
