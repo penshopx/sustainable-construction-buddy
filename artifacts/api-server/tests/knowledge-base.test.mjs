@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { build } from "esbuild";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -16,6 +17,7 @@ new Function("require", "module", "exports", bundled.outputFiles[0].text)(
 const { retrieveKnowledge, knowledgeContext } = module.exports;
 const corpus = JSON.parse(readFileSync(new URL("../src/data/lpjk-knowledge.json", import.meta.url)));
 const catalog = JSON.parse(readFileSync(new URL("../../pub-aspekindo/src/data/lpjk-knowledge-catalog.json", import.meta.url)));
+const schemeMatrix = JSON.parse(readFileSync(new URL("../src/data/construction-scheme-matrix.json", import.meta.url)));
 
 function contextSources(query) {
   const context = knowledgeContext(query);
@@ -37,17 +39,18 @@ test("KBLI 2025 remains a BPS publication with 1040 physical PDF pages, not a co
   assert.ok(doc.pages[source.page - 1].text.includes(source.text));
 });
 
-test("the pasted scheme table preserves 79 original lines and 76 entries without inventing PDF pages", () => {
+test("the embedded scheme table preserves its original checksum, 79 lines, and 76 entries", () => {
   const doc = corpus.documents.find(doc => doc.id === "KB45");
-  const original = readFileSync(new URL(`../../../attached_assets/${doc.fileName}`, import.meta.url), "utf8").split(/\r?\n/);
-  if (original.at(-1) === "") original.pop();
+  const originalBytes = Buffer.from(`${doc.lines.map(row => row.text).join("\r\n")}\r\n`, "utf8");
+  const originalHash = createHash("sha256").update(originalBytes).digest("hex");
   assert.equal(doc.format, "text");
   assert.equal(doc.kind, "tabel_pemetaan");
   assert.equal(doc.pageCount, 0);
   assert.deepEqual(doc.pages, []);
   assert.equal(doc.lineCount, 79);
   assert.equal(doc.entryCount, 76);
-  assert.deepEqual(doc.lines.map(row => row.text), original);
+  assert.equal(originalHash, doc.sha256);
+  assert.equal(originalHash, schemeMatrix.sourceHashes.KB45);
   const rows = doc.lines.filter(row => /^[A-Z]{2}\d{3}\s*\d{5}/.test(row.text));
   assert.deepEqual(Object.fromEntries(["BG", "BS", "IN", "KK", "KP", "PA", "PB", "PL"].map(prefix => [
     prefix, rows.filter(row => row.text.startsWith(prefix)).length,
