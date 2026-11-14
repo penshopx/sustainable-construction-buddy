@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --config vite.config.ts --host 0.0.0.0",
     "build": "vite build --config vite.config.ts",
+    "build:release": "pnpm run build && BASE_PATH=/ruang-simpan/ PORT=22420 pnpm --filter @workspace/ruang-simpan run build && node scripts/package-ruang-simpan.mjs",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "test:cache-policy": "node --experimental-strip-types tests/check-vite-test-cache.ts",
     "test": "pnpm run test:cache-policy && node --experimental-strip-types --test --test-concurrency=1 src/lib/*.test.ts",

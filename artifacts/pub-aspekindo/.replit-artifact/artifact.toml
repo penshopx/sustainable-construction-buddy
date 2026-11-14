@@ -15,9 +15,13 @@ localPort = 24594
 run = "pnpm --filter @workspace/pub-aspekindo run dev"
 
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/pub-aspekindo", "run", "build" ]
+build = [ "pnpm", "--filter", "@workspace/pub-aspekindo", "run", "build:release" ]
 serve = "static"
 publicDir = "artifacts/pub-aspekindo/dist/public"
+
+[[services.production.rewrites]]
+from = "/ruang-simpan/*"
+to = "/ruang-simpan/index.html"
 
 [[services.production.rewrites]]
 from = "/*"
