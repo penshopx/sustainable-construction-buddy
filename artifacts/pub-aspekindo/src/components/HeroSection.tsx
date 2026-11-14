@@ -28,18 +28,22 @@ const HeroSection = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex items-center gap-3 mb-8"
+          className="mb-8 flex items-start gap-3"
         >
-          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-[hsl(0,0%,100%)/12%] backdrop-blur-sm border border-[hsl(0,0%,100%)/10%]">
-            <img src={logoPub} alt="Logo PUB ASPEKINDO" className="h-12 w-auto object-contain" />
-            <span className="text-[hsl(0,0%,90%)] font-bold font-heading text-sm leading-tight">
-              <span className="mb-0.5 block text-[10px] font-semibold uppercase tracking-[0.14em] text-pub-sky">Platform</span>
-              PUB<br />ASPEKINDO
-            </span>
-            <div className="w-px h-8 bg-[hsl(0,0%,100%)/20%]" />
-            <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-10 w-auto object-contain" />
-            <div className="w-px h-8 bg-[hsl(0,0%,100%)/20%]" />
-            <img src={logoLsbuki} alt="Logo LSBU KI" className="h-10 w-auto object-contain" />
+          <div className="w-fit max-w-full rounded-xl border border-[hsl(0,0%,100%)/10%] bg-[hsl(0,0%,100%)/12%] px-4 py-2.5 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <img src={logoPub} alt="Logo PUB ASPEKINDO" className="h-12 w-auto object-contain" />
+              <span className="text-sm font-bold leading-tight text-[hsl(0,0%,90%)]">
+                PUB<br />ASPEKINDO
+              </span>
+              <div className="h-8 w-px bg-[hsl(0,0%,100%)/20%]" />
+              <img src={logoAspekindo} alt="Logo ASPEKINDO" className="h-10 w-auto object-contain" />
+              <div className="h-8 w-px bg-[hsl(0,0%,100%)/20%]" />
+              <img src={logoLsbuki} alt="Logo LSBU KI" className="h-10 w-auto object-contain" />
+            </div>
+            <p className="mt-2 w-full border-t border-white/20 pt-2 text-center font-body text-lg font-bold tracking-wide text-pub-sky md:text-xl">
+              Platform PUB ASPEKINDO
+            </p>
           </div>
         </motion.div>
 
