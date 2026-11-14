@@ -1,4 +1,4 @@
-name: Frontend and competency insight validation
+name: PUB release and competency insight validation
 
 on:
   push:
@@ -89,7 +89,7 @@ jobs:
           retention-days: 7
 
   validate-active-frontend:
-    name: Validate active PUB ASPEKINDO frontend
+    name: Validate active PUB and Ruang Simpan release
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -105,26 +105,26 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck shared libraries
-        run: pnpm run typecheck:libs
+      - name: Typecheck workspace packages
+        run: pnpm run typecheck
 
-      - name: Typecheck active frontend
-        run: pnpm --filter @workspace/pub-aspekindo run typecheck
+      - name: Run active PUB unit tests
+        run: pnpm --filter @workspace/pub-aspekindo run test
 
-      - name: Build active frontend
+      - name: Build production bundle with Ruang Simpan
         env:
           PORT: "4179"
           BASE_PATH: "/"
           VITE_SUPABASE_URL: https://ci-playwright.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
-        run: pnpm --filter @workspace/pub-aspekindo run build
+        run: pnpm --filter @workspace/pub-aspekindo run build:release
 
       - name: Install Chromium for routing smoke test
         run: pnpm --filter @workspace/pub-aspekindo exec playwright install --with-deps chromium
@@ -145,3 +145,38 @@ jobs:
           name: native-media-results
           path: artifacts/pub-aspekindo/test-results/native-media/
           if-no-files-found: ignore
+
+  validate-api-server:
+    name: Validate shared API and knowledge base
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.26.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck shared API
+        run: pnpm --filter @workspace/api-server run typecheck
+
+      - name: Build production API artifact
+        env:
+          NODE_ENV: production
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: Test API, knowledge base and source synchronization
+        run: pnpm --filter @workspace/api-server run test
