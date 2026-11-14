@@ -41,8 +41,8 @@ const HeroSection = () => {
               <div className="h-8 w-px bg-[hsl(0,0%,100%)/20%]" />
               <img src={logoLsbuki} alt="Logo LSBU KI" className="h-10 w-auto object-contain" />
             </div>
-            <p className="mt-2 w-full border-t border-white/20 pt-2 text-center font-body text-lg font-bold tracking-wide text-pub-sky md:text-xl">
-              Platform PUB ASPEKINDO
+            <p className="mt-2 w-full border-t border-white/20 pt-2 text-center font-body text-lg font-black tracking-wide text-pub-sky md:text-xl">
+              PLATFORM PUB ASPEKINDO
             </p>
           </div>
         </motion.div>
