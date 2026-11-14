@@ -2694,7 +2694,7 @@ test.describe("halaman khusus super-admin dengan sesi tiruan", () => {
       await expect(protectedCell).toBeVisible();
       expect(await page.evaluate(() => document.visibilityState)).toBe("visible");
 
-      await page.clock.pauseAt(await page.evaluate(() => Date.now()));
+      await page.clock.pauseAt(new Date(Date.now() + 1000));
       await page.evaluate(() => {
         window.__roleCheckEvents = [];
         window.addEventListener("focus", () => window.__roleCheckEvents.push("focus"));

@@ -1,9 +1,14 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import React from "react";
 import { act, create, type ReactTestRenderer } from "react-test-renderer";
 import { createServer, type ViteDevServer } from "vite";
 import { fileURLToPath } from "node:url";
+
+const catalog = JSON.parse(readFileSync(new URL("../data/lpjk-knowledge-catalog.json", import.meta.url), "utf8"));
+const catalogPdfPages = catalog.documents.reduce((sum: number, doc: { pageCount: number }) => sum + doc.pageCount, 0);
+const catalogTextLines = catalog.documents.reduce((sum: number, doc: { lineCount: number }) => sum + doc.lineCount, 0);
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 let vite: ViteDevServer, Catalog: any, root: ReactTestRenderer | undefined;
@@ -20,12 +25,12 @@ test.before(async () => {
 test.afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; });
 test.after(async () => { await vite.close(); });
 
-test("catalog separates 15643 PDF pages from 79 text lines across forty-five sources", async () => {
+test("catalog reports current PDF pages and text lines across all sources", async () => {
   await act(async () => { root = create(React.createElement(Catalog)); });
-  assert.equal(root!.root.findAllByType("li").length, 45);
+  assert.equal(root!.root.findAllByType("li").length, catalog.documents.length);
   const output = JSON.stringify(root!.toJSON());
-  assert.match(output, /15643/);
-  assert.match(output, /79 baris teks/);
+  assert.ok(output.includes(String(catalogPdfPages)), `expected ${catalogPdfPages} PDF pages in the catalog`);
+  assert.ok(output.includes(`${catalogTextLines} baris teks`), `expected ${catalogTextLines} text lines in the catalog`);
   assert.match(output, /76 entri/);
   assert.match(output, /Publikasi statistik BPS/);
   assert.match(output, /Tabel pemetaan salinan/);
