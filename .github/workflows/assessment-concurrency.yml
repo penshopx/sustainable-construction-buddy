@@ -42,17 +42,20 @@ jobs:
           python3 scripts/test-draft-conflicts-runner.py
           python3 scripts/test-question-authority-runner.py
           python3 scripts/test-bootstrap-super-admin-runner.py
-          python3 scripts/prepare-supabase-test-project.py "$RUNNER_TEMP/aspekindo-supabase"
+          python3 scripts/prepare-supabase-test-project.py "$RUNNER_TEMP/aspekindo-supabase" --before 20261031100000
 
-      - name: Start local Supabase and apply every repository migration
+      - name: Start local Supabase with all migrations before question authority
         run: supabase --workdir "$RUNNER_TEMP/aspekindo-supabase" start
-
-      - name: Verify quiz authority and overlapping authenticated submissions with all migrations, RLS, grants and triggers
-        run: bash scripts/test-aspekindo-lms-quiz-authority.sh --supabase
 
       - name: Configure local API for owner, stranger, admin and anonymous RPC checks
         run: |
           supabase --workdir "$RUNNER_TEMP/aspekindo-supabase" status -o json | jq -r '"TEST_SUPABASE_URL=\(.API_URL)\nTEST_SUPABASE_ANON_KEY=\(.ANON_KEY)\nTEST_SUPABASE_SERVICE_ROLE_KEY=\(.SERVICE_ROLE_KEY)"' >> "$GITHUB_ENV"
+
+      - name: Verify legacy draft backfill while applying question authority and all remaining migrations
+        run: python3 scripts/test-assessment-question-authority-legacy-http.py --workdir "$RUNNER_TEMP/aspekindo-supabase"
+
+      - name: Verify quiz authority and overlapping authenticated submissions with all migrations, RLS, grants and triggers
+        run: bash scripts/test-aspekindo-lms-quiz-authority.sh --supabase
 
       - name: Verify quiz grading and anti-forgery through real Auth and PostgREST
         run: python3 scripts/test-lms-quiz-authority-http.py

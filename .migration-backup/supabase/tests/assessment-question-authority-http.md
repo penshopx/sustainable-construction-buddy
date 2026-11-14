@@ -30,8 +30,9 @@ sys.exit(subprocess.call(
 supabase --workdir /tmp/aspekindo-roster stop --no-backup
 ```
 
-CI runs the suite in `.github/workflows/assessment-concurrency.yml` after every
-repository migration is installed. Legacy timestamp collisions are grouped only
+CI first runs the legacy upgrade check below, then this suite in
+`.github/workflows/assessment-concurrency.yml` after every repository migration
+is installed. Legacy timestamp collisions are grouped only
 in the staging copy. A CI-only prerequisite commits the legacy `super_admin`
 enum label before the original migration uses it (PostgreSQL forbids using a new
 label in the transaction that added it). Original migration files and versions
@@ -72,6 +73,82 @@ No attack request uses the service-role key.
 An unavailable Auth/gateway or failed container startup is a failed run, not a
 skip or evidence that the security assertions passed. Use a functioning local
 Supabase runtime such as CI Ubuntu; do not substitute hosted data or minimal SQL.
+
+## Legacy backfill on the full schema
+
+The isolated SQL fixture `assessment-question-authority-legacy.sql` deliberately
+uses a minimal schema. It does not prove that migration backfill works with
+Supabase Auth, seeded domains, RLS, triggers and later migrations.
+
+For that boundary, use a **fresh** disposable local project:
+
+```sh
+python3 scripts/prepare-supabase-test-project.py /tmp/aspekindo-legacy \
+  --before 20261031100000
+supabase --workdir /tmp/aspekindo-legacy start
+export TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+supabase --workdir /tmp/aspekindo-legacy status -o json |
+python3 -c '
+import json, os, subprocess, sys
+s = json.load(sys.stdin)
+env = {**os.environ, "TEST_SUPABASE_URL": s["API_URL"],
+       "TEST_SUPABASE_ANON_KEY": s["ANON_KEY"],
+       "TEST_SUPABASE_SERVICE_ROLE_KEY": s["SERVICE_ROLE_KEY"]}
+sys.exit(subprocess.call(
+    ["python3", "scripts/test-assessment-question-authority-legacy-http.py",
+     "--workdir", "/tmp/aspekindo-legacy"], env=env))
+'
+supabase --workdir /tmp/aspekindo-legacy stop --no-backup
+```
+
+The staging option defers the authority migration **and every later version**
+without changing original SQL. The runner checks the exact pre-upgrade ledger,
+absence of the authority column, unlinked staging config and original SQL bytes
+before creating fixtures. An already migrated database fails; it is never
+accepted as evidence of backfill.
+
+A real Auth owner creates historical results/answers and six legacy assessments:
+a complete roster, duplicate IDs, a missing draft, an omitted large domain, an
+incomplete two-question domain, and balanced but incorrect domain quotas (the
+same total count as the complete roster). Rosters cover seeded domains as well
+as a five-question domain and a two-question domain. Drafts have the actual
+versioned shape and nonempty saved answers.
+
+With those rows already present, the runner restores deferred SQL, executes
+`supabase migration up --local`, and requires the exact complete ledger. Only the
+complete draft may receive the ordered authorized IDs. A whole-row comparison
+also proves the migration itself did not change existing results, profiles,
+answers or drafts, other than adding the new column.
+
+Each invalid legacy assessment must reject both its original answer list and a
+repaired browser list with the exact `Invalid assessment questions` RPC response,
+before and after expiry. After **each request**, privileged snapshots compare all
+result/profile/answer/draft rows, including history and timestamps. A successful
+submission through the same Auth session must then finalize the complete legacy
+assessment using saved server choices, update its profile, and leave all other
+results, answers and drafts unchanged. Random fixtures are removed even on
+failure; a failed upgrade is not a skip. Start over with a fresh project to rerun.
+
+### Verification performed — 2026-11-05
+
+The legacy integration passed with **all 95 repository migration files** (94
+distinct repository versions plus the enum prerequisite) on Supabase PostgreSQL
+17.11.0.006, CLI 2.122.0, GoTrue 2.197.0, PostgREST 16.5 and Storage API 1.84.19.
+CLI first installed the 89 pre-authority versions plus the prerequisite; the
+runner then applied the authority migration and four later versions around the
+six existing fixtures. All 20 invalid submissions preserved whole-row snapshots;
+the complete legacy draft alone was backfilled and successfully finalized.
+The seven existing HTTP authority tests, ten offline runner checks, ten staging/CI
+checks and isolated SQL scorer suite also passed.
+
+As in the earlier verification below, Docker health-check execution was blocked
+by this workspace runtime. Actual provider containers ran directly on the
+CLI-created local database; Auth/Storage applied their real provider migrations
+and CLI applied **all** application migrations. A local HTTP pass-through routed
+requests unchanged to Auth and PostgREST. This validates the actual database,
+JWT, grants and RLS boundary, not Kong configuration. The committed CI workflow
+continues to use standard `supabase start` and its real gateway. No UI, production
+data, application grants or deployed migration files were changed.
 
 ## Verification performed — 2026-11-01
 

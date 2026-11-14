@@ -1,17 +1,23 @@
 #!/usr/bin/env python3
 """Stage every repository migration for disposable local Supabase CI only."""
 from pathlib import Path
-import sys
+import argparse
 
 
-def prepare(destination: Path) -> None:
+def prepare(destination: Path, before: str | None = None) -> None:
     source = Path(__file__).resolve().parents[1] / "supabase"
+    versions = {p.name.split("_", 1)[0] for p in (source / "migrations").glob("*.sql")}
+    if before is not None and before not in versions:
+        raise ValueError("Migration cutoff must be a repository version")
     target = destination / "supabase"
     target.mkdir(parents=True, exist_ok=False)
     # Do not copy linked-project metadata or the production project identifier.
     (target / "config.toml").write_text('project_id = "aspekindo-ci"\n')
     migrations = target / "migrations"
     migrations.mkdir()
+    deferred = target / "deferred-migrations"
+    if before is not None:
+        deferred.mkdir()
     grouped: dict[str, list[Path]] = {}
     for migration in sorted((source / "migrations").glob("*.sql")):
         grouped.setdefault(migration.name.split("_", 1)[0], []).append(migration)
@@ -19,7 +25,8 @@ def prepare(destination: Path) -> None:
         # Legacy migrations share a timestamp. Supabase's migration ledger has
         # a unique version key, so concatenate those files in filename order
         # in this disposable copy only; never rename deployed migrations.
-        (migrations / f"{version}_ci.sql").write_text(
+        directory = deferred if before is not None and version >= before else migrations
+        (directory / f"{version}_ci.sql").write_text(
             "\n".join(f"-- Source: {file.name}\n{file.read_text()}\n" for file in files)
         )
     # PostgreSQL cannot use a newly added enum label until its transaction
@@ -30,11 +37,16 @@ def prepare(destination: Path) -> None:
     prerequisite = "20260827051515"
     if prerequisite in grouped:
         raise ValueError("CI enum prerequisite timestamp collides with a repository migration")
-    (migrations / f"{prerequisite}_ci_enum_prerequisite.sql").write_text(
+    directory = deferred if before is not None and prerequisite >= before else migrations
+    (directory / f"{prerequisite}_ci_enum_prerequisite.sql").write_text(
         "-- Disposable CI only: commit enum label before legacy migration uses it.\n"
         "ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'super_admin';\n"
     )
 
 
 if __name__ == "__main__":
-    prepare(Path(sys.argv[1]))
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("destination", type=Path)
+    parser.add_argument("--before", help="Defer this version and every later migration")
+    args = parser.parse_args()
+    prepare(args.destination, args.before)

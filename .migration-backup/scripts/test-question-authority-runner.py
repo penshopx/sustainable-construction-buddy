@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Offline guard checks for the assessment question-authority HTTP suite."""
 import importlib.util
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -13,6 +14,10 @@ SCRIPT = Path(__file__).with_name("test-assessment-question-authority-http.py")
 spec = importlib.util.spec_from_file_location("question_http", SCRIPT)
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+legacy_spec = importlib.util.spec_from_file_location(
+    "legacy_http", SCRIPT.with_name("test-assessment-question-authority-legacy-http.py"))
+legacy = importlib.util.module_from_spec(legacy_spec)
+legacy_spec.loader.exec_module(legacy)
 
 LOCAL = {
     "TEST_SUPABASE_URL": "http://127.0.0.1:54321",
@@ -47,13 +52,79 @@ class RunnerSafety(unittest.TestCase):
                            "DATABASE_URL": "postgresql://hosted.invalid/postgres",
                            "CALL_LOG": str(marker),
                            "PATH": directory + os.pathsep + os.environ["PATH"]}
-                    result = subprocess.run(
-                        ["python3", str(SCRIPT)], env=env,
-                        capture_output=True, text=True, timeout=10,
-                    )
-                    self.assertNotEqual(result.returncode, 0)
-                    self.assertIn("Requires", result.stderr)
-                    self.assertFalse(marker.exists(), "Unsafe target reached psql")
+                    for script, arguments in (
+                        (SCRIPT, []),
+                        (SCRIPT.with_name("test-assessment-question-authority-legacy-http.py"),
+                         ["--workdir", directory]),
+                    ):
+                        result = subprocess.run(
+                            ["python3", str(script), *arguments], env=env,
+                            capture_output=True, text=True, timeout=10,
+                        )
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn("Requires", result.stderr)
+                        self.assertFalse(marker.exists(), "Unsafe target reached psql")
+
+    def test_split_staging_preserves_every_original_migration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            legacy.staging.prepare(project, legacy.CUTOFF)
+            legacy.check_staging(project)
+            target = project / "supabase"
+            before = sorted((target / "migrations").glob("*.sql"))
+            after = sorted((target / "deferred-migrations").glob("*.sql"))
+            self.assertTrue(before)
+            self.assertTrue(after)
+            self.assertTrue(all(p.name.split("_")[0] < legacy.CUTOFF for p in before))
+            self.assertTrue(all(p.name.split("_")[0] >= legacy.CUTOFF for p in after))
+            combined = "\n".join(p.read_text() for p in before + after)
+            for migration in (module.ROOT / "supabase/migrations").glob("*.sql"):
+                marker = f"-- Source: {migration.name}\n"
+                self.assertEqual(combined.count(marker), 1)
+                self.assertIn(marker + migration.read_text(), combined)
+            # Refuse a partial/tampered staging tree before invoking migrations.
+            after[0].write_text("-- modified")
+            with self.assertRaisesRegex(AssertionError, "original split"):
+                legacy.check_staging(project)
+
+    def test_legacy_runner_rejects_wrong_ledger_before_fixture_creation(self):
+        for ledger in ([], [legacy.CUTOFF]):
+            db = Mock()
+            db.sql.return_value = json.dumps(ledger)
+            with self.assertRaisesRegex(AssertionError, "BEFORE question authority"):
+                legacy.check_legacy_ledger(db)
+            db.request.assert_not_called()
+
+    def test_legacy_staging_rejects_linked_projects_and_unknown_cutoffs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            project = Path(directory)
+            with self.assertRaisesRegex(ValueError, "repository version"):
+                legacy.staging.prepare(project, "does-not-exist")
+            self.assertFalse((project / "supabase").exists())
+            legacy.staging.prepare(project, legacy.CUTOFF)
+            metadata = project / "supabase/.temp"
+            metadata.mkdir()
+            (metadata / "cli-latest").write_text("v3.0.0")
+            legacy.check_staging(project)  # CLI version metadata is not a link.
+            (metadata / "project-ref").write_text("hosted-project")
+            with self.assertRaisesRegex(AssertionError, "unlinked"):
+                legacy.check_staging(project)
+
+    def test_legacy_upgrade_requires_success_and_complete_ledger(self):
+        for exit_code in (1, 0):
+            with tempfile.TemporaryDirectory() as directory:
+                project = Path(directory)
+                legacy.staging.prepare(project, legacy.CUTOFF)
+                db = Mock()
+                db.sql.return_value = "[]"
+                with patch.object(legacy.subprocess, "run",
+                                  return_value=Mock(returncode=exit_code)) as run:
+                    with self.assertRaisesRegex(AssertionError,
+                            "failed to apply" if exit_code else "EVERY repository migration"):
+                        legacy.apply_remaining(db, project)
+                self.assertIn("--local", run.call_args.args[0])
+                self.assertFalse(list((project / "supabase/deferred-migrations").glob("*.sql")))
+                db.request.assert_not_called()
 
     def test_all_migrations_and_real_acls_are_required_before_auth_setup(self):
         for results, message in (
