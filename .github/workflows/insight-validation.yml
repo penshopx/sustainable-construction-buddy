@@ -134,7 +134,7 @@ jobs:
           NODE_ENV: production
         run: pnpm --filter @workspace/api-server run build
 
-      - name: Install isolated PostgreSQL test tools
+      - name: Install PostgreSQL and OCR fixture tools
         run: |
           sudo apt-get update
           sudo apt-get install --yes postgresql postgresql-client imagemagick fonts-dejavu-core
