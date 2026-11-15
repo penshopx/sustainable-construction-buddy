@@ -50,4 +50,8 @@ jobs:
         if: always()
         run: |
           trap 'rm -f "$RUNNER_TEMP/bedah-status.json"; rm -rf generated-artifacts/bedah' EXIT
-          supabase --workdir "$RUNNER_TEMP/bedah-supabase" stop --no-backup
+          if command -v supabase >/dev/null 2>&1; then
+            supabase --workdir "$RUNNER_TEMP/bedah-supabase" stop --no-backup
+          else
+            echo "Supabase CLI was not installed; no local services to stop."
+          fi

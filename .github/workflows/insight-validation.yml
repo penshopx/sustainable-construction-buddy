@@ -116,6 +116,9 @@ jobs:
         run: pnpm run typecheck
 
       - name: Run active PUB unit tests
+        env:
+          VITE_SUPABASE_URL: https://ci-playwright.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
         run: pnpm --filter @workspace/pub-aspekindo run test
 
       - name: Build production bundle with Ruang Simpan
@@ -169,6 +172,9 @@ jobs:
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build workspace library types
+        run: pnpm run typecheck:libs
 
       - name: Typecheck shared API
         run: pnpm --filter @workspace/api-server run typecheck
