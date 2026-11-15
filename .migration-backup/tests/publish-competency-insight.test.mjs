@@ -131,7 +131,11 @@ async function isolatedPublisher(t, config) {
     path.join(directory, "scripts", "subprocess-diagnostics.mjs"),
     await readFile(path.join(rootDir, "scripts", "subprocess-diagnostics.mjs")),
   );
-  await symlink(path.join(rootDir, "node_modules"), path.join(directory, "node_modules"), "dir");
+  await symlink(
+    path.join(workspaceDir, "node_modules"),
+    path.join(directory, "node_modules"),
+    "dir",
+  );
   if (config !== undefined) {
     await mkdir(path.join(directory, "supabase"));
     await writeFile(path.join(directory, "supabase", "config.toml"), config);
@@ -171,16 +175,27 @@ function assertApplicationReleaseConfig({ deployment, frontend, api, packages })
     assert.ok(production, `${packageName} must define production configuration`);
     const build = production.build;
     // Both command encodings are valid in artifact.toml.
-    assert.deepEqual(Array.isArray(build) ? build : build?.args,
-      ["pnpm", "--filter", packageName, "run", "build"],
-      `${packageName} must build the intended workspace package`);
+    assert.deepEqual(
+      Array.isArray(build) ? build : build?.args,
+      [
+        "pnpm",
+        "--filter",
+        packageName,
+        "run",
+        packageName === "@workspace/pub-aspekindo" ? "build:release" : "build",
+      ],
+      `${packageName} must build the intended workspace package`,
+    );
     const scripts = packages[packageName]?.scripts;
     assert.ok(scripts?.build?.trim(), `${packageName} must provide its build script`);
     assert.ok(scripts?.typecheck?.trim(), `${packageName} must provide its typecheck script`);
     if (manifest === frontend) {
       assert.equal(production.serve, "static");
       assert.equal(production.publicDir, "artifacts/pub-aspekindo/dist/public");
-      assert.deepEqual(production.rewrites, [{ from: "/*", to: "/index.html" }]);
+      assert.deepEqual(production.rewrites, [
+        { from: "/ruang-simpan/*", to: "/ruang-simpan/index.html" },
+        { from: "/*", to: "/index.html" },
+      ]);
     } else {
       const run = production.run;
       assert.deepEqual(Array.isArray(run) ? run : run?.args,
