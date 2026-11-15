@@ -9,84 +9,34 @@ permissions:
 
 jobs:
   validate-insight:
-    name: Validate competency insight
+    name: Validate competency insight contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: .migration-backup
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: .migration-backup/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run insight contract and publication validation
-        run: npm run test:insight:validate
-
-  validate-frontend:
-    name: Validate frontend
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    defaults:
-      run:
-        working-directory: .migration-backup
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+          version: 10.26.1
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: .migration-backup/package-lock.json
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
 
-      - name: Typecheck frontend
-        run: npm run typecheck
+      - name: Run archived insight contract tests
+        run: pnpm exec node --test .migration-backup/tests/competency-insight-contract.test.mjs
 
-      - name: Lint frontend
-        run: npm run lint
-
-      - name: Build frontend
-        run: npm run build
-
-      - name: Run frontend routing smoke test
-        env:
-          VITE_SUPABASE_URL: https://ci-playwright.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
-        run: npm run test:routing
-
-      - name: Run authenticated frontend smoke tests, including LMS
-        env:
-          VITE_SUPABASE_URL: https://ci-playwright.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
-          PLAYWRIGHT_SUPABASE_PROJECT_REF: ci-playwright
-        run: npm run test:auth
-
-      - name: Upload authenticated Playwright artifacts
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: authenticated-playwright-results
-          path: |
-            .migration-backup/playwright-report/
-            .migration-backup/test-results/
-          if-no-files-found: ignore
-          retention-days: 7
+      - name: Run insight publication and diagnostic tests
+        run: pnpm exec node --test .migration-backup/tests/publish-competency-insight.test.mjs .migration-backup/tests/verify-competency-insight.test.mjs .migration-backup/tests/subprocess-diagnostics.test.mjs
 
   validate-active-frontend:
     name: Validate active PUB and Ruang Simpan release
