@@ -6,6 +6,31 @@ const ROOT = "/api/ruang-simpan";
 const SUMMARY = "BEDAH-PRIVATE-SUMMARY";
 const ANSWER = "BEDAH-PRIVATE-ANSWER";
 const text = "Kontrak sintetis privat.\nMasa pelaksanaan 90 hari.\nBukan dokumen pengguna.";
+const STATIC_FONT_FAMILIES = new Set([
+  "Sora:wght@300;400;500;600;700;800",
+  "Inter:wght@300;400;500;600",
+  "Inter:wght@400;500;600;700",
+  "DM Mono:wght@400;500",
+  "Space Grotesk:wght@400;500;600;700",
+  "Bricolage Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800",
+  "JetBrains Mono:wght@400;500",
+]);
+
+function isApprovedStaticFontStylesheet(url) {
+  const parameters = [...url.searchParams.entries()];
+  const families = url.searchParams.getAll("family");
+  return (
+    url.protocol === "https:" &&
+    url.hostname === "fonts.googleapis.com" &&
+    url.pathname === "/css2" &&
+    url.searchParams.get("display") === "swap" &&
+    parameters.length === families.length + 1 &&
+    parameters.filter(([name]) => name === "display").length === 1 &&
+    parameters.every(([name]) => name === "family" || name === "display") &&
+    families.length > 0 &&
+    families.every((family) => STATIC_FONT_FAMILIES.has(family))
+  );
+}
 
 async function signIn(page, role) {
   const account = fixture.accounts[role];
@@ -51,10 +76,13 @@ test(process.env.BEDAH_UPLOAD_CHECK === "1"
     const url = new URL(response.url());
     if (url.pathname.startsWith(ROOT)) apiStatuses.push(`${response.request().method()} ${url.pathname}: ${response.status()}`);
   });
-  // Fail any accidental request to hosted Auth, App Storage or OpenRouter.
+  // Block all remote traffic. Permit only exact, public font CSS URLs as known
+  // static assets; they are still aborted locally and cannot receive user data.
   const escaped = [];
   await page.context().route("**/*", route => {
-    const host = new URL(route.request().url()).hostname;
+    const url = new URL(route.request().url());
+    if (isApprovedStaticFontStylesheet(url)) return route.abort();
+    const host = url.hostname;
     if (!["127.0.0.1", "localhost"].includes(host)) {
       escaped.push(host);
       return route.abort();
