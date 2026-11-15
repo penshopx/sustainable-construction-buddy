@@ -25,7 +25,7 @@ jobs:
       - name: Set up Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.0.0
 
       - name: Install PostgreSQL test tools
         run: |
@@ -98,4 +98,9 @@ jobs:
 
       - name: Stop disposable local Supabase
         if: always()
-        run: supabase --workdir "$RUNNER_TEMP/aspekindo-supabase" stop --no-backup
+        run: |
+          if command -v supabase >/dev/null 2>&1; then
+            supabase --workdir "$RUNNER_TEMP/aspekindo-supabase" stop --no-backup
+          else
+            echo "Supabase CLI was not installed; no local services to stop."
+          fi
