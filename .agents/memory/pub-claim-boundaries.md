@@ -34,6 +34,12 @@ Untuk adopsi Permen PUPR No. 7 Tahun 2024 dan Pedoman Pelaporan PUB dalam SE LPJ
 
 **How to apply:** Pisahkan bukti belajar peserta, laporan kegiatan PUB asosiasi, dan LKUT/penilaian kinerja tahunan BUJK. Jangan menyebut paket atau status internal aplikasi sebagai laporan resmi yang sudah diterima; penilaian dan status resmi tetap pada pihak berwenang.
 
+Rancangan awal pelaporan PUB mendukung akun pusat dan cabang; cabang menyiapkan laporan, sedangkan pusat melakukan pemeriksaan akhir internal sebelum paket ditandai siap diunggah.
+
+**Why:** Pengguna memilih dukungan akun pusat dan cabang, serta menetapkan pusat sebagai pemeriksa akhir internal.
+
+**How to apply:** Batasi data berdasarkan cabang, sediakan rekap pusat, dan pisahkan status “siap diunggah” dari status atau keputusan LPJK/SIJK.
+
 Referensi pengelolaan barang milik daerah boleh menjadi rujukan tambahan aplikasi, tanpa diposisikan sebagai regulasi PUB.
 
 **Why:** Pengguna menyetujui penambahan Permendagri 7/2024 setelah dijelaskan bahwa dokumen tersebut berbeda dari Permen PUPR 7/2024 dan tidak menggantikan sumber tabel subklasifikasi yang hilang.
