@@ -18,6 +18,8 @@ const { retrieveKnowledge, knowledgeContext } = module.exports;
 const corpus = JSON.parse(readFileSync(new URL("../src/data/lpjk-knowledge.json", import.meta.url)));
 const catalog = JSON.parse(readFileSync(new URL("../../pub-aspekindo/src/data/lpjk-knowledge-catalog.json", import.meta.url)));
 const schemeMatrix = JSON.parse(readFileSync(new URL("../src/data/construction-scheme-matrix.json", import.meta.url)));
+const kb45Source = readFileSync(new URL("../../../kb45", import.meta.url));
+const corpusIngestion = readFileSync(new URL("../../../.agents/scripts/ingest_lpjk_knowledge.py", import.meta.url), "utf8");
 
 function contextSources(query) {
   const context = knowledgeContext(query);
@@ -39,16 +41,21 @@ test("KBLI 2025 remains a BPS publication with 1040 physical PDF pages, not a co
   assert.ok(doc.pages[source.page - 1].text.includes(source.text));
 });
 
-test("the embedded scheme table preserves its original checksum, 79 lines, and 76 entries", () => {
+test("the tracked KB45 source matches the embedded table and preserves its checksum", () => {
   const doc = corpus.documents.find(doc => doc.id === "KB45");
+  const restoredLines = kb45Source.toString("utf8").replace(/\r\n/g, "\n").replace(/\n$/, "").split("\n");
+  assert.deepEqual(restoredLines, doc.lines.map(row => row.text));
+  assert.match(corpusIngestion, /text_path = ROOT \/ "kb45"/);
   const originalBytes = Buffer.from(`${doc.lines.map(row => row.text).join("\r\n")}\r\n`, "utf8");
   const originalHash = createHash("sha256").update(originalBytes).digest("hex");
+  assert.equal(originalHash, createHash("sha256").update(Buffer.from(`${restoredLines.join("\r\n")}\r\n`, "utf8")).digest("hex"));
   assert.equal(doc.format, "text");
   assert.equal(doc.kind, "tabel_pemetaan");
   assert.equal(doc.pageCount, 0);
   assert.deepEqual(doc.pages, []);
   assert.equal(doc.lineCount, 79);
   assert.equal(doc.entryCount, 76);
+  assert.equal(doc.fileName, "Pasted-Search-Subklasifikasi-KBLI-Deskripsi-KBLI-Ruang-Lingkup_1793177347001.txt");
   assert.equal(originalHash, doc.sha256);
   assert.equal(originalHash, schemeMatrix.sourceHashes.KB45);
   const rows = doc.lines.filter(row => /^[A-Z]{2}\d{3}\s*\d{5}/.test(row.text));
@@ -57,6 +64,15 @@ test("the embedded scheme table preserves its original checksum, 79 lines, and 7
   ])), { BG: 9, BS: 20, IN: 12, KK: 16, KP: 2, PA: 1, PB: 8, PL: 8 });
   assert.match(doc.note, /versi KBLI.*belum tersedia/);
   assert.match(doc.note, /baris yang kosong/);
+});
+
+test("knowledge-base guide inventory matches the embedded corpus", () => {
+  const guide = readFileSync(new URL("../KNOWLEDGE-BASE.md", import.meta.url), "utf8");
+  assert.equal(corpus.documents.length, 47);
+  assert.equal(corpus.documents.filter(doc => doc.format === "pdf").length, 46);
+  assert.equal(corpus.documents.reduce((pages, doc) => pages + (doc.pageCount ?? 0), 0), 15874);
+  assert.match(guide, /Empat puluh enam PDF dan satu berkas teks/);
+  assert.match(guide, /Total: 47 dokumen, 15\.874 halaman PDF fisik dan 79 baris teks \(76 entri tabel\)/);
 });
 
 test("text-table retrieval cites original lines, supports line selectors, and never reports PDF pages", () => {

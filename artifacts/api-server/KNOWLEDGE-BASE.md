@@ -1,6 +1,6 @@
 # Referensi bersama Helpdesk PUB
 
-Empat puluh empat PDF dan satu berkas teks pengguna diindeks sebagai sumber **bersama Helpdesk**,
+Empat puluh enam PDF dan satu berkas teks pengguna diindeks sebagai sumber **bersama Helpdesk**,
 bukan sebagai unggahan pribadi ke tabel `mentor_knowledge_bases`.
 Tidak ada perubahan database hosted, bucket, hak akses, atau konfigurasi produksi.
 
@@ -97,7 +97,9 @@ yang diabaikan Git. Tidak ada panggilan model atau layanan hosted.
 - Katalog metadata kecil berada di frontend dan tampil di tab chat Helpdesk.
 - File PDF asal tidak disalin ulang ke aset publik atau Git. Nama file dan
   SHA-256 disimpan untuk keterlacakan, bukan sebagai tautan unduhan.
-- Total: 45 dokumen, 15.643 halaman PDF fisik dan 79 baris teks (76 entri tabel).
+- Berkas teks KB45 tersedia di root sebagai `kb45`; isinya dipulihkan dari
+  korpus tertanam dan diuji terhadap hash teks kanonis yang telah tercatat.
+- Total: 47 dokumen, 15.874 halaman PDF fisik dan 79 baris teks (76 entri tabel).
   Baris teks tidak dihitung sebagai halaman PDF. Halaman 2, 3, 5, dan 186 pada KB04 adalah
   ringkasan visual pindai yang diberi label, bukan ekstraksi/verbatim lengkap.
 - Dokumen sumber memakai nomor halaman PDF 1-based; nomor cetak bisa berbeda.
@@ -105,6 +107,8 @@ yang diabaikan Git. Tidak ada panggilan model atau layanan hosted.
   konversi SBU. Beberapa halaman hanya memuat URL/penanda atau materi visual.
 - KB45 adalah salinan tabel skema konstruksi: 76 entri BG/BS/IN/KK/KP/PA/PB/PL
   pada 79 baris asli. URL, penerbit, tanggal, dan versi KBLI belum tersedia.
+  Skrip impor membaca berkas root `kb45`; pemulihan isi tidak memverifikasi
+  penerbit, tanggal, atau versi sumber asal.
   Kode subklasifikasi seperti BG001 tidak disamakan dengan kode KBLI seperti 41011;
   jangan menganggap tabel ini sudah dikonversi ke versi 2025. Header TKK/peralatan
   tidak membuktikan kolom kosong berisi aturan merangkap atau penyetaraan.

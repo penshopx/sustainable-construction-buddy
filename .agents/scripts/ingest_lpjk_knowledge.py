@@ -167,13 +167,14 @@ for source_id, title, kind, filename in SOURCES:
         thumbnails.append((source_id, pix))
         print(json.dumps({**meta, "firstPageSample": pages[0]["text"][:450]}, ensure_ascii=False))
 
-text_path = ROOT / "attached_assets" / "Pasted-Search-Subklasifikasi-KBLI-Deskripsi-KBLI-Ruang-Lingkup_1793177347001.txt"
+text_path = ROOT / "kb45"
 text_lines = text_path.read_text(encoding="utf-8").splitlines()
 entry_count = sum(bool(re.match(r"^[A-Z]{2}\d{3}\s*\d{5}", line)) for line in text_lines)
+canonical_text_bytes = ("\r\n".join(text_lines) + "\r\n").encode("utf-8")
 text_meta = dict(
     id="KB45", title="Skema klasifikasi dan subklasifikasi usaha jasa konstruksi — tabel salinan pengguna",
-    kind="tabel_pemetaan", fileName=text_path.name,
-    sha256=hashlib.sha256(text_path.read_bytes()).hexdigest(),
+    kind="tabel_pemetaan", fileName="Pasted-Search-Subklasifikasi-KBLI-Deskripsi-KBLI-Ruang-Lingkup_1793177347001.txt",
+    sha256=hashlib.sha256(canonical_text_bytes).hexdigest(),
     pageCount=0, textPageCount=0, pagesNeedingReview=[], visualSummaryPages=[],
     format="text", lineCount=len(text_lines), entryCount=entry_count,
     note=("Teks salinan tabel unggahan pengguna; URL, tanggal, versi KBLI, dan penerbit asal belum tersedia. "

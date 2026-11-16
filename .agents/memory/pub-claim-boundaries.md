@@ -33,3 +33,9 @@ Referensi pengelolaan barang milik daerah boleh menjadi rujukan tambahan aplikas
 **Why:** Pengguna menyetujui penambahan Permendagri 7/2024 setelah dijelaskan bahwa dokumen tersebut berbeda dari Permen PUPR 7/2024 dan tidak menggantikan sumber tabel subklasifikasi yang hilang.
 
 **How to apply:** Pertahankan identitas kementerian dan ruang lingkup setiap sumber meskipun nomor serta tahunnya sama; jangan menyamakan naskah perubahan dengan peraturan dasar yang lengkap.
+
+KB45 dipertahankan sebagai draf pembanding dan boleh dipulihkan dari teks korpus yang tersimpan, tetapi isinya tidak boleh disajikan sebagai sumber hukum atau konversi resmi.
+
+**Why:** Pengguna memilih mempertahankan KB45 sebagai draf dan mengizinkan pengisian ulang; sumber asal, penerbit, tanggal, dan versi KBLI belum terverifikasi.
+
+**How to apply:** Gunakan hanya 76 entri yang sudah tersimpan, pertahankan hash teks kanonis, nyatakan batas provenance, dan jangan menambah atau menyimpulkan baris baru tanpa sumber.

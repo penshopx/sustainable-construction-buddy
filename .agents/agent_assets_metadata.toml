@@ -294,3 +294,17 @@ mtime_ms = 1793184376511
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/9c76a9ce-b5c8-46d6-b79e-103c15b2ffff/beabb4e9-15e2-4f43-b29c-84ef3ffc421a"
 storage_version_token = "1793184437116902"
 content_type = "text/csv"
+
+[[outputs]]
+id = "Lal0OwsW5LkL-l9ywF2-3"
+uri = "file://kb45"
+type = "unspecified"
+title = "KB45 — tabel draf yang dipulihkan"
+description = "79 baris dan 76 entri; isi cocok persis dengan korpus tersimpan dan hash kanonisnya cocok. Asal, penerbit, tanggal, dan versi tetap belum terverifikasi."
+logical_id = "df7ee1fb-ac60-45b3-af65-cf8935bc5a93"
+content_hash = "sha256:6fe31d94eb1781a0e8c266c555d50d0ea0b4e825b0667ffe439fec910817c6d7"
+size = 29817
+mtime_ms = 1794797055625
+storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/df7ee1fb-ac60-45b3-af65-cf8935bc5a93/df4868d4-26b6-4eef-828b-525afec2c919"
+storage_version_token = "1794797407137363"
+content_type = "application/octet-stream"
