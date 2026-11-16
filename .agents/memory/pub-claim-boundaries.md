@@ -28,6 +28,12 @@ Materi diskusi implementasi Permen PU 6/2025 yang diunggah pengguna merupakan sa
 
 **How to apply:** Bedakan paparan dari naskah normatif; jangan menyimpulkan bahwa Permen PUPR 7/2024 adalah turunan Permen PU 6/2025 hanya dari keterkaitan pembahasannya.
 
+Untuk adopsi Permen PUPR No. 7 Tahun 2024 dan Pedoman Pelaporan PUB dalam SE LPJK No. 05/SE/LPJK/2025, target tahap awal adalah menyiapkan paket laporan yang siap diperiksa dan diunggah oleh asosiasi, bukan integrasi/pengiriman otomatis ke SIJK.
+
+**Why:** Pengguna memilih paket siap unggah dan meminta pembahasan sebelum implementasi; integrasi SIJK belum menjadi target yang disetujui.
+
+**How to apply:** Pisahkan bukti belajar peserta, laporan kegiatan PUB asosiasi, dan LKUT/penilaian kinerja tahunan BUJK. Jangan menyebut paket atau status internal aplikasi sebagai laporan resmi yang sudah diterima; penilaian dan status resmi tetap pada pihak berwenang.
+
 Referensi pengelolaan barang milik daerah boleh menjadi rujukan tambahan aplikasi, tanpa diposisikan sebagai regulasi PUB.
 
 **Why:** Pengguna menyetujui penambahan Permendagri 7/2024 setelah dijelaskan bahwa dokumen tersebut berbeda dari Permen PUPR 7/2024 dan tidak menggantikan sumber tabel subklasifikasi yang hilang.
