@@ -71,18 +71,10 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
         run: pnpm --filter @workspace/pub-aspekindo run test
 
-      - name: Build production bundle with Ruang Simpan
-        env:
-          PORT: "4179"
-          BASE_PATH: "/"
-          VITE_SUPABASE_URL: https://ci-playwright.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder-publishable-key
-        run: pnpm --filter @workspace/pub-aspekindo run build:release
-
       - name: Install Chromium for routing smoke test
         run: pnpm --filter @workspace/pub-aspekindo exec playwright install --with-deps chromium
 
-      - name: Smoke test public routes and member assessment through results
+      - name: Build isolated release bundle and smoke test public routes and assessment
         run: pnpm --filter @workspace/pub-aspekindo run test:routing
 
       - name: Install local native media fixture encoder
