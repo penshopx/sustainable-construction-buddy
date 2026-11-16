@@ -28,8 +28,11 @@ const mainRouteExpectations = {
   "/budget-tracker": "proyek",
   "/k3-checklist": "proyek",
   "/generator": "proyek",
-  "/brain-project": "proyek",
-  "/konsultasi": "proyek",
+  "/ruang-simpan": "ai-layanan",
+  "/bedah-dokumen": "ai-layanan",
+  "/brain-project": "ai-layanan",
+  "/konsultasi": "ai-layanan",
+  "/klinik-konsultasi": "ai-layanan",
   "/lkut": "lkut",
   "/grading": "empat-siap",
   "/compliance": "empat-siap",
@@ -45,8 +48,6 @@ const mainRouteExpectations = {
   "/marketplace": "layanan",
   "/direktori": "layanan",
   "/helpdesk": "layanan",
-  "/bedah-dokumen": "layanan",
-  "/klinik-konsultasi": "layanan",
   "/pesanan": "layanan",
   "/produk-saya": "layanan",
 } as const;
@@ -123,7 +124,7 @@ test("rute detail mengikuti panduan modul induknya", () => {
     "/inovasi/proposal/proposal-123": "layanan",
     "/program-kegiatan/kegiatan-123": "layanan",
     "/direktori/perusahaan-123": "layanan",
-    "/klinik-konsultasi/sbu": "layanan",
+    "/klinik-konsultasi/sbu": "ai-layanan",
   } as const;
 
   for (const [pathname, expectedSection] of Object.entries(detailRoutes)) {
@@ -131,14 +132,25 @@ test("rute detail mengikuti panduan modul induknya", () => {
   }
 });
 
-test("Bedah Dokumen dan loket klinik menautkan petunjuk layanan yang relevan", () => {
+test("layanan dengan konteks AI menautkan panduan dan persetujuan yang sesuai", () => {
   for (const pathname of ["/bedah-dokumen", "/klinik-konsultasi", "/klinik-konsultasi/sbu"]) {
-    assert.equal(getHelpHrefForPath(pathname), "/bantuan#layanan", pathname);
+    assert.equal(getHelpHrefForPath(pathname), "/bantuan#ai-layanan", pathname);
   }
 
-  const services = helpSections.find(({ id }) => id === "layanan");
-  assert.ok(services?.steps.some((step) => step.includes("Bedah Dokumen") && step.includes("persetujuan")));
-  assert.ok(services?.steps.some((step) => step.includes("Klinik Konsultasi") && step.includes("loket")));
+  const services = helpSections.find(({ id }) => id === "ai-layanan");
+  assert.ok(services?.steps.some((step) => step.includes("Bedah Dokumen") && step.includes("OCR")));
+  assert.ok(services?.steps.some((step) => step.includes("Klinik Konsultasi") && step.includes("Persetujuan AI")));
+  assert.ok(services?.steps.some((step) => step.includes("Brain Project") && step.includes("Earned Value")));
+  assert.ok(services?.steps.some((step) => step.includes("Konsultasi terpandu") && step.includes("Diagnosis")));
+  assert.ok(services?.note?.includes("Tidak semua fitur tersinkron otomatis"));
+  assert.equal(getHelpHrefForPath("/ruang-simpan/"), "/bantuan#ai-layanan");
+});
+
+test("panduan Ruang Simpan menjelaskan acuan dan batas integrasi", () => {
+  const section = helpSections.find(({ id }) => id === "ai-layanan");
+  assert.ok(section?.steps.some((step) => step.includes("Ruang Simpan") && step.includes("acuan utama")));
+  assert.ok(section?.steps.some((step) => step.toLowerCase().includes("analisis ulang")));
+  assert.ok(section?.note?.includes("tidak terintegrasi dengan Gustafta"));
 });
 
 test("rute yang tidak dikenal aman mengarah ke panduan mulai", () => {

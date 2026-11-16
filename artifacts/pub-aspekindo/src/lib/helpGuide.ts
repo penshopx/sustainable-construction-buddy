@@ -8,6 +8,7 @@ export type HelpSectionId =
   | "proyek"
   | "lkut"
   | "smap-pancek"
+  | "ai-layanan"
   | "layanan"
   | "integrasi"
   | "masalah";
@@ -107,7 +108,6 @@ export const helpSections: HelpSection[] = [
       "Catat risiko, probabilitas, dampak, PIC, dan mitigasi di Risk Register.",
       "Isi nilai rencana dan aktual di Budget Tracker; tindak lanjuti deviasi.",
       "Buat inspeksi K3, jawab checklist, lalu simpan atau submit hasilnya.",
-      "Gunakan Brain Project untuk menyiapkan fakta dan menganalisis angka proyek, atau Konsultasi terpandu untuk menyusun rencana tindak bertahap. Periksa jawaban AI sebelum mengambil keputusan.",
     ],
     marker: "internal",
   },
@@ -138,18 +138,31 @@ export const helpSections: HelpSection[] = [
     marker: "internal",
   },
   {
+    id: "ai-layanan",
+    title: "Ruang Simpan, analisis AI, dan konsultasi",
+    description: "Gunakan data milik Anda dengan pilihan dan persetujuan yang jelas pada setiap layanan.",
+    steps: [
+      "Di Ruang Simpan, kelola profil perusahaan dan dokumen sebagai acuan utama PUB. Analisis ulang harus diminta secara sengaja setelah sumber berubah.",
+      "Di Bedah Dokumen, unggah atau pilih dokumen Anda dari Ruang Simpan. Setujui pengiriman ke AI untuk dokumen terpilih; OCR berkas pindai memerlukan persetujuan tersendiri. Periksa cakupan, kutipan, dan versi sumber.",
+      "Di Brain Project, isi fakta proyek dan data Earned Value (EVM) bila tersedia. Analisis AI memerlukan login dan persetujuan per sesi; enam sudut pandang dihasilkan dalam satu permintaan, bukan pemantauan otomatis.",
+      "Di Konsultasi terpandu, masuk, pilih peran, lalu jalani Diagnosis, Eksplorasi, dan Blueprint. Tahap berlanjut setelah jawaban berhasil diterima.",
+      "Di Klinik Konsultasi, pilih loket topik. Persetujuan AI dan penggunaan acuan Ruang Simpan adalah pilihan terpisah; permintaan ke operator hanya berisi ringkasan yang Anda tulis dan kirim sendiri.",
+    ],
+    note: "Tidak semua fitur tersinkron otomatis dan PUB tidak terintegrasi dengan Gustafta. Periksa pilihan sumber dan persetujuan sebelum mengirim data ke layanan AI eksternal. Jawaban AI adalah bahan awal, bukan keputusan profesional atau regulator.",
+    marker: "internal",
+  },
+  {
     id: "layanan",
-    title: "Informasi, kegiatan, bantuan, dan bisnis",
-    description: "Panduan ringkas untuk fitur pendukung anggota.",
+    title: "Informasi, kegiatan, dan layanan anggota",
+    description: "Temukan informasi, kegiatan, bantuan aplikasi, dan layanan bisnis yang tersedia.",
     steps: [
       "Periksa sumber dan tanggal artikel pada Pusat Informasi.",
       "Baca persyaratan dan tautan pendaftaran pada Program & Kegiatan.",
-      "Berikan konteks yang jelas saat bertanya kepada Pakar Cerdas.",
-      "Pada Bedah Dokumen, masuk lalu unggah atau pilih berkas dari Ruang Simpan. Beri persetujuan AI untuk dokumen terpilih sebelum menjalankan analisis atau bertanya, lalu periksa temuan terhadap dokumen asli.",
-      "Pada Klinik Konsultasi, pilih loket sesuai topik dan masuk untuk bertanya. Setujui pengiriman ke AI eksternal; penggunaan acuan Ruang Simpan bersifat opsional dan memerlukan persetujuan terpisah.",
-      "Pada Marketplace, periksa detail sebelum memesan; kelola penawaran melalui Produk Saya.",
+      "Untuk pertanyaan penggunaan aplikasi, buka Pakar Cerdas atau HelpDesk; hindari mengirim kata sandi, token, atau dokumen sensitif tanpa persetujuan yang sesuai.",
+      "Pada Marketplace, periksa detail produk dan ketentuan sebelum memesan; kelola pesanan melalui menu terkait.",
+      "Gunakan Direktori untuk melihat profil perusahaan yang tersedia. Lengkapi pengaturan profil dan periksa informasi yang akan ditampilkan.",
     ],
-    note: "Jawaban bantuan adalah panduan awal, bukan keputusan profesional atau regulator.",
+    note: "Layanan dan tautan eksternal dapat memiliki akun, proses, serta kebijakan sendiri. Pastikan domain tujuan sebelum mengirim data.",
     marker: "internal",
   },
   {
@@ -187,11 +200,12 @@ export const contextualHelpRoutes: ReadonlyArray<{
   { paths: ["/assessment"], section: "assessment" },
   { paths: ["/courses", "/aspekindo-lms", "/aspekindo-aktivitas", "/certificates", "/analytics", "/leaderboard"], section: "belajar" },
   { paths: ["/siap-kompetensi", "/compliance", "/grading", "/simulator-sbu", "/simulator-lkut"], section: "empat-siap" },
-  { paths: ["/projects", "/risk-register", "/budget-tracker", "/k3-checklist", "/generator", "/brain-project", "/konsultasi"], section: "proyek" },
+  { paths: ["/projects", "/risk-register", "/budget-tracker", "/k3-checklist", "/generator"], section: "proyek" },
+  { paths: ["/ruang-simpan", "/bedah-dokumen", "/brain-project", "/konsultasi", "/klinik-konsultasi"], section: "ai-layanan" },
   { paths: ["/lkut"], section: "lkut" },
   { paths: ["/smap", "/pancek"], section: "smap-pancek" },
   { paths: ["/profile"], section: "akun" },
-  { paths: ["/informasi", "/inovasi", "/program-kegiatan", "/marketplace", "/direktori", "/helpdesk", "/bedah-dokumen", "/klinik-konsultasi", "/pesanan", "/produk-saya", "/notifications", "/mentor"], section: "layanan" },
+  { paths: ["/informasi", "/inovasi", "/program-kegiatan", "/marketplace", "/direktori", "/helpdesk", "/pesanan", "/produk-saya", "/notifications", "/mentor"], section: "layanan" },
   { paths: ["/agenda-pub", "/kursus"], section: "belajar" },
 ];
 
