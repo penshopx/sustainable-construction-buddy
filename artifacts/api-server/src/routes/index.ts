@@ -7,9 +7,11 @@ import operatorPilotRouter from "./operator-pilot";
 import schemeReferenceRouter from "./scheme-references";
 import hermesLocalCheckRouter from "./hermes-local-check";
 import { vaultRouter } from "./vault";
+import pubReportsRouter from "./pub-reports";
 
 const router: IRouter = Router();
 router.use("/clinic", clinicRouter);
+router.use("/pub-reports", pubReportsRouter);
 
 router.use(healthRouter);
 router.use(chatRouter);

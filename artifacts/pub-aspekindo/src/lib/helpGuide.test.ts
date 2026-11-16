@@ -125,6 +125,7 @@ test("rute detail mengikuti panduan modul induknya", () => {
     "/program-kegiatan/kegiatan-123": "layanan",
     "/direktori/perusahaan-123": "layanan",
     "/klinik-konsultasi/sbu": "ai-layanan",
+    "/laporan-pub": "pelaporan-pub",
   } as const;
 
   for (const [pathname, expectedSection] of Object.entries(detailRoutes)) {

@@ -13,6 +13,340 @@ tags:
   - name: chat
     description: Public helpdesk and capability-link chatbots
 paths:
+  /pub-reports/access:
+    get:
+      operationId: getPubReportAccess
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      summary: Get the current user's central or branch report permissions
+      responses:
+        "200":
+          description: Verified report access and assigned units
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReportAccess" }
+  /pub-reports/units:
+    get:
+      operationId: listPubReportUnits
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      responses:
+        "200":
+          description: Units visible to the authenticated user
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PubReportUnit" }
+    post:
+      operationId: createPubReportUnit
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportUnitInput" }
+      responses:
+        "201":
+          description: Organization unit created by a currently verified platform admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReportUnit" }
+  /pub-reports/memberships:
+    put:
+      operationId: assignPubReportMembership
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportMembershipInput" }
+      responses:
+        "200":
+          description: Membership assigned or reactivated by a platform admin
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReportMembership" }
+    get:
+      operationId: listPubReportMemberships
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: unitId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Memberships for a unit, visible to platform admins and central reviewers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PubReportMembership" }
+  /pub-reports/memberships/{id}:
+    delete:
+      operationId: deactivatePubReportMembership
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Membership deactivated without deleting report history }
+  /pub-reports:
+    get:
+      operationId: listPubReports
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      responses:
+        "200":
+          description: Reports scoped to the user's assigned units or central review role
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PubReport" }
+    post:
+      operationId: createPubReport
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportInput" }
+      responses:
+        "201":
+          description: Draft activity report created in an authorized unit
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReport" }
+  /pub-reports/{id}:
+    get:
+      operationId: getPubReport
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Authorized report with roster, attachments, and audit entries
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReportDetail" }
+        "404": { description: Report not found or outside the user's scope }
+    patch:
+      operationId: updatePubReport
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportUpdate" }
+      responses:
+        "200":
+          description: Updated draft with a new revision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReport" }
+        "409": { description: Report changed by another user; reload before retrying }
+  /pub-reports/{id}/submit:
+    post:
+      operationId: submitPubReport
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportTransitionInput" }
+      responses:
+        "200":
+          description: Branch submitted its report to central review
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReport" }
+  /pub-reports/{id}/review:
+    post:
+      operationId: reviewPubReport
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportReviewInput" }
+      responses:
+        "200":
+          description: Central reviewer returned the report or marked it internally ready to upload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReport" }
+        "409": { description: Report revision changed during review }
+  /pub-reports/{id}/mark-uploaded:
+    post:
+      operationId: markPubReportUploaded
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportUploadInput" }
+      responses:
+        "200":
+          description: Internal record of a manual SIJK upload; this does not assert LPJK acceptance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReport" }
+  /pub-reports/{id}/participants:
+    post:
+      operationId: addPubReportParticipant
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportParticipantInput" }
+      responses:
+        "201":
+          description: Participant added with attendance awaiting operator verification
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReportParticipant" }
+  /pub-reports/{id}/participants/{participantId}:
+    patch:
+      operationId: updatePubReportParticipant
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: participantId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportParticipantUpdate" }
+      responses:
+        "200":
+          description: Attendance marked verified or returned for correction
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReportParticipant" }
+    delete:
+      operationId: removePubReportParticipant
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: participantId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Unverified participant removed from an editable draft }
+  /pub-reports/{id}/attachments:
+    post:
+      operationId: addPubReportAttachment
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PubReportAttachmentInput" }
+      responses:
+        "201":
+          description: A document owned by the current user was explicitly linked from Ruang Simpan
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PubReportAttachment" }
+  /pub-reports/{id}/attachments/{attachmentId}:
+    delete:
+      operationId: removePubReportAttachment
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: attachmentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204": { description: Report link removed; original Ruang Simpan document retained }
+  /pub-reports/{id}/attachments/{attachmentId}/download:
+    get:
+      operationId: downloadPubReportAttachment
+      tags: [pub-reports]
+      security: [{ memberBearer: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: attachmentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Explicitly linked private Ruang Simpan document, available only to authorized report reviewers
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "404": { description: Attachment not found or report outside the user's scope }
   /ruang-simpan/bedah-dokumen:
     get:
       operationId: listDocumentAnalyses
@@ -972,6 +1306,253 @@ components:
           schema:
             $ref: "#/components/schemas/ChatError"
   schemas:
+    PubReportAccess:
+      type: object
+      required: [userId, role, canManageUnits, canReviewAll, units]
+      properties:
+        userId: { type: string, format: uuid }
+        role: { type: string, enum: [platform_admin, central_reviewer, branch_operator, no_access] }
+        canManageUnits: { type: boolean }
+        canReviewAll: { type: boolean }
+        units:
+          type: array
+          items: { $ref: "#/components/schemas/PubReportUnitMembership" }
+    PubReportUnit:
+      type: object
+      required: [id, name, unitType, parentUnitId, active, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 180 }
+        unitType: { type: string, enum: [central, branch] }
+        parentUnitId: { type: ["string", "null"], format: uuid }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    PubReportUnitMembership:
+      type: object
+      required: [unitId, unitName, unitType, role]
+      properties:
+        unitId: { type: string, format: uuid }
+        unitName: { type: string }
+        unitType: { type: string, enum: [central, branch] }
+        role: { type: string, enum: [branch_operator, central_reviewer] }
+    PubReportUnitInput:
+      type: object
+      required: [name, unitType]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 180 }
+        unitType: { type: string, enum: [central, branch] }
+        parentUnitId: { type: ["string", "null"], format: uuid }
+    PubReportMembership:
+      type: object
+      required: [id, unitId, userId, role, active, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        unitId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        role: { type: string, enum: [branch_operator, central_reviewer] }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    PubReportMembershipInput:
+      type: object
+      required: [unitId, userId, role]
+      properties:
+        unitId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        role: { type: string, enum: [branch_operator, central_reviewer] }
+    PubReportPerson:
+      type: object
+      required: [name, affiliation, role, topic, hours]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 180 }
+        affiliation: { type: string, maxLength: 180 }
+        role: { type: string, enum: [committee, speaker, responsible] }
+        topic: { type: string, maxLength: 300 }
+        hours: { type: ["number", "null"], minimum: 0, maximum: 100 }
+    PubReportAgendaItem:
+      type: object
+      required: [startsAt, endsAt, activity, speaker, notes]
+      properties:
+        startsAt: { type: string, maxLength: 80 }
+        endsAt: { type: string, maxLength: 80 }
+        activity: { type: string, minLength: 1, maxLength: 300 }
+        speaker: { type: string, maxLength: 180 }
+        notes: { type: string, maxLength: 600 }
+    PubReport:
+      type: object
+      required: [id, unitId, unitName, sourceActivityId, title, activityType, classification, eventForm, deliveryMode, level, background, legalBasis, purpose, startsAt, endsAt, location, targetAudience, targetQualification, targetPerformanceGrade, responsibleName, recommendations, followUp, closing, committee, rundown, status, revision, creatorId, createdAt, updatedAt, submittedAt, reviewedAt, reviewedBy, reviewNote, uploadedAt, uploadReference]
+      properties:
+        id: { type: string, format: uuid }
+        unitId: { type: string, format: uuid }
+        unitName: { type: string }
+        sourceActivityId: { type: ["string", "null"], maxLength: 80 }
+        title: { type: string }
+        activityType: { type: string }
+        classification: { type: string, enum: [general, special] }
+        eventForm: { type: string }
+        deliveryMode: { type: string, enum: [online, offline, hybrid] }
+        level: { type: string, enum: [national, international] }
+        background: { type: string }
+        legalBasis: { type: string }
+        purpose: { type: string }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: ["string", "null"], format: date-time }
+        location: { type: string }
+        targetAudience: { type: string }
+        targetQualification: { type: string }
+        targetPerformanceGrade: { type: ["string", "null"] }
+        responsibleName: { type: string }
+        recommendations: { type: string }
+        followUp: { type: string }
+        closing: { type: string }
+        committee:
+          type: array
+          items: { $ref: "#/components/schemas/PubReportPerson" }
+        rundown:
+          type: array
+          items: { $ref: "#/components/schemas/PubReportAgendaItem" }
+        status: { type: string, enum: [draft, submitted, needs_revision, ready_to_upload, uploaded] }
+        revision: { type: integer, minimum: 0 }
+        creatorId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        submittedAt: { type: ["string", "null"], format: date-time }
+        reviewedAt: { type: ["string", "null"], format: date-time }
+        reviewedBy: { type: ["string", "null"], format: uuid }
+        reviewNote: { type: string }
+        uploadedAt: { type: ["string", "null"], format: date-time }
+        uploadReference: { type: string }
+    PubReportInput:
+      type: object
+      required: [unitId, title, activityType, classification, eventForm, deliveryMode, level, background, legalBasis, purpose, startsAt, location, targetAudience, targetQualification, responsibleName, recommendations, followUp, closing, committee, rundown]
+      properties:
+        unitId: { type: string, format: uuid }
+        sourceActivityId: { type: ["string", "null"], maxLength: 80 }
+        title: { type: string, minLength: 3, maxLength: 240 }
+        activityType: { type: string, minLength: 1, maxLength: 80 }
+        classification: { type: string, enum: [general, special] }
+        eventForm: { type: string, minLength: 1, maxLength: 120 }
+        deliveryMode: { type: string, enum: [online, offline, hybrid] }
+        level: { type: string, enum: [national, international] }
+        background: { type: string, maxLength: 6000 }
+        legalBasis: { type: string, maxLength: 3000 }
+        purpose: { type: string, maxLength: 3000 }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: ["string", "null"], format: date-time }
+        location: { type: string, maxLength: 500 }
+        targetAudience: { type: string, maxLength: 1000 }
+        targetQualification: { type: string, maxLength: 500 }
+        targetPerformanceGrade: { type: ["string", "null"], maxLength: 40 }
+        responsibleName: { type: string, maxLength: 180 }
+        recommendations: { type: string, maxLength: 6000 }
+        followUp: { type: string, maxLength: 6000 }
+        closing: { type: string, maxLength: 3000 }
+        committee:
+          type: array
+          maxItems: 80
+          items: { $ref: "#/components/schemas/PubReportPerson" }
+        rundown:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/PubReportAgendaItem" }
+    PubReportUpdate:
+      allOf:
+        - $ref: "#/components/schemas/PubReportInput"
+        - type: object
+          required: [expectedRevision]
+          properties:
+            expectedRevision: { type: integer, minimum: 0 }
+    PubReportTransitionInput:
+      type: object
+      required: [expectedRevision]
+      properties:
+        expectedRevision: { type: integer, minimum: 0 }
+    PubReportReviewInput:
+      type: object
+      required: [action, note, expectedRevision]
+      properties:
+        action: { type: string, enum: [return, approve] }
+        note: { type: string, maxLength: 3000 }
+        expectedRevision: { type: integer, minimum: 0 }
+    PubReportUploadInput:
+      type: object
+      required: [reference, expectedRevision]
+      properties:
+        reference: { type: string, minLength: 2, maxLength: 500 }
+        expectedRevision: { type: integer, minimum: 0 }
+    PubReportParticipant:
+      type: object
+      required: [id, reportId, fullName, companyName, qualification, performanceGrade, participantRole, attendanceStatus, attendanceNote, verifiedBy, verifiedAt, revision, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        reportId: { type: string, format: uuid }
+        fullName: { type: string }
+        companyName: { type: string }
+        qualification: { type: string }
+        performanceGrade: { type: ["string", "null"] }
+        participantRole: { type: string }
+        attendanceStatus: { type: string, enum: [pending, verified, needs_correction] }
+        attendanceNote: { type: string }
+        verifiedBy: { type: ["string", "null"], format: uuid }
+        verifiedAt: { type: ["string", "null"], format: date-time }
+        revision: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+    PubReportParticipantInput:
+      type: object
+      required: [fullName, companyName, qualification, performanceGrade, participantRole]
+      properties:
+        fullName: { type: string, minLength: 2, maxLength: 180 }
+        companyName: { type: string, maxLength: 220 }
+        qualification: { type: string, maxLength: 100 }
+        performanceGrade: { type: ["string", "null"], maxLength: 40 }
+        participantRole: { type: string, enum: [bujk, association, speaker, organizer, other] }
+    PubReportParticipantUpdate:
+      type: object
+      required: [attendanceStatus, attendanceNote, expectedRevision]
+      properties:
+        attendanceStatus: { type: string, enum: [verified, needs_correction] }
+        attendanceNote: { type: string, maxLength: 1000 }
+        expectedRevision: { type: integer, minimum: 0 }
+    PubReportAttachment:
+      type: object
+      required: [id, reportId, category, documentId, fileName, createdBy, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        reportId: { type: string, format: uuid }
+        category: { type: string, enum: [invitation, kak, attendance_list, documentation, recording, materials, upload_proof, other] }
+        documentId: { type: string, format: uuid }
+        fileName: { type: string }
+        createdBy: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+    PubReportAttachmentInput:
+      type: object
+      required: [category, documentId]
+      properties:
+        category: { type: string, enum: [invitation, kak, attendance_list, documentation, recording, materials, upload_proof, other] }
+        documentId: { type: string, format: uuid }
+    PubReportAuditEvent:
+      type: object
+      required: [id, reportId, actorId, action, detail, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        reportId: { type: string, format: uuid }
+        actorId: { type: string, format: uuid }
+        action: { type: string }
+        detail: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+    PubReportDetail:
+      type: object
+      required: [report, participants, attachments, history]
+      properties:
+        report: { $ref: "#/components/schemas/PubReport" }
+        participants:
+          type: array
+          items: { $ref: "#/components/schemas/PubReportParticipant" }
+        attachments:
+          type: array
+          items: { $ref: "#/components/schemas/PubReportAttachment" }
+        history:
+          type: array
+          items: { $ref: "#/components/schemas/PubReportAuditEvent" }
     DocumentAnalysisInput:
       type: object
       required: [documentId, consent]

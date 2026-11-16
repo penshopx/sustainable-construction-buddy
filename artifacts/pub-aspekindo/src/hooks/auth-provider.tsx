@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { AuthError, Session, User } from "@supabase/supabase-js";
+import { setAuthTokenGetter } from "@workspace/api-client-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { clearLocalAssessmentDrafts } from "@/lib/assessmentDraft";
@@ -37,6 +38,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profileRequestId = useRef(0);
   const currentIdentity = useRef<string | null>(null);
   const mounted = useRef(false);
+
+  useEffect(() => {
+    setAuthTokenGetter(async () => {
+      const { data, error } = await supabase.auth.getSession();
+      return error ? null : data.session?.access_token ?? null;
+    });
+    return () => setAuthTokenGetter(null);
+  }, []);
 
   const fetchProfile = async (userId: string) => {
     if (!mounted.current || currentIdentity.current !== userId) return;

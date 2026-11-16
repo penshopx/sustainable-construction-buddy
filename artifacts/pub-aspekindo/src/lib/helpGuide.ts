@@ -7,6 +7,7 @@ export type HelpSectionId =
   | "empat-siap"
   | "proyek"
   | "lkut"
+  | "pelaporan-pub"
   | "smap-pancek"
   | "ai-layanan"
   | "layanan"
@@ -125,6 +126,22 @@ export const helpSections: HelpSection[] = [
     marker: "official",
   },
   {
+    id: "pelaporan-pub",
+    title: "Pelaporan kegiatan PUB",
+    description: "Alur internal pusat dan cabang untuk menyiapkan paket laporan kegiatan sebelum diunggah ke kanal resmi.",
+    steps: [
+      "Admin platform membuat unit pusat dan cabang, lalu menetapkan operator cabang serta reviewer pusat menggunakan ID akun yang benar.",
+      "Operator membuat laporan untuk unitnya. Pilih kegiatan LMS PUB bila tersedia untuk mengisi data awal, lalu periksa kembali judul, jadwal, lokasi, dan isi laporan.",
+      "Catat personel, rundown, peserta, dan bukti kehadiran. Kehadiran harus diverifikasi operator; progres LMS perorangan tetap merupakan catatan yang berbeda.",
+      "Tautkan dokumen pendukung dari Ruang Simpan. Berkas asli tetap berada di Ruang Simpan dan akses unduh mengikuti kewenangan laporan.",
+      "Kirim laporan untuk pemeriksaan pusat. Pusat dapat menyetujui secara internal atau mengembalikan laporan dengan catatan revisi.",
+      "Setelah siap, ekspor paket PDF, XLSX, dan ZIP beserta dokumen tertaut. Unggah secara manual melalui kanal resmi LPJK/SIJK sesuai pedoman terbaru.",
+      "Catat referensi unggah untuk jejak internal. Status siap atau log unggah PUB bukan bukti penerimaan maupun persetujuan LPJK.",
+    ],
+    note: "Estimasi 14 hari kerja tidak menghitung hari libur nasional dan harus dicocokkan dengan pedoman resmi. Pelaporan kegiatan PUB berbeda dari progres belajar anggota dan LKUT BUJK.",
+    marker: "internal",
+  },
+  {
     id: "smap-pancek",
     title: "SMAP dan PANCEK",
     description: "Lengkapi tata kelola dan bukti pendukung sebelum melakukan submit.",
@@ -203,6 +220,7 @@ export const contextualHelpRoutes: ReadonlyArray<{
   { paths: ["/projects", "/risk-register", "/budget-tracker", "/k3-checklist", "/generator"], section: "proyek" },
   { paths: ["/ruang-simpan", "/bedah-dokumen", "/brain-project", "/konsultasi", "/klinik-konsultasi"], section: "ai-layanan" },
   { paths: ["/lkut"], section: "lkut" },
+  { paths: ["/laporan-pub"], section: "pelaporan-pub" },
   { paths: ["/smap", "/pancek"], section: "smap-pancek" },
   { paths: ["/profile"], section: "akun" },
   { paths: ["/informasi", "/inovasi", "/program-kegiatan", "/marketplace", "/direktori", "/helpdesk", "/pesanan", "/produk-saya", "/notifications", "/mentor"], section: "layanan" },

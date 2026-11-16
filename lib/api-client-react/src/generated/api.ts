@@ -46,11 +46,29 @@ import type {
   HermesLocalCheckInput,
   HermesLocalCheckResult,
   HermesSchemeLocalCheckResult,
+  ListPubReportMembershipsParams,
   OpenVaultPubSession200,
   OperatorPilotErrorResponse,
   OperatorPilotInput,
   OperatorPilotJob,
   OperatorPilotSubmission,
+  PubReport,
+  PubReportAccess,
+  PubReportAttachment,
+  PubReportAttachmentInput,
+  PubReportDetail,
+  PubReportInput,
+  PubReportMembership,
+  PubReportMembershipInput,
+  PubReportParticipant,
+  PubReportParticipantInput,
+  PubReportParticipantUpdate,
+  PubReportReviewInput,
+  PubReportTransitionInput,
+  PubReportUnit,
+  PubReportUnitInput,
+  PubReportUpdate,
+  PubReportUploadInput,
   PublicChatbot,
   ResolveVaultCompanies200,
   SchemeReferenceBank,
@@ -104,6 +122,1308 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetPubReportAccessUrl = () => {
+
+
+
+
+  return `/api/pub-reports/access`
+}
+
+/**
+ * @summary Get the current user's central or branch report permissions
+ */
+export const getPubReportAccess = async ( options?: Parameters<typeof customFetch>[1]): Promise<PubReportAccess> => {
+
+  return customFetch<PubReportAccess>(getGetPubReportAccessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPubReportAccessQueryKey = () => {
+    return [
+    `/api/pub-reports/access`
+    ] as const;
+    }
+
+
+export const getGetPubReportAccessQueryOptions = <TData = Awaited<ReturnType<typeof getPubReportAccess>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPubReportAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPubReportAccessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPubReportAccess>>> = ({ signal }) => getPubReportAccess({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPubReportAccess>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPubReportAccessQueryResult = NonNullable<Awaited<ReturnType<typeof getPubReportAccess>>>
+export type GetPubReportAccessQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the current user's central or branch report permissions
+ */
+
+export function useGetPubReportAccess<TData = Awaited<ReturnType<typeof getPubReportAccess>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPubReportAccess>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPubReportAccessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListPubReportUnitsUrl = () => {
+
+
+
+
+  return `/api/pub-reports/units`
+}
+
+export const listPubReportUnits = async ( options?: Parameters<typeof customFetch>[1]): Promise<PubReportUnit[]> => {
+
+  return customFetch<PubReportUnit[]>(getListPubReportUnitsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPubReportUnitsQueryKey = () => {
+    return [
+    `/api/pub-reports/units`
+    ] as const;
+    }
+
+
+export const getListPubReportUnitsQueryOptions = <TData = Awaited<ReturnType<typeof listPubReportUnits>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPubReportUnits>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPubReportUnitsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPubReportUnits>>> = ({ signal }) => listPubReportUnits({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPubReportUnits>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPubReportUnitsQueryResult = NonNullable<Awaited<ReturnType<typeof listPubReportUnits>>>
+export type ListPubReportUnitsQueryError = ErrorType<unknown>
+
+
+
+export function useListPubReportUnits<TData = Awaited<ReturnType<typeof listPubReportUnits>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPubReportUnits>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPubReportUnitsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePubReportUnitUrl = () => {
+
+
+
+
+  return `/api/pub-reports/units`
+}
+
+export const createPubReportUnit = async (pubReportUnitInput: PubReportUnitInput, options?: Parameters<typeof customFetch>[1]): Promise<PubReportUnit> => {
+
+  return customFetch<PubReportUnit>(getCreatePubReportUnitUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportUnitInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePubReportUnitMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPubReportUnit>>, TError,{data: BodyType<PubReportUnitInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPubReportUnit>>, TError,{data: BodyType<PubReportUnitInput>}, TContext> => {
+
+const mutationKey = ['createPubReportUnit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPubReportUnit>>, {data: BodyType<PubReportUnitInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPubReportUnit(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePubReportUnitMutationResult = NonNullable<Awaited<ReturnType<typeof createPubReportUnit>>>
+    export type CreatePubReportUnitMutationBody = BodyType<PubReportUnitInput>
+    export type CreatePubReportUnitMutationError = ErrorType<unknown>
+
+    export const useCreatePubReportUnit = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPubReportUnit>>, TError,{data: BodyType<PubReportUnitInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPubReportUnit>>,
+        TError,
+        {data: BodyType<PubReportUnitInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePubReportUnitMutationOptions(options));
+    }
+
+export const getAssignPubReportMembershipUrl = () => {
+
+
+
+
+  return `/api/pub-reports/memberships`
+}
+
+export const assignPubReportMembership = async (pubReportMembershipInput: PubReportMembershipInput, options?: Parameters<typeof customFetch>[1]): Promise<PubReportMembership> => {
+
+  return customFetch<PubReportMembership>(getAssignPubReportMembershipUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportMembershipInput)
+  }
+);}
+
+
+
+
+
+export const getAssignPubReportMembershipMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignPubReportMembership>>, TError,{data: BodyType<PubReportMembershipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assignPubReportMembership>>, TError,{data: BodyType<PubReportMembershipInput>}, TContext> => {
+
+const mutationKey = ['assignPubReportMembership'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assignPubReportMembership>>, {data: BodyType<PubReportMembershipInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  assignPubReportMembership(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssignPubReportMembershipMutationResult = NonNullable<Awaited<ReturnType<typeof assignPubReportMembership>>>
+    export type AssignPubReportMembershipMutationBody = BodyType<PubReportMembershipInput>
+    export type AssignPubReportMembershipMutationError = ErrorType<unknown>
+
+    export const useAssignPubReportMembership = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assignPubReportMembership>>, TError,{data: BodyType<PubReportMembershipInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assignPubReportMembership>>,
+        TError,
+        {data: BodyType<PubReportMembershipInput>},
+        TContext
+      > => {
+      return useMutation(getAssignPubReportMembershipMutationOptions(options));
+    }
+
+export const getListPubReportMembershipsUrl = (params: ListPubReportMembershipsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/pub-reports/memberships?${stringifiedParams}` : `/api/pub-reports/memberships`
+}
+
+export const listPubReportMemberships = async (params: ListPubReportMembershipsParams, options?: Parameters<typeof customFetch>[1]): Promise<PubReportMembership[]> => {
+
+  return customFetch<PubReportMembership[]>(getListPubReportMembershipsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPubReportMembershipsQueryKey = (params?: ListPubReportMembershipsParams,) => {
+    return [
+    `/api/pub-reports/memberships`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPubReportMembershipsQueryOptions = <TData = Awaited<ReturnType<typeof listPubReportMemberships>>, TError = ErrorType<unknown>>(params: ListPubReportMembershipsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPubReportMemberships>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPubReportMembershipsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPubReportMemberships>>> = ({ signal }) => listPubReportMemberships(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPubReportMemberships>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPubReportMembershipsQueryResult = NonNullable<Awaited<ReturnType<typeof listPubReportMemberships>>>
+export type ListPubReportMembershipsQueryError = ErrorType<unknown>
+
+
+
+export function useListPubReportMemberships<TData = Awaited<ReturnType<typeof listPubReportMemberships>>, TError = ErrorType<unknown>>(
+ params: ListPubReportMembershipsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPubReportMemberships>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPubReportMembershipsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDeactivatePubReportMembershipUrl = (id: string,) => {
+
+
+
+
+  return `/api/pub-reports/memberships/${id}`
+}
+
+export const deactivatePubReportMembership = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeactivatePubReportMembershipUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeactivatePubReportMembershipMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deactivatePubReportMembership>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deactivatePubReportMembership>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deactivatePubReportMembership'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deactivatePubReportMembership>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deactivatePubReportMembership(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeactivatePubReportMembershipMutationResult = NonNullable<Awaited<ReturnType<typeof deactivatePubReportMembership>>>
+
+    export type DeactivatePubReportMembershipMutationError = ErrorType<unknown>
+
+    export const useDeactivatePubReportMembership = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deactivatePubReportMembership>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deactivatePubReportMembership>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeactivatePubReportMembershipMutationOptions(options));
+    }
+
+export const getListPubReportsUrl = () => {
+
+
+
+
+  return `/api/pub-reports`
+}
+
+export const listPubReports = async ( options?: Parameters<typeof customFetch>[1]): Promise<PubReport[]> => {
+
+  return customFetch<PubReport[]>(getListPubReportsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPubReportsQueryKey = () => {
+    return [
+    `/api/pub-reports`
+    ] as const;
+    }
+
+
+export const getListPubReportsQueryOptions = <TData = Awaited<ReturnType<typeof listPubReports>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPubReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPubReportsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPubReports>>> = ({ signal }) => listPubReports({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPubReports>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPubReportsQueryResult = NonNullable<Awaited<ReturnType<typeof listPubReports>>>
+export type ListPubReportsQueryError = ErrorType<unknown>
+
+
+
+export function useListPubReports<TData = Awaited<ReturnType<typeof listPubReports>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPubReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPubReportsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePubReportUrl = () => {
+
+
+
+
+  return `/api/pub-reports`
+}
+
+export const createPubReport = async (pubReportInput: PubReportInput, options?: Parameters<typeof customFetch>[1]): Promise<PubReport> => {
+
+  return customFetch<PubReport>(getCreatePubReportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePubReportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPubReport>>, TError,{data: BodyType<PubReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPubReport>>, TError,{data: BodyType<PubReportInput>}, TContext> => {
+
+const mutationKey = ['createPubReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPubReport>>, {data: BodyType<PubReportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPubReport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePubReportMutationResult = NonNullable<Awaited<ReturnType<typeof createPubReport>>>
+    export type CreatePubReportMutationBody = BodyType<PubReportInput>
+    export type CreatePubReportMutationError = ErrorType<unknown>
+
+    export const useCreatePubReport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPubReport>>, TError,{data: BodyType<PubReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPubReport>>,
+        TError,
+        {data: BodyType<PubReportInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePubReportMutationOptions(options));
+    }
+
+export const getGetPubReportUrl = (id: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}`
+}
+
+export const getPubReport = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<PubReportDetail> => {
+
+  return customFetch<PubReportDetail>(getGetPubReportUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPubReportQueryKey = (id: string,) => {
+    return [
+    `/api/pub-reports/${id}`
+    ] as const;
+    }
+
+
+export const getGetPubReportQueryOptions = <TData = Awaited<ReturnType<typeof getPubReport>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPubReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPubReportQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPubReport>>> = ({ signal }) => getPubReport(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPubReport>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPubReportQueryResult = NonNullable<Awaited<ReturnType<typeof getPubReport>>>
+export type GetPubReportQueryError = ErrorType<void>
+
+
+
+export function useGetPubReport<TData = Awaited<ReturnType<typeof getPubReport>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPubReport>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPubReportQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdatePubReportUrl = (id: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}`
+}
+
+export const updatePubReport = async (id: string,
+    pubReportUpdate: PubReportUpdate, options?: Parameters<typeof customFetch>[1]): Promise<PubReport> => {
+
+  return customFetch<PubReport>(getUpdatePubReportUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdatePubReportMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePubReport>>, TError,{id: string;data: BodyType<PubReportUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePubReport>>, TError,{id: string;data: BodyType<PubReportUpdate>}, TContext> => {
+
+const mutationKey = ['updatePubReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePubReport>>, {id: string;data: BodyType<PubReportUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updatePubReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePubReportMutationResult = NonNullable<Awaited<ReturnType<typeof updatePubReport>>>
+    export type UpdatePubReportMutationBody = BodyType<PubReportUpdate>
+    export type UpdatePubReportMutationError = ErrorType<void>
+
+    export const useUpdatePubReport = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePubReport>>, TError,{id: string;data: BodyType<PubReportUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePubReport>>,
+        TError,
+        {id: string;data: BodyType<PubReportUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePubReportMutationOptions(options));
+    }
+
+export const getSubmitPubReportUrl = (id: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/submit`
+}
+
+export const submitPubReport = async (id: string,
+    pubReportTransitionInput: PubReportTransitionInput, options?: Parameters<typeof customFetch>[1]): Promise<PubReport> => {
+
+  return customFetch<PubReport>(getSubmitPubReportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportTransitionInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitPubReportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPubReport>>, TError,{id: string;data: BodyType<PubReportTransitionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitPubReport>>, TError,{id: string;data: BodyType<PubReportTransitionInput>}, TContext> => {
+
+const mutationKey = ['submitPubReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitPubReport>>, {id: string;data: BodyType<PubReportTransitionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  submitPubReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitPubReportMutationResult = NonNullable<Awaited<ReturnType<typeof submitPubReport>>>
+    export type SubmitPubReportMutationBody = BodyType<PubReportTransitionInput>
+    export type SubmitPubReportMutationError = ErrorType<unknown>
+
+    export const useSubmitPubReport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitPubReport>>, TError,{id: string;data: BodyType<PubReportTransitionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitPubReport>>,
+        TError,
+        {id: string;data: BodyType<PubReportTransitionInput>},
+        TContext
+      > => {
+      return useMutation(getSubmitPubReportMutationOptions(options));
+    }
+
+export const getReviewPubReportUrl = (id: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/review`
+}
+
+export const reviewPubReport = async (id: string,
+    pubReportReviewInput: PubReportReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<PubReport> => {
+
+  return customFetch<PubReport>(getReviewPubReportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportReviewInput)
+  }
+);}
+
+
+
+
+
+export const getReviewPubReportMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewPubReport>>, TError,{id: string;data: BodyType<PubReportReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewPubReport>>, TError,{id: string;data: BodyType<PubReportReviewInput>}, TContext> => {
+
+const mutationKey = ['reviewPubReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewPubReport>>, {id: string;data: BodyType<PubReportReviewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewPubReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewPubReportMutationResult = NonNullable<Awaited<ReturnType<typeof reviewPubReport>>>
+    export type ReviewPubReportMutationBody = BodyType<PubReportReviewInput>
+    export type ReviewPubReportMutationError = ErrorType<void>
+
+    export const useReviewPubReport = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewPubReport>>, TError,{id: string;data: BodyType<PubReportReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reviewPubReport>>,
+        TError,
+        {id: string;data: BodyType<PubReportReviewInput>},
+        TContext
+      > => {
+      return useMutation(getReviewPubReportMutationOptions(options));
+    }
+
+export const getMarkPubReportUploadedUrl = (id: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/mark-uploaded`
+}
+
+export const markPubReportUploaded = async (id: string,
+    pubReportUploadInput: PubReportUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<PubReport> => {
+
+  return customFetch<PubReport>(getMarkPubReportUploadedUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportUploadInput)
+  }
+);}
+
+
+
+
+
+export const getMarkPubReportUploadedMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markPubReportUploaded>>, TError,{id: string;data: BodyType<PubReportUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markPubReportUploaded>>, TError,{id: string;data: BodyType<PubReportUploadInput>}, TContext> => {
+
+const mutationKey = ['markPubReportUploaded'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markPubReportUploaded>>, {id: string;data: BodyType<PubReportUploadInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  markPubReportUploaded(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkPubReportUploadedMutationResult = NonNullable<Awaited<ReturnType<typeof markPubReportUploaded>>>
+    export type MarkPubReportUploadedMutationBody = BodyType<PubReportUploadInput>
+    export type MarkPubReportUploadedMutationError = ErrorType<unknown>
+
+    export const useMarkPubReportUploaded = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markPubReportUploaded>>, TError,{id: string;data: BodyType<PubReportUploadInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markPubReportUploaded>>,
+        TError,
+        {id: string;data: BodyType<PubReportUploadInput>},
+        TContext
+      > => {
+      return useMutation(getMarkPubReportUploadedMutationOptions(options));
+    }
+
+export const getAddPubReportParticipantUrl = (id: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/participants`
+}
+
+export const addPubReportParticipant = async (id: string,
+    pubReportParticipantInput: PubReportParticipantInput, options?: Parameters<typeof customFetch>[1]): Promise<PubReportParticipant> => {
+
+  return customFetch<PubReportParticipant>(getAddPubReportParticipantUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportParticipantInput)
+  }
+);}
+
+
+
+
+
+export const getAddPubReportParticipantMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addPubReportParticipant>>, TError,{id: string;data: BodyType<PubReportParticipantInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addPubReportParticipant>>, TError,{id: string;data: BodyType<PubReportParticipantInput>}, TContext> => {
+
+const mutationKey = ['addPubReportParticipant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addPubReportParticipant>>, {id: string;data: BodyType<PubReportParticipantInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addPubReportParticipant(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddPubReportParticipantMutationResult = NonNullable<Awaited<ReturnType<typeof addPubReportParticipant>>>
+    export type AddPubReportParticipantMutationBody = BodyType<PubReportParticipantInput>
+    export type AddPubReportParticipantMutationError = ErrorType<unknown>
+
+    export const useAddPubReportParticipant = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addPubReportParticipant>>, TError,{id: string;data: BodyType<PubReportParticipantInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addPubReportParticipant>>,
+        TError,
+        {id: string;data: BodyType<PubReportParticipantInput>},
+        TContext
+      > => {
+      return useMutation(getAddPubReportParticipantMutationOptions(options));
+    }
+
+export const getUpdatePubReportParticipantUrl = (id: string,
+    participantId: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/participants/${participantId}`
+}
+
+export const updatePubReportParticipant = async (id: string,
+    participantId: string,
+    pubReportParticipantUpdate: PubReportParticipantUpdate, options?: Parameters<typeof customFetch>[1]): Promise<PubReportParticipant> => {
+
+  return customFetch<PubReportParticipant>(getUpdatePubReportParticipantUrl(id,participantId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportParticipantUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdatePubReportParticipantMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePubReportParticipant>>, TError,{id: string;participantId: string;data: BodyType<PubReportParticipantUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePubReportParticipant>>, TError,{id: string;participantId: string;data: BodyType<PubReportParticipantUpdate>}, TContext> => {
+
+const mutationKey = ['updatePubReportParticipant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePubReportParticipant>>, {id: string;participantId: string;data: BodyType<PubReportParticipantUpdate>}> = (props) => {
+          const {id,participantId,data} = props ?? {};
+
+          return  updatePubReportParticipant(id,participantId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePubReportParticipantMutationResult = NonNullable<Awaited<ReturnType<typeof updatePubReportParticipant>>>
+    export type UpdatePubReportParticipantMutationBody = BodyType<PubReportParticipantUpdate>
+    export type UpdatePubReportParticipantMutationError = ErrorType<unknown>
+
+    export const useUpdatePubReportParticipant = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePubReportParticipant>>, TError,{id: string;participantId: string;data: BodyType<PubReportParticipantUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePubReportParticipant>>,
+        TError,
+        {id: string;participantId: string;data: BodyType<PubReportParticipantUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdatePubReportParticipantMutationOptions(options));
+    }
+
+export const getRemovePubReportParticipantUrl = (id: string,
+    participantId: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/participants/${participantId}`
+}
+
+export const removePubReportParticipant = async (id: string,
+    participantId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRemovePubReportParticipantUrl(id,participantId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemovePubReportParticipantMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePubReportParticipant>>, TError,{id: string;participantId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removePubReportParticipant>>, TError,{id: string;participantId: string}, TContext> => {
+
+const mutationKey = ['removePubReportParticipant'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removePubReportParticipant>>, {id: string;participantId: string}> = (props) => {
+          const {id,participantId} = props ?? {};
+
+          return  removePubReportParticipant(id,participantId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemovePubReportParticipantMutationResult = NonNullable<Awaited<ReturnType<typeof removePubReportParticipant>>>
+
+    export type RemovePubReportParticipantMutationError = ErrorType<unknown>
+
+    export const useRemovePubReportParticipant = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePubReportParticipant>>, TError,{id: string;participantId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removePubReportParticipant>>,
+        TError,
+        {id: string;participantId: string},
+        TContext
+      > => {
+      return useMutation(getRemovePubReportParticipantMutationOptions(options));
+    }
+
+export const getAddPubReportAttachmentUrl = (id: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/attachments`
+}
+
+export const addPubReportAttachment = async (id: string,
+    pubReportAttachmentInput: PubReportAttachmentInput, options?: Parameters<typeof customFetch>[1]): Promise<PubReportAttachment> => {
+
+  return customFetch<PubReportAttachment>(getAddPubReportAttachmentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(pubReportAttachmentInput)
+  }
+);}
+
+
+
+
+
+export const getAddPubReportAttachmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addPubReportAttachment>>, TError,{id: string;data: BodyType<PubReportAttachmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addPubReportAttachment>>, TError,{id: string;data: BodyType<PubReportAttachmentInput>}, TContext> => {
+
+const mutationKey = ['addPubReportAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addPubReportAttachment>>, {id: string;data: BodyType<PubReportAttachmentInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addPubReportAttachment(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddPubReportAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof addPubReportAttachment>>>
+    export type AddPubReportAttachmentMutationBody = BodyType<PubReportAttachmentInput>
+    export type AddPubReportAttachmentMutationError = ErrorType<unknown>
+
+    export const useAddPubReportAttachment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addPubReportAttachment>>, TError,{id: string;data: BodyType<PubReportAttachmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addPubReportAttachment>>,
+        TError,
+        {id: string;data: BodyType<PubReportAttachmentInput>},
+        TContext
+      > => {
+      return useMutation(getAddPubReportAttachmentMutationOptions(options));
+    }
+
+export const getRemovePubReportAttachmentUrl = (id: string,
+    attachmentId: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/attachments/${attachmentId}`
+}
+
+export const removePubReportAttachment = async (id: string,
+    attachmentId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRemovePubReportAttachmentUrl(id,attachmentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemovePubReportAttachmentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePubReportAttachment>>, TError,{id: string;attachmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removePubReportAttachment>>, TError,{id: string;attachmentId: string}, TContext> => {
+
+const mutationKey = ['removePubReportAttachment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removePubReportAttachment>>, {id: string;attachmentId: string}> = (props) => {
+          const {id,attachmentId} = props ?? {};
+
+          return  removePubReportAttachment(id,attachmentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemovePubReportAttachmentMutationResult = NonNullable<Awaited<ReturnType<typeof removePubReportAttachment>>>
+
+    export type RemovePubReportAttachmentMutationError = ErrorType<unknown>
+
+    export const useRemovePubReportAttachment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePubReportAttachment>>, TError,{id: string;attachmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removePubReportAttachment>>,
+        TError,
+        {id: string;attachmentId: string},
+        TContext
+      > => {
+      return useMutation(getRemovePubReportAttachmentMutationOptions(options));
+    }
+
+export const getDownloadPubReportAttachmentUrl = (id: string,
+    attachmentId: string,) => {
+
+
+
+
+  return `/api/pub-reports/${id}/attachments/${attachmentId}/download`
+}
+
+export const downloadPubReportAttachment = async (id: string,
+    attachmentId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadPubReportAttachmentUrl(id,attachmentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadPubReportAttachmentQueryKey = (id: string,
+    attachmentId: string,) => {
+    return [
+    `/api/pub-reports/${id}/attachments/${attachmentId}/download`
+    ] as const;
+    }
+
+
+export const getDownloadPubReportAttachmentQueryOptions = <TData = Awaited<ReturnType<typeof downloadPubReportAttachment>>, TError = ErrorType<void>>(id: string,
+    attachmentId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadPubReportAttachment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadPubReportAttachmentQueryKey(id,attachmentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadPubReportAttachment>>> = ({ signal }) => downloadPubReportAttachment(id,attachmentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined && attachmentId !== null && attachmentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadPubReportAttachment>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadPubReportAttachmentQueryResult = NonNullable<Awaited<ReturnType<typeof downloadPubReportAttachment>>>
+export type DownloadPubReportAttachmentQueryError = ErrorType<void>
+
+
+
+export function useDownloadPubReportAttachment<TData = Awaited<ReturnType<typeof downloadPubReportAttachment>>, TError = ErrorType<void>>(
+ id: string,
+    attachmentId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadPubReportAttachment>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadPubReportAttachmentQueryOptions(id,attachmentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListDocumentAnalysesUrl = () => {
 

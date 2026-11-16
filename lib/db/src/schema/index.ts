@@ -19,3 +19,4 @@
 
 export * from "./ruang-simpan";
 export * from "./clinic";
+export * from "./pub-reports";

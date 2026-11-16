@@ -5,6 +5,504 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type PubReportAccessRole = typeof PubReportAccessRole[keyof typeof PubReportAccessRole];
+
+
+export const PubReportAccessRole = {
+  platform_admin: 'platform_admin',
+  central_reviewer: 'central_reviewer',
+  branch_operator: 'branch_operator',
+  no_access: 'no_access',
+} as const;
+
+export type PubReportUnitMembershipUnitType = typeof PubReportUnitMembershipUnitType[keyof typeof PubReportUnitMembershipUnitType];
+
+
+export const PubReportUnitMembershipUnitType = {
+  central: 'central',
+  branch: 'branch',
+} as const;
+
+export type PubReportUnitMembershipRole = typeof PubReportUnitMembershipRole[keyof typeof PubReportUnitMembershipRole];
+
+
+export const PubReportUnitMembershipRole = {
+  branch_operator: 'branch_operator',
+  central_reviewer: 'central_reviewer',
+} as const;
+
+export interface PubReportUnitMembership {
+  unitId: string;
+  unitName: string;
+  unitType: PubReportUnitMembershipUnitType;
+  role: PubReportUnitMembershipRole;
+}
+
+export interface PubReportAccess {
+  userId: string;
+  role: PubReportAccessRole;
+  canManageUnits: boolean;
+  canReviewAll: boolean;
+  units: PubReportUnitMembership[];
+}
+
+export type PubReportUnitUnitType = typeof PubReportUnitUnitType[keyof typeof PubReportUnitUnitType];
+
+
+export const PubReportUnitUnitType = {
+  central: 'central',
+  branch: 'branch',
+} as const;
+
+export interface PubReportUnit {
+  id: string;
+  /**
+     * @minLength 1
+     * @maxLength 180
+     */
+  name: string;
+  unitType: PubReportUnitUnitType;
+  /** @nullable */
+  parentUnitId: string | null;
+  active: boolean;
+  createdAt: string;
+}
+
+export type PubReportUnitInputUnitType = typeof PubReportUnitInputUnitType[keyof typeof PubReportUnitInputUnitType];
+
+
+export const PubReportUnitInputUnitType = {
+  central: 'central',
+  branch: 'branch',
+} as const;
+
+export interface PubReportUnitInput {
+  /**
+     * @minLength 2
+     * @maxLength 180
+     */
+  name: string;
+  unitType: PubReportUnitInputUnitType;
+  /** @nullable */
+  parentUnitId?: string | null;
+}
+
+export type PubReportMembershipRole = typeof PubReportMembershipRole[keyof typeof PubReportMembershipRole];
+
+
+export const PubReportMembershipRole = {
+  branch_operator: 'branch_operator',
+  central_reviewer: 'central_reviewer',
+} as const;
+
+export interface PubReportMembership {
+  id: string;
+  unitId: string;
+  userId: string;
+  role: PubReportMembershipRole;
+  active: boolean;
+  createdAt: string;
+}
+
+export type PubReportMembershipInputRole = typeof PubReportMembershipInputRole[keyof typeof PubReportMembershipInputRole];
+
+
+export const PubReportMembershipInputRole = {
+  branch_operator: 'branch_operator',
+  central_reviewer: 'central_reviewer',
+} as const;
+
+export interface PubReportMembershipInput {
+  unitId: string;
+  userId: string;
+  role: PubReportMembershipInputRole;
+}
+
+export type PubReportPersonRole = typeof PubReportPersonRole[keyof typeof PubReportPersonRole];
+
+
+export const PubReportPersonRole = {
+  committee: 'committee',
+  speaker: 'speaker',
+  responsible: 'responsible',
+} as const;
+
+export interface PubReportPerson {
+  /**
+     * @minLength 1
+     * @maxLength 180
+     */
+  name: string;
+  /** @maxLength 180 */
+  affiliation: string;
+  role: PubReportPersonRole;
+  /** @maxLength 300 */
+  topic: string;
+  /**
+     * @minimum 0
+     * @maximum 100
+     * @nullable
+     */
+  hours: number | null;
+}
+
+export interface PubReportAgendaItem {
+  /** @maxLength 80 */
+  startsAt: string;
+  /** @maxLength 80 */
+  endsAt: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  activity: string;
+  /** @maxLength 180 */
+  speaker: string;
+  /** @maxLength 600 */
+  notes: string;
+}
+
+export type PubReportClassification = typeof PubReportClassification[keyof typeof PubReportClassification];
+
+
+export const PubReportClassification = {
+  general: 'general',
+  special: 'special',
+} as const;
+
+export type PubReportDeliveryMode = typeof PubReportDeliveryMode[keyof typeof PubReportDeliveryMode];
+
+
+export const PubReportDeliveryMode = {
+  online: 'online',
+  offline: 'offline',
+  hybrid: 'hybrid',
+} as const;
+
+export type PubReportLevel = typeof PubReportLevel[keyof typeof PubReportLevel];
+
+
+export const PubReportLevel = {
+  national: 'national',
+  international: 'international',
+} as const;
+
+export type PubReportStatus = typeof PubReportStatus[keyof typeof PubReportStatus];
+
+
+export const PubReportStatus = {
+  draft: 'draft',
+  submitted: 'submitted',
+  needs_revision: 'needs_revision',
+  ready_to_upload: 'ready_to_upload',
+  uploaded: 'uploaded',
+} as const;
+
+export interface PubReport {
+  id: string;
+  unitId: string;
+  unitName: string;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  sourceActivityId: string | null;
+  title: string;
+  activityType: string;
+  classification: PubReportClassification;
+  eventForm: string;
+  deliveryMode: PubReportDeliveryMode;
+  level: PubReportLevel;
+  background: string;
+  legalBasis: string;
+  purpose: string;
+  startsAt: string;
+  /** @nullable */
+  endsAt: string | null;
+  location: string;
+  targetAudience: string;
+  targetQualification: string;
+  /** @nullable */
+  targetPerformanceGrade: string | null;
+  responsibleName: string;
+  recommendations: string;
+  followUp: string;
+  closing: string;
+  committee: PubReportPerson[];
+  rundown: PubReportAgendaItem[];
+  status: PubReportStatus;
+  /** @minimum 0 */
+  revision: number;
+  creatorId: string;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  submittedAt: string | null;
+  /** @nullable */
+  reviewedAt: string | null;
+  /** @nullable */
+  reviewedBy: string | null;
+  reviewNote: string;
+  /** @nullable */
+  uploadedAt: string | null;
+  uploadReference: string;
+}
+
+export type PubReportInputClassification = typeof PubReportInputClassification[keyof typeof PubReportInputClassification];
+
+
+export const PubReportInputClassification = {
+  general: 'general',
+  special: 'special',
+} as const;
+
+export type PubReportInputDeliveryMode = typeof PubReportInputDeliveryMode[keyof typeof PubReportInputDeliveryMode];
+
+
+export const PubReportInputDeliveryMode = {
+  online: 'online',
+  offline: 'offline',
+  hybrid: 'hybrid',
+} as const;
+
+export type PubReportInputLevel = typeof PubReportInputLevel[keyof typeof PubReportInputLevel];
+
+
+export const PubReportInputLevel = {
+  national: 'national',
+  international: 'international',
+} as const;
+
+export interface PubReportInput {
+  unitId: string;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  sourceActivityId?: string | null;
+  /**
+     * @minLength 3
+     * @maxLength 240
+     */
+  title: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  activityType: string;
+  classification: PubReportInputClassification;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  eventForm: string;
+  deliveryMode: PubReportInputDeliveryMode;
+  level: PubReportInputLevel;
+  /** @maxLength 6000 */
+  background: string;
+  /** @maxLength 3000 */
+  legalBasis: string;
+  /** @maxLength 3000 */
+  purpose: string;
+  startsAt: string;
+  /** @nullable */
+  endsAt?: string | null;
+  /** @maxLength 500 */
+  location: string;
+  /** @maxLength 1000 */
+  targetAudience: string;
+  /** @maxLength 500 */
+  targetQualification: string;
+  /**
+     * @maxLength 40
+     * @nullable
+     */
+  targetPerformanceGrade?: string | null;
+  /** @maxLength 180 */
+  responsibleName: string;
+  /** @maxLength 6000 */
+  recommendations: string;
+  /** @maxLength 6000 */
+  followUp: string;
+  /** @maxLength 3000 */
+  closing: string;
+  /** @maxItems 80 */
+  committee: PubReportPerson[];
+  /** @maxItems 100 */
+  rundown: PubReportAgendaItem[];
+}
+
+export type PubReportUpdate = PubReportInput & {
+  /** @minimum 0 */
+  expectedRevision: number;
+};
+
+export interface PubReportTransitionInput {
+  /** @minimum 0 */
+  expectedRevision: number;
+}
+
+export type PubReportReviewInputAction = typeof PubReportReviewInputAction[keyof typeof PubReportReviewInputAction];
+
+
+export const PubReportReviewInputAction = {
+  return: 'return',
+  approve: 'approve',
+} as const;
+
+export interface PubReportReviewInput {
+  action: PubReportReviewInputAction;
+  /** @maxLength 3000 */
+  note: string;
+  /** @minimum 0 */
+  expectedRevision: number;
+}
+
+export interface PubReportUploadInput {
+  /**
+     * @minLength 2
+     * @maxLength 500
+     */
+  reference: string;
+  /** @minimum 0 */
+  expectedRevision: number;
+}
+
+export type PubReportParticipantAttendanceStatus = typeof PubReportParticipantAttendanceStatus[keyof typeof PubReportParticipantAttendanceStatus];
+
+
+export const PubReportParticipantAttendanceStatus = {
+  pending: 'pending',
+  verified: 'verified',
+  needs_correction: 'needs_correction',
+} as const;
+
+export interface PubReportParticipant {
+  id: string;
+  reportId: string;
+  fullName: string;
+  companyName: string;
+  qualification: string;
+  /** @nullable */
+  performanceGrade: string | null;
+  participantRole: string;
+  attendanceStatus: PubReportParticipantAttendanceStatus;
+  attendanceNote: string;
+  /** @nullable */
+  verifiedBy: string | null;
+  /** @nullable */
+  verifiedAt: string | null;
+  /** @minimum 0 */
+  revision: number;
+  createdAt: string;
+}
+
+export type PubReportParticipantInputParticipantRole = typeof PubReportParticipantInputParticipantRole[keyof typeof PubReportParticipantInputParticipantRole];
+
+
+export const PubReportParticipantInputParticipantRole = {
+  bujk: 'bujk',
+  association: 'association',
+  speaker: 'speaker',
+  organizer: 'organizer',
+  other: 'other',
+} as const;
+
+export interface PubReportParticipantInput {
+  /**
+     * @minLength 2
+     * @maxLength 180
+     */
+  fullName: string;
+  /** @maxLength 220 */
+  companyName: string;
+  /** @maxLength 100 */
+  qualification: string;
+  /**
+     * @maxLength 40
+     * @nullable
+     */
+  performanceGrade: string | null;
+  participantRole: PubReportParticipantInputParticipantRole;
+}
+
+export type PubReportParticipantUpdateAttendanceStatus = typeof PubReportParticipantUpdateAttendanceStatus[keyof typeof PubReportParticipantUpdateAttendanceStatus];
+
+
+export const PubReportParticipantUpdateAttendanceStatus = {
+  verified: 'verified',
+  needs_correction: 'needs_correction',
+} as const;
+
+export interface PubReportParticipantUpdate {
+  attendanceStatus: PubReportParticipantUpdateAttendanceStatus;
+  /** @maxLength 1000 */
+  attendanceNote: string;
+  /** @minimum 0 */
+  expectedRevision: number;
+}
+
+export type PubReportAttachmentCategory = typeof PubReportAttachmentCategory[keyof typeof PubReportAttachmentCategory];
+
+
+export const PubReportAttachmentCategory = {
+  invitation: 'invitation',
+  kak: 'kak',
+  attendance_list: 'attendance_list',
+  documentation: 'documentation',
+  recording: 'recording',
+  materials: 'materials',
+  upload_proof: 'upload_proof',
+  other: 'other',
+} as const;
+
+export interface PubReportAttachment {
+  id: string;
+  reportId: string;
+  category: PubReportAttachmentCategory;
+  documentId: string;
+  fileName: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+export type PubReportAttachmentInputCategory = typeof PubReportAttachmentInputCategory[keyof typeof PubReportAttachmentInputCategory];
+
+
+export const PubReportAttachmentInputCategory = {
+  invitation: 'invitation',
+  kak: 'kak',
+  attendance_list: 'attendance_list',
+  documentation: 'documentation',
+  recording: 'recording',
+  materials: 'materials',
+  upload_proof: 'upload_proof',
+  other: 'other',
+} as const;
+
+export interface PubReportAttachmentInput {
+  category: PubReportAttachmentInputCategory;
+  documentId: string;
+}
+
+export type PubReportAuditEventDetail = { [key: string]: unknown };
+
+export interface PubReportAuditEvent {
+  id: string;
+  reportId: string;
+  actorId: string;
+  action: string;
+  detail: PubReportAuditEventDetail;
+  createdAt: string;
+}
+
+export interface PubReportDetail {
+  report: PubReport;
+  participants: PubReportParticipant[];
+  attachments: PubReportAttachment[];
+  history: PubReportAuditEvent[];
+}
+
 export interface DocumentAnalysisInput {
   documentId: string;
   consent: true;
@@ -1283,6 +1781,10 @@ export type ChatTimeoutResponse = ChatError;
  * Sanitized diagnostic codes only, restricted to a freshly verified admin role.
  */
 export type AiDiagnosticsParameter = boolean;
+
+export type ListPubReportMembershipsParams = {
+unitId: string;
+};
 
 export type ResolveVaultCompanies200CompaniesItem = {
   userId: string;

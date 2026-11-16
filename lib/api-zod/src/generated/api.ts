@@ -8,6 +8,1047 @@
 import * as zod from 'zod';
 
 
+/**
+ * @summary Get the current user's central or branch report permissions
+ */
+export const GetPubReportAccessResponse = zod.object({
+  "userId": zod.string().uuid(),
+  "role": zod.enum(['platform_admin', 'central_reviewer', 'branch_operator', 'no_access']),
+  "canManageUnits": zod.boolean(),
+  "canReviewAll": zod.boolean(),
+  "units": zod.array(zod.object({
+  "unitId": zod.string().uuid(),
+  "unitName": zod.string(),
+  "unitType": zod.enum(['central', 'branch']),
+  "role": zod.enum(['branch_operator', 'central_reviewer'])
+}))
+})
+
+
+export const listPubReportUnitsResponseNameMax = 180;
+
+
+
+export const ListPubReportUnitsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string().min(1).max(listPubReportUnitsResponseNameMax),
+  "unitType": zod.enum(['central', 'branch']),
+  "parentUnitId": zod.string().uuid().nullable(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+export const ListPubReportUnitsResponse = zod.array(ListPubReportUnitsResponseItem)
+
+
+export const createPubReportUnitBodyNameMin = 2;
+export const createPubReportUnitBodyNameMax = 180;
+
+
+
+export const CreatePubReportUnitBody = zod.object({
+  "name": zod.string().min(createPubReportUnitBodyNameMin).max(createPubReportUnitBodyNameMax),
+  "unitType": zod.enum(['central', 'branch']),
+  "parentUnitId": zod.string().uuid().nullish()
+})
+
+export const createPubReportUnitResponseNameMax = 180;
+
+
+
+export const CreatePubReportUnitResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string().min(1).max(createPubReportUnitResponseNameMax),
+  "unitType": zod.enum(['central', 'branch']),
+  "parentUnitId": zod.string().uuid().nullable(),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const AssignPubReportMembershipBody = zod.object({
+  "unitId": zod.string().uuid(),
+  "userId": zod.string().uuid(),
+  "role": zod.enum(['branch_operator', 'central_reviewer'])
+})
+
+export const AssignPubReportMembershipResponse = zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "userId": zod.string().uuid(),
+  "role": zod.enum(['branch_operator', 'central_reviewer']),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const ListPubReportMembershipsQueryParams = zod.object({
+  "unitId": zod.coerce.string().uuid()
+})
+
+export const ListPubReportMembershipsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "userId": zod.string().uuid(),
+  "role": zod.enum(['branch_operator', 'central_reviewer']),
+  "active": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+export const ListPubReportMembershipsResponse = zod.array(ListPubReportMembershipsResponseItem)
+
+
+export const DeactivatePubReportMembershipParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const DeactivatePubReportMembershipResponse = zod.void()
+
+
+export const listPubReportsResponseSourceActivityIdMax = 80;
+
+export const listPubReportsResponseCommitteeItemNameMax = 180;
+
+export const listPubReportsResponseCommitteeItemAffiliationMax = 180;
+
+export const listPubReportsResponseCommitteeItemTopicMax = 300;
+
+export const listPubReportsResponseCommitteeItemHoursMin = 0;
+export const listPubReportsResponseCommitteeItemHoursMax = 100;
+
+export const listPubReportsResponseRundownItemStartsAtMax = 80;
+
+export const listPubReportsResponseRundownItemEndsAtMax = 80;
+
+export const listPubReportsResponseRundownItemActivityMax = 300;
+
+export const listPubReportsResponseRundownItemSpeakerMax = 180;
+
+export const listPubReportsResponseRundownItemNotesMax = 600;
+
+export const listPubReportsResponseRevisionMin = 0;
+
+
+
+export const ListPubReportsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "unitName": zod.string(),
+  "sourceActivityId": zod.string().max(listPubReportsResponseSourceActivityIdMax).nullable(),
+  "title": zod.string(),
+  "activityType": zod.string(),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string(),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string(),
+  "legalBasis": zod.string(),
+  "purpose": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "location": zod.string(),
+  "targetAudience": zod.string(),
+  "targetQualification": zod.string(),
+  "targetPerformanceGrade": zod.string().nullable(),
+  "responsibleName": zod.string(),
+  "recommendations": zod.string(),
+  "followUp": zod.string(),
+  "closing": zod.string(),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(listPubReportsResponseCommitteeItemNameMax),
+  "affiliation": zod.string().max(listPubReportsResponseCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(listPubReportsResponseCommitteeItemTopicMax),
+  "hours": zod.number().min(listPubReportsResponseCommitteeItemHoursMin).max(listPubReportsResponseCommitteeItemHoursMax).nullable()
+})),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(listPubReportsResponseRundownItemStartsAtMax),
+  "endsAt": zod.string().max(listPubReportsResponseRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(listPubReportsResponseRundownItemActivityMax),
+  "speaker": zod.string().max(listPubReportsResponseRundownItemSpeakerMax),
+  "notes": zod.string().max(listPubReportsResponseRundownItemNotesMax)
+})),
+  "status": zod.enum(['draft', 'submitted', 'needs_revision', 'ready_to_upload', 'uploaded']),
+  "revision": zod.number().int().min(listPubReportsResponseRevisionMin),
+  "creatorId": zod.string().uuid(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewedBy": zod.string().uuid().nullable(),
+  "reviewNote": zod.string(),
+  "uploadedAt": zod.coerce.date().nullable(),
+  "uploadReference": zod.string()
+})
+export const ListPubReportsResponse = zod.array(ListPubReportsResponseItem)
+
+
+export const createPubReportBodySourceActivityIdMax = 80;
+
+export const createPubReportBodyTitleMin = 3;
+export const createPubReportBodyTitleMax = 240;
+
+export const createPubReportBodyActivityTypeMax = 80;
+
+export const createPubReportBodyEventFormMax = 120;
+
+export const createPubReportBodyBackgroundMax = 6000;
+
+export const createPubReportBodyLegalBasisMax = 3000;
+
+export const createPubReportBodyPurposeMax = 3000;
+
+export const createPubReportBodyLocationMax = 500;
+
+export const createPubReportBodyTargetAudienceMax = 1000;
+
+export const createPubReportBodyTargetQualificationMax = 500;
+
+export const createPubReportBodyTargetPerformanceGradeMax = 40;
+
+export const createPubReportBodyResponsibleNameMax = 180;
+
+export const createPubReportBodyRecommendationsMax = 6000;
+
+export const createPubReportBodyFollowUpMax = 6000;
+
+export const createPubReportBodyClosingMax = 3000;
+
+export const createPubReportBodyCommitteeItemNameMax = 180;
+
+export const createPubReportBodyCommitteeItemAffiliationMax = 180;
+
+export const createPubReportBodyCommitteeItemTopicMax = 300;
+
+export const createPubReportBodyCommitteeItemHoursMin = 0;
+export const createPubReportBodyCommitteeItemHoursMax = 100;
+
+export const createPubReportBodyCommitteeMax = 80;
+
+export const createPubReportBodyRundownItemStartsAtMax = 80;
+
+export const createPubReportBodyRundownItemEndsAtMax = 80;
+
+export const createPubReportBodyRundownItemActivityMax = 300;
+
+export const createPubReportBodyRundownItemSpeakerMax = 180;
+
+export const createPubReportBodyRundownItemNotesMax = 600;
+
+export const createPubReportBodyRundownMax = 100;
+
+
+
+export const CreatePubReportBody = zod.object({
+  "unitId": zod.string().uuid(),
+  "sourceActivityId": zod.string().max(createPubReportBodySourceActivityIdMax).nullish(),
+  "title": zod.string().min(createPubReportBodyTitleMin).max(createPubReportBodyTitleMax),
+  "activityType": zod.string().min(1).max(createPubReportBodyActivityTypeMax),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string().min(1).max(createPubReportBodyEventFormMax),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string().max(createPubReportBodyBackgroundMax),
+  "legalBasis": zod.string().max(createPubReportBodyLegalBasisMax),
+  "purpose": zod.string().max(createPubReportBodyPurposeMax),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish(),
+  "location": zod.string().max(createPubReportBodyLocationMax),
+  "targetAudience": zod.string().max(createPubReportBodyTargetAudienceMax),
+  "targetQualification": zod.string().max(createPubReportBodyTargetQualificationMax),
+  "targetPerformanceGrade": zod.string().max(createPubReportBodyTargetPerformanceGradeMax).nullish(),
+  "responsibleName": zod.string().max(createPubReportBodyResponsibleNameMax),
+  "recommendations": zod.string().max(createPubReportBodyRecommendationsMax),
+  "followUp": zod.string().max(createPubReportBodyFollowUpMax),
+  "closing": zod.string().max(createPubReportBodyClosingMax),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(createPubReportBodyCommitteeItemNameMax),
+  "affiliation": zod.string().max(createPubReportBodyCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(createPubReportBodyCommitteeItemTopicMax),
+  "hours": zod.number().min(createPubReportBodyCommitteeItemHoursMin).max(createPubReportBodyCommitteeItemHoursMax).nullable()
+})).max(createPubReportBodyCommitteeMax),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(createPubReportBodyRundownItemStartsAtMax),
+  "endsAt": zod.string().max(createPubReportBodyRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(createPubReportBodyRundownItemActivityMax),
+  "speaker": zod.string().max(createPubReportBodyRundownItemSpeakerMax),
+  "notes": zod.string().max(createPubReportBodyRundownItemNotesMax)
+})).max(createPubReportBodyRundownMax)
+})
+
+export const createPubReportResponseSourceActivityIdMax = 80;
+
+export const createPubReportResponseCommitteeItemNameMax = 180;
+
+export const createPubReportResponseCommitteeItemAffiliationMax = 180;
+
+export const createPubReportResponseCommitteeItemTopicMax = 300;
+
+export const createPubReportResponseCommitteeItemHoursMin = 0;
+export const createPubReportResponseCommitteeItemHoursMax = 100;
+
+export const createPubReportResponseRundownItemStartsAtMax = 80;
+
+export const createPubReportResponseRundownItemEndsAtMax = 80;
+
+export const createPubReportResponseRundownItemActivityMax = 300;
+
+export const createPubReportResponseRundownItemSpeakerMax = 180;
+
+export const createPubReportResponseRundownItemNotesMax = 600;
+
+export const createPubReportResponseRevisionMin = 0;
+
+
+
+export const CreatePubReportResponse = zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "unitName": zod.string(),
+  "sourceActivityId": zod.string().max(createPubReportResponseSourceActivityIdMax).nullable(),
+  "title": zod.string(),
+  "activityType": zod.string(),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string(),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string(),
+  "legalBasis": zod.string(),
+  "purpose": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "location": zod.string(),
+  "targetAudience": zod.string(),
+  "targetQualification": zod.string(),
+  "targetPerformanceGrade": zod.string().nullable(),
+  "responsibleName": zod.string(),
+  "recommendations": zod.string(),
+  "followUp": zod.string(),
+  "closing": zod.string(),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(createPubReportResponseCommitteeItemNameMax),
+  "affiliation": zod.string().max(createPubReportResponseCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(createPubReportResponseCommitteeItemTopicMax),
+  "hours": zod.number().min(createPubReportResponseCommitteeItemHoursMin).max(createPubReportResponseCommitteeItemHoursMax).nullable()
+})),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(createPubReportResponseRundownItemStartsAtMax),
+  "endsAt": zod.string().max(createPubReportResponseRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(createPubReportResponseRundownItemActivityMax),
+  "speaker": zod.string().max(createPubReportResponseRundownItemSpeakerMax),
+  "notes": zod.string().max(createPubReportResponseRundownItemNotesMax)
+})),
+  "status": zod.enum(['draft', 'submitted', 'needs_revision', 'ready_to_upload', 'uploaded']),
+  "revision": zod.number().int().min(createPubReportResponseRevisionMin),
+  "creatorId": zod.string().uuid(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewedBy": zod.string().uuid().nullable(),
+  "reviewNote": zod.string(),
+  "uploadedAt": zod.coerce.date().nullable(),
+  "uploadReference": zod.string()
+})
+
+
+export const GetPubReportParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const getPubReportResponseReportSourceActivityIdMax = 80;
+
+export const getPubReportResponseReportCommitteeItemNameMax = 180;
+
+export const getPubReportResponseReportCommitteeItemAffiliationMax = 180;
+
+export const getPubReportResponseReportCommitteeItemTopicMax = 300;
+
+export const getPubReportResponseReportCommitteeItemHoursMin = 0;
+export const getPubReportResponseReportCommitteeItemHoursMax = 100;
+
+export const getPubReportResponseReportRundownItemStartsAtMax = 80;
+
+export const getPubReportResponseReportRundownItemEndsAtMax = 80;
+
+export const getPubReportResponseReportRundownItemActivityMax = 300;
+
+export const getPubReportResponseReportRundownItemSpeakerMax = 180;
+
+export const getPubReportResponseReportRundownItemNotesMax = 600;
+
+export const getPubReportResponseReportRevisionMin = 0;
+
+export const getPubReportResponseParticipantsItemRevisionMin = 0;
+
+
+
+export const GetPubReportResponse = zod.object({
+  "report": zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "unitName": zod.string(),
+  "sourceActivityId": zod.string().max(getPubReportResponseReportSourceActivityIdMax).nullable(),
+  "title": zod.string(),
+  "activityType": zod.string(),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string(),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string(),
+  "legalBasis": zod.string(),
+  "purpose": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "location": zod.string(),
+  "targetAudience": zod.string(),
+  "targetQualification": zod.string(),
+  "targetPerformanceGrade": zod.string().nullable(),
+  "responsibleName": zod.string(),
+  "recommendations": zod.string(),
+  "followUp": zod.string(),
+  "closing": zod.string(),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(getPubReportResponseReportCommitteeItemNameMax),
+  "affiliation": zod.string().max(getPubReportResponseReportCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(getPubReportResponseReportCommitteeItemTopicMax),
+  "hours": zod.number().min(getPubReportResponseReportCommitteeItemHoursMin).max(getPubReportResponseReportCommitteeItemHoursMax).nullable()
+})),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(getPubReportResponseReportRundownItemStartsAtMax),
+  "endsAt": zod.string().max(getPubReportResponseReportRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(getPubReportResponseReportRundownItemActivityMax),
+  "speaker": zod.string().max(getPubReportResponseReportRundownItemSpeakerMax),
+  "notes": zod.string().max(getPubReportResponseReportRundownItemNotesMax)
+})),
+  "status": zod.enum(['draft', 'submitted', 'needs_revision', 'ready_to_upload', 'uploaded']),
+  "revision": zod.number().int().min(getPubReportResponseReportRevisionMin),
+  "creatorId": zod.string().uuid(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewedBy": zod.string().uuid().nullable(),
+  "reviewNote": zod.string(),
+  "uploadedAt": zod.coerce.date().nullable(),
+  "uploadReference": zod.string()
+}),
+  "participants": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "reportId": zod.string().uuid(),
+  "fullName": zod.string(),
+  "companyName": zod.string(),
+  "qualification": zod.string(),
+  "performanceGrade": zod.string().nullable(),
+  "participantRole": zod.string(),
+  "attendanceStatus": zod.enum(['pending', 'verified', 'needs_correction']),
+  "attendanceNote": zod.string(),
+  "verifiedBy": zod.string().uuid().nullable(),
+  "verifiedAt": zod.coerce.date().nullable(),
+  "revision": zod.number().int().min(getPubReportResponseParticipantsItemRevisionMin),
+  "createdAt": zod.coerce.date()
+})),
+  "attachments": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "reportId": zod.string().uuid(),
+  "category": zod.enum(['invitation', 'kak', 'attendance_list', 'documentation', 'recording', 'materials', 'upload_proof', 'other']),
+  "documentId": zod.string().uuid(),
+  "fileName": zod.string(),
+  "createdBy": zod.string().uuid(),
+  "createdAt": zod.coerce.date()
+})),
+  "history": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "reportId": zod.string().uuid(),
+  "actorId": zod.string().uuid(),
+  "action": zod.string(),
+  "detail": zod.record(zod.string(), zod.unknown()),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+export const UpdatePubReportParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const updatePubReportBodyOneSourceActivityIdMax = 80;
+
+export const updatePubReportBodyOneTitleMin = 3;
+export const updatePubReportBodyOneTitleMax = 240;
+
+export const updatePubReportBodyOneActivityTypeMax = 80;
+
+export const updatePubReportBodyOneEventFormMax = 120;
+
+export const updatePubReportBodyOneBackgroundMax = 6000;
+
+export const updatePubReportBodyOneLegalBasisMax = 3000;
+
+export const updatePubReportBodyOnePurposeMax = 3000;
+
+export const updatePubReportBodyOneLocationMax = 500;
+
+export const updatePubReportBodyOneTargetAudienceMax = 1000;
+
+export const updatePubReportBodyOneTargetQualificationMax = 500;
+
+export const updatePubReportBodyOneTargetPerformanceGradeMax = 40;
+
+export const updatePubReportBodyOneResponsibleNameMax = 180;
+
+export const updatePubReportBodyOneRecommendationsMax = 6000;
+
+export const updatePubReportBodyOneFollowUpMax = 6000;
+
+export const updatePubReportBodyOneClosingMax = 3000;
+
+export const updatePubReportBodyOneCommitteeItemNameMax = 180;
+
+export const updatePubReportBodyOneCommitteeItemAffiliationMax = 180;
+
+export const updatePubReportBodyOneCommitteeItemTopicMax = 300;
+
+export const updatePubReportBodyOneCommitteeItemHoursMin = 0;
+export const updatePubReportBodyOneCommitteeItemHoursMax = 100;
+
+export const updatePubReportBodyOneCommitteeMax = 80;
+
+export const updatePubReportBodyOneRundownItemStartsAtMax = 80;
+
+export const updatePubReportBodyOneRundownItemEndsAtMax = 80;
+
+export const updatePubReportBodyOneRundownItemActivityMax = 300;
+
+export const updatePubReportBodyOneRundownItemSpeakerMax = 180;
+
+export const updatePubReportBodyOneRundownItemNotesMax = 600;
+
+export const updatePubReportBodyOneRundownMax = 100;
+
+export const updatePubReportBodyTwoExpectedRevisionMin = 0;
+
+
+
+export const UpdatePubReportBody = zod.object({
+  "unitId": zod.string().uuid(),
+  "sourceActivityId": zod.string().max(updatePubReportBodyOneSourceActivityIdMax).nullish(),
+  "title": zod.string().min(updatePubReportBodyOneTitleMin).max(updatePubReportBodyOneTitleMax),
+  "activityType": zod.string().min(1).max(updatePubReportBodyOneActivityTypeMax),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string().min(1).max(updatePubReportBodyOneEventFormMax),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string().max(updatePubReportBodyOneBackgroundMax),
+  "legalBasis": zod.string().max(updatePubReportBodyOneLegalBasisMax),
+  "purpose": zod.string().max(updatePubReportBodyOnePurposeMax),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullish(),
+  "location": zod.string().max(updatePubReportBodyOneLocationMax),
+  "targetAudience": zod.string().max(updatePubReportBodyOneTargetAudienceMax),
+  "targetQualification": zod.string().max(updatePubReportBodyOneTargetQualificationMax),
+  "targetPerformanceGrade": zod.string().max(updatePubReportBodyOneTargetPerformanceGradeMax).nullish(),
+  "responsibleName": zod.string().max(updatePubReportBodyOneResponsibleNameMax),
+  "recommendations": zod.string().max(updatePubReportBodyOneRecommendationsMax),
+  "followUp": zod.string().max(updatePubReportBodyOneFollowUpMax),
+  "closing": zod.string().max(updatePubReportBodyOneClosingMax),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(updatePubReportBodyOneCommitteeItemNameMax),
+  "affiliation": zod.string().max(updatePubReportBodyOneCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(updatePubReportBodyOneCommitteeItemTopicMax),
+  "hours": zod.number().min(updatePubReportBodyOneCommitteeItemHoursMin).max(updatePubReportBodyOneCommitteeItemHoursMax).nullable()
+})).max(updatePubReportBodyOneCommitteeMax),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(updatePubReportBodyOneRundownItemStartsAtMax),
+  "endsAt": zod.string().max(updatePubReportBodyOneRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(updatePubReportBodyOneRundownItemActivityMax),
+  "speaker": zod.string().max(updatePubReportBodyOneRundownItemSpeakerMax),
+  "notes": zod.string().max(updatePubReportBodyOneRundownItemNotesMax)
+})).max(updatePubReportBodyOneRundownMax)
+}).and(zod.object({
+  "expectedRevision": zod.number().int().min(updatePubReportBodyTwoExpectedRevisionMin)
+}))
+
+export const updatePubReportResponseSourceActivityIdMax = 80;
+
+export const updatePubReportResponseCommitteeItemNameMax = 180;
+
+export const updatePubReportResponseCommitteeItemAffiliationMax = 180;
+
+export const updatePubReportResponseCommitteeItemTopicMax = 300;
+
+export const updatePubReportResponseCommitteeItemHoursMin = 0;
+export const updatePubReportResponseCommitteeItemHoursMax = 100;
+
+export const updatePubReportResponseRundownItemStartsAtMax = 80;
+
+export const updatePubReportResponseRundownItemEndsAtMax = 80;
+
+export const updatePubReportResponseRundownItemActivityMax = 300;
+
+export const updatePubReportResponseRundownItemSpeakerMax = 180;
+
+export const updatePubReportResponseRundownItemNotesMax = 600;
+
+export const updatePubReportResponseRevisionMin = 0;
+
+
+
+export const UpdatePubReportResponse = zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "unitName": zod.string(),
+  "sourceActivityId": zod.string().max(updatePubReportResponseSourceActivityIdMax).nullable(),
+  "title": zod.string(),
+  "activityType": zod.string(),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string(),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string(),
+  "legalBasis": zod.string(),
+  "purpose": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "location": zod.string(),
+  "targetAudience": zod.string(),
+  "targetQualification": zod.string(),
+  "targetPerformanceGrade": zod.string().nullable(),
+  "responsibleName": zod.string(),
+  "recommendations": zod.string(),
+  "followUp": zod.string(),
+  "closing": zod.string(),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(updatePubReportResponseCommitteeItemNameMax),
+  "affiliation": zod.string().max(updatePubReportResponseCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(updatePubReportResponseCommitteeItemTopicMax),
+  "hours": zod.number().min(updatePubReportResponseCommitteeItemHoursMin).max(updatePubReportResponseCommitteeItemHoursMax).nullable()
+})),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(updatePubReportResponseRundownItemStartsAtMax),
+  "endsAt": zod.string().max(updatePubReportResponseRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(updatePubReportResponseRundownItemActivityMax),
+  "speaker": zod.string().max(updatePubReportResponseRundownItemSpeakerMax),
+  "notes": zod.string().max(updatePubReportResponseRundownItemNotesMax)
+})),
+  "status": zod.enum(['draft', 'submitted', 'needs_revision', 'ready_to_upload', 'uploaded']),
+  "revision": zod.number().int().min(updatePubReportResponseRevisionMin),
+  "creatorId": zod.string().uuid(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewedBy": zod.string().uuid().nullable(),
+  "reviewNote": zod.string(),
+  "uploadedAt": zod.coerce.date().nullable(),
+  "uploadReference": zod.string()
+})
+
+
+export const SubmitPubReportParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const submitPubReportBodyExpectedRevisionMin = 0;
+
+
+
+export const SubmitPubReportBody = zod.object({
+  "expectedRevision": zod.number().int().min(submitPubReportBodyExpectedRevisionMin)
+})
+
+export const submitPubReportResponseSourceActivityIdMax = 80;
+
+export const submitPubReportResponseCommitteeItemNameMax = 180;
+
+export const submitPubReportResponseCommitteeItemAffiliationMax = 180;
+
+export const submitPubReportResponseCommitteeItemTopicMax = 300;
+
+export const submitPubReportResponseCommitteeItemHoursMin = 0;
+export const submitPubReportResponseCommitteeItemHoursMax = 100;
+
+export const submitPubReportResponseRundownItemStartsAtMax = 80;
+
+export const submitPubReportResponseRundownItemEndsAtMax = 80;
+
+export const submitPubReportResponseRundownItemActivityMax = 300;
+
+export const submitPubReportResponseRundownItemSpeakerMax = 180;
+
+export const submitPubReportResponseRundownItemNotesMax = 600;
+
+export const submitPubReportResponseRevisionMin = 0;
+
+
+
+export const SubmitPubReportResponse = zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "unitName": zod.string(),
+  "sourceActivityId": zod.string().max(submitPubReportResponseSourceActivityIdMax).nullable(),
+  "title": zod.string(),
+  "activityType": zod.string(),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string(),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string(),
+  "legalBasis": zod.string(),
+  "purpose": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "location": zod.string(),
+  "targetAudience": zod.string(),
+  "targetQualification": zod.string(),
+  "targetPerformanceGrade": zod.string().nullable(),
+  "responsibleName": zod.string(),
+  "recommendations": zod.string(),
+  "followUp": zod.string(),
+  "closing": zod.string(),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(submitPubReportResponseCommitteeItemNameMax),
+  "affiliation": zod.string().max(submitPubReportResponseCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(submitPubReportResponseCommitteeItemTopicMax),
+  "hours": zod.number().min(submitPubReportResponseCommitteeItemHoursMin).max(submitPubReportResponseCommitteeItemHoursMax).nullable()
+})),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(submitPubReportResponseRundownItemStartsAtMax),
+  "endsAt": zod.string().max(submitPubReportResponseRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(submitPubReportResponseRundownItemActivityMax),
+  "speaker": zod.string().max(submitPubReportResponseRundownItemSpeakerMax),
+  "notes": zod.string().max(submitPubReportResponseRundownItemNotesMax)
+})),
+  "status": zod.enum(['draft', 'submitted', 'needs_revision', 'ready_to_upload', 'uploaded']),
+  "revision": zod.number().int().min(submitPubReportResponseRevisionMin),
+  "creatorId": zod.string().uuid(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewedBy": zod.string().uuid().nullable(),
+  "reviewNote": zod.string(),
+  "uploadedAt": zod.coerce.date().nullable(),
+  "uploadReference": zod.string()
+})
+
+
+export const ReviewPubReportParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const reviewPubReportBodyNoteMax = 3000;
+
+export const reviewPubReportBodyExpectedRevisionMin = 0;
+
+
+
+export const ReviewPubReportBody = zod.object({
+  "action": zod.enum(['return', 'approve']),
+  "note": zod.string().max(reviewPubReportBodyNoteMax),
+  "expectedRevision": zod.number().int().min(reviewPubReportBodyExpectedRevisionMin)
+})
+
+export const reviewPubReportResponseSourceActivityIdMax = 80;
+
+export const reviewPubReportResponseCommitteeItemNameMax = 180;
+
+export const reviewPubReportResponseCommitteeItemAffiliationMax = 180;
+
+export const reviewPubReportResponseCommitteeItemTopicMax = 300;
+
+export const reviewPubReportResponseCommitteeItemHoursMin = 0;
+export const reviewPubReportResponseCommitteeItemHoursMax = 100;
+
+export const reviewPubReportResponseRundownItemStartsAtMax = 80;
+
+export const reviewPubReportResponseRundownItemEndsAtMax = 80;
+
+export const reviewPubReportResponseRundownItemActivityMax = 300;
+
+export const reviewPubReportResponseRundownItemSpeakerMax = 180;
+
+export const reviewPubReportResponseRundownItemNotesMax = 600;
+
+export const reviewPubReportResponseRevisionMin = 0;
+
+
+
+export const ReviewPubReportResponse = zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "unitName": zod.string(),
+  "sourceActivityId": zod.string().max(reviewPubReportResponseSourceActivityIdMax).nullable(),
+  "title": zod.string(),
+  "activityType": zod.string(),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string(),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string(),
+  "legalBasis": zod.string(),
+  "purpose": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "location": zod.string(),
+  "targetAudience": zod.string(),
+  "targetQualification": zod.string(),
+  "targetPerformanceGrade": zod.string().nullable(),
+  "responsibleName": zod.string(),
+  "recommendations": zod.string(),
+  "followUp": zod.string(),
+  "closing": zod.string(),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(reviewPubReportResponseCommitteeItemNameMax),
+  "affiliation": zod.string().max(reviewPubReportResponseCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(reviewPubReportResponseCommitteeItemTopicMax),
+  "hours": zod.number().min(reviewPubReportResponseCommitteeItemHoursMin).max(reviewPubReportResponseCommitteeItemHoursMax).nullable()
+})),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(reviewPubReportResponseRundownItemStartsAtMax),
+  "endsAt": zod.string().max(reviewPubReportResponseRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(reviewPubReportResponseRundownItemActivityMax),
+  "speaker": zod.string().max(reviewPubReportResponseRundownItemSpeakerMax),
+  "notes": zod.string().max(reviewPubReportResponseRundownItemNotesMax)
+})),
+  "status": zod.enum(['draft', 'submitted', 'needs_revision', 'ready_to_upload', 'uploaded']),
+  "revision": zod.number().int().min(reviewPubReportResponseRevisionMin),
+  "creatorId": zod.string().uuid(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewedBy": zod.string().uuid().nullable(),
+  "reviewNote": zod.string(),
+  "uploadedAt": zod.coerce.date().nullable(),
+  "uploadReference": zod.string()
+})
+
+
+export const MarkPubReportUploadedParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const markPubReportUploadedBodyReferenceMin = 2;
+export const markPubReportUploadedBodyReferenceMax = 500;
+
+export const markPubReportUploadedBodyExpectedRevisionMin = 0;
+
+
+
+export const MarkPubReportUploadedBody = zod.object({
+  "reference": zod.string().min(markPubReportUploadedBodyReferenceMin).max(markPubReportUploadedBodyReferenceMax),
+  "expectedRevision": zod.number().int().min(markPubReportUploadedBodyExpectedRevisionMin)
+})
+
+export const markPubReportUploadedResponseSourceActivityIdMax = 80;
+
+export const markPubReportUploadedResponseCommitteeItemNameMax = 180;
+
+export const markPubReportUploadedResponseCommitteeItemAffiliationMax = 180;
+
+export const markPubReportUploadedResponseCommitteeItemTopicMax = 300;
+
+export const markPubReportUploadedResponseCommitteeItemHoursMin = 0;
+export const markPubReportUploadedResponseCommitteeItemHoursMax = 100;
+
+export const markPubReportUploadedResponseRundownItemStartsAtMax = 80;
+
+export const markPubReportUploadedResponseRundownItemEndsAtMax = 80;
+
+export const markPubReportUploadedResponseRundownItemActivityMax = 300;
+
+export const markPubReportUploadedResponseRundownItemSpeakerMax = 180;
+
+export const markPubReportUploadedResponseRundownItemNotesMax = 600;
+
+export const markPubReportUploadedResponseRevisionMin = 0;
+
+
+
+export const MarkPubReportUploadedResponse = zod.object({
+  "id": zod.string().uuid(),
+  "unitId": zod.string().uuid(),
+  "unitName": zod.string(),
+  "sourceActivityId": zod.string().max(markPubReportUploadedResponseSourceActivityIdMax).nullable(),
+  "title": zod.string(),
+  "activityType": zod.string(),
+  "classification": zod.enum(['general', 'special']),
+  "eventForm": zod.string(),
+  "deliveryMode": zod.enum(['online', 'offline', 'hybrid']),
+  "level": zod.enum(['national', 'international']),
+  "background": zod.string(),
+  "legalBasis": zod.string(),
+  "purpose": zod.string(),
+  "startsAt": zod.coerce.date(),
+  "endsAt": zod.coerce.date().nullable(),
+  "location": zod.string(),
+  "targetAudience": zod.string(),
+  "targetQualification": zod.string(),
+  "targetPerformanceGrade": zod.string().nullable(),
+  "responsibleName": zod.string(),
+  "recommendations": zod.string(),
+  "followUp": zod.string(),
+  "closing": zod.string(),
+  "committee": zod.array(zod.object({
+  "name": zod.string().min(1).max(markPubReportUploadedResponseCommitteeItemNameMax),
+  "affiliation": zod.string().max(markPubReportUploadedResponseCommitteeItemAffiliationMax),
+  "role": zod.enum(['committee', 'speaker', 'responsible']),
+  "topic": zod.string().max(markPubReportUploadedResponseCommitteeItemTopicMax),
+  "hours": zod.number().min(markPubReportUploadedResponseCommitteeItemHoursMin).max(markPubReportUploadedResponseCommitteeItemHoursMax).nullable()
+})),
+  "rundown": zod.array(zod.object({
+  "startsAt": zod.string().max(markPubReportUploadedResponseRundownItemStartsAtMax),
+  "endsAt": zod.string().max(markPubReportUploadedResponseRundownItemEndsAtMax),
+  "activity": zod.string().min(1).max(markPubReportUploadedResponseRundownItemActivityMax),
+  "speaker": zod.string().max(markPubReportUploadedResponseRundownItemSpeakerMax),
+  "notes": zod.string().max(markPubReportUploadedResponseRundownItemNotesMax)
+})),
+  "status": zod.enum(['draft', 'submitted', 'needs_revision', 'ready_to_upload', 'uploaded']),
+  "revision": zod.number().int().min(markPubReportUploadedResponseRevisionMin),
+  "creatorId": zod.string().uuid(),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "submittedAt": zod.coerce.date().nullable(),
+  "reviewedAt": zod.coerce.date().nullable(),
+  "reviewedBy": zod.string().uuid().nullable(),
+  "reviewNote": zod.string(),
+  "uploadedAt": zod.coerce.date().nullable(),
+  "uploadReference": zod.string()
+})
+
+
+export const AddPubReportParticipantParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const addPubReportParticipantBodyFullNameMin = 2;
+export const addPubReportParticipantBodyFullNameMax = 180;
+
+export const addPubReportParticipantBodyCompanyNameMax = 220;
+
+export const addPubReportParticipantBodyQualificationMax = 100;
+
+export const addPubReportParticipantBodyPerformanceGradeMax = 40;
+
+
+
+export const AddPubReportParticipantBody = zod.object({
+  "fullName": zod.string().min(addPubReportParticipantBodyFullNameMin).max(addPubReportParticipantBodyFullNameMax),
+  "companyName": zod.string().max(addPubReportParticipantBodyCompanyNameMax),
+  "qualification": zod.string().max(addPubReportParticipantBodyQualificationMax),
+  "performanceGrade": zod.string().max(addPubReportParticipantBodyPerformanceGradeMax).nullable(),
+  "participantRole": zod.enum(['bujk', 'association', 'speaker', 'organizer', 'other'])
+})
+
+export const addPubReportParticipantResponseRevisionMin = 0;
+
+
+
+export const AddPubReportParticipantResponse = zod.object({
+  "id": zod.string().uuid(),
+  "reportId": zod.string().uuid(),
+  "fullName": zod.string(),
+  "companyName": zod.string(),
+  "qualification": zod.string(),
+  "performanceGrade": zod.string().nullable(),
+  "participantRole": zod.string(),
+  "attendanceStatus": zod.enum(['pending', 'verified', 'needs_correction']),
+  "attendanceNote": zod.string(),
+  "verifiedBy": zod.string().uuid().nullable(),
+  "verifiedAt": zod.coerce.date().nullable(),
+  "revision": zod.number().int().min(addPubReportParticipantResponseRevisionMin),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const UpdatePubReportParticipantParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "participantId": zod.coerce.string().uuid()
+})
+
+export const updatePubReportParticipantBodyAttendanceNoteMax = 1000;
+
+export const updatePubReportParticipantBodyExpectedRevisionMin = 0;
+
+
+
+export const UpdatePubReportParticipantBody = zod.object({
+  "attendanceStatus": zod.enum(['verified', 'needs_correction']),
+  "attendanceNote": zod.string().max(updatePubReportParticipantBodyAttendanceNoteMax),
+  "expectedRevision": zod.number().int().min(updatePubReportParticipantBodyExpectedRevisionMin)
+})
+
+export const updatePubReportParticipantResponseRevisionMin = 0;
+
+
+
+export const UpdatePubReportParticipantResponse = zod.object({
+  "id": zod.string().uuid(),
+  "reportId": zod.string().uuid(),
+  "fullName": zod.string(),
+  "companyName": zod.string(),
+  "qualification": zod.string(),
+  "performanceGrade": zod.string().nullable(),
+  "participantRole": zod.string(),
+  "attendanceStatus": zod.enum(['pending', 'verified', 'needs_correction']),
+  "attendanceNote": zod.string(),
+  "verifiedBy": zod.string().uuid().nullable(),
+  "verifiedAt": zod.coerce.date().nullable(),
+  "revision": zod.number().int().min(updatePubReportParticipantResponseRevisionMin),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const RemovePubReportParticipantParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "participantId": zod.coerce.string().uuid()
+})
+
+export const RemovePubReportParticipantResponse = zod.void()
+
+
+export const AddPubReportAttachmentParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const AddPubReportAttachmentBody = zod.object({
+  "category": zod.enum(['invitation', 'kak', 'attendance_list', 'documentation', 'recording', 'materials', 'upload_proof', 'other']),
+  "documentId": zod.string().uuid()
+})
+
+export const AddPubReportAttachmentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "reportId": zod.string().uuid(),
+  "category": zod.enum(['invitation', 'kak', 'attendance_list', 'documentation', 'recording', 'materials', 'upload_proof', 'other']),
+  "documentId": zod.string().uuid(),
+  "fileName": zod.string(),
+  "createdBy": zod.string().uuid(),
+  "createdAt": zod.coerce.date()
+})
+
+
+export const RemovePubReportAttachmentParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "attachmentId": zod.coerce.string().uuid()
+})
+
+export const RemovePubReportAttachmentResponse = zod.void()
+
+
+export const DownloadPubReportAttachmentParams = zod.object({
+  "id": zod.coerce.string().uuid(),
+  "attachmentId": zod.coerce.string().uuid()
+})
+
+export const DownloadPubReportAttachmentResponse = zod.unknown()
+
+
 export const listDocumentAnalysesResponsePartsItemIndexMin = 0;
 
 export const listDocumentAnalysesResponsePartsItemStartMin = 0;

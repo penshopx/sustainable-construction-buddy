@@ -110,6 +110,7 @@ const communitySubItems = [
   { title: "Inovasi PUB", url: "/inovasi", icon: Lightbulb },
   { title: "Program & Kegiatan", url: "/program-kegiatan", icon: CalendarDays },
   { title: "Bukti Kegiatan PUB", url: "/aspekindo-aktivitas", icon: CalendarDays },
+  { title: "Pelaporan Kegiatan PUB", url: "/laporan-pub", icon: FileText },
   { title: "Marketplace", url: "/marketplace", icon: Store },
   { title: "Direktori Perusahaan", url: "/direktori", icon: Building2 },
   { title: "Pakar Cerdas", url: "/helpdesk", icon: Bot },
