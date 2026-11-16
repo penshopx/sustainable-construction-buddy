@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
+import { unzipSync } from "fflate";
 import { freezeVideoClock, installControlledVideo, resumeControlledVideo, signalVideo } from "./helpers/controlled-video.mjs";
 
 test("rute publik utama dari build aplikasi aktif dapat dibuka", async ({ page }) => {
@@ -2855,5 +2857,430 @@ test.describe("halaman khusus super-admin dengan sesi tiruan", () => {
         }
       });
     }
+  }
+});
+
+const PUB_REPORT_CENTRAL_UNIT_ID = "00000000-0000-4000-8000-000000000071";
+const PUB_REPORT_BRANCH_UNIT_ID = "00000000-0000-4000-8000-000000000072";
+const PUB_REPORT_ID = "00000000-0000-4000-8000-000000000073";
+const PUB_REPORT_PARTICIPANT_ID = "00000000-0000-4000-8000-000000000074";
+const PUB_REPORT_VAULT_DOCUMENT_ID = "00000000-0000-4000-8000-000000000075";
+const PUB_REPORT_ATTACHMENT_ID = "00000000-0000-4000-8000-000000000076";
+const PUB_REPORT_BRANCH_USER = {
+  ...member,
+  id: "00000000-0000-4000-8000-000000000077",
+  email: "operator-cabang@example.test",
+  user_metadata: { full_name: "Operator Cabang Uji" },
+};
+const PUB_REPORT_CENTRAL_USER = {
+  ...member,
+  id: "00000000-0000-4000-8000-000000000078",
+  email: "reviewer-pusat@example.test",
+  user_metadata: { full_name: "Reviewer Pusat Uji" },
+};
+const PUB_REPORT_SOURCE_ACTIVITY = {
+  id: "activity-pub-report-e2e",
+  title: "Workshop Pelaporan BUJK",
+  activity_type: "Pelatihan",
+  delivery_mode: "offline",
+  start_at: "2026-11-17T02:00:00.000Z",
+  end_at: "2026-11-17T09:00:00.000Z",
+  location: "Bandung",
+  description: "Pelatihan sintetis untuk uji alur laporan.",
+};
+const PUB_REPORT_NOW = "2026-11-17T10:00:00.000Z";
+
+function pubReportFixtureRecord(input, creatorId) {
+  return {
+    id: PUB_REPORT_ID,
+    unitId: PUB_REPORT_BRANCH_UNIT_ID,
+    unitName: "Cabang Jawa Barat",
+    sourceActivityId: input.sourceActivityId ?? null,
+    title: input.title,
+    activityType: input.activityType,
+    classification: input.classification,
+    eventForm: input.eventForm,
+    deliveryMode: input.deliveryMode,
+    level: input.level,
+    background: input.background,
+    legalBasis: input.legalBasis,
+    purpose: input.purpose,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt ?? null,
+    location: input.location,
+    targetAudience: input.targetAudience,
+    targetQualification: input.targetQualification,
+    targetPerformanceGrade: input.targetPerformanceGrade ?? null,
+    responsibleName: input.responsibleName,
+    recommendations: input.recommendations,
+    followUp: input.followUp,
+    closing: input.closing,
+    committee: input.committee,
+    rundown: input.rundown,
+    status: "draft",
+    revision: 0,
+    creatorId,
+    createdAt: PUB_REPORT_NOW,
+    updatedAt: PUB_REPORT_NOW,
+    submittedAt: null,
+    reviewedAt: null,
+    reviewedBy: null,
+    reviewNote: "",
+    uploadedAt: null,
+    uploadReference: "",
+  };
+}
+
+async function installPubReportWorkflowFixture(page, actor, state) {
+  const accessToken = `Bearer ${fixtureSession(actor).access_token}`;
+  const unexpectedRequests = [];
+  const requests = [];
+  const units = [
+    {
+      id: PUB_REPORT_CENTRAL_UNIT_ID,
+      name: "Pengurus Pusat",
+      unitType: "central",
+      parentUnitId: null,
+      active: true,
+      createdAt: PUB_REPORT_NOW,
+    },
+    {
+      id: PUB_REPORT_BRANCH_UNIT_ID,
+      name: "Cabang Jawa Barat",
+      unitType: "branch",
+      parentUnitId: PUB_REPORT_CENTRAL_UNIT_ID,
+      active: true,
+      createdAt: PUB_REPORT_NOW,
+    },
+  ];
+
+  await page.route(/\/rest\/v1\/aspekindo_pub_activities(?:\?.*)?$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify([PUB_REPORT_SOURCE_ACTIVITY]),
+    });
+  });
+  await page.route(/\/api\/ruang-simpan\/workspace$/, async (route) => {
+    if (route.request().headers().authorization !== accessToken) {
+      unexpectedRequests.push(`Ruang Simpan request without ${actor.id}`);
+      await route.fulfill({ status: 401, contentType: "application/json", body: '{"error":"Unauthorized"}' });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        folders: [],
+        documents: [{
+          id: PUB_REPORT_VAULT_DOCUMENT_ID,
+          name: "Daftar Hadir.pdf",
+          folderId: "folder-test",
+          size: 42,
+          type: "application/pdf",
+          createdAt: PUB_REPORT_NOW,
+          status: "ready",
+          starred: false,
+          text: "",
+        }],
+        profile: { name: "BUJK Uji", nib: "", address: "", version: 1 },
+        assistants: [],
+        connections: [],
+        activities: [],
+        usedBytes: 42,
+        limitBytes: 100_000,
+      }),
+    });
+  });
+  await page.route(/\/api\/pub-reports(?:\/|$)/, async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const method = request.method();
+    const path = url.pathname.replace(/^\/api\/pub-reports/, "") || "/";
+    const actorRole = actor.id === PUB_REPORT_BRANCH_USER.id ? "branch_operator" : "central_reviewer";
+    requests.push({ actorId: actor.id, method, path, authorization: request.headers().authorization });
+    if (request.headers().authorization !== accessToken) {
+      unexpectedRequests.push(`${method} ${path} with wrong identity`);
+      await route.fulfill({ status: 401, contentType: "application/json", body: '{"error":"Unauthorized"}' });
+      return;
+    }
+    const json = async (status, body) => route.fulfill({
+      status,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    });
+    const detail = () => ({
+      report: state.report,
+      participants: state.participants,
+      attachments: state.attachments,
+      history: state.history,
+    });
+
+    if (method === "GET" && path === "/access") {
+      return json(200, {
+        userId: actor.id,
+        role: actorRole,
+        canManageUnits: false,
+        canReviewAll: actorRole === "central_reviewer",
+        units: actorRole === "branch_operator"
+          ? [{ unitId: PUB_REPORT_BRANCH_UNIT_ID, unitName: "Cabang Jawa Barat", unitType: "branch", role: "branch_operator" }]
+          : [{ unitId: PUB_REPORT_CENTRAL_UNIT_ID, unitName: "Pengurus Pusat", unitType: "central", role: "central_reviewer" }],
+      });
+    }
+    if (method === "GET" && path === "/units") return json(200, units);
+    if (method === "GET" && path === "/") {
+      const visible = state.report && (actorRole === "branch_operator" || state.report.status !== "draft")
+        ? [state.report]
+        : [];
+      return json(200, visible);
+    }
+    if (method === "POST" && path === "/") {
+      if (actorRole !== "branch_operator" || state.report) return json(403, { error: "Forbidden" });
+      const input = request.postDataJSON();
+      if (input.unitId !== PUB_REPORT_BRANCH_UNIT_ID) return json(400, { error: "Wrong branch unit" });
+      state.report = pubReportFixtureRecord(input, actor.id);
+      state.history.push({
+        id: `history-${state.history.length + 1}`,
+        reportId: PUB_REPORT_ID,
+        actorId: actor.id,
+        action: "created",
+        detail: {},
+        createdAt: PUB_REPORT_NOW,
+      });
+      return json(201, state.report);
+    }
+    if (path === `/${PUB_REPORT_ID}/attachments/${PUB_REPORT_ATTACHMENT_ID}/download` && method === "GET") {
+      if (!state.attachments.length || actorRole !== "central_reviewer") return json(404, { error: "Not found" });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/pdf",
+        body: Buffer.from("SYNTHETIC-ATTENDANCE-LIST"),
+      });
+      return;
+    }
+    if (method === "GET" && path === `/${PUB_REPORT_ID}`) {
+      if (!state.report || (actorRole === "central_reviewer" && state.report.status === "draft")) {
+        return json(404, { error: "Not found" });
+      }
+      return json(200, detail());
+    }
+    if (!state.report || !path.startsWith(`/${PUB_REPORT_ID}/`)) return json(404, { error: "Not found" });
+    if (method === "POST" && path === `/${PUB_REPORT_ID}/participants`) {
+      if (actorRole !== "branch_operator" || state.report.status !== "draft") return json(403, { error: "Forbidden" });
+      const input = request.postDataJSON();
+      const participant = {
+        id: PUB_REPORT_PARTICIPANT_ID,
+        reportId: PUB_REPORT_ID,
+        fullName: input.fullName,
+        companyName: input.companyName,
+        qualification: input.qualification,
+        performanceGrade: input.performanceGrade,
+        participantRole: input.participantRole,
+        attendanceStatus: "pending",
+        attendanceNote: "",
+        verifiedBy: null,
+        verifiedAt: null,
+        revision: 0,
+        createdAt: PUB_REPORT_NOW,
+      };
+      state.participants.push(participant);
+      state.report.revision += 1;
+      return json(201, participant);
+    }
+    if (method === "PATCH" && path === `/${PUB_REPORT_ID}/participants/${PUB_REPORT_PARTICIPANT_ID}`) {
+      if (actorRole !== "branch_operator" || state.report.status !== "draft") return json(403, { error: "Forbidden" });
+      const input = request.postDataJSON();
+      const participant = state.participants[0];
+      if (!participant || input.expectedRevision !== participant.revision) return json(409, { error: "Stale participant" });
+      Object.assign(participant, {
+        attendanceStatus: input.attendanceStatus,
+        attendanceNote: input.attendanceNote,
+        verifiedBy: actor.id,
+        verifiedAt: PUB_REPORT_NOW,
+        revision: participant.revision + 1,
+      });
+      state.report.revision += 1;
+      return json(200, participant);
+    }
+    if (method === "POST" && path === `/${PUB_REPORT_ID}/attachments`) {
+      if (actorRole !== "branch_operator" || state.report.status !== "draft") return json(403, { error: "Forbidden" });
+      const input = request.postDataJSON();
+      const attachment = {
+        id: PUB_REPORT_ATTACHMENT_ID,
+        reportId: PUB_REPORT_ID,
+        category: input.category,
+        documentId: input.documentId,
+        fileName: "Daftar Hadir.pdf",
+        createdBy: actor.id,
+        createdAt: PUB_REPORT_NOW,
+      };
+      state.attachments.push(attachment);
+      state.report.revision += 1;
+      return json(201, attachment);
+    }
+    if (method === "POST" && path === `/${PUB_REPORT_ID}/submit`) {
+      if (actorRole !== "branch_operator" || state.report.status !== "draft") return json(403, { error: "Forbidden" });
+      const input = request.postDataJSON();
+      if (input.expectedRevision !== state.report.revision) return json(409, { error: "Stale report" });
+      const participant = state.participants[0];
+      if (!participant || participant.attendanceStatus !== "verified" || !state.report.rundown.length ||
+          !state.report.background || !state.report.legalBasis || !state.report.purpose ||
+          !state.report.targetAudience || !state.report.targetQualification ||
+          !state.report.responsibleName || !state.report.recommendations ||
+          !state.report.followUp || !state.report.closing) {
+        return json(422, { error: "Lengkapi laporan, agenda, dan verifikasi kehadiran sebelum mengirim." });
+      }
+      Object.assign(state.report, {
+        status: "submitted",
+        submittedAt: PUB_REPORT_NOW,
+        revision: state.report.revision + 1,
+        updatedAt: PUB_REPORT_NOW,
+      });
+      return json(200, state.report);
+    }
+    if (method === "POST" && path === `/${PUB_REPORT_ID}/review`) {
+      if (actorRole !== "central_reviewer" || state.report.status !== "submitted") return json(403, { error: "Forbidden" });
+      const input = request.postDataJSON();
+      if (input.action !== "approve" || input.expectedRevision !== state.report.revision) return json(409, { error: "Review mismatch" });
+      Object.assign(state.report, {
+        status: "ready_to_upload",
+        reviewedAt: PUB_REPORT_NOW,
+        reviewedBy: actor.id,
+        reviewNote: input.note,
+        revision: state.report.revision + 1,
+        updatedAt: PUB_REPORT_NOW,
+      });
+      return json(200, state.report);
+    }
+    if (method === "POST" && path === `/${PUB_REPORT_ID}/mark-uploaded`) {
+      if (actorRole !== "central_reviewer" || state.report.status !== "ready_to_upload") return json(403, { error: "Forbidden" });
+      const input = request.postDataJSON();
+      if (input.expectedRevision !== state.report.revision || input.reference.length < 2) return json(400, { error: "Upload reference required" });
+      Object.assign(state.report, {
+        status: "uploaded",
+        uploadedAt: PUB_REPORT_NOW,
+        uploadReference: input.reference,
+        revision: state.report.revision + 1,
+        updatedAt: PUB_REPORT_NOW,
+      });
+      return json(200, state.report);
+    }
+
+    unexpectedRequests.push(`${method} ${path}`);
+    return json(503, { error: "Unexpected report workflow request" });
+  });
+
+  return { unexpectedRequests, requests, units };
+}
+
+test("operator cabang mengirim laporan yang dapat ditinjau pusat dan diekspor sebagai paket", async ({ page, browser }) => {
+  const state = { report: null, participants: [], attachments: [], history: [] };
+  const branchUnexpected = await installAuthenticatedFixture(page, { user: PUB_REPORT_BRANCH_USER });
+  const branchFixture = await installPubReportWorkflowFixture(page, PUB_REPORT_BRANCH_USER, state);
+  const reviewerContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+
+  try {
+    await page.goto("/laporan-pub");
+    await expect(page.getByTestId("page-pub-reports")).toBeVisible();
+    await expect(page.getByTestId("text-user-role")).toContainText("Operator cabang");
+    await page.getByTestId("button-create-report").click();
+    await expect(page.getByTestId("form-report-editor")).toBeVisible();
+    await expect(page.getByTestId("select-report-source-activity")).toContainText("Workshop Pelaporan BUJK");
+    await page.getByTestId("select-report-source-activity").selectOption(PUB_REPORT_SOURCE_ACTIVITY.id);
+    await expect(page.getByTestId("input-report-title")).toHaveValue("Workshop Pelaporan BUJK");
+    await expect(page.getByTestId("input-report-location")).toHaveValue("Bandung");
+
+    await page.getByTestId("input-report-responsible").fill("Ketua Cabang Uji");
+    await page.getByTestId("textarea-report-legal-basis").fill("Permen PUPR No. 7 Tahun 2024");
+    await page.getByTestId("textarea-report-purpose").fill("Meningkatkan pemahaman pelaporan BUJK.");
+    await page.getByTestId("textarea-report-audience").fill("Pengurus dan anggota BUJK.");
+    await page.getByTestId("textarea-report-qualification").fill("BUJK aktif.");
+    await page.getByTestId("textarea-report-recommendations").fill("Perbarui dokumen perusahaan secara berkala.");
+    await page.getByTestId("textarea-report-follow-up").fill("Lakukan pendampingan pada triwulan berikutnya.");
+    await page.getByTestId("textarea-report-closing").fill("Kegiatan selesai dan didokumentasikan.");
+    await page.getByTestId("tab-editor-people").click();
+    await page.getByTestId("button-add-rundown").click();
+    await page.getByTestId("input-rundown-start-0").fill("09.00");
+    await page.getByTestId("input-rundown-end-0").fill("10.00");
+    await page.getByTestId("input-rundown-activity-0").fill("Pemaparan pelaporan PUB");
+    await page.getByTestId("input-rundown-speaker-0").fill("Narasumber Uji");
+    await page.getByTestId("button-save-report").click();
+    await expect(page.getByTestId(`text-report-title-${PUB_REPORT_ID}`)).toHaveText("Workshop Pelaporan BUJK");
+
+    await page.getByTestId("tab-report-participants").click();
+    await page.getByTestId("input-participant-name").fill("Peserta Uji Satu");
+    await page.getByTestId("input-participant-company").fill("PT Contoh Konstruksi");
+    await page.getByTestId("input-participant-qualification").fill("Kualifikasi menengah");
+    await page.getByTestId("button-add-participant").click();
+    await expect(page.getByTestId(`row-participant-${PUB_REPORT_PARTICIPANT_ID}`)).toContainText("Menunggu verifikasi");
+    await page.getByTestId(`button-verify-attendance-${PUB_REPORT_PARTICIPANT_ID}`).click();
+    await expect(page.getByTestId(`row-participant-${PUB_REPORT_PARTICIPANT_ID}`)).toContainText("Terverifikasi manual");
+
+    await page.getByTestId("tab-report-evidence").click();
+    await page.getByTestId("button-open-vault-picker").click();
+    await expect(page.getByTestId(`row-vault-document-${PUB_REPORT_VAULT_DOCUMENT_ID}`)).toBeVisible();
+    await page.getByTestId(`button-attach-document-${PUB_REPORT_VAULT_DOCUMENT_ID}`).click();
+    await expect(page.getByTestId(`row-attachment-${PUB_REPORT_ATTACHMENT_ID}`)).toContainText("Daftar Hadir.pdf");
+    await page.getByTestId("tab-report-overview").click();
+    await page.getByTestId("button-submit-report").click();
+    await expect(page.getByTestId(`status-report-${PUB_REPORT_ID}`)).toHaveText("Menunggu review");
+    expect(state.report.sourceActivityId).toBe(PUB_REPORT_SOURCE_ACTIVITY.id);
+    expect(state.report.rundown).toHaveLength(1);
+    expect(state.participants[0].attendanceStatus).toBe("verified");
+    expect(state.attachments[0]).toMatchObject({
+      documentId: PUB_REPORT_VAULT_DOCUMENT_ID,
+      category: "documentation",
+      fileName: "Daftar Hadir.pdf",
+    });
+
+    const reviewerPage = await reviewerContext.newPage();
+    const reviewerUnexpected = await installAuthenticatedFixture(reviewerPage, { user: PUB_REPORT_CENTRAL_USER });
+    const reviewerFixture = await installPubReportWorkflowFixture(reviewerPage, PUB_REPORT_CENTRAL_USER, state);
+    await reviewerPage.goto("/laporan-pub");
+    await expect(reviewerPage.getByTestId("text-user-role")).toContainText("Reviewer pusat");
+    await expect(reviewerPage.getByTestId(`row-report-${PUB_REPORT_ID}`)).toContainText("Menunggu review");
+    await reviewerPage.getByTestId(`row-report-${PUB_REPORT_ID}`).click();
+    await expect(reviewerPage.getByTestId("panel-central-review")).toBeVisible();
+    await expect(reviewerPage.getByTestId("button-edit-report")).toHaveCount(0);
+    await reviewerPage.getByTestId("button-approve-report").click();
+    await expect(reviewerPage.getByTestId(`status-report-${PUB_REPORT_ID}`)).toHaveText("Siap diunggah");
+    await expect(reviewerPage.getByTestId("panel-manual-upload")).toBeVisible();
+
+    const [download] = await Promise.all([
+      reviewerPage.waitForEvent("download"),
+      reviewerPage.getByTestId("button-export-zip").click(),
+    ]);
+    expect(download.suggestedFilename()).toBe("workshop-pelaporan-bujk-paket.zip");
+    const archive = unzipSync(new Uint8Array(await readFile(await download.path())));
+    expect(Object.keys(archive)).toEqual(expect.arrayContaining(["laporan.pdf", "rekap.xlsx", "laporan.json"]));
+    const linkedDocument = Object.keys(archive).find((name) => name.startsWith("dokumen/documentation-Daftar Hadir.pdf-"));
+    expect(linkedDocument).toBeTruthy();
+    expect(new TextDecoder().decode(archive[linkedDocument])).toBe("SYNTHETIC-ATTENDANCE-LIST");
+    const exportedDetail = JSON.parse(new TextDecoder().decode(archive["laporan.json"]));
+    expect(exportedDetail.participants[0].fullName).toBe("Peserta Uji Satu");
+    expect(exportedDetail.attachments[0].documentId).toBe(PUB_REPORT_VAULT_DOCUMENT_ID);
+
+    await reviewerPage.getByTestId("input-upload-reference").fill("LPJK-TEST-001");
+    await reviewerPage.getByTestId("button-mark-uploaded").click();
+    await expect(reviewerPage.getByTestId(`status-report-${PUB_REPORT_ID}`)).toHaveText("Tercatat diunggah");
+    await expect(reviewerPage.getByTestId("page-pub-reports")).toContainText("Status di sini adalah status internal PUB, bukan persetujuan LPJK.");
+    expect(state.report).toMatchObject({
+      status: "uploaded",
+      uploadReference: "LPJK-TEST-001",
+      reviewedBy: PUB_REPORT_CENTRAL_USER.id,
+    });
+
+    expect(branchFixture.requests.length).toBeGreaterThan(0);
+    expect(reviewerFixture.requests.length).toBeGreaterThan(0);
+    expect(branchFixture.requests.every((request) =>
+      request.authorization === `Bearer ${fixtureSession(PUB_REPORT_BRANCH_USER).access_token}`)).toBe(true);
+    expect(reviewerFixture.requests.every((request) =>
+      request.authorization === `Bearer ${fixtureSession(PUB_REPORT_CENTRAL_USER).access_token}`)).toBe(true);
+    expect(branchUnexpected).toEqual([]);
+    expect(reviewerUnexpected).toEqual([]);
+    expect(branchFixture.unexpectedRequests).toEqual([]);
+    expect(reviewerFixture.unexpectedRequests).toEqual([]);
+  } finally {
+    await reviewerContext.close();
   }
 });
