@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/components/ui/sonner-toast";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import { SUPABASE_URL } from "@/integrations/supabase/config";
 
 export type MentorType = "learning" | "expert" | "project";
 export type Msg = { role: "user" | "assistant"; content: string };
@@ -31,8 +32,8 @@ const getStreamContent = (value: unknown): string | undefined => {
   return typeof content === "string" ? content : undefined;
 };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mentor-chat`;
-const EXTRACT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mentor-extract`;
+const CHAT_URL = `${SUPABASE_URL}/functions/v1/mentor-chat`;
+const EXTRACT_URL = `${SUPABASE_URL}/functions/v1/mentor-extract`;
 
 export function useMentorChat(mentorType: MentorType) {
   const { user } = useAuth();

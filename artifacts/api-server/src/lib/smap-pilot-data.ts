@@ -1,5 +1,6 @@
 import type { SmapPilotDocument } from "@workspace/api-zod";
 import { ChatServiceError, createChatService } from "./chat-service";
+import { resolveSupabaseRuntimeConfig } from "./supabase-runtime-config";
 
 export class PilotError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
@@ -64,10 +65,11 @@ export function toPilotDocument(row: Record<string, unknown>): SmapPilotDocument
 export function createPilotData(env: NodeJS.ProcessEnv, fetchImpl: typeof fetch = fetch) {
   const auth = createChatService({ env, fetchImpl });
   async function documents(authorization: string, owner: string, ids?: string[], signal?: AbortSignal) {
-    const key = env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const config = resolveSupabaseRuntimeConfig(env);
+    const key = config.publishableKey;
     let url: URL;
     try {
-      url = new URL(env.SUPABASE_URL || env.VITE_SUPABASE_URL || "");
+      url = new URL(config.url);
       if (!key || url.protocol !== "https:" || url.username || url.password ||
           url.pathname !== "/" || url.search || url.hash) throw new Error();
     } catch { throw unavailable(); }

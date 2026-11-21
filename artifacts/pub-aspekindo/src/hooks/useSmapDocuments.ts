@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/components/ui/sonner-toast";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 import { freshSmapFileUrl, smapStoragePath } from "@/lib/smapFileAccess";
+import { SUPABASE_URL } from "@/integrations/supabase/config";
 
 export type SmapDocument = Tables<"smap_documents">;
 
@@ -48,7 +49,7 @@ export function useSmapDocuments(docType?: SmapDocType) {
     const { id, ...document } = doc;
     if (document.file_url) {
       try {
-        document.file_url = smapStoragePath(document.file_url, import.meta.env.VITE_SUPABASE_URL, user.id, id || "");
+        document.file_url = smapStoragePath(document.file_url, SUPABASE_URL, user.id, id || "");
       } catch {
         toast.error("Lokasi berkas tidak valid.");
         return null;
@@ -94,7 +95,7 @@ export function useSmapDocuments(docType?: SmapDocType) {
     const ownerId = user.id;
     const fileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-160) || "dokumen";
     const path = `${user.id}/${docId}/${crypto.randomUUID()}-${fileName}`;
-    try { smapStoragePath(path, import.meta.env.VITE_SUPABASE_URL, ownerId, docId); }
+    try { smapStoragePath(path, SUPABASE_URL, ownerId, docId); }
     catch { toast.error("Lokasi berkas tidak valid."); return null; }
     const { error } = await supabase.storage.from("smap-documents").upload(path, file, { upsert: false });
     if (identity.current !== ownerId) return null;
@@ -110,7 +111,7 @@ export function useSmapDocuments(docType?: SmapDocType) {
     if (!tab) { toast.error("Izinkan pop-up untuk membuka berkas."); return; }
     tab.opener = null;
     try {
-      const url = await freshSmapFileUrl(doc.file_url, import.meta.env.VITE_SUPABASE_URL, ownerId, doc.id,
+      const url = await freshSmapFileUrl(doc.file_url, SUPABASE_URL, ownerId, doc.id,
         (path, ttl) => supabase.storage.from("smap-documents").createSignedUrl(path, ttl));
       if (identity.current !== ownerId) { tab.close(); return; }
       tab.location.replace(url);

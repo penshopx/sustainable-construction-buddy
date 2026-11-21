@@ -1,9 +1,16 @@
 import { createClient, type Session } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { resolveSupabaseRuntimeConfig } from "./supabaseRuntimeConfig";
 
 // Same Supabase project and default storage key as PUB: no second account.
-export const pubClient = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, {
+const supabaseConfig = resolveSupabaseRuntimeConfig({
+  VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
+  VITE_SUPABASE_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+  VITE_SUPABASE_DEV_URL: import.meta.env.VITE_SUPABASE_DEV_URL,
+  VITE_SUPABASE_DEV_PUBLISHABLE_KEY: import.meta.env.VITE_SUPABASE_DEV_PUBLISHABLE_KEY,
+}, import.meta.env.DEV);
+export const pubClient = createClient(supabaseConfig.url, supabaseConfig.publishableKey, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
 });
 const Context = createContext<{ session: Session | null; loading: boolean; error: string; signOut: () => Promise<void> }>({

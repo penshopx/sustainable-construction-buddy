@@ -7,6 +7,7 @@ import { schemeKnowledgeContext, validSchemeSettings } from "./scheme-chat";
 import { AiHarnessError, runReadOnlyHarness } from "./ai-harness";
 import { checkCitationLinks, schemeCitationPairs } from "./harness-citations";
 import { aiReadiness, createAiReadiness } from "./ai-readiness";
+import { resolveSupabaseRuntimeConfig } from "./supabase-runtime-config";
 
 export class ChatServiceError extends Error {
   constructor(
@@ -32,6 +33,7 @@ export function createChatService(options: ChatServiceOptions = {}) {
   const env = options.env ?? process.env;
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? 25_000;
+  const supabaseConfig = resolveSupabaseRuntimeConfig(env);
   const readiness = options.env || options.fetchImpl ? createAiReadiness(options) : aiReadiness;
 
   async function requestJson(url: string, init: RequestInit, deadlineMs = timeoutMs, authCheck = false, signal?: AbortSignal): Promise<unknown> {
@@ -68,9 +70,9 @@ export function createChatService(options: ChatServiceOptions = {}) {
       throw new ChatServiceError(401, "login_required", "Silakan login untuk menggunakan pilihan model AI.");
     }
     let url: URL;
-    const key = env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+    const key = supabaseConfig.publishableKey || supabaseConfig.serviceRoleKey;
     try {
-      url = new URL(env.SUPABASE_URL || env.VITE_SUPABASE_URL || "");
+      url = new URL(supabaseConfig.url);
       if (!key || url.protocol !== "https:" || url.username || url.password ||
           url.pathname !== "/" || url.search || url.hash) throw new Error();
     } catch {
@@ -88,8 +90,8 @@ export function createChatService(options: ChatServiceOptions = {}) {
   }
 
   async function findBot(token: string): Promise<SharedBot> {
-    const baseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
-    const key = env.SUPABASE_SERVICE_ROLE_KEY;
+    const baseUrl = supabaseConfig.url;
+    const key = supabaseConfig.serviceRoleKey;
     let url: URL;
     try {
       if (!baseUrl || !key) throw new Error();
@@ -212,12 +214,12 @@ export function createChatService(options: ChatServiceOptions = {}) {
 
   async function requireAdmin(authorization?: string): Promise<string> {
     const member = await requireMember(authorization);
-    const url = new URL(env.SUPABASE_URL || env.VITE_SUPABASE_URL!);
+    const url = new URL(supabaseConfig.url);
     url.pathname = "/rest/v1/user_roles";
     url.search = new URLSearchParams({ select: "role", user_id: `eq.${member}`, role: "eq.admin" }).toString();
     const rows = await requestJson(url.toString(), {
       headers: {
-        apikey: (env.SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_SERVICE_ROLE_KEY)!,
+        apikey: (supabaseConfig.publishableKey || supabaseConfig.serviceRoleKey)!,
         Authorization: authorization!,
       }, redirect: "error",
     }, Math.min(timeoutMs, 7000), true);

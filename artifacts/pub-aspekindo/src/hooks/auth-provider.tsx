@@ -7,9 +7,10 @@ import { clearLocalAssessmentDrafts } from "@/lib/assessmentDraft";
 import { AuthContext, type Profile } from "./useAuth";
 import { loadBusinessProfile } from "@/lib/ruang-simpan";
 import { createLogoutRequest } from "@/lib/logoutRequest";
+import { SUPABASE_URL } from "@/integrations/supabase/config";
 
 // Match createClient's default key; do not react to unrelated apps' storage.
-const authStorageKey = `sb-${new URL(import.meta.env.VITE_SUPABASE_URL).hostname.split(".")[0]}-auth-token`;
+const authStorageKey = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`;
 
 // Shared with every provider instance: an SDK request may outlive its UI.
 const logoutRequest = createLogoutRequest(

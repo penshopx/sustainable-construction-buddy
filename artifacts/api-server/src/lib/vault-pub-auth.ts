@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { pool } from "@workspace/db";
 import { createChatService, ChatServiceError } from "./chat-service";
 import { fail, initialWorkspace } from "./vault-store";
+import { resolveSupabaseRuntimeConfig } from "./supabase-runtime-config";
 
 const auth = createChatService();
 const COOKIE = "rs_pub_session";
@@ -31,11 +32,12 @@ export async function verifyPub(authorization?: string) {
 export async function ensurePubWorkspace(owner: string, authorization: string) {
   const exists = await pool.query("SELECT 1 FROM rs_workspaces WHERE owner_id=$1", [owner]);
   if (exists.rowCount) return;
-  const url = new URL(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "");
+  const config = resolveSupabaseRuntimeConfig(process.env);
+  const url = new URL(config.url);
   url.pathname = "/rest/v1/profiles";
   url.search = new URLSearchParams({ select: "company", user_id: `eq.${owner}`, limit: "1" }).toString();
   const response = await fetch(url, {
-    headers: { apikey: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "", Authorization: authorization },
+    headers: { apikey: config.publishableKey || config.serviceRoleKey, Authorization: authorization },
     signal: AbortSignal.timeout(7000), redirect: "error",
   });
   if (!response.ok) fail(503, "Profil awal PUB belum dapat dimuat. Silakan coba lagi.");

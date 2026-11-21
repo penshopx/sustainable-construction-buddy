@@ -1,7 +1,5 @@
 import { supabase } from "./client";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "./config";
 
 export type UploadProgress = {
   loaded: number;

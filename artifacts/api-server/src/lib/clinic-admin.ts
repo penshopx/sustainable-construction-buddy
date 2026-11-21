@@ -1,12 +1,15 @@
+import { resolveSupabaseRuntimeConfig } from "./supabase-runtime-config";
+
 // Always evaluate the caller's current role using their own verified PUB JWT.
 // A service key may be the gateway apikey, never the Authorization identity.
 export async function clinicAdmin(owner: string, authorization: string): Promise<boolean> {
-  const url = new URL(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "");
+  const config = resolveSupabaseRuntimeConfig(process.env);
+  const url = new URL(config.url);
   url.pathname = "/rest/v1/user_roles";
   url.search = new URLSearchParams({ select: "role", user_id: `eq.${owner}`, role: "eq.admin" }).toString();
   const response = await fetch(url, {
     headers: {
-      apikey: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+      apikey: config.publishableKey || config.serviceRoleKey,
       Authorization: authorization,
     },
     redirect: "error", signal: AbortSignal.timeout(7000),

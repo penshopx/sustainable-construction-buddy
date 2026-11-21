@@ -1,14 +1,16 @@
 import { pool } from "@workspace/db";
 import { fail } from "./vault-store";
+import { resolveSupabaseRuntimeConfig } from "./supabase-runtime-config";
 
 // Reuse existing Supabase RLS visibility; being an admin never grants access
 // to the underlying workspace, document text, NIB, address, or files here.
 export async function visibleCompanyNames(ids: string[], authorization: string) {
-  const url = new URL(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "");
+  const config = resolveSupabaseRuntimeConfig(process.env);
+  const url = new URL(config.url);
   url.pathname = "/rest/v1/profiles";
   url.search = new URLSearchParams({ select: "user_id", user_id: `in.(${ids.join(",")})` }).toString();
   const response = await fetch(url, {
-    headers: { apikey: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "", Authorization: authorization },
+    headers: { apikey: config.publishableKey || config.serviceRoleKey, Authorization: authorization },
     signal: AbortSignal.timeout(7000), redirect: "error",
   });
   if (!response.ok) fail(503, "Hak baca profil PUB belum dapat diperiksa.");

@@ -21,6 +21,7 @@ import { clinicAdmin } from "../lib/clinic-admin";
 import { verifyPub } from "../lib/vault-pub-auth";
 import { fail, ownDocument, workspace, type StoredDocument, type VaultState } from "../lib/vault-store";
 import { streamDocument } from "./vault-external";
+import { resolveSupabaseRuntimeConfig } from "../lib/supabase-runtime-config";
 
 type PoolClient = {
   query: (text: string, values?: unknown[]) => Promise<{ rows: any[]; rowCount: number | null }>;
@@ -210,8 +211,9 @@ function assertRevision(actual: number, expected: number) {
 
 async function assertSourceActivityVisible(activityId: string, access: Access) {
   let url: URL;
+  const supabaseConfig = resolveSupabaseRuntimeConfig(process.env);
   try {
-    url = new URL(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "");
+    url = new URL(supabaseConfig.url);
   } catch {
     fail(503, "Sumber kegiatan LMS belum dapat diverifikasi.");
   }
@@ -221,7 +223,7 @@ async function assertSourceActivityVisible(activityId: string, access: Access) {
   try {
     response = await fetch(url, {
       headers: {
-        apikey: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+        apikey: supabaseConfig.publishableKey || supabaseConfig.serviceRoleKey,
         Authorization: access.authorization,
       },
       redirect: "error",
