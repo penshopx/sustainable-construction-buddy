@@ -4,7 +4,7 @@ description: Proyek Supabase pengganti yang disetujui dan batas izin sebelum ske
 ---
 
 Proyek `jmkjomjomkwiztjusdbz` di Singapura adalah backend baru yang disetujui
-pemilik untuk PUB ASPEKINDO. Proyek ini masih kosong; persetujuan tersebut
+pemilik untuk PUB ASPEKINDO. Skema hosted belum diverifikasi; persetujuan tersebut
 mencakup persiapan lokal migrasi saja, bukan penerapan SQL, perubahan runtime
 atau secret, maupun publikasi/deploy.
 
@@ -50,3 +50,12 @@ migrasi dan gagal atau meninggalkan skema parsial.
 manual dipakai, jangan lanjutkan `db push` sampai status seluruh versi diperbaiki
 melalui mekanisme CLI dan diverifikasi. Jangan mengulang bundel penuh setelah
 kegagalan parsial tanpa memeriksa skema terlebih dahulu.
+
+Pemilik mengonfirmasi bahwa akun bootstrap Super Admin yang telah ditetapkan
+dalam migrasi PUB dipertahankan untuk proyek baru.
+
+**Why:** Hak Super Admin bergantung pada identitas yang dipilih, dan perubahan
+tanpa keputusan pemilik dapat membuat operator kehilangan akses utama.
+
+**How to apply:** Pertahankan binding akun yang ada saat menyiapkan paket migrasi
+PUB ini. Jangan mengganti identitas tersebut kecuali pemilik meminta perubahan.
