@@ -39,3 +39,14 @@ bukan mencoba memperbaikinya secara diam-diam.
 **How to apply:** Pertahankan validasi sebelum seluruh request probe dan sebelum
 deploy pada publisher. Mode pemeriksaan konfigurasi saja tetap memeriksa ref/TOML,
 bukan mengklaim kesiapan URL atau hasil probe.
+
+Jika migrasi diterapkan lewat SQL Editor secara manual, database tidak otomatis
+mencatat versi-versi pada riwayat migrasi Supabase.
+
+**Why:** `supabase db push` sesudah penerapan manual dapat mencoba menjalankan ulang
+migrasi dan gagal atau meninggalkan skema parsial.
+
+**How to apply:** Utamakan Supabase CLI dengan berkas migrasi asli. Jika paket SQL
+manual dipakai, jangan lanjutkan `db push` sampai status seluruh versi diperbaiki
+melalui mekanisme CLI dan diverifikasi. Jangan mengulang bundel penuh setelah
+kegagalan parsial tanpa memeriksa skema terlebih dahulu.
