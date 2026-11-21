@@ -4,18 +4,18 @@ description: Proyek Supabase pengganti yang disetujui dan batas izin sebelum ske
 ---
 
 Proyek `jmkjomjomkwiztjusdbz` di Singapura adalah backend baru yang disetujui
-pemilik untuk PUB ASPEKINDO. Skema hosted belum diverifikasi; persetujuan tersebut
-mencakup persiapan lokal migrasi saja, bukan penerapan SQL, perubahan runtime
-atau secret, maupun publikasi/deploy.
+pemilik untuk PUB ASPEKINDO. Pemilik menjalankan paket SQL manual dan mengizinkan
+runtime development/preview memakai proyek ini melalui konfigurasi dev khusus.
+Produksi harus tetap memakai target lama sampai ada persetujuan terpisah.
 
 **Why:** Proyek Supabase lama terhapus tanpa backup. Proyek pengganti dibuat
 secara manual di Singapura; proyek Tokyo yang terlihat sebelumnya bukan target
 yang dipilih.
 
-**How to apply:** Gunakan ref ini sebagai target migrasi PUB setelah pemeriksaan
-lokal. Jangan mengalihkan runtime aplikasi sebelum skema siap dan izin eksplisit
-diberikan. Periksa target efektif sebelum setiap perubahan jarak jauh; ref dalam
-berkas saja bukan bukti bahwa database sudah dimigrasikan atau aplikasi diterbitkan.
+**How to apply:** Gunakan ref ini untuk pengujian PUB di development/preview.
+Jangan mengubah target atau secrets produksi, menerbitkan aplikasi, atau menganggap
+preview terhubung hanya karena URL/ref cocok. Verifikasi request nyata dan tabel
+yang dibutuhkan sebelum menyatakan alur aplikasi siap.
 
 Untuk pengujian akun, jangan menyimpulkan tujuan preview hanya dari berkas `.env`
 lokal. Cocokkan nilai `VITE_SUPABASE_URL` yang efektif pada klien Vite aktif
