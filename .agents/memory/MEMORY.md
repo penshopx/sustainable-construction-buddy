@@ -27,7 +27,7 @@
 - [Tooling dokumen offline](offline-document-tooling.md) — pemasang alat Python dapat membuat scaffolding; pisahkan konversi dokumen dari runtime Node.
 - [Bukti kutipan knowledge base](knowledge-citation-evidence.md) — ID dokumen yang benar belum membuktikan halaman relevan; uji teks bukti setelah pemangkasan konteks.
 - [Harness bukan Hermes](harness-terminology.md) — “Harnes” sebagai colokan/penghubung berarti lapisan harness; jangan otomatis menafsirkannya sebagai Hermes AI.
-- [Tujuan rilis produksi](production-release-target.md) — ref disahkan pemilik untuk konfigurasi produksi; izin tersebut bukan izin publikasi.
+- [Tujuan backend PUB](production-release-target.md) — proyek Singapura disetujui sebagai backend PUB; persiapan migrasi bukan izin menerapkan SQL atau mengalihkan runtime.
 - [Ruang Simpan sebagai acuan PUB](ruang-simpan-product-scope.md) — sumber kebenaran utama untuk PUB ASPEKINDO, bukan produk terpisah; tidak terintegrasi ke Gustafta.
 - [Batas keluaran OpenRouter](openrouter-output-budget.md) — uji kecil dapat berhasil meski batas keluaran aplikasi ditolak 402; cocokkan model dan max_tokens saat diagnosis.
 - [Badan request Orval](orval-inline-body-exports.md) — pakai skema input bernama agar tipe badan inline tidak bertabrakan dengan validator Zod dalam barrel.

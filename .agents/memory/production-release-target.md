@@ -1,28 +1,28 @@
 ---
-name: Tujuan rilis produksi
-description: Konfirmasi pemilik atas tujuan Supabase produksi dan batas izin konfigurasi.
+name: Tujuan backend PUB
+description: Proyek Supabase pengganti yang disetujui dan batas izin sebelum skema siap.
 ---
 
-Pemilik mengonfirmasi `yidlglstzvizsszrpobi` sebagai tujuan Supabase produksi
-pada 29 Oktober 2026 dan mengizinkan penyetelan `SUPABASE_PROJECT_REF` pada
-lingkungan produksi. Izin tersebut tidak mencakup publikasi atau deploy.
+Proyek `jmkjomjomkwiztjusdbz` di Singapura adalah backend baru yang disetujui
+pemilik untuk PUB ASPEKINDO. Proyek ini masih kosong; persetujuan tersebut
+mencakup persiapan lokal migrasi saja, bukan penerapan SQL, perubahan runtime
+atau secret, maupun publikasi/deploy.
 
-**Why:** Pemilik sebelumnya belum dapat memastikan tujuan produksi; nilai yang
-terlihat di dashboard atau TOML saja bukan persetujuan. Konfirmasi akhirnya
-diberikan secara eksplisit, khusus untuk tujuan dan konfigurasi tersebut.
+**Why:** Proyek Supabase lama terhapus tanpa backup. Proyek pengganti dibuat
+secara manual di Singapura; proyek Tokyo yang terlihat sebelumnya bukan target
+yang dipilih.
 
-**How to apply:** Pertahankan pemisahan konfigurasi produksi dari pengujian dan
-development. Jika tujuan berubah, minta konfirmasi baru; jangan menyalin ref
-otomatis dari TOML sebagai bukti otorisasi. Keberhasilan pemeriksaan konfigurasi
-tanpa deploy bukan bukti bahwa aplikasi atau fungsi produksi telah diterbitkan.
+**How to apply:** Gunakan ref ini sebagai target migrasi PUB setelah pemeriksaan
+lokal. Jangan mengalihkan runtime aplikasi sebelum skema siap dan izin eksplisit
+diberikan. Periksa target efektif sebelum setiap perubahan jarak jauh; ref dalam
+berkas saja bukan bukti bahwa database sudah dimigrasikan atau aplikasi diterbitkan.
 
 Untuk pengujian akun, jangan menyimpulkan tujuan preview hanya dari berkas `.env`
 lokal. Cocokkan nilai `VITE_SUPABASE_URL` yang efektif pada klien Vite aktif
 dengan konfigurasi runtime dan tujuan yang disetujui sebelum membuat akun uji.
 
-**Why:** Berkas lokal pernah menunjuk proyek lama sementara preview aktif sudah
-memakai tujuan yang benar. Perbandingan terhadap berkas itu saja menghalangi
-pengujian tanpa menunjukkan adanya kesalahan pada aplikasi yang sedang berjalan.
+**Why:** Nilai konfigurasi lokal, environment runtime, dan preview dapat berbeda
+cakupan; satu file saja tidak membuktikan target yang benar-benar sedang digunakan.
 
 **How to apply:** Periksa properti URL yang benar pada runtime, bukan sembarang
 URL Supabase yang ditemukan dalam teks konfigurasi. Bila tujuan efektif benar-benar
