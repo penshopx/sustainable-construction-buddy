@@ -44,8 +44,8 @@ export default function PakarCerdasSection() {
               id="pakar-cerdas-home-title"
               className="max-w-2xl text-3xl font-extrabold leading-tight font-heading md:text-5xl"
             >
-              Rujukan cerdas untuk{" "}
-              <span className="text-pub-sky">profesi dan usaha</span> jasa konstruksi.
+              Rujukan Cerdas Untuk{" "}
+              <span className="text-pub-sky">Profesi Dan Usaha</span> Jasa Konstruksi.
             </h2>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/75 md:text-lg">
               Tanyakan regulasi konstruksi, kompetensi profesi, dan pengembangan BUJK.

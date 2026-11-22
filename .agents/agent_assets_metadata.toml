@@ -308,3 +308,15 @@ mtime_ms = 1794797055625
 storage_uri = "gcs://replit-rams-assets-sisko/rams/assets/repl:b0322143-bf61-4155-9a2c-fe262c6ae4a9/df7ee1fb-ac60-45b3-af65-cf8935bc5a93/df4868d4-26b6-4eef-828b-525afec2c919"
 storage_version_token = "1794797407137363"
 content_type = "application/octet-stream"
+
+[[outputs]]
+id = "HDT9Gal0WGB8q0fhKxY_N"
+uri = "file://.local/outputs/Presentasi-PUB-ASPEKINDO.pdf"
+type = "pdf"
+title = "Presentasi PUB ASPEKINDO.pdf"
+
+[[outputs]]
+id = "chrlMsZIGmtoLj9ckDhX6"
+uri = "file://.local/outputs/Presentasi-PUB-ASPEKINDO.pptx"
+type = "slides"
+title = "Presentasi PUB ASPEKINDO.pptx"
