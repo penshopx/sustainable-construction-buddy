@@ -4,6 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .homepage-title-case :is(h1, h2, h3, h4, h5, h6),
+  .homepage-title-case .homepage-section-heading {
+    text-transform: capitalize;
+  }
+}
+
 @layer base {
   :root {
     --background: 220 20% 97%;

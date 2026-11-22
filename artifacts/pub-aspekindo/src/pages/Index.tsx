@@ -72,7 +72,7 @@ function MobileSectionGroup({
             className="flex min-h-16 w-full items-center justify-between gap-4 text-left focus-visible:rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             <span>
-              <span className="block font-heading text-base font-bold">{title}</span>
+              <span className="homepage-section-heading block font-heading text-base font-bold">{title}</span>
               <span className="mt-0.5 block text-xs leading-relaxed text-white/80">{description}</span>
             </span>
             <ChevronDown className={`h-5 w-5 shrink-0 text-pub-amber transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
@@ -150,7 +150,7 @@ const Index = () => {
   const toggleGroup = (group: string) => setOpenGroup((current) => current === group ? null : group);
 
   return (
-    <main className="min-h-screen overflow-x-hidden">
+    <main className="homepage-title-case min-h-screen overflow-x-hidden">
       {/* A — ATTENTION: Hero with shocking industry data */}
       <HeroSection />
 
