@@ -49,6 +49,11 @@ test("catalog reports current PDF pages and text lines across all sources", asyn
   assert.match(output, /header menulis Konstruksi Prapabrikasi/);
   assert.match(output, /Keputusan dan surat/);
   assert.match(output, /Perspektif pelaku usaha/);
+  assert.match(output, /Regulasi normatif/);
+  assert.match(output, /Skema \/ kompetensi/);
+  assert.match(output, /Usulan nonnormatif/);
+  assert.match(output, /Draf pemetaan/);
+  assert.match(output, /status terbaru tetap perlu diverifikasi/);
   assert.match(output, /ringkasan visual pindai/);
   assert.match(output, /6\/2025/);
   assert.match(output, /bukan knowledge base pribadi Mentor/);
@@ -84,6 +89,8 @@ test("source search filters the catalog and displays an explicit empty result", 
   await act(async () => { root!.root.findByType("input").props.onChange({ target: { value: "KB45" } }); });
   assert.equal(root!.root.findAllByType("li").length, 1);
   assert.match(JSON.stringify(root!.toJSON()), /76 entri · 79 baris teks/);
+  assert.match(JSON.stringify(root!.toJSON()), /Draf pemetaan/);
+  assert.match(JSON.stringify(root!.toJSON()), /asal dan versi belum terverifikasi/i);
   assert.doesNotMatch(JSON.stringify(root!.toJSON()), /0 halaman PDF/);
   await act(async () => { root!.root.findByType("input").props.onChange({ target: { value: "nonexistent-file-xyz" } }); });
   assert.equal(root!.root.findAllByType("li").length, 0);

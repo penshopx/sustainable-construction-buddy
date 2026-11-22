@@ -165,7 +165,10 @@ test("diagnostics require a current server-verified admin, never JWT/user-suppli
   const safe = await response.json();
   assert.equal(response.status, 200);
   assert.equal(safe.diagnostics, undefined);
-  assert.doesNotMatch(JSON.stringify(safe), /PRIVATE|987|synthetic/);
+  const { checkedAt, recheckAt, ...safeFields } = safe;
+  assert.ok(Number.isFinite(Date.parse(checkedAt)));
+  assert.ok(Number.isFinite(Date.parse(recheckAt)));
+  assert.doesNotMatch(JSON.stringify(safeFields), /PRIVATE|987|synthetic/);
   role = "member";
   assert.equal((await fetch(base + "?diagnostics=true", { headers: { Authorization: authorization } })).status, 403);
   failRole = true;

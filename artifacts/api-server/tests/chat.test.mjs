@@ -66,6 +66,23 @@ test("helpdesk includes shared PDF excerpts and page citations in its existing p
   assert.doesNotMatch(prompt, /OWNER_PRIVATE_TEST|PROJECT_PRIVATE_TEST/);
 });
 
+test("Helpdesk does not read or send Ruang Simpan context when consent is off", async (t) => {
+  const h = await harness(t, { fetchImpl: async (url, init) => {
+    if (url.endsWith("/auth/v1/user")) return ok({ id: MEMBER_ID });
+    if (url.includes("openrouter.ai")) {
+      const payload = JSON.parse(init.body);
+      assert.equal(payload.messages[0].content.includes("PRIVATE_VAULT_MARKER"), false);
+      assert.equal(payload.messages.some(message => message.content.includes("PRIVATE_VAULT_MARKER")), false);
+      return aiReply(payload.model);
+    }
+    throw new Error("Unexpected external request");
+  } });
+  const response = await h.post("/helpdesk", { ...INPUT, engine: "gpt", use_vault_context: false }, MEMBER_HEADERS);
+  assert.equal(response.status, 200);
+  assert.equal(h.calls.length, 2);
+  assert.ok(h.calls.every(call => call.url.endsWith("/auth/v1/user") || call.url.includes("openrouter.ai")));
+});
+
 async function harness(t, { fetchImpl, env = ENV, ...options } = {}) {
   const calls = [];
   const logs = [];
@@ -99,7 +116,9 @@ test("helpdesk uses server prompt, fixed provider and configured model", async (
   const h = await harness(t, { env: { ...ENV, OPENROUTER_MODEL: "configured-model" } });
   const res = await h.post("/helpdesk");
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { reply: "Simpan bukti sesuai kegiatan." });
+  assert.deepEqual(await res.json(), {
+    reply: "Simpan bukti sesuai kegiatan.\n\n> Catatan harness: jawaban belum memuat kutipan sumber dan halaman/baris yang dapat diperiksa. Verifikasi klaim penting sebelum mengandalkannya.",
+  });
   assert.equal(res.headers.get("cache-control"), "no-store");
   assert.equal(h.calls.length, 1);
   const { url, init } = h.calls[0];
@@ -501,7 +520,10 @@ test("all five engines resolve server-owned models after real member verificatio
     const h = await harness(t, { fetchImpl: memberFetch });
     const response = await h.post("/helpdesk", { ...INPUT, engine, mode: "proyek", custom_persona: "Konteks uji" }, MEMBER_HEADERS);
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { reply: "Simpan bukti sesuai kegiatan.", engine, model });
+    assert.deepEqual(await response.json(), {
+      reply: "Simpan bukti sesuai kegiatan.\n\n> Catatan harness: jawaban belum memuat kutipan sumber dan halaman/baris yang dapat diperiksa. Verifikasi klaim penting sebelum mengandalkannya.",
+      engine, model,
+    });
     assert.equal(h.calls.length, 2);
     assert.equal(h.calls[0].url, "https://example.supabase.co/auth/v1/user");
     assert.equal(h.calls[0].init.headers.Authorization, MEMBER_HEADERS.Authorization);

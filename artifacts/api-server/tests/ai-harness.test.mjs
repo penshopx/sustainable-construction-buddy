@@ -9,7 +9,7 @@ const compiled = await build({ stdin: {
 }, bundle: true, platform: "node", format: "cjs", write: false, logLevel: "silent" });
 const module = { exports: {} };
 new Function("require", "module", "exports", compiled.outputFiles[0].text)(createRequire(import.meta.url), module, module.exports);
-const { runReadOnlyHarness, AiHarnessError, checkCitationLinks, schemeCitationPairs, createChatService, SendHelpdeskMessageResponse } = module.exports;
+const { runReadOnlyHarness, AiHarnessError, checkCitationLinks, schemeCitationPairs, knowledgeCitationPairs, createChatService, SendHelpdeskMessageResponse } = module.exports;
 const plan = () => ({ model: "openai/gpt-test" });
 
 test("harness orders preparation, one model request and verification without leaking metadata", async () => {
@@ -79,10 +79,22 @@ test("citation allowlist contains supplied mapping/excerpts, never section heade
   for (const bad of ["[KB99, halaman PDF 1]", "[KB09, halaman PDF 4]", "[KB09]"])
     assert.throws(() => checkCitationLinks(bad, refs));
 });
+test("shared knowledge citations allow only excerpt pages and original text lines", () => {
+  const context = "KUTIPAN_DATA_TIDAK_TEPERCAYA=" + JSON.stringify([
+    { id: "KB18", page: 3, text: "Ketentuan PUB" },
+    { id: "KB45", page: null, lineStart: 3, lineEnd: 3, text: "BG001 41011" },
+    { id: "KB45", page: null, lineStart: 4, lineEnd: 4, text: "BG002 41012" },
+  ]) + "\nAKHIR_DATA_RUJUKAN\n";
+  const refs = knowledgeCitationPairs(context);
+  assert.equal(checkCitationLinks("PUB [KB18, hlm. 3] dan tabel [KB45, baris 3–4]", refs), 2);
+  assert.throws(() => checkCitationLinks("Tabel [KB45, baris 3–5]", refs), /Unlisted source\/line/);
+  assert.throws(() => checkCitationLinks("Rekaan [KB99, hlm. 3]", refs), /Unlisted source\/page/);
+  assert.throws(() => checkCitationLinks("Rujukan [KB18, hlm. 4]", refs), /Unlisted source\/page/);
+});
 test("direct-provider adapter annotates missing citations, accepts supplied pages and rejects invented references", async () => {
   const env = { OPENROUTER_API_KEY: "synthetic-provider-not-production" };
   for (const [answer, expected] of [
-    ["BG001: 41011. [KB09, halaman PDF 21]", /ID sumber dan halaman kutipan cocok/],
+    ["BG001: 41011. [KB09, halaman PDF 21]", /ID sumber dan halaman\/baris kutipan cocok/],
     ["Mohon periksa ulang rujukan.", /belum memuat kutipan sumber/],
     ["Rekaan [KB99, halaman PDF 999]", null],
   ]) {
@@ -95,6 +107,31 @@ test("direct-provider adapter annotates missing citations, accepts supplied page
     else await assert.rejects(pending, error => error.status === 503 && error.code === "ai_citation_invalid");
     assert.equal(requests, 1);
   }
+});
+test("shared-knowledge answers validate text-line citations without claiming semantic correctness", async () => {
+  const env = { OPENROUTER_API_KEY: "synthetic-provider-not-production" };
+  for (const [answer, expected] of [
+    ["Tabel menyebut BG001 [KB45, baris 3]", /ID sumber dan halaman\/baris kutipan cocok/],
+    ["Tabel menyebut BG001, tetapi tanpa rujukan.", /belum memuat kutipan sumber/],
+    ["Tabel menyebut BG001 [KB45, baris 4]", null],
+  ]) {
+    const service = createChatService({ env, fetchImpl: async () =>
+      Response.json({ model: "openai/gpt-4o-mini", choices: [{ message: { content: answer } }] }) });
+    const pending = service.reply([{ role: "user", content: "KB45 BG001" }]);
+    if (expected) assert.match(await pending, expected);
+    else await assert.rejects(pending, error => error.status === 503 && error.code === "ai_citation_invalid");
+  }
+});
+test("shared-knowledge answers without retrieved excerpts still receive an evidence warning", async () => {
+  const service = createChatService({
+    env: { OPENROUTER_API_KEY: "synthetic-provider-not-production" },
+    fetchImpl: async () => Response.json({
+      model: "openai/gpt-4o-mini",
+      choices: [{ message: { content: "Jawaban tanpa bukti sumber." } }],
+    }),
+  });
+  const answer = await service.reply([{ role: "user", content: "qzxv qwpr mnbvc 9347" }]);
+  assert.match(answer, /belum memuat kutipan sumber dan halaman\/baris/);
 });
 test("direct-provider adapter forwards abort to its in-flight model request", async () => {
   const controller = new AbortController();

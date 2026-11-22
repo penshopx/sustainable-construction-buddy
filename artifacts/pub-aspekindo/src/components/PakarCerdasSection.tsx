@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpen, BriefcaseBusiness, Building2, Brain } from "lucide-react";
+import { ArrowRight, BookOpen, BriefcaseBusiness, Building2, Brain, ExternalLink, Store } from "lucide-react";
 
 const expertiseAreas = [
   {
@@ -52,17 +52,34 @@ export default function PakarCerdasSection() {
               Pakar Cerdas menelusuri referensi yang tersedia dan menampilkan rujukan agar
               Anda dapat memeriksanya kembali.
             </p>
-            <Link
-              to="/helpdesk"
-              data-testid="link-home-pakar-cerdas"
-              className="mt-7 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-pub-amber px-6 py-3 font-bold text-pub-navy shadow-lg transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-            >
-              Tanya Pakar Cerdas
-              <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link
+                to="/helpdesk"
+                data-testid="link-home-pakar-cerdas"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-pub-amber px-6 py-3 font-bold text-pub-navy shadow-lg transition hover:-translate-y-0.5 hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                Tanya Pakar Cerdas
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <a
+                href="https://gustafta.my.id/store"
+                target="_blank"
+                rel="noopener noreferrer"
+                referrerPolicy="no-referrer"
+                data-testid="link-home-gustafta-store"
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/[0.06] px-5 py-3 font-semibold text-white transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              >
+                <Store className="h-4 w-4" aria-hidden="true" />
+                Produk AI Gustafta
+                <ExternalLink className="h-3.5 w-3.5 opacity-75" aria-hidden="true" />
+              </a>
+            </div>
             <p className="mt-3 text-xs leading-relaxed text-white/55">
               Masuk dengan akun PUB untuk bertanya. Jawaban AI adalah bantuan informasi,
               bukan keputusan hukum, sertifikasi, atau penetapan resmi.
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-white/55">
+              Toko Gustafta adalah situs eksternal; tautan ini tidak meneruskan percakapan atau data PUB.
             </p>
           </motion.div>
 

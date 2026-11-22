@@ -95,7 +95,7 @@ test("all scheme/topic contexts accept every supplied source/page and preserve t
   assert.equal(new Set(matrix.records.map(row => row.code)).size, matrix.records.length);
   for (const row of matrix.records) for (const question of topics) {
     const { reply, refs } = await exercise(row, question, refs => `Rujukan ${row.code}: ${refs.map(marker).join(" ")}`);
-    assert.match(reply, /ID sumber dan halaman kutipan cocok/);
+    assert.match(reply, /ID sumber dan halaman\/baris kutipan cocok/);
     for (const ref of refs) assert.ok(reply.includes(marker(ref)));
   }
   t.diagnostic(`${matrix.records.length} profiles; ${matrix.records.length * topics.length} scheme/topic cases; ${new Set(matrix.records.map(row => row.requirementsSourceId)).size} families`);
@@ -111,8 +111,8 @@ test("every scheme/topic rejects an incorrect page even when its document ID is 
 test("every scheme/topic explicitly warns when the model supplies no checkable citation", async () => {
   for (const row of matrix.records) for (const question of topics) {
     const { reply } = await exercise(row, question, () => "Jawaban sintetis tanpa kutipan.");
-    assert.match(reply, /belum memuat kutipan sumber dan halaman/);
-    assert.match(reply, /Jangan gunakan sebagai keputusan sertifikasi/);
+    assert.match(reply, /belum memuat kutipan sumber dan halaman\/baris/);
+    assert.match(reply, /Verifikasi klaim penting sebelum mengandalkannya/);
   }
 });
 test("all audience/depth combinations work on every scheme without expanding the evidence scope", async t => {
@@ -126,7 +126,7 @@ test("all audience/depth combinations work on every scheme without expanding the
         baseline ??= current;
         assert.deepEqual(current, baseline, "Presentation choices cannot widen evidence access");
         contexts.add(context);
-        assert.match(reply, /ID sumber dan halaman kutipan cocok/);
+        assert.match(reply, /ID sumber dan halaman\/baris kutipan cocok/);
       }
     assert.equal(contexts.size, 12, `${row.code}: each presentation profile must actually affect context`);
   }

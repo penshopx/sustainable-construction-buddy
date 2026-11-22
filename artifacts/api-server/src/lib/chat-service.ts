@@ -5,7 +5,7 @@ import { chatModel } from "./chat-engines";
 import { knowledgeContext } from "./knowledge-base";
 import { schemeKnowledgeContext, validSchemeSettings } from "./scheme-chat";
 import { AiHarnessError, runReadOnlyHarness } from "./ai-harness";
-import { checkCitationLinks, schemeCitationPairs } from "./harness-citations";
+import { checkCitationLinks, knowledgeCitationPairs, schemeCitationPairs } from "./harness-citations";
 import { aiReadiness, createAiReadiness } from "./ai-readiness";
 import { resolveSupabaseRuntimeConfig } from "./supabase-runtime-config";
 
@@ -154,7 +154,8 @@ export function createChatService(options: ChatServiceOptions = {}) {
         } catch { throw new ChatServiceError(503, "ai_model_config_invalid", UNAVAILABLE); }
         const question = messages.filter(message => message.role === "user").slice(-1)[0]?.content ?? "";
         const evidence = settings?.scheme_code ? schemeKnowledgeContext(settings, question) : knowledgeContext(question);
-        return { model, evidence, citations: settings?.scheme_code ? schemeCitationPairs(evidence) : null };
+        const citations = settings?.scheme_code ? schemeCitationPairs(evidence) : knowledgeCitationPairs(evidence);
+        return { model, evidence, citations };
       },
       execute: ({ model, evidence }, requestModel) => requestModel(requestSignal =>
         requestJson("https://openrouter.ai/api/v1/chat/completions", {
@@ -197,10 +198,10 @@ export function createChatService(options: ChatServiceOptions = {}) {
     if (citations) {
       let count: number;
       try { count = checkCitationLinks(content, citations); }
-      catch { throw new ChatServiceError(503, "ai_citation_invalid", "Jawaban memuat rujukan yang tidak sesuai konteks skema. Tidak ada pengiriman ulang otomatis."); }
+      catch { throw new ChatServiceError(503, "ai_citation_invalid", "Jawaban memuat rujukan yang tidak sesuai konteks sumber. Tidak ada pengiriman ulang otomatis."); }
       return answer + (count
-        ? "\n\n> Catatan harness: ID sumber dan halaman kutipan cocok dengan konteks yang diberikan; kebenaran seluruh kesimpulan AI tetap perlu ditinjau."
-        : "\n\n> Catatan harness: jawaban belum memuat kutipan sumber dan halaman yang dapat diperiksa. Jangan gunakan sebagai keputusan sertifikasi.");
+        ? "\n\n> Catatan harness: ID sumber dan halaman/baris kutipan cocok dengan konteks yang diberikan; kecocokan ini tidak memverifikasi seluruh kesimpulan AI."
+        : "\n\n> Catatan harness: jawaban belum memuat kutipan sumber dan halaman/baris yang dapat diperiksa. Verifikasi klaim penting sebelum mengandalkannya.");
     }
     return answer;
       },

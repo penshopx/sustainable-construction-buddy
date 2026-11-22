@@ -1,32 +1,19 @@
 import { useState } from "react";
 import { BookOpen } from "lucide-react";
 import catalog from "@/data/lpjk-knowledge-catalog.json";
-
-const labels: Record<string, string> = {
-  keputusan_dan_surat: "Keputusan dan surat",
-  paparan: "Materi paparan",
-  paparan_dan_usulan: "Paparan dan usulan",
-  perspektif_pelaku_usaha: "Perspektif pelaku usaha",
-  format_skema: "Format skema LSBU",
-  peraturan_pemerintah: "Peraturan Pemerintah",
-  peraturan_menteri: "Peraturan Menteri",
-  peraturan_presiden: "Peraturan Presiden",
-  peraturan_lembaga: "Peraturan Lembaga",
-  lampiran_peraturan: "Lampiran peraturan",
-  publikasi_statistik: "Publikasi statistik BPS",
-  tabel_pemetaan: "Tabel pemetaan salinan",
-};
+import { describeKnowledgeSource } from "@/lib/knowledge-source-display";
 
 export default function SharedKnowledgeBase() {
   const [search, setSearch] = useState("");
   const documents = catalog.documents.filter(doc =>
-    `${doc.id} ${doc.title} ${doc.fileName} ${labels[doc.kind]}`.toLowerCase().includes(search.toLowerCase()));
+    `${doc.id} ${doc.title} ${doc.fileName} ${describeKnowledgeSource(doc.kind).label} ${describeKnowledgeSource(doc.kind).classification} ${describeKnowledgeSource(doc.kind).status}`
+      .toLowerCase().includes(search.toLowerCase()));
   const pageCount = catalog.documents.reduce((sum, doc) => sum + doc.pageCount, 0);
   const lineCount = catalog.documents.reduce((sum, doc) => sum + doc.lineCount, 0);
   const pdfCount = catalog.documents.filter(doc => doc.format === "pdf").length;
   const textCount = catalog.documents.filter(doc => doc.format === "text").length;
   return (
-    <details className="mb-4 rounded-xl border border-border bg-card p-4">
+    <details className="mb-4 rounded-xl border border-border bg-card p-4" data-testid="shared-knowledge-base">
       <summary className="cursor-pointer text-sm font-semibold text-foreground">
         <BookOpen aria-hidden className="mr-2 inline h-4 w-4" />
         Knowledge base rujukan bersama · {catalog.documents.length} dokumen · {pageCount} halaman PDF · {lineCount} baris teks
@@ -38,24 +25,30 @@ export default function SharedKnowledgeBase() {
           Ini bukan knowledge base pribadi Mentor,
           bukan bukti kesiapan SIJK, dan bukan pengganti keputusan otoritas resmi.
         </p>
-        <label className="block text-sm">
+          <label className="block text-sm">
           Cari sumber
           <input value={search} onChange={event => setSearch(event.target.value)} type="search"
+              data-testid="knowledge-source-search"
             className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-foreground"
             placeholder="Judul, ID sumber, atau nama file" />
         </label>
         <ul className="grid gap-2 md:grid-cols-2" aria-label="Daftar sumber knowledge base">
-          {documents.map(doc => <li key={doc.id} className="rounded-lg border border-border p-3 text-sm">
+          {documents.map(doc => {
+            const source = describeKnowledgeSource(doc.kind);
+            return <li key={doc.id} className="rounded-lg border border-border p-3 text-sm">
             <p className="font-semibold text-foreground">{doc.id} · {doc.title}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{labels[doc.kind]} · {doc.format === "text"
+            <p className="mt-1 text-xs text-muted-foreground">{source.label} · {doc.format === "text"
               ? `${doc.entryCount} entri · ${doc.lineCount} baris teks`
               : `${doc.pageCount} halaman PDF`}</p>
+            <p className="mt-1 text-xs font-medium text-foreground">{source.classification}</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">Status penggunaan: {source.status}</p>
             <p className="mt-1 break-all text-xs text-muted-foreground">{doc.fileName}</p>
             {doc.note && <p className="mt-2 text-xs text-foreground">Catatan sumber: {doc.note}</p>}
             {doc.visualSummaryPages.length > 0 && <p className="mt-2 text-xs text-muted-foreground">
               Halaman {doc.visualSummaryPages.join(", ")} berupa ringkasan visual pindai, bukan transkripsi lengkap.
             </p>}
-          </li>)}
+          </li>;
+          })}
         </ul>
         {documents.length === 0 && <p role="status" className="text-sm text-muted-foreground">Tidak ada sumber yang cocok.</p>}
         <p className="text-xs text-muted-foreground">

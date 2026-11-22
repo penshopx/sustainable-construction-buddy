@@ -17,6 +17,18 @@ test("rute publik utama dari build aplikasi aktif dapat dibuka", async ({ page }
   await expect(page.getByRole("heading", { name: "Ruang kolaborasi untuk BUJK yang terus bertumbuh.", level: 1 })).toBeVisible();
 });
 
+test("homepage memperkenalkan Pakar Cerdas dan membuka toko eksternal tanpa meneruskan data", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("home-pakar-cerdas")).toBeVisible();
+  await expect(page.getByTestId("link-home-pakar-cerdas")).toHaveAttribute("href", "/helpdesk");
+  const storeLink = page.getByTestId("link-home-gustafta-store");
+  await expect(storeLink).toHaveAttribute("href", "https://gustafta.my.id/store");
+  await expect(storeLink).toHaveAttribute("target", "_blank");
+  await expect(storeLink).toHaveAttribute("rel", /noopener.*noreferrer/);
+  await expect(storeLink).toHaveAttribute("referrerpolicy", "no-referrer");
+  await expect(page.getByText(/tidak meneruskan percakapan atau data PUB/)).toBeVisible();
+});
+
 test("Ruang Simpan dimuat dari bundle sendiri pada jalur PUB", async ({ page }) => {
   const response = await page.goto("/ruang-simpan/");
   expect(response?.status()).toBe(200);
@@ -229,6 +241,7 @@ const emptyTables = new Set([
   "aspekindo_lms_lesson_progress", "aspekindo_lms_quiz_attempts",
   "aspekindo_lms_completion_records", "aspekindo_learning_agendas",
   "aspekindo_lms_sessions", "aspekindo_lms_lessons",
+  "helpdesk_conversations", "helpdesk_messages", "custom_chatbots",
 ]);
 
 async function installAuthenticatedFixture(page, { user = member, asAdmin = false, asSuperAdmin = false, roleCheck = null, assessment = null, accounts = null, lms = null, lmsAccounts = null, preserveLmsState = false } = {}) {
@@ -614,6 +627,84 @@ async function installAuthenticatedFixture(page, { user = member, asAdmin = fals
 }
 
 test.describe("halaman anggota dengan sesi tiruan", () => {
+  test("Pakar Cerdas menampilkan cakupan, pencarian sumber, tautan toko, dan persetujuan privat terpisah", async ({ page }) => {
+    const unexpected = await installAuthenticatedFixture(page);
+    const chatRequests = [];
+    const conversationId = "00000000-0000-4000-8000-000000000090";
+    await page.route("**/api/helpdesk/status**", async route => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ state: "configured", message: "metadata only", checkedAt: new Date().toISOString() }),
+    }));
+    await page.route("**/api/ruang-simpan/workspace/summary**", async route => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        profile: { name: "Profil uji", version: 0 },
+        documentCount: 0,
+        readyDocumentCount: 0,
+        checkedAt: new Date().toISOString(),
+      }),
+    }));
+    await page.route("**/api/helpdesk", async route => {
+      chatRequests.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          reply: "Jawaban uji [KB18, hlm. 3]",
+          engine: "claude",
+          model: "anthropic/claude-sonnet-4.5",
+        }),
+      });
+    });
+    await page.route(/https:\/\/[^/]+\.supabase\.co\/rest\/v1\/helpdesk_conversations(?:\?.*)?$/, async route => {
+      const request = route.request();
+      if (request.method() === "POST") {
+        const input = request.postDataJSON();
+        const row = { id: conversationId, ...input, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify(request.headers().accept?.includes("vnd.pgrst.object") ? row : [row]),
+        });
+      } else if (request.method() === "PATCH" || request.method() === "DELETE") {
+        await route.fulfill({ status: 204, body: "" });
+      } else {
+        await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      }
+    });
+    await page.route(/https:\/\/[^/]+\.supabase\.co\/rest\/v1\/helpdesk_messages(?:\?.*)?$/, async route => {
+      if (route.request().method() === "GET") await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
+      else await route.fulfill({ status: 201, body: "" });
+    });
+
+    await page.goto("/helpdesk");
+    await expect(page.getByTestId("pakar-cerdas-overview")).toBeVisible();
+    await expect(page.getByText(/regulasi, materi pengetahuan, skema\/kompetensi/)).toBeVisible();
+    const storeLink = page.getByTestId("link-pakar-gustafta-store");
+    await expect(storeLink).toHaveAttribute("href", "https://gustafta.my.id/store");
+    await expect(storeLink).toHaveAttribute("target", "_blank");
+    await expect(storeLink).toHaveAttribute("rel", /noopener.*noreferrer/);
+    await expect(storeLink).toHaveAttribute("referrerpolicy", "no-referrer");
+
+    const vaultConsent = page.getByRole("checkbox", { name: /Gunakan acuan bisnis Ruang Simpan/ });
+    await expect(vaultConsent).not.toBeChecked();
+    const sourceDetails = page.getByTestId("shared-knowledge-base");
+    await sourceDetails.locator("summary").click();
+    await page.getByTestId("knowledge-source-search").fill("KB45");
+    await expect(sourceDetails.locator("li")).toHaveCount(1);
+    await expect(sourceDetails.getByText("Draf pemetaan")).toBeVisible();
+    await expect(sourceDetails.getByText(/Status penggunaan: Asal dan versi belum terverifikasi/)).toBeVisible();
+
+    await page.getByPlaceholder("Ketik pertanyaan Anda...").fill("Apa tujuan PUB?");
+    await page.locator("form").last().locator('button[type="submit"]').click();
+    await expect(page.getByText("Jawaban uji [KB18, hlm. 3]")).toBeVisible();
+    expect(chatRequests).toHaveLength(1);
+    expect(chatRequests[0].use_vault_context).toBe(false);
+    expect(unexpected).toEqual([]);
+  });
+
   test("draf assessment pulih otomatis setelah jaringan browser benar-benar offline lalu reload", async ({ page, context }) => {
     const assessment = { started: null, checks: [], submissions: [], submitted: false, liveCountdown: true };
     const unexpected = await installAuthenticatedFixture(page, { assessment });

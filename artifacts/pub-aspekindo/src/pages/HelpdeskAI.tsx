@@ -5,7 +5,7 @@ import SharedKnowledgeBase from "@/components/chatbot/SharedKnowledgeBase";
 import SchemeReferencePanel from "@/components/chatbot/SchemeReferencePanel";
 import HermesBg001Chat from "@/components/chatbot/HermesBg001Chat";
 import { useSuperAdmin } from "@/hooks/useSuperAdmin";
-import { Bot, Send, Loader2, Trash2, Sparkles, Plus, MessageSquare, ChevronLeft, Search, X, GraduationCap, Briefcase, FolderKanban, Brain, Store } from "lucide-react";
+import { Bot, Send, Loader2, Trash2, Sparkles, Plus, MessageSquare, ChevronLeft, Search, X, GraduationCap, Briefcase, FolderKanban, Brain, Store, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -192,6 +192,45 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
     <div className="space-y-4">
       <ChatbotBuilderWizard open={showWizard} onOpenChange={setShowWizard} onSubmit={createChatbot} />
 
+      <section
+        data-testid="pakar-cerdas-overview"
+        aria-labelledby="pakar-cerdas-overview-title"
+        className="rounded-xl border border-primary/20 bg-primary/5 p-4 md:p-5"
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="max-w-3xl space-y-2">
+            <h2 id="pakar-cerdas-overview-title" className="font-heading text-lg font-bold text-foreground">
+              Rujukan konstruksi dengan sumber yang dapat diperiksa
+            </h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Pakar Cerdas menelusuri regulasi, materi pengetahuan, skema/kompetensi, usulan,
+              statistik, dan perspektif pelaku usaha yang tersedia di knowledge base bersama.
+              Buka daftar sumber di bawah untuk mencari ID, jenis, dan batas penggunaannya.
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Korpus adalah kumpulan berkas yang tersedia, bukan jaminan kelengkapan atau status regulasi terbaru.
+              Kutipan membantu menelusuri sumber, tetapi tidak menggantikan pemeriksaan isi dan keputusan otoritas.
+              Profil atau dokumen Ruang Simpan hanya menjadi konteks AI bila Anda mengaktifkan persetujuan terpisah di bawah.
+            </p>
+          </div>
+          <a
+            href="https://gustafta.my.id/store"
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+            data-testid="link-pakar-gustafta-store"
+            className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold text-foreground transition hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <Store className="h-4 w-4" aria-hidden="true" />
+            Produk AI Gustafta
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Tautan toko hanya membuka situs eksternal; tidak ada akun, percakapan, profil, atau dokumen PUB yang dikirim ke Gustafta.
+        </p>
+      </section>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -261,7 +300,8 @@ function HelpdeskContent({ isSuperAdmin, superAdminLoading }: { isSuperAdmin: bo
           <p className="mb-3 text-xs text-muted-foreground">
             Harness baca-saja: referensi sesuai skema → model pilihan → pemeriksaan jawaban.
             Maksimum satu panggilan model per permintaan API; tanpa tindakan otomatis.
-            Pada chat skema, tautan kutipan diperiksa dan jawaban tanpa kutipan diberi peringatan.
+            Pada chat skema dan knowledge base, ID serta lokasi kutipan diperiksa terhadap konteks yang dikirim;
+            jawaban tanpa kutipan diberi peringatan. Pemeriksaan ini bukan validasi makna atau status hukum.
           </p>
           <SchemeChatControls value={schemeProfile} disabled={isLoading} onAsk={sendMessage} onChange={profile => {
             startNewConversation();
