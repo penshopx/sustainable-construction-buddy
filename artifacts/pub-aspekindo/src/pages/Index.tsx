@@ -15,6 +15,7 @@ const SiapPubSection = lazy(() => import("@/components/SiapPubSection"));
 const ProjectEcosystemSection = lazy(() => import("@/components/ProjectEcosystemSection"));
 const AspekindoLearningSection = lazy(() => import("@/components/AspekindoLearningSection"));
 const DokumenProyekSection = lazy(() => import("@/components/DokumenProyekSection"));
+const PakarCerdasSection = lazy(() => import("@/components/PakarCerdasSection"));
 const SocialProofSection = lazy(() => import("@/components/SocialProofSection"));
 const EngineCards = lazy(() => import("@/components/EngineCards"));
 const TeamSection = lazy(() => import("@/components/TeamSection"));
@@ -155,6 +156,10 @@ const Index = () => {
 
       {/* Official industry and PUB publication center */}
       <InformationLandingSection />
+
+      <LazySection minHeight={500}>
+        <PakarCerdasSection />
+      </LazySection>
 
       <div id="jelajahi-bagian" className="scroll-mt-4 bg-[hsl(220,65%,11%)] px-5 pt-5 text-white md:hidden">
         <h2 className="font-heading text-lg font-bold">Jelajahi bagian PUB</h2>
